@@ -18,5 +18,6 @@ func Checks() []model.Check {
 		FunctionLength(),
 		EnvRead(),
 		BareContext(),
+		WallClock(),
 	}
 }

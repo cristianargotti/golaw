@@ -18,3 +18,7 @@ checks:
     code: bare-context
     red: testdata/goast.bare-context/red
     near: testdata/goast.bare-context/near
+  - id: goast.wall-clock
+    code: wall-clock
+    red: testdata/goast.wall-clock/red
+    near: testdata/goast.wall-clock/near
