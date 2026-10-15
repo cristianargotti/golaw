@@ -26,3 +26,7 @@ checks:
     code: bare-nolint
     red: testdata/text.bare-nolint/red
     near: testdata/text.bare-nolint/near
+  - id: text.nolint-nilnil
+    code: nolint-nilnil
+    red: testdata/text.nolint-nilnil/red
+    near: testdata/text.nolint-nilnil/near
