@@ -17,7 +17,7 @@ const commitRule = "rules/4.12@1"
 
 // Checks lists every check of the family in report order.
 func Checks() []model.Check {
-	return []model.Check{NoVerify(), Trailers(), Dashes(), BodyWidth(), Shape(), SecretTokens()}
+	return []model.Check{NoVerify(), Trailers(), Dashes(), BodyWidth(), Shape(), SecretTokens(), CredentialPrint()}
 }
 
 // spec builds the specification of a commit law check: event scope, the

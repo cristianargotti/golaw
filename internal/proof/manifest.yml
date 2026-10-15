@@ -70,3 +70,7 @@ checks:
     code: secret-token
     red: testdata/shell.secret-tokens/red
     near: testdata/shell.secret-tokens/near
+  - id: shell.credential-print
+    code: credential-print
+    red: testdata/shell.credential-print/red
+    near: testdata/shell.credential-print/near

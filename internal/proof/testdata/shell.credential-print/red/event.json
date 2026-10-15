@@ -1,0 +1,1 @@
+{"shape":"shell","agent":"tester","tool":"Bash","shell":{"command":"gh auth token","cwd":"/work","tool":"Bash"}}
