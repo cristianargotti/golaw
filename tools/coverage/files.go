@@ -104,10 +104,22 @@ func needsCoverage(path string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("parse %s: %w", path, err)
 	}
-	for _, decl := range file.Decls {
-		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Body != nil && len(fn.Body.List) > 0 {
-			return true, nil
+	return hasStatements(file), nil
+}
+
+// hasStatements reports whether a function of the file has a statement, a
+// function literal included: the profile measures a file whose code all
+// sits in package-level literals, so the floors must see that file too.
+func hasStatements(file *ast.File) bool {
+	found := false
+	ast.Inspect(file, func(n ast.Node) bool {
+		switch fn := n.(type) {
+		case *ast.FuncDecl:
+			found = found || fn.Body != nil && len(fn.Body.List) > 0
+		case *ast.FuncLit:
+			found = found || len(fn.Body.List) > 0
 		}
-	}
-	return false, nil
+		return !found
+	})
+	return found
 }

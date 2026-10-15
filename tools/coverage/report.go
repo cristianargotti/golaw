@@ -35,17 +35,17 @@ func (r *report) String() string {
 	return strings.Join(out, "\n") + "\n"
 }
 
-// evaluate computes the total, the package and the file percentages.
-// A source absent from the profile counts as one uncovered statement, so
-// it fails the file floor and lowers its package.
+// evaluate computes the total, the package and the file percentages over
+// the sources alone: a profile entry outside them, a generated file or a
+// file of another module, has no author here to hold to the floors. A
+// source absent from the profile counts as one uncovered statement, so it
+// fails the file floor and lowers its package.
 func evaluate(files map[string]*fileCoverage, sources []string, f floors) report {
-	perFile := make(map[string]tally, len(files))
-	for name, fc := range files {
-		perFile[name] = fc.totals()
-	}
+	perFile := make(map[string]tally, len(sources))
 	for _, src := range sources {
-		if _, ok := perFile[src]; !ok {
-			perFile[src] = tally{stmts: 1}
+		perFile[src] = tally{stmts: 1}
+		if fc, ok := files[src]; ok {
+			perFile[src] = fc.totals()
 		}
 	}
 	perPackage := make(map[string]tally)
