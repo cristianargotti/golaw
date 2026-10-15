@@ -10,6 +10,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
+//nolint:unparam // The shared frame builder keeps the event parameter for post-event callers.
 func frame(t *testing.T, event, tool, cwd string, input any) []byte {
 	t.Helper()
 	data, err := json.Marshal(map[string]any{
