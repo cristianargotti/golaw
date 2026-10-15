@@ -15,5 +15,6 @@ import "github.com/cristianargotti/golaw/internal/model"
 func Checks() []model.Check {
 	return []model.Check{
 		FileLength(),
+		FunctionLength(),
 	}
 }

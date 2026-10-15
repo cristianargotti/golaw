@@ -6,3 +6,7 @@ checks:
     code: file-length
     red: testdata/goast.file-length/red
     near: testdata/goast.file-length/near
+  - id: goast.function-length
+    code: function-length
+    red: testdata/goast.function-length/red
+    near: testdata/goast.function-length/near
