@@ -14,16 +14,20 @@ import (
 type fake struct {
 	id       string
 	owner    string
+	rule     string
 	requires []string
 	result   model.Result
 }
 
 func (f fake) Spec() model.Spec {
-	owner := f.owner
+	owner, rule := f.owner, f.rule
 	if owner == "" {
 		owner = model.OwnerCore
 	}
-	return model.Spec{ID: f.id, Rule: "rules/4.1@1", Scope: model.ScopeFile, Owner: owner, Proof: f.id, Requires: f.requires}
+	if rule == "" {
+		rule = "rules/4.1@1"
+	}
+	return model.Spec{ID: f.id, Rule: rule, Scope: model.ScopeFile, Owner: owner, Proof: f.id, Requires: f.requires}
 }
 
 func (f fake) Run(context.Context, model.Input) (model.Result, error) { return f.result, nil }
@@ -100,6 +104,14 @@ func TestRulesetDigestOrdersByID(t *testing.T) {
 	}
 	if report.RulesetDigest([]model.Check{a}) == report.RulesetDigest([]model.Check{b}) || len(report.RulesetDigest(nil)) != 64 {
 		t.Error("the digest ignores the ids")
+	}
+}
+
+func TestRulesetDigestChangesWithTheRuleVersion(t *testing.T) {
+	t.Parallel()
+	before, after := fake{id: "text.a", rule: "rules/4.1@1"}, fake{id: "text.a", rule: "rules/4.1@2"}
+	if report.RulesetDigest([]model.Check{before}) == report.RulesetDigest([]model.Check{after}) {
+		t.Error("a rule version bump must change the digest")
 	}
 }
 
