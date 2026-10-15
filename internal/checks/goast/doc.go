@@ -29,5 +29,6 @@ func Checks() []model.Check {
 		Goleak(),
 		AdapterPackageSize(),
 		SonarEmptyBody(),
+		SonarLiteralRepeat(),
 	}
 }

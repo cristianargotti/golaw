@@ -62,3 +62,7 @@ checks:
     code: empty-body
     red: testdata/goast.sonar-empty-body/red
     near: testdata/goast.sonar-empty-body/near
+  - id: goast.sonar-literal-repeat
+    code: literal-repeat
+    red: testdata/goast.sonar-literal-repeat/red
+    near: testdata/goast.sonar-literal-repeat/near
