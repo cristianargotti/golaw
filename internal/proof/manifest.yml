@@ -14,3 +14,7 @@ checks:
     code: env-read
     red: testdata/goast.env-read/red
     near: testdata/goast.env-read/near
+  - id: goast.bare-context
+    code: bare-context
+    red: testdata/goast.bare-context/red
+    near: testdata/goast.bare-context/near

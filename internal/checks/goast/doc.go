@@ -17,5 +17,6 @@ func Checks() []model.Check {
 		FileLength(),
 		FunctionLength(),
 		EnvRead(),
+		BareContext(),
 	}
 }
