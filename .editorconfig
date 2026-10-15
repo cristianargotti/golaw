@@ -1,0 +1,22 @@
+# Editor defaults shared by every contributor: UTF-8, LF, a final newline,
+# tabs in Go and in the Makefile, two spaces in YAML, JSON and Markdown.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.go]
+indent_style = tab
+
+[Makefile]
+indent_style = tab
+
+[*.{yml,yaml,json,md}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

@@ -1,0 +1,13 @@
+# Build outputs (root-anchored so that cmd/golaw stays tracked)
+/golaw
+/golaw.exe
+/dist/
+
+# Coverage
+coverage.out
+coverage.html
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/

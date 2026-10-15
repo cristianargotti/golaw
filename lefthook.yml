@@ -1,0 +1,10 @@
+# The kit's own rungs, opt-in: nothing here runs until a developer arms the
+# hooks with lefthook install, and remote CI (make ci) is the only gate.
+# Every rung is one call of the binary built from this tree, so a rung never
+# depends on a shell, awk or make being present.
+min_version: 2.1.0
+
+pre-commit:
+  commands:
+    scan:
+      run: go run ./cmd/golaw scan .

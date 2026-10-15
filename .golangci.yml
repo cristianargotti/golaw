@@ -1,0 +1,387 @@
+# golangci-lint v2 configuration: the strict set of the standard adapted to
+# a command line tool with no database and no HTTP service. Depguard draws
+# the package boundaries of section 5.1 of the design instead of hexagonal
+# layers, and the only direct dependencies are cobra and yaml.
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  default: standard
+  enable:
+    - asasalint
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - depguard
+    - dupl
+    - dupword
+    - durationcheck
+    - err113
+    - embeddedstructfieldcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - funcorder
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - godoclint
+    - godot
+    - godox
+    - gomoddirectives
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - iface
+    - inamedparam
+    - interfacebloat
+    - intrange
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - mnd
+    - modernize
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - reassign
+    - recvcheck
+    - revive
+    - sloglint
+    - testableexamples
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+    - wrapcheck
+  settings:
+    wrapcheck:
+      # Every error that crosses a package boundary carries the package and
+      # the action it failed at, so a hook reason names the layer without a
+      # stack trace; %w keeps errors.Is working on the sentinels underneath.
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+        - context.Context).Err(
+    depguard:
+      # The package direction of section 5.1: model imports nothing internal,
+      # engine imports model, the check families import model, the catalog
+      # composes them, and the only third-party modules are cobra and yaml.
+      rules:
+        model:
+          list-mode: strict
+          files:
+            - "!$test"
+            - "**/internal/model/**"
+          allow:
+            - $gostd
+        engine:
+          list-mode: strict
+          files:
+            - "!$test"
+            - "**/internal/engine/**"
+          allow:
+            - $gostd
+            - github.com/cristianargotti/golaw/internal/model
+        source:
+          list-mode: strict
+          files:
+            - "!$test"
+            - "**/internal/source/**"
+          allow:
+            - $gostd
+            - github.com/cristianargotti/golaw/internal/model
+        families:
+          list-mode: strict
+          files:
+            - "!$test"
+            - "**/internal/checks/**"
+            - "!**/internal/checks/catalog.go"
+          allow:
+            - $gostd
+            - github.com/cristianargotti/golaw/internal/model
+        catalog:
+          list-mode: strict
+          files:
+            - "!$test"
+            - "**/internal/checks/catalog.go"
+          allow:
+            - $gostd
+            - github.com/cristianargotti/golaw/internal/model
+            - github.com/cristianargotti/golaw/internal/engine
+            - github.com/cristianargotti/golaw/internal/checks
+        policy:
+          list-mode: strict
+          files:
+            - "!$test"
+            - "**/internal/policy/**"
+          allow:
+            - $gostd
+            - github.com/cristianargotti/golaw/internal/model
+            - gopkg.in/yaml.v3
+        proof:
+          list-mode: strict
+          files:
+            - "!$test"
+            - "**/internal/proof/**"
+          allow:
+            - $gostd
+            - github.com/cristianargotti/golaw/internal/model
+            - github.com/cristianargotti/golaw/internal/engine
+            - gopkg.in/yaml.v3
+        cmd:
+          list-mode: strict
+          files:
+            - "**/cmd/**"
+          allow:
+            - $gostd
+            - github.com/cristianargotti/golaw
+            - github.com/spf13/cobra
+            - github.com/spf13/pflag
+        main:
+          list-mode: lax
+          deny:
+            - pkg: io/ioutil
+              desc: deprecated since Go 1.16, use io and os
+            - pkg: github.com/pkg/errors
+              desc: use fmt.Errorf with %w and the standard errors package
+            - pkg: math/rand$
+              desc: use math/rand/v2 or crypto/rand
+            - pkg: github.com/sirupsen/logrus
+              desc: log/slog is the logger of this tool
+    godot:
+      scope: toplevel
+      capital: false
+    iface:
+      enable:
+        - identical
+        - unused
+        - opaque
+    paralleltest:
+      # t.Setenv, t.Chdir and shared fixtures are the only reasons a test is serial.
+      ignore-missing: false
+    usetesting:
+      context-background: true
+      context-todo: true
+      os-setenv: true
+      os-temp-dir: true
+    testpackage:
+      # White-box tests live in *_internal_test.go; everything else is black box.
+      skip-regexp: (export|internal)_test\.go
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      exclude-functions:
+        - (io.Closer).Close
+        - (io.ReadCloser).Close
+        - (io/fs.File).Close
+        - (*os.File).Close
+    dupl:
+      threshold: 80
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+      ignore-calls: false
+      ignore-string-values:
+        - '^(%[a-z]|[\s:,()])+$'
+    mnd:
+      ignored-numbers:
+        - "0"
+        - "1"
+        - "2"
+        - "10"
+        - "100"
+        - "1000"
+        - "1024"
+    nestif:
+      min-complexity: 4
+    nakedret:
+      max-func-lines: 0
+    funlen:
+      # Function size law: 40 lines and 40 statements, comments excluded.
+      lines: 40
+      statements: 40
+      ignore-comments: true
+    gocognit:
+      min-complexity: 15
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+    forbidigo:
+      # Time enters as a parameter or through a clock function so every
+      # package is testable at its boundary; cmd and the tests read the clock.
+      forbid:
+        - pattern: ^float32$
+          msg: a float32 loses precision the standard forbids; use float64
+        - pattern: ^time\.Now$
+          msg: time enters as a parameter or a clock function (cmd reads the clock)
+        - pattern: ^time\.Since$
+          msg: time enters as a parameter or a clock function (cmd reads the clock)
+        - pattern: ^time\.Until$
+          msg: time enters as a parameter or a clock function (cmd reads the clock)
+      analyze-types: true
+    gosmopolitan:
+      allow-time-local: false
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - hugeParam
+        - unnamedResult
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    misspell:
+      locale: US
+      # Comments only: the human channel strings are in the configured language.
+      mode: restricted
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        - name: defer
+        - name: datarace
+        - name: atomic
+        - name: waitgroup-by-value
+        - name: time-equal
+        - name: identical-branches
+        - name: unconditional-recursion
+        - name: modifies-value-receiver
+        - name: deep-exit
+        - name: import-shadowing
+        - name: struct-tag
+        - name: unhandled-error
+        - name: range-val-address
+        - name: string-of-int
+        - name: use-errors-new
+        - name: redundant-build-tag
+        - name: file-length-limit
+          arguments:
+            - max: 300
+              skipComments: false
+              skipBlankLines: false
+        - name: function-length
+          arguments: [0, 40]
+    sloglint:
+      no-mixed-args: true
+      attr-only: true
+      static-msg: true
+      context: scope
+      key-naming-case: snake
+    staticcheck:
+      checks:
+        - all
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - noctx
+          - bodyclose
+          # Table-driven tests are one function by design; the file limit still applies.
+          - funlen
+          # Fixtures and expected values are literals by nature.
+          - mnd
+          - goconst
+          - dupl
+          - gochecknoglobals
+          - musttag
+      # The model declares the interfaces every other package implements or
+      # consumes; by design nothing inside the model uses them.
+      - path: internal/model/
+        linters:
+          - iface
+      # The clock belongs to the edges: cmd and the tests read it.
+      - path: (^cmd/|_test\.go)
+        text: time enters as a parameter
+        linters:
+          - forbidigo
+
+formatters:
+  enable:
+    - gofumpt
+    - gci
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/cristianargotti/golaw)
+    gofumpt:
+      module-path: github.com/cristianargotti/golaw
+      extra:
+        group-params: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  formats:
+    text:
+      path: stdout
+      colors: false
+  show-stats: true
