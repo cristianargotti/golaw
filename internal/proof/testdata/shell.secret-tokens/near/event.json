@@ -1,0 +1,1 @@
+{"shape":"shell","agent":"tester","tool":"Bash","shell":{"command":"cat internal/credentials.go","cwd":"/work","tool":"Bash"}}

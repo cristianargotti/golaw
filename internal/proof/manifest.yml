@@ -66,3 +66,7 @@ checks:
     code: commit-shape
     red: testdata/shell.shape/red
     near: testdata/shell.shape/near
+  - id: shell.secret-tokens
+    code: secret-token
+    red: testdata/shell.secret-tokens/red
+    near: testdata/shell.secret-tokens/near
