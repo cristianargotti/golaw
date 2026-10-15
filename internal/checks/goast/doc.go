@@ -27,5 +27,6 @@ func Checks() []model.Check {
 		SentinelDecl(),
 		SecretFields(),
 		Goleak(),
+		AdapterPackageSize(),
 	}
 }

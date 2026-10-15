@@ -54,3 +54,7 @@ checks:
     code: goleak
     red: testdata/goast.goleak/red
     near: testdata/goast.goleak/near
+  - id: goast.adapter-package-size
+    code: adapter-package-size
+    red: testdata/goast.adapter-package-size/red
+    near: testdata/goast.adapter-package-size/near
