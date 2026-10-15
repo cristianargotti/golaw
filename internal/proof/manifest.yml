@@ -10,3 +10,7 @@ checks:
     code: trace-term
     red: testdata/text.trace-terms/red
     near: testdata/text.trace-terms/near
+  - id: text.tool-terms
+    code: tool-term
+    red: testdata/text.tool-terms/red
+    near: testdata/text.tool-terms/near

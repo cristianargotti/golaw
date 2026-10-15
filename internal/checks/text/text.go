@@ -17,7 +17,7 @@ const rule = "rules/4.1@1"
 
 // Checks lists every check of the family in report order.
 func Checks() []model.Check {
-	return []model.Check{Dashes(), TraceTerms()}
+	return []model.Check{Dashes(), TraceTerms(), ToolTerms()}
 }
 
 // spec builds the specification every text check shares: file scope, the
