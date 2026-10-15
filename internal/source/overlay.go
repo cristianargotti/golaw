@@ -47,11 +47,11 @@ type Overlay struct {
 // overlay with the candidates the event carries: the operation settled
 // against the base (a whole-content write of an absent path is a create,
 // of a present path a replace), Reconstructed true when the whole content
-// is known and BaseHash the hash of the base content an edit or a replace
-// was applied to. A path that escapes the root is ErrEscapedRoot; a path
-// that is or traverses a symbolic link of the base is ErrUnsafeLink; a
-// bound hash that differs from the base is ErrBaseMismatch; everything
-// else the overlay cannot apply is ErrOverlay.
+// is known and BaseHash the hash of the content an edit, a replace, a
+// deletion or a move started from. A path that escapes the root is
+// ErrEscapedRoot; a path that is or traverses a symbolic link of the base
+// is ErrUnsafeLink; a bound hash that differs from the base is
+// ErrBaseMismatch; everything else the overlay cannot apply is ErrOverlay.
 func NewOverlay(base model.Snapshot, muts []Mutation) (*Overlay, []model.Candidate, error) {
 	o := &Overlay{
 		base:    base,
@@ -134,7 +134,7 @@ func (o *Overlay) apply(m Mutation) (model.Candidate, error) {
 	case model.CandidateEdit:
 		return o.edit(rel, m)
 	case model.CandidateDelete:
-		return o.remove(rel)
+		return o.remove(rel, m)
 	case model.CandidateMove:
 		return o.move(rel, m)
 	default:
@@ -198,17 +198,23 @@ func (o *Overlay) edit(rel string, m Mutation) (model.Candidate, error) {
 	return c, nil
 }
 
-// remove folds a deletion of a present path.
-func (o *Overlay) remove(rel string) (model.Candidate, error) {
+// remove folds a deletion of a present path, bound to the content it
+// removes, so a deletion decided on bytes the agent never saw is refused.
+func (o *Overlay) remove(rel string, m Mutation) (model.Candidate, error) {
 	if !o.present(rel) {
 		return model.Candidate{}, fmt.Errorf("%w: delete of absent %s", ErrOverlay, rel)
 	}
+	hash, err := o.bind(rel, m.BaseHash)
+	if err != nil {
+		return model.Candidate{}, err
+	}
 	o.drop(rel)
-	return model.Candidate{Path: rel, Op: model.CandidateDelete, Reconstructed: true}, nil
+	return model.Candidate{Path: rel, Op: model.CandidateDelete, Reconstructed: true, BaseHash: hash}, nil
 }
 
 // move folds a move: the destination takes the source content, with the
-// edits applied when there are any, and the source leaves the universe.
+// edits applied when there are any, and the source leaves the universe;
+// the source content is bound for the same reason as a deletion's.
 func (o *Overlay) move(rel string, m Mutation) (model.Candidate, error) {
 	from, err := o.target(m.From)
 	if err != nil {
@@ -217,7 +223,11 @@ func (o *Overlay) move(rel string, m Mutation) (model.Candidate, error) {
 	if !o.present(from) {
 		return model.Candidate{}, fmt.Errorf("%w: move of absent %s", ErrOverlay, from)
 	}
-	c := model.Candidate{Path: rel, Op: model.CandidateMove, From: from, Reconstructed: true}
+	hash, err := o.bind(from, m.BaseHash)
+	if err != nil {
+		return model.Candidate{}, err
+	}
+	c := model.Candidate{Path: rel, Op: model.CandidateMove, From: from, Reconstructed: true, BaseHash: hash}
 	content, readable := o.bytes(from)
 	tracked := o.tracked(from)
 	if len(m.Edits) > 0 && readable {

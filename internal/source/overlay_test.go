@@ -149,6 +149,8 @@ func TestOverlayRefusals(t *testing.T) {
 		"edit binary":    {source.Mutation{Path: "bin", Op: model.CandidateEdit, Edits: []source.Edit{{Old: "a", New: "b"}}}, source.ErrOverlay},
 		"edit nothing":   {source.Mutation{Path: "a.go", Op: model.CandidateEdit}, source.ErrOverlay},
 		"delete absent":  {source.Mutation{Path: "gone.go", Op: model.CandidateDelete}, source.ErrOverlay},
+		"stale delete":   {source.Mutation{Path: "a.go", Op: model.CandidateDelete, BaseHash: "0"}, source.ErrBaseMismatch},
+		"stale move":     {source.Mutation{Path: "b.go", Op: model.CandidateMove, From: "a.go", BaseHash: "0"}, source.ErrBaseMismatch},
 		"move absent":    {source.Mutation{Path: "b.go", Op: model.CandidateMove, From: "gone.go"}, source.ErrOverlay},
 		"move from link": {source.Mutation{Path: "b.go", Op: model.CandidateMove, From: "link"}, source.ErrUnsafeLink},
 		"unknown op":     {source.Mutation{Path: "a.go", Op: 0}, source.ErrOverlay},
@@ -165,9 +167,10 @@ func TestOverlayRefusals(t *testing.T) {
 
 func TestOverlayDeleteAndMove(t *testing.T) {
 	t.Parallel()
+	deleted, moved := source.ContentHash([]byte("x\n")), source.ContentHash([]byte("package a\n\nfunc A() {}\n"))
 	muts := []source.Mutation{
-		{Path: "docs/x.md", Op: model.CandidateDelete},
-		{Path: "b.go", Op: model.CandidateMove, From: "a.go", Edits: []source.Edit{{Old: "package a", New: "package b"}}},
+		{Path: "docs/x.md", Op: model.CandidateDelete, BaseHash: deleted},
+		{Path: "b.go", Op: model.CandidateMove, From: "a.go", BaseHash: moved, Edits: []source.Edit{{Old: "package a", New: "package b"}}},
 		{Path: "bin2", Op: model.CandidateMove, From: "bin"},
 	}
 	o, cands, err := source.NewOverlay(base(), muts)
@@ -176,6 +179,9 @@ func TestOverlayDeleteAndMove(t *testing.T) {
 	}
 	if cands[0].Op != model.CandidateDelete || cands[1].From != "a.go" || !cands[1].Reconstructed || cands[2].Op != model.CandidateMove {
 		t.Errorf("candidates = %+v", cands)
+	}
+	if cands[0].BaseHash != deleted || cands[1].BaseHash != moved || cands[2].BaseHash != "" {
+		t.Errorf("a deletion and a move carry the hash of the content they remove: %+v", cands)
 	}
 	for _, gone := range []string{"docs/x.md", "a.go", "bin"} {
 		if o.Class(gone) != model.ClassUnknown || !errors.Is(readErr(o, gone), model.ErrNotInSnapshot) {
