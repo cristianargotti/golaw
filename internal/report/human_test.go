@@ -52,27 +52,76 @@ func TestHumanNamesUnknownCodesAndUnmeasuredChecks(t *testing.T) {
 	}
 }
 
-// goastCodes are the finding codes the goast family emits, the funlen
-// statement count beside the line count.
-func goastCodes() []string {
-	return []string{
-		"file-length", "function-length", "function-statements", "env-read",
-		"bare-context", "wall-clock", "local-clock", "sql-from-strings",
-		"raw-error-response", "error-text-as-data", "init-if-err-nil", "sentinel-decl",
-		"secret-field", "goleak", "adapter-package-size", "empty-body",
-		"literal-repeat", "identical-functions",
+// TestHumanRendersPortugueseForEveryCode spells the sentence of every
+// finding code the M1 checks emit, so a row deleted from the table or a
+// sentence changed by mistake turns red instead of passing as the generic
+// sentence.
+func TestHumanRendersPortugueseForEveryCode(t *testing.T) {
+	t.Parallel()
+	for _, family := range []map[string]string{fileSentences(), goastSentences(), shellSentences()} {
+		for code, want := range family {
+			decision := engine.Decision{Mode: model.ModeHook, Verdict: engine.VerdictDeny, Findings: []model.Finding{
+				{Check: "family.sample", Path: "internal/a.go", Code: code, Message: "english message", Severity: model.SeverityDeny},
+			}}
+			got := report.Human(report.Portuguese, decision)
+			if got != "golaw bloqueou a operação: "+want+" (verificação family.sample, arquivo internal/a.go)." || strings.Contains(got, "english message") {
+				t.Errorf("%s = %q", code, got)
+			}
+		}
 	}
 }
 
-func TestHumanRendersPortugueseForEveryGoastCode(t *testing.T) {
-	t.Parallel()
-	for _, code := range goastCodes() {
-		decision := engine.Decision{Mode: model.ModeHook, Verdict: engine.VerdictDeny, Findings: []model.Finding{
-			{Check: "goast.sample", Path: "internal/a.go", Code: code, Message: "english message", Severity: model.SeverityDeny},
-		}}
-		got := report.Human(report.Portuguese, decision)
-		if strings.Contains(got, "english message") || !strings.HasSuffix(got, "(verificação goast.sample, arquivo internal/a.go).") {
-			t.Errorf("%s = %q", code, got)
-		}
+func fileSentences() map[string]string {
+	return map[string]string{
+		"em-dash":           "travessão no texto; use vírgula, dois pontos ou hífen",
+		"en-dash":           "meia-risca no texto; use vírgula, dois pontos ou hífen",
+		"trailer":           "trailer de commit no texto ou na mensagem; o kit não aceita trailers",
+		"trace-term":        "palavra de rastro de orquestração no texto; a árvore pública não carrega rastros de sessão",
+		"home-path":         "caminho absoluto de home no texto; use um caminho relativo ao repositório",
+		"tool-term":         "nome de ferramenta fora dos caminhos permitidos; a árvore pública não nomeia ferramentas",
+		"comment-language":  "comentário de código fora do inglês; comentários são em inglês e só explicam o porquê",
+		"todo-marker":       "marcador de tarefa no código; termine o trabalho ou registre a decisão",
+		"bare-nolint":       "supressão de lint sem o linter ou sem justificativa",
+		"nolint-nilnil":     "retorno nil, nil escondido atrás de uma supressão; responda um valor ou um sentinela tipado",
+		"debug-print":       "impressão na saída padrão em código de aplicação; escreva em um io.Writer ou no logger",
+		"binary-document":   "imagem ou documento fora de public/, manual/, fixtures/ ou testdata/",
+		"secret-file":       "arquivo com nome de material secreto na árvore; segredos nunca vivem no repositório",
+		"generated-ignored": "regra de ignore esconde uma árvore gerada; código gerado é versionado",
+		"secret-material":   "leitura de material secreto; segredos nunca entram no contexto",
+	}
+}
+
+func goastSentences() map[string]string {
+	return map[string]string{
+		"file-length":          "arquivo acima do limite de linhas da política; divida o arquivo por responsabilidade",
+		"function-length":      "função acima do limite de linhas da política; extraia passos com nome próprio",
+		"function-statements":  "função acima do limite de instruções da política; extraia passos com nome próprio",
+		"env-read":             "leitura de variável de ambiente fora da raiz de composição; receba o valor pela configuração",
+		"bare-context":         "contexto criado fora da raiz de composição; receba o contexto de quem chama",
+		"wall-clock":           "relógio do processo no domínio ou na aplicação; receba o tempo por parâmetro ou pela porta Clock",
+		"local-clock":          "relógio entregue aos contextos fora de UTC; entregue um relógio em UTC",
+		"sql-from-strings":     "consulta SQL montada a partir de strings; use as consultas geradas",
+		"raw-error-response":   "resposta de erro escrita fora do pacote de erros; responda pela porta única de erros",
+		"error-text-as-data":   "texto de um erro guardado como dado; guarde o erro, nunca o seu texto",
+		"init-if-err-nil":      "if com inicialização que testa err == nil; trate o erro primeiro",
+		"sentinel-decl":        "sentinela declarado fora de errors.go; declare os modos de falha do pacote em errors.go",
+		"secret-field":         "credencial em um campo string simples; use o tipo que oculta o valor",
+		"goleak":               "pacote que inicia goroutines sem teste de vazamento; adicione a verificação de goroutines",
+		"adapter-package-size": "raiz do pacote adaptador com arquivos demais; mova cada adaptador para o seu subpacote",
+		"empty-body":           "função com corpo vazio e sem comentário; implemente ou explique por que está vazia",
+		"literal-repeat":       "literal repetido no arquivo; extraia uma constante",
+		"identical-functions":  "duas funções idênticas no mesmo arquivo; reutilize uma delas",
+	}
+}
+
+func shellSentences() map[string]string {
+	return map[string]string{
+		"secret-token":     "o comando nomeia material secreto; segredos nunca entram no contexto",
+		"no-verify":        "o comando pula os hooks do git; os hooks são a regra",
+		"body-width":       "linha do corpo do commit acima de 100 caracteres; quebre o corpo",
+		"commit-shape":     "commit que não é feat carrega mais de um tema; divida por tema ou nomeie como feat",
+		"credential-print": "o comando imprime uma credencial; segredos nunca entram no contexto",
+		"push":             "git push negado pela política; a pessoa faz o push",
+		"pr":               "criação de pull request ou de repositório negada pela política; a pessoa abre",
 	}
 }
