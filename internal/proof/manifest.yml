@@ -78,3 +78,7 @@ checks:
     code: push
     red: testdata/shell.push/red
     near: testdata/shell.push/near
+  - id: shell.pr
+    code: pr
+    red: testdata/shell.pr/red
+    near: testdata/shell.pr/near
