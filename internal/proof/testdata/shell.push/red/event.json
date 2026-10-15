@@ -1,0 +1,1 @@
+{"shape":"shell","agent":"tester","tool":"Bash","shell":{"command":"git push origin main","cwd":"/work","tool":"Bash"}}
