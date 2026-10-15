@@ -97,6 +97,19 @@ func TestOverlayCreateAndReplace(t *testing.T) {
 	}
 }
 
+func TestOverlayKeepsItsOwnCopy(t *testing.T) {
+	t.Parallel()
+	content := []byte("package a\n")
+	o, _, err := source.NewOverlay(base(), []source.Mutation{{Path: "new.go", Op: model.CandidateCreate, Content: content}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	copy(content, "XXXXXXX")
+	if got := mustRead(t, o, "new.go"); got != "package a\n" {
+		t.Errorf("Read after the caller changed its slice = %q, want the bytes NewOverlay was given", got)
+	}
+}
+
 func TestOverlayEdit(t *testing.T) {
 	t.Parallel()
 	hash := source.ContentHash([]byte("package a\n\nfunc A() {}\n"))

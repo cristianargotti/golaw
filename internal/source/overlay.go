@@ -160,6 +160,8 @@ func (o *Overlay) target(given string) (string, error) {
 
 // write folds a whole-content write: a create of an absent path or a
 // replace of a present one, bound to the base content when there is one.
+// The content is copied: the caller keeps its slice, and a frozen
+// snapshot must not change under a write the caller makes later.
 func (o *Overlay) write(rel string, m Mutation) (model.Candidate, error) {
 	c := model.Candidate{Path: rel, Op: model.CandidateCreate, Reconstructed: true}
 	if o.present(rel) {
@@ -170,7 +172,7 @@ func (o *Overlay) write(rel string, m Mutation) (model.Candidate, error) {
 		}
 		c.BaseHash = hash
 	}
-	o.put(rel, m.Content, o.tracked(rel))
+	o.put(rel, bytes.Clone(m.Content), o.tracked(rel))
 	return c, nil
 }
 
