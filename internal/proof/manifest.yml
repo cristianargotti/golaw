@@ -50,3 +50,7 @@ checks:
     code: no-verify
     red: testdata/shell.no-verify/red
     near: testdata/shell.no-verify/near
+  - id: shell.trailers
+    code: trailer
+    red: testdata/shell.trailers/red
+    near: testdata/shell.trailers/near
