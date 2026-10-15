@@ -14,17 +14,17 @@ import (
 const gateSettings = `{
   "hooks": {
     "PreToolUse": [
-      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /home/me/.claude/skills/aws/classify.py"}]},
-      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /home/me/.claude/skills/standards/scripts/pcc_gate.py", "timeout": 20}]},
-      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /home/me/.claude/skills/standards/scripts/pcc_gate.py"}]},
-      {"matcher": "Read", "hooks": [{"type": "command", "command": "python3 /home/me/.claude/skills/standards/scripts/pcc_gate.py"}]}
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/hooks/classify.py"}]},
+      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py", "timeout": 20}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]},
+      {"matcher": "Read", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]}
     ],
     "PostToolUse": [
-      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /home/me/.claude/skills/standards/scripts/pcc_gate.py"}]},
-      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /home/me/.claude/skills/standards/scripts/pcc_gate.py"}]}
+      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]}
     ],
     "SessionStart": [
-      {"matcher": "startup", "hooks": [{"type": "command", "command": "python3 /home/me/.claude/skills/standards/scripts/pcc_gate.py"}]}
+      {"matcher": "startup", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]}
     ]
   }
 }`
