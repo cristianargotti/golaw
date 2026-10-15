@@ -18,3 +18,7 @@ checks:
     code: comment-language
     red: testdata/text.comment-language/red
     near: testdata/text.comment-language/near
+  - id: text.todo
+    code: todo-marker
+    red: testdata/text.todo/red
+    near: testdata/text.todo/near
