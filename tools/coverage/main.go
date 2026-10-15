@@ -4,8 +4,8 @@
 // default): the coverage law of the kit until golaw coverage ships. Blocks
 // reported by several test binaries count once, covered when any run
 // executed them; a source file with statements that is absent from the
-// profile counts as uncovered, so an untested package cannot pass
-// unnoticed. There is no exemption list.
+// profile fails on its own, whatever its size, so an untested package
+// cannot pass unnoticed. There is no exemption list.
 package main
 
 import (

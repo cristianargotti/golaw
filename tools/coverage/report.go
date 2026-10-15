@@ -38,15 +38,18 @@ func (r *report) String() string {
 // evaluate computes the total, the package and the file percentages over
 // the sources alone: a profile entry outside them, a generated file or a
 // file of another module, has no author here to hold to the floors. A
-// source absent from the profile counts as one uncovered statement, so it
-// fails the file floor and lowers its package.
+// source the profile leaves out fails on its own, whatever its size: no
+// run measured its statements, and an unmeasured file is not covered.
 func evaluate(files map[string]*fileCoverage, sources []string, f floors) report {
 	perFile := make(map[string]tally, len(sources))
+	var missing []string
 	for _, src := range sources {
-		perFile[src] = tally{stmts: 1}
-		if fc, ok := files[src]; ok {
-			perFile[src] = fc.totals()
+		fc, ok := files[src]
+		if !ok {
+			missing = append(missing, src)
+			continue
 		}
+		perFile[src] = fc.totals()
 	}
 	perPackage := make(map[string]tally)
 	var total tally
@@ -63,6 +66,9 @@ func evaluate(files map[string]*fileCoverage, sources []string, f floors) report
 	rep.add("total", map[string]tally{"all": total}, floors{percent: f.percent})
 	rep.add("package", perPackage, f)
 	rep.add("file", perFile, f)
+	for _, src := range missing {
+		rep.Failures = append(rep.Failures, "file "+src+" not in the profile")
+	}
 	return rep
 }
 

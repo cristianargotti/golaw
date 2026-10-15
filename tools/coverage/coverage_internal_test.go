@@ -40,7 +40,8 @@ func TestParseProfileMergesDuplicateBlocks(t *testing.T) {
 
 func TestEvaluateAppliesTheFloorsAndTheStatementMinimum(t *testing.T) {
 	t.Parallel()
-	files, err := parseProfile(strings.NewReader(sampleProfile))
+	// c.go is measured here, one statement that no run executed.
+	files, err := parseProfile(strings.NewReader(sampleProfile + "example.test/m/c/c.go:3.13,4.2 1 0\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +65,24 @@ func TestEvaluateAppliesTheFloorsAndTheStatementMinimum(t *testing.T) {
 	}
 	if (tally{}).percent() != 0 || (tally{stmts: 4, covered: 1}).percent() != 25 || (&report{}).String() != "" {
 		t.Fatal("percent or empty report is wrong")
+	}
+}
+
+func TestEvaluateFailsASourceTheProfileLeavesOut(t *testing.T) {
+	t.Parallel()
+	files, err := parseProfile(strings.NewReader(sampleProfile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sources := []string{"example.test/m/a/a.go", "example.test/m/b/b.go", "example.test/m/c/c.go"}
+	for _, minimum := range []int{1, 20} {
+		rep := evaluate(files, sources, floors{percent: 80, statements: minimum})
+		if len(rep.Failures) != 1 || rep.Failures[0] != "file example.test/m/c/c.go not in the profile" {
+			t.Fatalf("minimum %d: failures = %v", minimum, rep.Failures)
+		}
+	}
+	if measured := evaluate(files, sources[:2], floors{percent: 80, statements: 20}); len(measured.Failures) != 0 {
+		t.Fatalf("small measured scopes must not fail: %v", measured.Failures)
 	}
 }
 
@@ -140,5 +159,17 @@ func TestExecuteExitCodes(t *testing.T) {
 				t.Fatalf("the generated file was held to the floors: %q", stdout.String())
 			}
 		})
+	}
+}
+
+func TestExecuteFailsASourceTheProfileLeavesOut(t *testing.T) {
+	t.Parallel()
+	root := fixtureModule(t)
+	writeFixture(t, root, "b/b.go", "package b\n\nfunc B() int {\n\tx := 0\n"+strings.Repeat("\tx++\n", 20)+"\treturn x\n}\n")
+	writeFixture(t, root, "coverage.out", "mode: atomic\n"+module+"/a/a.go:3.13,3.27 1 1\n"+module+"/a/lit.go:3.20,3.34 1 1\n")
+	var stdout, stderr bytes.Buffer
+	code := execute([]string{"-profile", filepath.Join(root, "coverage.out"), "-root", root}, &stdout, &stderr)
+	if code != exitMissed || !strings.Contains(stdout.String(), "FAIL file "+module+"/b/b.go not in the profile\n") {
+		t.Fatalf("exit = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
 	}
 }
