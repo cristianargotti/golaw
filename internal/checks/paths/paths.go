@@ -13,7 +13,7 @@ const rule = "rules/4.2@1"
 
 // Checks lists every check of the family in report order.
 func Checks() []model.Check {
-	return []model.Check{Forbidden()}
+	return []model.Check{Forbidden(), GeneratedTracked()}
 }
 
 // spec builds the specification every paths check shares: the core owner,

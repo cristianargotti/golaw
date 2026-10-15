@@ -38,3 +38,7 @@ checks:
     code: binary-document
     red: testdata/paths.forbidden/red
     near: testdata/paths.forbidden/near
+  - id: paths.generated-tracked
+    code: generated-ignored
+    red: testdata/paths.generated-tracked/red
+    near: testdata/paths.generated-tracked/near
