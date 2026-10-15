@@ -30,5 +30,6 @@ func Checks() []model.Check {
 		AdapterPackageSize(),
 		SonarEmptyBody(),
 		SonarLiteralRepeat(),
+		SonarIdenticalFunctions(),
 	}
 }

@@ -66,3 +66,7 @@ checks:
     code: literal-repeat
     red: testdata/goast.sonar-literal-repeat/red
     near: testdata/goast.sonar-literal-repeat/near
+  - id: goast.sonar-identical-functions
+    code: identical-functions
+    red: testdata/goast.sonar-identical-functions/red
+    near: testdata/goast.sonar-identical-functions/near
