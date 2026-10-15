@@ -7,6 +7,7 @@ package checks
 import (
 	"fmt"
 
+	"github.com/cristianargotti/golaw/internal/checks/paths"
 	"github.com/cristianargotti/golaw/internal/checks/text"
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
@@ -22,7 +23,7 @@ func Catalog() []model.Check {
 
 // families are the constructors of the check families, in report order.
 func families() []Family {
-	return []Family{text.Checks}
+	return []Family{text.Checks, paths.Checks}
 }
 
 // concat joins the families into one list, keeping their order.

@@ -34,3 +34,7 @@ checks:
     code: debug-print
     red: testdata/text.debug-print/red
     near: testdata/text.debug-print/near
+  - id: paths.forbidden
+    code: binary-document
+    red: testdata/paths.forbidden/red
+    near: testdata/paths.forbidden/near
