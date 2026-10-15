@@ -16,5 +16,6 @@ func Checks() []model.Check {
 	return []model.Check{
 		FileLength(),
 		FunctionLength(),
+		EnvRead(),
 	}
 }

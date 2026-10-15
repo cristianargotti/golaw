@@ -10,3 +10,7 @@ checks:
     code: function-length
     red: testdata/goast.function-length/red
     near: testdata/goast.function-length/near
+  - id: goast.env-read
+    code: env-read
+    red: testdata/goast.env-read/red
+    near: testdata/goast.env-read/near
