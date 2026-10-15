@@ -46,3 +46,7 @@ checks:
     code: secret-material
     red: testdata/paths.secret-material/red
     near: testdata/paths.secret-material/near
+  - id: shell.no-verify
+    code: no-verify
+    red: testdata/shell.no-verify/red
+    near: testdata/shell.no-verify/near

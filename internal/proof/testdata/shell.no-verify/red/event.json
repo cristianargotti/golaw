@@ -1,0 +1,1 @@
+{"shape":"shell","agent":"tester","tool":"Bash","shell":{"command":"git commit --no-verify -m x","cwd":"/work","tool":"Bash"}}
