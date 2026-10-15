@@ -30,3 +30,7 @@ checks:
     code: nolint-nilnil
     red: testdata/text.nolint-nilnil/red
     near: testdata/text.nolint-nilnil/near
+  - id: text.debug-print
+    code: debug-print
+    red: testdata/text.debug-print/red
+    near: testdata/text.debug-print/near
