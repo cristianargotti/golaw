@@ -38,6 +38,10 @@ func failureLanguage(event model.Event, err error, language string) Result {
 	return rejectionLanguage(event, err.Error(), cannot, language)
 }
 
+func rejection(event model.Event, reason string, cannot bool) Result {
+	return rejectionLanguage(event, reason, cannot, model.DefaultLanguage)
+}
+
 func rejectionLanguage(event model.Event, reason string, cannot bool, language string) Result {
 	result := Result{
 		Outcome: Deny, Reason: reason, CannotJudge: cannot,
