@@ -19,7 +19,6 @@ var (
 	ErrHooks      = errors.New("invalid plugin hooks")
 )
 
-//nolint:unused // Artifact reads and writes wrap their failures with it.
 func changedArtifact(path string, cause error) error {
 	return fmt.Errorf("artifact %s: %w", path, cause)
 }
