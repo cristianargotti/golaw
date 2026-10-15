@@ -30,3 +30,7 @@ checks:
     code: sql-from-strings
     red: testdata/goast.sql-from-strings/red
     near: testdata/goast.sql-from-strings/near
+  - id: goast.raw-error-response
+    code: raw-error-response
+    red: testdata/goast.raw-error-response/red
+    near: testdata/goast.raw-error-response/near

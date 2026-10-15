@@ -21,5 +21,6 @@ func Checks() []model.Check {
 		WallClock(),
 		ClockUTC(),
 		SQLFromStrings(),
+		RawErrorResponse(),
 	}
 }
