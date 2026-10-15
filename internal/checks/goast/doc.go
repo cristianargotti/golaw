@@ -20,5 +20,6 @@ func Checks() []model.Check {
 		BareContext(),
 		WallClock(),
 		ClockUTC(),
+		SQLFromStrings(),
 	}
 }
