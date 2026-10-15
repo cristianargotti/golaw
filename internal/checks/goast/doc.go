@@ -28,5 +28,6 @@ func Checks() []model.Check {
 		SecretFields(),
 		Goleak(),
 		AdapterPackageSize(),
+		SonarEmptyBody(),
 	}
 }

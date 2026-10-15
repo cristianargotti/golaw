@@ -58,3 +58,7 @@ checks:
     code: adapter-package-size
     red: testdata/goast.adapter-package-size/red
     near: testdata/goast.adapter-package-size/near
+  - id: goast.sonar-empty-body
+    code: empty-body
+    red: testdata/goast.sonar-empty-body/red
+    near: testdata/goast.sonar-empty-body/near
