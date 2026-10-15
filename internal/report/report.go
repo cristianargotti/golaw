@@ -88,7 +88,8 @@ func statuses(run *engine.Run) []Status {
 	return out
 }
 
-// count summarizes the findings and the statuses of a document.
+// count reads the document rather than the run, so the counts always
+// agree with the findings and the checks the document lists.
 func count(doc Document) Counts {
 	c := Counts{Findings: len(doc.Findings)}
 	for _, f := range doc.Findings {

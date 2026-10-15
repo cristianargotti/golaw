@@ -63,7 +63,6 @@ type sentence struct {
 	text string
 }
 
-// lookup finds the sentence of a finding code.
 func lookup(code string) (string, bool) {
 	for _, s := range phrases() {
 		if s.code == code {

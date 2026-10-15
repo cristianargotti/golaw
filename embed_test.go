@@ -29,7 +29,8 @@ func TestEverySourceAssetIsEmbedded(t *testing.T) {
 	}
 }
 
-// compareAsset checks one source asset against its embedded bytes.
+// compareAsset records a missing or stale asset and lets the walk go on,
+// so one run names every asset the embedding misses.
 func compareAsset(t *testing.T, source fs.FS, name string) error {
 	t.Helper()
 	want, err := fs.ReadFile(source, name)
