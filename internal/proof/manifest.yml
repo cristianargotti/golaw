@@ -42,3 +42,7 @@ checks:
     code: generated-ignored
     red: testdata/paths.generated-tracked/red
     near: testdata/paths.generated-tracked/near
+  - id: paths.secret-material
+    code: secret-material
+    red: testdata/paths.secret-material/red
+    near: testdata/paths.secret-material/near
