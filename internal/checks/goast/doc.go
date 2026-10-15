@@ -24,5 +24,6 @@ func Checks() []model.Check {
 		RawErrorResponse(),
 		ErrorTextAsData(),
 		InitIfErrNil(),
+		SentinelDecl(),
 	}
 }

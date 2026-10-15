@@ -42,3 +42,7 @@ checks:
     code: init-if-err-nil
     red: testdata/goast.init-if-err-nil/red
     near: testdata/goast.init-if-err-nil/near
+  - id: goast.sentinel-decl
+    code: sentinel-decl
+    red: testdata/goast.sentinel-decl/red
+    near: testdata/goast.sentinel-decl/near
