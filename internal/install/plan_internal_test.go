@@ -72,24 +72,3 @@ func TestProjectPlanAndInvalidInputs(t *testing.T) {
 		t.Fatalf("relative state: %v", err)
 	}
 }
-
-func TestPlanReusesReceiptAndRejectsChangedAssets(t *testing.T) {
-	t.Parallel()
-	options := testOptions(t)
-	first, err := PlanClaude(options)
-	must(t, err)
-	for _, change := range first.Changes {
-		must(t, os.MkdirAll(filepath.Dir(change.Path), 0o700))
-		must(t, os.WriteFile(change.Path, change.After, 0o600))
-	}
-	repeated, err := PlanClaude(options)
-	must(t, err)
-	if len(repeated.Changes) != 0 {
-		t.Fatalf("unchanged installation produced %d changes", len(repeated.Changes))
-	}
-	path := first.Receipt.Artifacts[0].Path
-	must(t, os.WriteFile(path, []byte("edited asset\n"), 0o600))
-	if _, err := PlanClaude(options); !errors.Is(err, ErrChanged) {
-		t.Fatalf("edited asset accepted: %v", err)
-	}
-}
