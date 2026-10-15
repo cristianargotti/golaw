@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-//nolint:unused // These ownership keys are reserved for settings and receipt compatibility.
 const (
 	denyKey = "permissions/deny"
 	kitName = "golaw"
