@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 )
 
 // Where the Python gate registers itself on the machine: the Claude Code
@@ -57,9 +58,11 @@ type matcher struct {
 	Hooks   []hook `json:"hooks"`
 }
 
-// hook is one command of a group.
+// hook is one command of a group: a shell command line, or an executable
+// with its argument vector when args is set (the exec form, no shell).
 type hook struct {
-	Command string `json:"command"`
+	Command string   `json:"command"`
+	Args    []string `json:"args"`
 }
 
 // registry is the shape of the gate registry the detection reads: the
@@ -125,14 +128,37 @@ func decode(path string, v any) error {
 	return nil
 }
 
-// registersGate reports whether one of the group's commands is the gate.
+// registersGate reports whether one of the group's commands runs the gate.
 func (m matcher) registersGate() bool {
-	for _, h := range m.Hooks {
-		if strings.Contains(h.Command, gateScript) {
-			return true
-		}
+	return slices.ContainsFunc(m.Hooks, hook.runsGate)
+}
+
+// runsGate reports whether the hook may run the gate: a word of its command
+// line, the exec form's arguments included, names the script as a path, so
+// a script whose name only ends in it is another hook, and the line is not
+// a lone echo or printf, which prints the name and runs nothing. With no
+// shell parser any other mention counts, a wrapped run among them, because
+// a wrong refusal costs less than a second blocking verdict.
+func (h hook) runsGate() bool {
+	line := strings.Join(append([]string{h.Command}, h.Args...), " ")
+	words := strings.FieldsFunc(line, wordBreak)
+	if len(words) == 0 || printsOnly(words[0], line) {
+		return false
 	}
-	return false
+	return slices.ContainsFunc(words, func(word string) bool { return filepath.Base(word) == gateScript })
+}
+
+// wordBreak ends a word of a command line: a blank, a quote, or a
+// character that joins, groups or redirects commands.
+func wordBreak(r rune) bool {
+	return unicode.IsSpace(r) || strings.ContainsRune("\"'`;&|()<>", r)
+}
+
+// printsOnly reports whether the line is a lone echo or printf: it prints
+// its words and joins no other command that could run the script.
+func printsOnly(program, line string) bool {
+	name := filepath.Base(program)
+	return (name == "echo" || name == "printf") && !strings.ContainsAny(line, ";&|`$()\n")
 }
 
 // markEvents records the normalized events a gate group of an agent event

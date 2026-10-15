@@ -266,3 +266,28 @@ func TestDetectResolvesARelativeRootAndAHomeEntry(t *testing.T) {
 		})
 	}
 }
+
+func TestTheGateIsTheScriptACommandRuns(t *testing.T) {
+	t.Parallel()
+	cases := map[string]struct {
+		hook string
+		gate bool
+	}{
+		"interpreter":  {`{"command": "python3 /opt/gate/scripts/pcc_gate.py"}`, true},
+		"exec form":    {`{"command": "python3", "args": ["/opt/gate/scripts/pcc_gate.py"]}`, true},
+		"wrapped":      {`{"command": "bash -c 'python3 \"/opt/my gate/pcc_gate.py\"; true'"}`, true},
+		"similar name": {`{"command": "python3 /opt/gate/scripts/not_pcc_gate.py"}`, false},
+		"echo":         {`{"command": "echo pcc_gate.py"}`, false},
+		"echoed text":  {`{"command": "echo 'the pcc_gate.py gate is retired'"}`, false},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			settings := `{"hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [` + tc.hook + `]}]}}`
+			d, err := coexist.Detect(home(t, settings, ""), t.TempDir())
+			if err != nil || d.Registered["write"] != tc.gate {
+				t.Fatalf("detection = %+v, %v", d, err)
+			}
+		})
+	}
+}
