@@ -87,12 +87,17 @@ func (o *Overlay) Files() []model.File {
 }
 
 // Read answers the candidate bytes for a candidate path, the base bytes
-// for any other path, and ErrNotInSnapshot for a deleted or moved one.
+// for any other path, and ErrNotInSnapshot for a deleted or moved one. A
+// candidate beyond model.MaxReadBytes is ErrTooLarge, as a file on disk
+// is, so a check never reads a write the snapshot would refuse.
 func (o *Overlay) Read(rel string) ([]byte, error) {
 	if o.removed[rel] {
 		return nil, fmt.Errorf("%w: %s", model.ErrNotInSnapshot, rel)
 	}
 	if content, ok := o.content[rel]; ok {
+		if len(content) > model.MaxReadBytes {
+			return nil, fmt.Errorf("%w: %s is %d bytes", model.ErrTooLarge, rel, len(content))
+		}
 		return bytes.Clone(content), nil
 	}
 	if from, ok := o.moved[rel]; ok {

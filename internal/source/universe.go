@@ -3,6 +3,7 @@ package source
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/fs"
 	"os"
 	"regexp"
@@ -105,22 +106,39 @@ func linkedParent(root, rel string, linked map[string]bool) bool {
 	return false
 }
 
-// readRegular reads a regular file within the bound; a file beyond it
-// keeps the class its path gives and is never read.
+// readRegular reads a regular file within the bound; a file beyond it,
+// by its stat or by what the read found, keeps the class its path gives
+// and none of its bytes.
 func readRegular(root string, e entry, size int64) (model.File, []byte, bool) {
 	file := model.File{Path: e.path, Size: size}
-	if size > model.MaxReadBytes {
+	var content []byte
+	if size <= model.MaxReadBytes {
+		read, ok := readBounded(OSPath(root, e.path))
+		if !ok {
+			file.Class = model.ClassUnreadable
+			return file, nil, false
+		}
+		content, file.Size = read, int64(len(read))
+	}
+	if file.Size > model.MaxReadBytes {
 		file.Class = Classify(e.path, nil, e.tracked)
 		return file, nil, false
 	}
-	content, err := os.ReadFile(OSPath(root, e.path))
-	if err != nil {
-		file.Class = model.ClassUnreadable
-		return file, nil, false
-	}
-	file.Size = int64(len(content))
 	file.Class = Classify(e.path, content, e.tracked)
 	return file, content, true
+}
+
+// readBounded stops one byte past model.MaxReadBytes: the stat said the
+// file fits, and a file that grew since then shows up as one byte too many
+// instead of a read without a bound.
+func readBounded(name string) ([]byte, bool) {
+	f, err := os.Open(name) //nolint:gosec // the name is a listed path under the real root
+	if err != nil {
+		return nil, false
+	}
+	defer f.Close()
+	content, err := io.ReadAll(io.LimitReader(f, model.MaxReadBytes+1))
+	return content, err == nil
 }
 
 // Classify assigns the class of section 5.1 to a regular file from its

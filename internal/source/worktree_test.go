@@ -202,6 +202,38 @@ func TestWorktreeUnreadableAndOversized(t *testing.T) {
 	}
 }
 
+// bulk is n bytes led by a NUL, so the classifier settles on binary at its
+// probe instead of matching the generated header across megabytes.
+func bulk(n int) string { return "\x00" + strings.Repeat("x", n-1) }
+
+func TestWorktreeReadBound(t *testing.T) {
+	t.Parallel()
+	root := initRepo(t)
+	write(t, root, "at.bin", bulk(model.MaxReadBytes))
+	write(t, root, "over.bin", bulk(model.MaxReadBytes+1))
+	repo, err := source.Discover(t.Context(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := source.NewWorktree(t.Context(), repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := mustRead(t, w, "at.bin"); len(got) != model.MaxReadBytes {
+		t.Errorf("a file at the bound reads whole: %d bytes", len(got))
+	}
+	if err := readErr(w, "over.bin"); !errors.Is(err, model.ErrTooLarge) {
+		t.Errorf("a file past the bound: %v, want ErrTooLarge", err)
+	}
+	sizes := map[string]int64{}
+	for _, f := range w.Files() {
+		sizes[f.Path] = f.Size
+	}
+	if sizes["at.bin"] != model.MaxReadBytes || sizes["over.bin"] != model.MaxReadBytes+1 {
+		t.Errorf("sizes = %v", sizes)
+	}
+}
+
 func TestNewWorktreeFailures(t *testing.T) {
 	t.Parallel()
 	if _, err := source.NewWorktree(t.Context(), source.Repo{Root: t.TempDir()}); !errors.Is(err, source.ErrGit) {

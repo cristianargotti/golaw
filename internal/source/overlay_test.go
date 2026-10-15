@@ -209,6 +209,24 @@ func TestOverlayMoveNotReconstructed(t *testing.T) {
 	}
 }
 
+func TestOverlayReadBound(t *testing.T) {
+	t.Parallel()
+	muts := []source.Mutation{
+		{Path: "at.bin", Op: model.CandidateCreate, Content: []byte(bulk(model.MaxReadBytes))},
+		{Path: "over.bin", Op: model.CandidateCreate, Content: []byte(bulk(model.MaxReadBytes + 1))},
+	}
+	o, _, err := source.NewOverlay(base(), muts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := mustRead(t, o, "at.bin"); len(got) != model.MaxReadBytes {
+		t.Errorf("a candidate at the bound reads whole: %d bytes", len(got))
+	}
+	if err := readErr(o, "over.bin"); !errors.Is(err, model.ErrTooLarge) {
+		t.Errorf("a candidate past the bound: %v, want ErrTooLarge", err)
+	}
+}
+
 func TestOverlayOverWorktree(t *testing.T) {
 	t.Parallel()
 	root := initRepo(t)
