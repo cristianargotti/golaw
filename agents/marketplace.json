@@ -1,0 +1,7 @@
+{
+  "name": "golaw",
+  "owner": {"name": "Cristian Reyes"},
+  "plugins": [
+    {"name": "golaw", "source": "./agents/claude"}
+  ]
+}

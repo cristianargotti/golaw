@@ -1,0 +1,15 @@
+{
+  "name": "golaw",
+  "owner": {"name": "Cristian Reyes"},
+  "plugins": [
+    {
+      "name": "golaw",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/cristianargotti/golaw.git",
+        "path": "agents/claude",
+        "ref": "v0.1.0"
+      }
+    }
+  ]
+}
