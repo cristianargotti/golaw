@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 )
@@ -21,13 +22,22 @@ const (
 	gateScript   = "pcc_gate.py"
 )
 
-// The tool names of the agent, as the hook matchers spell them.
+// The tool names of the agent, as the hook matchers spell them: every tool
+// the kit's own hooks answer, so a gate hook on any of them is a second
+// verdict on an event the kit arms.
 const (
-	toolWrite = "Write"
-	toolEdit  = "Edit"
-	toolRead  = "Read"
-	toolBash  = "Bash"
+	toolWrite      = "Write"
+	toolEdit       = "Edit"
+	toolNotebook   = "NotebookEdit"
+	toolRead       = "Read"
+	toolBash       = "Bash"
+	toolPowerShell = "PowerShell"
 )
+
+// exactMatcher is what the agent compares as exact tool names, one or a
+// list split by "|" or ","; any other character makes the matcher an
+// unanchored regular expression, which the detection does not evaluate.
+var exactMatcher = regexp.MustCompile(`^[A-Za-z0-9_ ,|-]*$`)
 
 // Detection is what the machine and the repository say about the gate.
 type Detection struct {
@@ -75,8 +85,11 @@ func Detect(home, root string) (Detection, error) {
 	}
 	for event, groups := range s.Hooks {
 		for _, group := range groups {
-			if group.registersGate() {
-				markEvents(d.Registered, event, group.Matcher)
+			if !group.registersGate() {
+				continue
+			}
+			if err := markEvents(d.Registered, event, group.Matcher); err != nil {
+				return Detection{}, err
 			}
 		}
 	}
@@ -122,25 +135,51 @@ func (m matcher) registersGate() bool {
 	return false
 }
 
-// markEvents records the normalized events a matcher of an agent event
-// covers: a write tool, the read tool or the shell tool, before or after.
-func markEvents(registered map[string]bool, agentEvent, matcherText string) {
+// markEvents records the normalized events a gate group of an agent event
+// covers: a write tool, the read tool or the shell tool, before or after. A
+// matcher the detection cannot read as tool names is an error, because an
+// event read as no tool would let the kit arm a second verdict on it.
+func markEvents(registered map[string]bool, agentEvent, matcherText string) error {
 	post := agentEvent == "PostToolUse"
 	if !post && agentEvent != "PreToolUse" {
-		return
+		return nil
 	}
-	for tool := range strings.SplitSeq(matcherText, "|") {
-		switch strings.TrimSpace(tool) {
-		case toolWrite, toolEdit:
+	tools, exact := matchedTools(matcherText)
+	if !exact {
+		return fmt.Errorf("%w: %s: the %s matcher %q is a regular expression the kit does not evaluate",
+			ErrDetect, settingsFile, agentEvent, matcherText)
+	}
+	for _, tool := range tools {
+		switch tool {
+		case toolWrite, toolEdit, toolNotebook:
 			registered[pick(post, EventPostWrite, EventWrite)] = true
 		case toolRead:
 			if !post {
 				registered[EventRead] = true
 			}
-		case toolBash:
+		case toolBash, toolPowerShell:
 			registered[pick(post, EventPostShell, EventShell)] = true
 		}
 	}
+	return nil
+}
+
+// matchedTools lists the tools a matcher names, false for a regular
+// expression. The agent runs a group without a matcher, or with "*", for
+// every tool, so those forms name every tool the kit answers.
+func matchedTools(matcherText string) ([]string, bool) {
+	text := strings.TrimSpace(matcherText)
+	if text == "" || text == "*" {
+		return []string{toolWrite, toolEdit, toolNotebook, toolRead, toolBash, toolPowerShell}, true
+	}
+	if !exactMatcher.MatchString(text) {
+		return nil, false
+	}
+	tools := strings.FieldsFunc(text, func(r rune) bool { return r == '|' || r == ',' })
+	for i := range tools {
+		tools[i] = strings.TrimSpace(tools[i])
+	}
+	return tools, true
 }
 
 // pick chooses the post or the pre event.
