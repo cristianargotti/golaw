@@ -58,3 +58,7 @@ checks:
     code: em-dash
     red: testdata/shell.dashes/red
     near: testdata/shell.dashes/near
+  - id: shell.body-width
+    code: body-width
+    red: testdata/shell.body-width/red
+    near: testdata/shell.body-width/near
