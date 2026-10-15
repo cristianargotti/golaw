@@ -46,3 +46,7 @@ checks:
     code: sentinel-decl
     red: testdata/goast.sentinel-decl/red
     near: testdata/goast.sentinel-decl/near
+  - id: goast.secret-fields
+    code: secret-field
+    red: testdata/goast.secret-fields/red
+    near: testdata/goast.secret-fields/near

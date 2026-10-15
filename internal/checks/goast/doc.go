@@ -25,5 +25,6 @@ func Checks() []model.Check {
 		ErrorTextAsData(),
 		InitIfErrNil(),
 		SentinelDecl(),
+		SecretFields(),
 	}
 }
