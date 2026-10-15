@@ -1,0 +1,4 @@
+# One entry per registered check: the id, the finding code its red fixture
+# must yield, and the two fixture directories relative to this file. The
+# proof test walks this list, so a registration and its entry go together.
+checks: []
