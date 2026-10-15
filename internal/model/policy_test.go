@@ -45,6 +45,9 @@ func TestPolicyLookups(t *testing.T) {
 	if _, ok := p.Excepted("goast.secret-fields", "internal/auth/other.go"); ok {
 		t.Error("another path must not be excepted")
 	}
+	if _, ok := p.Excepted("goast.wall-clock", "internal/auth/session.go"); ok {
+		t.Error("another check on the excepted path must not be excepted")
+	}
 }
 
 func TestEnrollmentStateNames(t *testing.T) {

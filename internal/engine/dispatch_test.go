@@ -94,7 +94,10 @@ func TestDispatchDefaultsSeverityAndKeepsFilled(t *testing.T) {
 
 func TestDispatchAppliesExceptions(t *testing.T) {
 	t.Parallel()
-	reg := build(t, findingCheck("goast.secret-fields", finding("bare-secret", "internal/auth/session.go", 4)))
+	reg := build(t,
+		findingCheck("goast.secret-fields", finding("bare-secret", "internal/auth/session.go", 4)),
+		findingCheck("goast.wall-clock", finding("wall-clock", "internal/auth/session.go", 9)),
+	)
 	in := scanInput()
 	policy := *in.Policy
 	policy.Exceptions = []model.Exception{{Check: "goast.secret-fields", Path: "internal/auth/session.go", Record: "docs/adr/0009-session-token.md"}}
@@ -103,12 +106,21 @@ func TestDispatchAppliesExceptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := run.Findings()[0]
+	findings := run.Findings()
+	if len(findings) != 2 {
+		t.Fatalf("findings = %+v", findings)
+	}
+	f := findings[0]
 	if f.Severity != model.SeverityNote || !strings.HasSuffix(f.Message, "(excepted by docs/adr/0009-session-token.md)") {
 		t.Errorf("excepted finding = %+v", f)
 	}
 	if f.Fingerprint != model.Fingerprint(model.Finding{Check: f.Check, Rule: f.Rule, Path: f.Path, Code: f.Code, Message: "found bare-secret"}) {
 		t.Error("the fingerprint is computed before the exception note")
+	}
+	// The exception names one check, so the other check on the same path
+	// still fails the run.
+	if other := findings[1]; other.Check != "goast.wall-clock" || other.Severity != model.SeverityFail || !other.Enforced() || other.Message != "found wall-clock" {
+		t.Errorf("another check on the excepted path = %+v", other)
 	}
 }
 
