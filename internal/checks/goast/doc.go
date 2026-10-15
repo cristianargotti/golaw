@@ -26,5 +26,6 @@ func Checks() []model.Check {
 		InitIfErrNil(),
 		SentinelDecl(),
 		SecretFields(),
+		Goleak(),
 	}
 }

@@ -50,3 +50,7 @@ checks:
     code: secret-field
     red: testdata/goast.secret-fields/red
     near: testdata/goast.secret-fields/near
+  - id: goast.goleak
+    code: goleak
+    red: testdata/goast.goleak/red
+    near: testdata/goast.goleak/near
