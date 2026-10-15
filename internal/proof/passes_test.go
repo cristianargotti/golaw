@@ -94,6 +94,47 @@ func TestOverFireFailsWhenTheNearMissNeverReachesTheCheck(t *testing.T) {
 	}
 }
 
+// TestVerifyReportsEveryPassInOrder breaks one pass at a time, then all four
+// at once through a manifest entry without its check, so Verify can neither
+// drop a pass nor change their order.
+func TestVerifyReportsEveryPassInOrder(t *testing.T) {
+	t.Parallel()
+	root := fixtureRoot(t)
+	m := manifest(t, root)
+	dashes := proof.Entry{ID: "text.dashes", Code: "em-dash", Red: "testdata/text.dashes/red", Near: "testdata/text.dashes/near"}
+	noVerify := proof.Entry{ID: "shell.no-verify", Code: "no-verify", Red: "testdata/shell.no-verify/red", Near: "testdata/shell.no-verify/near"}
+	swapped, twin := dashes, dashes
+	swapped.Red, swapped.Near = dashes.Near, dashes.Red
+	twin.ID = "text.twin"
+	unmet := []string{"external-evidence"}
+	// A near miss that never reaches its check is unmeasured as well, so the
+	// over-fire case carries the two baseline failures before its own.
+	cases := map[string]struct {
+		checks []model.Check
+		m      proof.Manifest
+		want   string
+	}{
+		"completeness": {[]model.Check{dashCheck{id: "text.dashes"}, noVerifyCheck{}, dashCheck{id: "text.todo", requires: unmet}}, m, "completeness text.todo"},
+		"baseline":     {[]model.Check{dashCheck{id: "text.dashes"}, noVerifyCheck{}}, proof.Manifest{Checks: []proof.Entry{swapped, noVerify}}, "baseline text.dashes; baseline text.dashes"},
+		"deletion":     {[]model.Check{dashCheck{id: "text.dashes"}, dashCheck{id: "text.twin"}, noVerifyCheck{}}, proof.Manifest{Checks: []proof.Entry{dashes, noVerify, twin}}, "deletion text.dashes; deletion text.twin"},
+		"over-fire":    {[]model.Check{dashCheck{id: "text.dashes", requires: unmet}, noVerifyCheck{}}, m, "baseline text.dashes; baseline text.dashes; over-fire text.dashes"},
+		"every pass":   {[]model.Check{dashCheck{id: "text.dashes"}}, m, "completeness shell.no-verify; baseline shell.no-verify; deletion shell.no-verify; over-fire shell.no-verify"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			failures := proof.Verify(t.Context(), registry(t, tc.checks...), root, tc.m)
+			got := make([]string, 0, len(failures))
+			for _, f := range failures {
+				got = append(got, f.Pass+" "+f.ID)
+			}
+			if strings.Join(got, "; ") != tc.want {
+				t.Errorf("Verify() = %q, want %q\n%s", strings.Join(got, "; "), tc.want, reasons(failures))
+			}
+		})
+	}
+}
+
 func reasons(failures []proof.Failure) string {
 	out := make([]string, 0, len(failures))
 	for _, f := range failures {
