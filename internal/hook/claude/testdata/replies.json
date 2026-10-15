@@ -1,0 +1,11 @@
+[
+  {"name":"allow","outcome":"allow","stdout":null,"stderr":"","exit":0},
+  {"name":"deny","outcome":"deny","reason":"text.dashes: prohibited punctuation","human":"A operação foi bloqueada.","stdout":{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"text.dashes: prohibited punctuation"},"systemMessage":"A operação foi bloqueada."},"stderr":"","exit":0},
+  {"name":"cannot-judge","outcome":"deny","cannot_judge":true,"reason":"cannot judge: unreadable target","stdout":null,"stderr":"cannot judge: unreadable target\n","exit":2},
+  {"name":"empty-reason","outcome":"deny","cannot_judge":true,"stdout":null,"stderr":"cannot judge\n","exit":2},
+  {"name":"post","post":true,"outcome":"feedback","reason":"goast.file-length: file exceeds 300 lines","human":"Corrija o arquivo antes de continuar.","stdout":{"decision":"block","reason":"goast.file-length: file exceeds 300 lines","systemMessage":"Corrija o arquivo antes de continuar."},"stderr":"","exit":0},
+  {"name":"post-failure","post":true,"failed":true,"outcome":"feedback","reason":"text.dashes: prohibited punctuation","human":"Corrija o arquivo antes de continuar.","stdout":{"hookSpecificOutput":{"hookEventName":"PostToolUseFailure","additionalContext":"text.dashes: prohibited punctuation"},"systemMessage":"Corrija o arquivo antes de continuar."},"stderr":"","exit":0},
+  {"name":"post-clean","post":true,"outcome":"allow","stdout":null,"stderr":"","exit":0},
+  {"name":"unknown-outcome","outcome":"other","stdout":null,"stderr":"cannot judge: invalid hook outcome\n","exit":2},
+  {"name":"pre-feedback","outcome":"feedback","stdout":null,"stderr":"cannot judge: feedback before execution\n","exit":2}
+]
