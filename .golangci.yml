@@ -1,7 +1,8 @@
 # golangci-lint v2 configuration: the strict set of the standard adapted to
 # a command line tool with no database and no HTTP service. Depguard draws
 # the package boundaries of section 5.1 of the design instead of hexagonal
-# layers, and the only direct dependencies are cobra and yaml.
+# layers, and the only direct dependencies are cobra and yaml. Lists of
+# names are written in flow style so the file keeps to the 300 line law.
 version: "2"
 
 run:
@@ -12,93 +13,23 @@ run:
 linters:
   default: standard
   enable:
-    - asasalint
-    - bidichk
-    - bodyclose
-    - canonicalheader
-    - containedctx
-    - contextcheck
-    - copyloopvar
-    - depguard
-    - dupl
-    - dupword
-    - durationcheck
-    - err113
-    - embeddedstructfieldcheck
-    - errchkjson
-    - errname
-    - errorlint
-    - exhaustive
-    - exptostd
-    - fatcontext
-    - forbidigo
-    - forcetypeassert
-    - funcorder
-    - funlen
-    - gocheckcompilerdirectives
-    - gochecknoglobals
-    - gochecknoinits
-    - gochecksumtype
-    - gocognit
-    - goconst
-    - gocritic
-    - godoclint
-    - godot
-    - godox
-    - gomoddirectives
-    - goprintffuncname
-    - gosec
-    - gosmopolitan
-    - iface
-    - inamedparam
-    - interfacebloat
-    - intrange
-    - maintidx
-    - makezero
-    - mirror
-    - misspell
-    - mnd
-    - modernize
-    - musttag
-    - nakedret
-    - nestif
-    - nilerr
-    - nilnesserr
-    - nilnil
-    - noctx
-    - nolintlint
-    - nonamedreturns
-    - nosprintfhostport
-    - paralleltest
-    - perfsprint
-    - prealloc
-    - predeclared
-    - reassign
-    - recvcheck
-    - revive
-    - sloglint
-    - testableexamples
-    - testpackage
-    - thelper
-    - tparallel
-    - unconvert
-    - unparam
-    - usestdlibvars
-    - usetesting
-    - wastedassign
-    - whitespace
-    - wrapcheck
+    [asasalint, bidichk, bodyclose, canonicalheader, containedctx, contextcheck, copyloopvar,
+     depguard, dupl, dupword, durationcheck, err113, embeddedstructfieldcheck, errchkjson,
+     errname, errorlint, exhaustive, exptostd, fatcontext, forbidigo, forcetypeassert,
+     funcorder, funlen, gocheckcompilerdirectives, gochecknoglobals, gochecknoinits,
+     gochecksumtype, gocognit, goconst, gocritic, godoclint, godot, godox, gomoddirectives,
+     goprintffuncname, gosec, gosmopolitan, iface, inamedparam, interfacebloat, intrange,
+     maintidx, makezero, mirror, misspell, mnd, modernize, musttag, nakedret, nestif, nilerr,
+     nilnesserr, nilnil, noctx, nolintlint, nonamedreturns, nosprintfhostport, paralleltest,
+     perfsprint, prealloc, predeclared, reassign, recvcheck, revive, sloglint,
+     testableexamples, testpackage, thelper, tparallel, unconvert, unparam, usestdlibvars,
+     usetesting, wastedassign, whitespace, wrapcheck]
   settings:
     wrapcheck:
       # Every error that crosses a package boundary carries the package and
       # the action it failed at, so a hook reason names the layer without a
       # stack trace; %w keeps errors.Is working on the sentinels underneath.
-      ignore-sigs:
-        - .Errorf(
-        - errors.New(
-        - errors.Unwrap(
-        - errors.Join(
-        - context.Context).Err(
+      ignore-sigs: [.Errorf(, errors.New(, errors.Unwrap(, errors.Join(, context.Context).Err(]
     depguard:
       # The package direction of section 5.1: model imports nothing internal,
       # engine imports model, the check families import model, the catalog
@@ -106,41 +37,23 @@ linters:
       rules:
         model:
           list-mode: strict
-          files:
-            - "!$test"
-            - "**/internal/model/**"
-          allow:
-            - $gostd
+          files: ["!$test", "**/internal/model/**"]
+          allow: [$gostd]
         engine:
           list-mode: strict
-          files:
-            - "!$test"
-            - "**/internal/engine/**"
-          allow:
-            - $gostd
-            - github.com/cristianargotti/golaw/internal/model
+          files: ["!$test", "**/internal/engine/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
         source:
           list-mode: strict
-          files:
-            - "!$test"
-            - "**/internal/source/**"
-          allow:
-            - $gostd
-            - github.com/cristianargotti/golaw/internal/model
+          files: ["!$test", "**/internal/source/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
         families:
           list-mode: strict
-          files:
-            - "!$test"
-            - "**/internal/checks/**"
-            - "!**/internal/checks/catalog.go"
-          allow:
-            - $gostd
-            - github.com/cristianargotti/golaw/internal/model
+          files: ["!$test", "**/internal/checks/**", "!**/internal/checks/catalog.go"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
         catalog:
           list-mode: strict
-          files:
-            - "!$test"
-            - "**/internal/checks/catalog.go"
+          files: ["!$test", "**/internal/checks/catalog.go"]
           allow:
             - $gostd
             - github.com/cristianargotti/golaw/internal/model
@@ -148,18 +61,11 @@ linters:
             - github.com/cristianargotti/golaw/internal/checks
         policy:
           list-mode: strict
-          files:
-            - "!$test"
-            - "**/internal/policy/**"
-          allow:
-            - $gostd
-            - github.com/cristianargotti/golaw/internal/model
-            - gopkg.in/yaml.v3
+          files: ["!$test", "**/internal/policy/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, gopkg.in/yaml.v3]
         proof:
           list-mode: strict
-          files:
-            - "!$test"
-            - "**/internal/proof/**"
+          files: ["!$test", "**/internal/proof/**"]
           allow:
             - $gostd
             - github.com/cristianargotti/golaw/internal/model
@@ -167,13 +73,8 @@ linters:
             - gopkg.in/yaml.v3
         cmd:
           list-mode: strict
-          files:
-            - "**/cmd/**"
-          allow:
-            - $gostd
-            - github.com/cristianargotti/golaw
-            - github.com/spf13/cobra
-            - github.com/spf13/pflag
+          files: ["**/cmd/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw, github.com/spf13/cobra, github.com/spf13/pflag]
         main:
           list-mode: lax
           deny:
@@ -189,10 +90,7 @@ linters:
       scope: toplevel
       capital: false
     iface:
-      enable:
-        - identical
-        - unused
-        - opaque
+      enable: [identical, unused, opaque]
     paralleltest:
       # t.Setenv, t.Chdir and shared fixtures are the only reasons a test is serial.
       ignore-missing: false
@@ -207,11 +105,7 @@ linters:
     errcheck:
       check-type-assertions: true
       check-blank: true
-      exclude-functions:
-        - (io.Closer).Close
-        - (io.ReadCloser).Close
-        - (io/fs.File).Close
-        - (*os.File).Close
+      exclude-functions: [(io.Closer).Close, (io.ReadCloser).Close, (io/fs.File).Close, (*os.File).Close]
     dupl:
       threshold: 80
     goconst:
@@ -221,14 +115,7 @@ linters:
       ignore-string-values:
         - '^(%[a-z]|[\s:,()])+$'
     mnd:
-      ignored-numbers:
-        - "0"
-        - "1"
-        - "2"
-        - "10"
-        - "100"
-        - "1000"
-        - "1024"
+      ignored-numbers: ["0", "1", "2", "10", "100", "1000", "1024"]
     nestif:
       min-complexity: 4
     nakedret:
@@ -260,17 +147,11 @@ linters:
     gosmopolitan:
       allow-time-local: false
     gocritic:
-      enabled-tags:
-        - diagnostic
-        - style
-        - performance
-      disabled-checks:
-        - hugeParam
-        - unnamedResult
+      enabled-tags: [diagnostic, style, performance]
+      disabled-checks: [hugeParam, unnamedResult]
     govet:
       enable-all: true
-      disable:
-        - fieldalignment
+      disable: [fieldalignment]
     misspell:
       locale: US
       # Comments only: the human channel strings are in the configured language.
@@ -331,8 +212,7 @@ linters:
       context: scope
       key-naming-case: snake
     staticcheck:
-      checks:
-        - all
+      checks: [all]
   exclusions:
     generated: lax
     rules:
@@ -352,24 +232,17 @@ linters:
       # The model declares the interfaces every other package implements or
       # consumes; by design nothing inside the model uses them.
       - path: internal/model/
-        linters:
-          - iface
+        linters: [iface]
       # The clock belongs to the edges: cmd and the tests read it.
       - path: (^cmd/|_test\.go)
         text: time enters as a parameter
-        linters:
-          - forbidigo
+        linters: [forbidigo]
 
 formatters:
-  enable:
-    - gofumpt
-    - gci
+  enable: [gofumpt, gci]
   settings:
     gci:
-      sections:
-        - standard
-        - default
-        - prefix(github.com/cristianargotti/golaw)
+      sections: [standard, default, prefix(github.com/cristianargotti/golaw)]
     gofumpt:
       module-path: github.com/cristianargotti/golaw
       extra:
