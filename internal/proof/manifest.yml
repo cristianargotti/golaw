@@ -6,3 +6,7 @@ checks:
     code: em-dash
     red: testdata/text.dashes/red
     near: testdata/text.dashes/near
+  - id: text.trace-terms
+    code: trace-term
+    red: testdata/text.trace-terms/red
+    near: testdata/text.trace-terms/near
