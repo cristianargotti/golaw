@@ -1,0 +1,9 @@
+checks:
+  - id: doctor.artifacts
+    code: artifact-drift
+    red: testdata/artifacts/red
+    near: testdata/artifacts/near
+  - id: doctor.binary
+    code: binary-differs
+    red: testdata/binary/red
+    near: testdata/binary/near
