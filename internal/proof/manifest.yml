@@ -14,3 +14,7 @@ checks:
     code: tool-term
     red: testdata/text.tool-terms/red
     near: testdata/text.tool-terms/near
+  - id: text.comment-language
+    code: comment-language
+    red: testdata/text.comment-language/red
+    near: testdata/text.comment-language/near
