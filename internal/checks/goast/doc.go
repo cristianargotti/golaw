@@ -19,5 +19,6 @@ func Checks() []model.Check {
 		EnvRead(),
 		BareContext(),
 		WallClock(),
+		ClockUTC(),
 	}
 }

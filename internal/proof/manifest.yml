@@ -22,3 +22,7 @@ checks:
     code: wall-clock
     red: testdata/goast.wall-clock/red
     near: testdata/goast.wall-clock/near
+  - id: goast.clock-utc
+    code: local-clock
+    red: testdata/goast.clock-utc/red
+    near: testdata/goast.clock-utc/near
