@@ -22,3 +22,7 @@ checks:
     code: todo-marker
     red: testdata/text.todo/red
     near: testdata/text.todo/near
+  - id: text.bare-nolint
+    code: bare-nolint
+    red: testdata/text.bare-nolint/red
+    near: testdata/text.bare-nolint/near
