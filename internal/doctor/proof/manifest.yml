@@ -7,3 +7,19 @@ checks:
     code: binary-differs
     red: testdata/binary/red
     near: testdata/binary/near
+  - id: doctor.plugin
+    code: plugin-disabled
+    red: testdata/plugin/red
+    near: testdata/plugin/near
+  - id: doctor.read
+    code: read-deny-missing
+    red: testdata/read/red
+    near: testdata/read/near
+  - id: doctor.hooks
+    code: hook-fail-open
+    red: testdata/hooks/red
+    near: testdata/hooks/near
+  - id: doctor.trust
+    code: plugin-unavailable
+    red: testdata/trust/red
+    near: testdata/trust/near

@@ -45,6 +45,10 @@ func assessments() []assessment {
 	return []assessment{
 		{idArtifacts, artifactLines},
 		{"doctor.binary", binaryLines},
+		{"doctor.plugin", pluginLines},
+		{"doctor.read", readLines},
+		{idHooks, hookLines},
+		{"doctor.trust", trustLines},
 	}
 }
 
