@@ -52,12 +52,17 @@ func listUniverse(ctx context.Context, root string) ([]entry, error) {
 
 // inspect stats one listed path and reads it within the bound. A symbolic
 // link, a directory (a submodule or a nested repository) and anything that
-// is not a regular file get their class without a read; the bytes come
-// back with true only for a regular file read whole.
-func inspect(root string, e entry) (model.File, []byte, bool) {
+// is not a regular file get their class without a read, and so does a path
+// under a linked directory; the bytes come back with true only for a
+// regular file read whole.
+func inspect(root string, e entry, linked map[string]bool) (model.File, []byte, bool) {
 	file := model.File{Path: e.path}
 	if e.dir {
 		file.Class = model.ClassGitlink
+		return file, nil, false
+	}
+	if linkedParent(root, e.path, linked) {
+		file.Class = model.ClassUnreadable
 		return file, nil, false
 	}
 	info, err := os.Lstat(OSPath(root, e.path))
@@ -74,6 +79,30 @@ func inspect(root string, e entry) (model.File, []byte, bool) {
 		return readRegular(root, e, info.Size())
 	}
 	return file, nil, false
+}
+
+// linkedParent reports whether a directory above a listed path is a
+// symbolic link or cannot be inspected. Lstat and a read follow every
+// component but the last, so a tracked path whose directory became a link
+// would otherwise read bytes from wherever the link points. The answer per
+// directory is kept in linked, top-down, so each one is inspected once.
+func linkedParent(root, rel string, linked map[string]bool) bool {
+	for i, c := range rel {
+		if c != '/' {
+			continue
+		}
+		dir := rel[:i]
+		link, known := linked[dir]
+		if !known {
+			info, err := os.Lstat(OSPath(root, dir))
+			link = err != nil || info.Mode()&fs.ModeSymlink != 0
+			linked[dir] = link
+		}
+		if link {
+			return true
+		}
+	}
+	return false
 }
 
 // readRegular reads a regular file within the bound; a file beyond it

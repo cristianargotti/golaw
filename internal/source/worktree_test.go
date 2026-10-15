@@ -135,6 +135,42 @@ func TestWorktreeLinksAndSubmodules(t *testing.T) {
 	}
 }
 
+func TestWorktreeNeverReadsThroughALinkedDirectory(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("symbolic links need a privilege on Windows")
+	}
+	root := initRepo(t)
+	write(t, root, "dir/a.go", "package a\n")
+	write(t, root, "ok/b.go", "package ok\n")
+	commitAll(t, root, "one")
+	outside := t.TempDir()
+	write(t, outside, "a.go", "outside bytes\n")
+	if err := os.RemoveAll(filepath.Join(root, "dir")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "dir")); err != nil {
+		t.Fatal(err)
+	}
+	repo, err := source.Discover(t.Context(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := source.NewWorktree(t.Context(), repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Class("dir") != model.ClassSymlink || w.Class("dir/a.go") != model.ClassUnreadable {
+		t.Errorf("a tracked path under a linked directory: Files() = %+v", w.Files())
+	}
+	if data, err := w.Read("dir/a.go"); !errors.Is(err, model.ErrUnreadable) {
+		t.Errorf("Read(dir/a.go) = %q, %v: the link must never be followed", data, err)
+	}
+	if w.Class("ok/b.go") != model.ClassTracked || mustRead(t, w, "ok/b.go") != "package ok\n" {
+		t.Errorf("a path under an ordinary directory is read: %+v", w.Files())
+	}
+}
+
 func TestWorktreeUnreadableAndOversized(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == "windows" || os.Getuid() == 0 {
