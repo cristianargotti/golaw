@@ -22,5 +22,6 @@ func Checks() []model.Check {
 		ClockUTC(),
 		SQLFromStrings(),
 		RawErrorResponse(),
+		ErrorTextAsData(),
 	}
 }
