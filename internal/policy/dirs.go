@@ -1,0 +1,54 @@
+package policy
+
+import (
+	"fmt"
+	"path/filepath"
+
+	"github.com/cristianargotti/golaw/internal/model"
+)
+
+// appDir is the segment every kit directory ends with.
+const appDir = "golaw"
+
+// Dirs are the per-OS directories outside the checkout: State holds the
+// enrollment records and Config the installed profile bundles.
+type Dirs struct {
+	State  string
+	Config string
+}
+
+// DefaultDirs resolves the directories for an operating system from the
+// environment the caller reads: XDG_STATE_HOME and XDG_CONFIG_HOME when
+// set, the local and roaming application data on Windows, and
+// ~/.local/state and ~/.config elsewhere, each with a golaw segment. The
+// package never reads the environment itself; cmd hands it os.Getenv.
+func DefaultDirs(goos string, env func(string) string) (Dirs, error) {
+	state, err := baseDir(goos, env, "XDG_STATE_HOME", "LOCALAPPDATA", filepath.Join(".local", "state"))
+	if err != nil {
+		return Dirs{}, err
+	}
+	config, err := baseDir(goos, env, "XDG_CONFIG_HOME", "APPDATA", ".config")
+	if err != nil {
+		return Dirs{}, err
+	}
+	return Dirs{State: filepath.Join(state, appDir), Config: filepath.Join(config, appDir)}, nil
+}
+
+// baseDir picks the first set variable, then the Windows variable on
+// Windows, then the home relative fallback.
+func baseDir(goos string, env func(string) string, xdg, windows, fallback string) (string, error) {
+	if dir := env(xdg); dir != "" {
+		return dir, nil
+	}
+	if goos == "windows" {
+		if dir := env(windows); dir != "" {
+			return dir, nil
+		}
+		return "", fmt.Errorf("%w: neither %s nor %s is set", model.ErrUsage, xdg, windows)
+	}
+	home := env("HOME")
+	if home == "" {
+		return "", fmt.Errorf("%w: neither %s nor HOME is set", model.ErrUsage, xdg)
+	}
+	return filepath.Join(home, fallback), nil
+}
