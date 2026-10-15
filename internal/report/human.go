@@ -13,7 +13,8 @@ const Portuguese = "pt-BR"
 
 // Human renders the sentence a person reads for a decision: Portuguese
 // (pt-BR) through the phrase table, English for any other language. The
-// agent reads decision.Reason, never this sentence.
+// agent reads decision.Reason, never this sentence, so the English detail
+// of a finding or of an unmeasured check stays in the reason and the report.
 func Human(language string, decision engine.Decision) string {
 	if language != Portuguese {
 		return english(decision)
@@ -24,8 +25,7 @@ func Human(language string, decision engine.Decision) string {
 		}
 	}
 	if len(decision.Unmeasured) > 0 {
-		u := decision.Unmeasured[0]
-		return fmt.Sprintf("golaw não conseguiu medir %s: %s.", u.Check, u.Reason)
+		return fmt.Sprintf("golaw não conseguiu medir a verificação %s.", decision.Unmeasured[0].Check)
 	}
 	return "golaw: nenhuma violação encontrada."
 }
@@ -38,13 +38,14 @@ func english(decision engine.Decision) string {
 	return "golaw blocked the operation: " + decision.Reason + "."
 }
 
-// phrase renders one enforced finding for the person: the sentence of its
-// code when the table knows it, its English message otherwise, then the
-// check and the place.
+// phrase quotes neither the finding's English message nor a command or a
+// file content, so the sentence stays in Portuguese and carries no secret
+// value; a code outside the table (a future family) still names its check
+// and its place.
 func phrase(f model.Finding) string {
 	text, ok := lookup(f.Code)
 	if !ok {
-		text = f.Message
+		text = "violação de regra"
 	}
 	where := ""
 	switch {

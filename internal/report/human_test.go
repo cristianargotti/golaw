@@ -35,7 +35,7 @@ func TestHumanNamesUnknownCodesAndUnmeasuredChecks(t *testing.T) {
 	unknown := engine.Decision{Mode: model.ModeHook, Verdict: engine.VerdictDeny, Findings: []model.Finding{
 		{Check: "commit.conventional", Path: "internal/a.go", Code: "conventional-subject", Message: "subject is not conventional", Severity: model.SeverityFail},
 	}}
-	if got := report.Human(report.Portuguese, unknown); got != "golaw bloqueou a operação: subject is not conventional (verificação commit.conventional, arquivo internal/a.go)." {
+	if got := report.Human(report.Portuguese, unknown); got != "golaw bloqueou a operação: violação de regra (verificação commit.conventional, arquivo internal/a.go)." {
 		t.Errorf("unknown code = %q", got)
 	}
 	notes := engine.Decision{
@@ -43,7 +43,7 @@ func TestHumanNamesUnknownCodesAndUnmeasuredChecks(t *testing.T) {
 		Findings:   []model.Finding{{Check: "shell.push", Code: "push", Message: "git push observed", Severity: model.SeverityNote}},
 		Unmeasured: []engine.Unmeasured{{Check: "text.todo", Reason: "read a.go: path unreadable"}},
 	}
-	if got := report.Human(report.Portuguese, notes); got != "golaw não conseguiu medir text.todo: read a.go: path unreadable." {
+	if got := report.Human(report.Portuguese, notes); got != "golaw não conseguiu medir a verificação text.todo." {
 		t.Errorf("unmeasured = %q", got)
 	}
 	event := engine.Decision{Verdict: engine.VerdictDeny, Findings: []model.Finding{{Check: "shell.no-verify", Code: "no-verify", Message: "x", Severity: model.SeverityDeny}}}
