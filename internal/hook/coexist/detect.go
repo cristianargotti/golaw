@@ -97,7 +97,7 @@ func Detect(home, root string) (Detection, error) {
 	if err := decode(RegistryPath(home), &r); err != nil {
 		return Detection{}, err
 	}
-	d.Governs = governs(r.Repos, root)
+	d.Governs = governs(home, r.Repos, root)
 	d.Released = r.released()
 	return d, nil
 }
@@ -191,15 +191,16 @@ func pick(post bool, postEvent, preEvent string) string {
 }
 
 // governs reports whether root is one of the governed repositories or a
-// directory inside one; both sides are resolved so a linked path matches.
-func governs(repos []string, root string) bool {
-	target, err := filepath.EvalSymlinks(root)
-	if err != nil {
+// directory inside one. Both sides take the form the gate compares, so a
+// relative, linked or home-relative path matches as it does for the gate.
+func governs(home string, repos []string, root string) bool {
+	target, ok := realPath(home, root)
+	if !ok {
 		return false
 	}
 	for _, repo := range repos {
-		governed, err := filepath.EvalSymlinks(repo)
-		if err != nil {
+		governed, ok := realPath(home, repo)
+		if !ok {
 			continue
 		}
 		if target == governed || strings.HasPrefix(target, governed+string(filepath.Separator)) {
@@ -207,6 +208,21 @@ func governs(repos []string, root string) bool {
 		}
 	}
 	return false
+}
+
+// realPath is the absolute path with every link resolved, a leading ~
+// standing for the home: the realpath of expanduser the gate applies to
+// its registry and to the path it judges.
+func realPath(home, path string) (string, bool) {
+	if rest, ok := strings.CutPrefix(path, "~"); ok && (rest == "" || os.IsPathSeparator(rest[0])) {
+		path = filepath.Join(home, rest)
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", false
+	}
+	resolved, err := filepath.EvalSymlinks(abs)
+	return resolved, err == nil
 }
 
 // released lists the families whose switch is explicitly off.

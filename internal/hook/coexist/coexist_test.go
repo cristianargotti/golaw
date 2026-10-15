@@ -233,3 +233,36 @@ func TestARegularExpressionMatcherOfTheGateIsAnError(t *testing.T) {
 		t.Fatalf("a foreign regular expression = %+v, %v", d, err)
 	}
 }
+
+func TestDetectResolvesARelativeRootAndAHomeEntry(t *testing.T) {
+	t.Parallel()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := map[string]struct {
+		repo, root string
+		governs    bool
+	}{
+		"dot":            {filepath.ToSlash(cwd), ".", true},
+		"relative child": {filepath.ToSlash(filepath.Dir(cwd)), filepath.Join("..", "coexist"), true},
+		"home entry":     {"~/repo", "", true},
+		"elsewhere":      {filepath.ToSlash(t.TempDir()), ".", false},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			h := home(t, "", `{"repos": ["`+tc.repo+`"]}`)
+			root := tc.root
+			if root == "" {
+				root = filepath.Join(h, "repo")
+				if err := os.Mkdir(root, 0o750); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if d, err := coexist.Detect(h, root); err != nil || d.Governs != tc.governs {
+				t.Fatalf("detection = %+v, %v", d, err)
+			}
+		})
+	}
+}
