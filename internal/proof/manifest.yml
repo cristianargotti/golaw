@@ -38,3 +38,7 @@ checks:
     code: error-text-as-data
     red: testdata/goast.error-text-as-data/red
     near: testdata/goast.error-text-as-data/near
+  - id: goast.init-if-err-nil
+    code: init-if-err-nil
+    red: testdata/goast.init-if-err-nil/red
+    near: testdata/goast.init-if-err-nil/near

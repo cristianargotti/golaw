@@ -23,5 +23,6 @@ func Checks() []model.Check {
 		SQLFromStrings(),
 		RawErrorResponse(),
 		ErrorTextAsData(),
+		InitIfErrNil(),
 	}
 }
