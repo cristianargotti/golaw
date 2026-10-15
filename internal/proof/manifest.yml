@@ -54,3 +54,7 @@ checks:
     code: trailer
     red: testdata/shell.trailers/red
     near: testdata/shell.trailers/near
+  - id: shell.dashes
+    code: em-dash
+    red: testdata/shell.dashes/red
+    near: testdata/shell.dashes/near
