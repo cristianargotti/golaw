@@ -62,3 +62,7 @@ checks:
     code: body-width
     red: testdata/shell.body-width/red
     near: testdata/shell.body-width/near
+  - id: shell.shape
+    code: commit-shape
+    red: testdata/shell.shape/red
+    near: testdata/shell.shape/near
