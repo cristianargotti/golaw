@@ -1,0 +1,11 @@
+{
+  "files": [
+    "agents/SKILL.md",
+    "agents/claude/.claude-plugin/plugin.json",
+    "agents/claude/hooks/hooks.json",
+    "agents/claude/skills/golaw/SKILL.md",
+    "agents/manifest.json",
+    "agents/marketplace.json",
+    "templates/manifest.yml"
+  ]
+}
