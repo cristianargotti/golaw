@@ -27,6 +27,26 @@ func f(c responder, legacy int) {
 }
 `
 
+// encodedSource spells statuses in every base and with digit separators:
+// 0x1f4, 5_00 and 0o764 are 500, 0500 is the octal 320 and 0x12c is 300.
+const encodedSource = `package h
+
+func f(c responder) {
+	c.JSON(0x1f4, nil)
+	c.String(5_00, "boom")
+	c.Data(0o764, "text/plain", nil)
+	c.JSON(0500, nil)
+	c.JSON(0x12c, nil)
+}
+`
+
+func TestRawErrorResponseReadsTheLiteralAsGoDoes(t *testing.T) {
+	t.Parallel()
+	res := scan(t, goast.RawErrorResponse(), map[string]string{"internal/http/h.go": encodedSource})
+	expectCodes(t, res, "raw-error-response", "raw-error-response", "raw-error-response")
+	expectLines(t, res, 4, 5, 6)
+}
+
 func TestRawErrorResponse(t *testing.T) {
 	t.Parallel()
 	res := scan(t, goast.RawErrorResponse(), map[string]string{
