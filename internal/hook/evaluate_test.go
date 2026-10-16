@@ -163,10 +163,9 @@ func TestShellPostUsesContentIdentity(t *testing.T) {
 	req.Event.Shape = model.ShapePost
 	req.Event.Shell = nil
 	req.Event.Post = &model.PostResult{Failed: true, Response: "command failed"}
-	adapter.Header = func([]byte) (model.Event, error) { return req.Event, nil }
-	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
+	adapter.Parse = parsing(req.Event, func(hook.Base, model.Snapshot) (hook.Request, error) {
 		return req, nil
-	}
+	})
 	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
 		return proof.NewTree(map[string][]byte{"a.go": []byte("bad")}), nil
 	}
@@ -183,20 +182,16 @@ func TestDecisionAndSelectionMutations(t *testing.T) {
 	if baseline.Outcome != hook.Deny {
 		t.Fatal(baseline)
 	}
-	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
-		return hook.Request{Event: model.Event{
-			Agent: "claude", Tool: "Read", Shape: model.ShapeRead,
-			Read: &model.ReadRequest{Path: "a.go"},
-		}}, nil
-	}
+	adapter = decoded(adapter, hook.Request{Event: model.Event{
+		Agent: "claude", Tool: "Read", Shape: model.ShapeRead,
+		Read: &model.ReadRequest{Path: "a.go"},
+	}})
 	_, deleted := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 	if deleted.Outcome != hook.Allow {
 		t.Fatal("selection deletion did not remove the red finding")
 	}
 	adapter, dependencies = harness(t, request("safe"))
-	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
-		return hook.Request{Denial: "forced denial"}, nil
-	}
+	adapter = decoded(adapter, hook.Request{Denial: "forced denial"})
 	_, overfire := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 	if overfire.Outcome != hook.Deny {
 		t.Fatal("near miss did not expose forced denial")

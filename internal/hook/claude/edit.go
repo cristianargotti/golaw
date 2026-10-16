@@ -22,11 +22,11 @@ type editInput struct {
 	Edits []edit  `json:"edits"`
 }
 
-func editCandidate(w wire, at hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
-	var input editInput
-	if err := strictInput(w.Input, &input); err != nil {
-		return model.Candidate{}, nil, err
+func editCandidate(w wire, in toolInput, at hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
+	if in.err != nil {
+		return model.Candidate{}, nil, in.err
 	}
+	input := in.edit
 	path, err := at.Relative(w.Cwd, input.Path)
 	if err != nil {
 		return model.Candidate{}, nil, fmt.Errorf("%w: Edit path: %w", model.ErrCannotJudge, err)

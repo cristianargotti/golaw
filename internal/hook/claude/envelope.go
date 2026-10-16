@@ -19,6 +19,9 @@ const (
 	powerTool    = "PowerShell"
 )
 
+// wire is the envelope of a Claude event. The four fields after the tool
+// fields belong only to the envelope of another agent: any of them, null
+// included, refuses the event.
 type wire struct {
 	Name     string          `json:"hook_event_name"`
 	Tool     string          `json:"tool_name"`
@@ -29,16 +32,25 @@ type wire struct {
 	Input    json.RawMessage `json:"tool_input"`
 	Response json.RawMessage `json:"tool_response"`
 	Error    json.RawMessage `json:"error"`
+
+	Conversation json.RawMessage `json:"conversation_id"`
+	Generation   json.RawMessage `json:"generation_id"`
+	Roots        json.RawMessage `json:"workspace_roots"`
+	Version      json.RawMessage `json:"cursor_version"`
 }
 
 // Header separates identity validation from enrolled target reconstruction.
 func Header(data []byte) (model.Event, error) {
-	w, err := envelope(data)
-	if err != nil {
-		return model.Event{}, err
-	}
+	parsed, err := Parse(data)
+	return parsed.Event, err
+}
+
+// header is the event of an envelope before any target is reconstructed:
+// its identities, the shape its event and tool give it and the path its
+// tool input names.
+func header(w wire, target string) (model.Event, error) {
 	event := model.Event{
-		Agent: "claude", Tool: w.Tool, Cwd: w.Cwd, Target: target(w),
+		Agent: "claude", Tool: w.Tool, Cwd: w.Cwd, Target: target,
 		SessionID: w.Session, AgentID: w.Agent, ToolUseID: w.Use,
 	}
 	switch w.Name {
@@ -69,46 +81,18 @@ func preShape(tool string) model.EventShape {
 	}
 }
 
-// target is the path a write or read names, the location its enrollment
-// is resolved from (A3): the repository that holds the file governs it,
-// wherever the session runs. A shell tool names none and is judged where
-// it runs; a path that is not a string is left to the decoder to refuse.
-func target(w wire) string {
-	key := "file_path"
-	switch w.Tool {
-	case writeTool, editTool, readTool:
-	case notebookTool:
-		key = "notebook_path"
-	default:
-		return ""
-	}
-	var input map[string]json.RawMessage
-	var path string
-	if json.Unmarshal(w.Input, &input) != nil || json.Unmarshal(input[key], &path) != nil {
-		return ""
-	}
-	return path
-}
-
+// envelope decodes the envelope of an event in one pass and refuses the
+// envelope of another agent and one without the event, the tool, the
+// working directory or a tool input that is an object.
 func envelope(data []byte) (wire, error) {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return wire{}, fmt.Errorf("%w: Claude envelope: %w", model.ErrCannotJudge, err)
-	}
-	for _, key := range []string{
-		"conversation_id", "generation_id", "workspace_roots", "cursor_version",
-	} {
-		if _, found := raw[key]; found {
-			return wire{}, fmt.Errorf("%w: envelope does not belong to claude", model.ErrCannotJudge)
-		}
-	}
 	var w wire
 	if err := json.Unmarshal(data, &w); err != nil {
-		return wire{}, fmt.Errorf("%w: Claude fields: %w", model.ErrCannotJudge, err)
+		return wire{}, fmt.Errorf("%w: Claude envelope: %w", model.ErrCannotJudge, err)
 	}
-	var input map[string]json.RawMessage
-	err := json.Unmarshal(w.Input, &input)
-	if w.Name == "" || w.Tool == "" || w.Cwd == "" || err != nil || input == nil {
+	if w.Conversation != nil || w.Generation != nil || w.Roots != nil || w.Version != nil {
+		return wire{}, fmt.Errorf("%w: envelope does not belong to claude", model.ErrCannotJudge)
+	}
+	if w.Name == "" || w.Tool == "" || w.Cwd == "" || len(w.Input) == 0 || w.Input[0] != '{' {
 		return wire{}, fmt.Errorf("%w: incomplete Claude envelope", model.ErrCannotJudge)
 	}
 	return w, nil

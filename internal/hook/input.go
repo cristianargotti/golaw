@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -29,7 +30,8 @@ func inputBound() error {
 // An input over the bound answers its first MaxInputBytes and one bytes
 // and ErrTooLarge, the rest left in the reader for the caller, which reads
 // the header from the whole input and drops the rest, so the host that
-// writes it never meets a closed pipe.
+// writes it never meets a closed pipe. The input is validated in one scan
+// that holds nothing, so the adapter's parse is its one decoding.
 func ReadObject(reader io.Reader) ([]byte, error) {
 	data, err := io.ReadAll(io.LimitReader(reader, MaxInputBytes+1))
 	if err != nil {
@@ -38,11 +40,12 @@ func ReadObject(reader io.Reader) ([]byte, error) {
 	if len(data) > MaxInputBytes {
 		return data, inputBound()
 	}
-	var object map[string]json.RawMessage
-	if err := json.Unmarshal(data, &object); err != nil {
-		return nil, fmt.Errorf("%w: invalid JSON object: %w", model.ErrCannotJudge, err)
+	if !json.Valid(data) {
+		// The decoder names what is wrong, which the scan does not.
+		var value json.RawMessage
+		return nil, fmt.Errorf("%w: invalid JSON object: %w", model.ErrCannotJudge, json.Unmarshal(data, &value))
 	}
-	if object == nil {
+	if first := bytes.TrimLeft(data, " \t\r\n"); first[0] != '{' {
 		return nil, fmt.Errorf("%w: input must be one object", model.ErrCannotJudge)
 	}
 	return data, nil

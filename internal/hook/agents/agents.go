@@ -33,7 +33,7 @@ type Agent struct {
 func All() []Agent {
 	return []Agent{{
 		ID:        "claude",
-		Adapter:   hook.Adapter{Header: claude.Header, Decode: claude.Decode, Encode: claude.Encode, Oversized: claude.Oversized},
+		Adapter:   hook.Adapter{Parse: claude.Parse, Encode: claude.Encode, Oversized: claude.Oversized},
 		Plan:      install.PlanClaude,
 		ConfigDir: claudeConfigDir,
 	}}

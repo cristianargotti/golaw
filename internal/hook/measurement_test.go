@@ -19,10 +19,9 @@ func asPostEvent(req *hook.Request, cwd string, failed bool) hook.Adapter {
 	req.Event.Shape, req.Event.Shell = model.ShapePost, nil
 	req.Event.Post = &model.PostResult{Failed: failed}
 	adapter := harnessAdapter(*req)
-	adapter.Header = func([]byte) (model.Event, error) { return req.Event, nil }
-	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
+	adapter.Parse = parsing(req.Event, func(hook.Base, model.Snapshot) (hook.Request, error) {
 		return *req, nil
-	}
+	})
 	return adapter
 }
 
@@ -173,11 +172,7 @@ func TestAFailedListingSpeaksThePolicyLanguage(t *testing.T) {
 	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
 		return nil, model.ErrUnreadable
 	}
-	decode := adapter.Decode
-	adapter.Decode = func(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
-		snapshot.Class("a.go")
-		return decode(data, base, snapshot)
-	}
+	adapter = decoding(adapter, func(snapshot model.Snapshot) { snapshot.Class("a.go") })
 	_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 	if got.Human != "The operation was blocked by check golaw at path not given." || !got.CannotJudge {
 		t.Fatal(got)

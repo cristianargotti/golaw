@@ -77,10 +77,9 @@ func harness(t *testing.T, req hook.Request) (hook.Adapter, hook.Dependencies) {
 // tests exercise the engine path without any vendor wire format.
 func harnessAdapter(req hook.Request) hook.Adapter {
 	return hook.Adapter{
-		Header: func([]byte) (model.Event, error) { return req.Event, nil },
-		Decode: func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
+		Parse: parsing(req.Event, func(hook.Base, model.Snapshot) (hook.Request, error) {
 			return req, nil
-		},
+		}),
 		Encode: func(_ model.Event, result hook.Result) hook.Reply {
 			code := 0
 			if result.CannotJudge {
@@ -91,6 +90,40 @@ func harnessAdapter(req hook.Request) hook.Adapter {
 			}
 		},
 	}
+}
+
+// parsing is the parse of a harness adapter: it ignores the bytes and
+// answers the event and the decoder a test gives it.
+func parsing(event model.Event, decode func(hook.Base, model.Snapshot) (hook.Request, error)) func([]byte) (hook.Parsed, error) {
+	return func([]byte) (hook.Parsed, error) { return hook.Parsed{Event: event, Decode: decode}, nil }
+}
+
+// decoding wraps the decoder an adapter's parse answers, so a test sees the
+// snapshot the decoder receives before the decoder runs.
+func decoding(adapter hook.Adapter, before func(model.Snapshot)) hook.Adapter {
+	parse := adapter.Parse
+	adapter.Parse = func(data []byte) (hook.Parsed, error) {
+		parsed, err := parse(data)
+		decode := parsed.Decode
+		parsed.Decode = func(base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
+			before(snapshot)
+			return decode(base, snapshot)
+		}
+		return parsed, err
+	}
+	return adapter
+}
+
+// decoded keeps the event an adapter's parse answers and gives its decoder
+// the request of a test.
+func decoded(adapter hook.Adapter, req hook.Request) hook.Adapter {
+	parse := adapter.Parse
+	adapter.Parse = func(data []byte) (hook.Parsed, error) {
+		parsed, err := parse(data)
+		parsed.Decode = func(hook.Base, model.Snapshot) (hook.Request, error) { return req, nil }
+		return parsed, err
+	}
+	return adapter
 }
 
 // harnessDependencies start from an enrolled repository whose only file is

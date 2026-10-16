@@ -1,7 +1,6 @@
 package claude
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -11,24 +10,25 @@ import (
 
 // Decode keeps vendor payloads outside the policy engine.
 func Decode(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
-	event, err := Header(data)
+	w, event, in, err := parse(data)
 	if err != nil {
 		return hook.Request{}, err
 	}
-	w, err := envelope(data)
-	if err != nil {
-		return hook.Request{}, err
-	}
+	return decode(w, event, in, base, snapshot)
+}
+
+// decode is the request of an event from its one parse.
+func decode(w wire, event model.Event, in toolInput, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 	if event.Shape == model.ShapePost {
-		return postRequest(w, event, base)
+		return postRequest(w, event, in, base)
 	}
 	switch event.Tool {
 	case writeTool, editTool, notebookTool:
-		return Write(data, base, snapshot)
+		return writeRequest(w, event, in, base, snapshot)
 	case readTool:
-		return readRequest(w, event, base)
+		return readRequest(w, event, in, base)
 	case bashTool, powerTool:
-		return shellRequest(w, event)
+		return shellRequest(event, in)
 	default:
 		return hook.Request{}, fmt.Errorf("%w: unsupported Claude tool", model.ErrCannotJudge)
 	}
@@ -40,18 +40,16 @@ func Decode(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request,
 // name it was given. A link between the name and the file gives the read
 // a second name, the file the link leads to, named the same way or by its
 // absolute path outside, and the rule judges both.
-func readRequest(w wire, event model.Event, base hook.Base) (hook.Request, error) {
-	var input struct {
-		Path string `json:"file_path"`
+func readRequest(w wire, event model.Event, in toolInput, base hook.Base) (hook.Request, error) {
+	if in.err != nil {
+		return hook.Request{}, fmt.Errorf("%w: Read input: %w", model.ErrCannotJudge, in.err)
 	}
-	if err := json.Unmarshal(w.Input, &input); err != nil {
-		return hook.Request{}, fmt.Errorf("%w: Read input: %w", model.ErrCannotJudge, err)
-	}
-	if input.Path == "" {
+	path := in.target
+	if path == "" {
 		return hook.Request{}, fmt.Errorf("%w: Read path is absent", model.ErrCannotJudge)
 	}
-	read := model.ReadRequest{Path: readName(base.Requested, w.Cwd, input.Path, input.Path)}
-	if target := readName(base.Relative, w.Cwd, input.Path, base.Resolve(w.Cwd, input.Path)); target != read.Path {
+	read := model.ReadRequest{Path: readName(base.Requested, w.Cwd, path, path)}
+	if target := readName(base.Relative, w.Cwd, path, base.Resolve(w.Cwd, path)); target != read.Path {
 		read.Real = target
 	}
 	event.Shape = model.ShapeRead
@@ -69,19 +67,16 @@ func readName(inside func(string, string) (string, error), cwd, name, outside st
 	return strings.ReplaceAll(outside, `\`, "/")
 }
 
-func shellRequest(w wire, event model.Event) (hook.Request, error) {
-	var input struct {
-		Command *string `json:"command"`
+func shellRequest(event model.Event, in toolInput) (hook.Request, error) {
+	if in.err != nil {
+		return hook.Request{}, fmt.Errorf("%w: shell input: %w", model.ErrCannotJudge, in.err)
 	}
-	if err := json.Unmarshal(w.Input, &input); err != nil {
-		return hook.Request{}, fmt.Errorf("%w: shell input: %w", model.ErrCannotJudge, err)
-	}
-	if input.Command == nil {
+	if in.command == nil {
 		return hook.Request{}, fmt.Errorf("%w: shell command is absent", model.ErrCannotJudge)
 	}
 	event.Shape = model.ShapeShell
 	event.Shell = &model.ShellCommand{
-		Command: *input.Command, Cwd: event.Cwd, Tool: event.Tool,
+		Command: *in.command, Cwd: event.Cwd, Tool: event.Tool,
 	}
 	return hook.Request{Event: event}, nil
 }

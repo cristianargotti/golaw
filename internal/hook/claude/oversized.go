@@ -27,20 +27,7 @@ func Oversized(input io.Reader) (model.Event, error) {
 	if got.foreign || w.Name == "" || w.Tool == "" || w.Cwd == "" {
 		return model.Event{}, fmt.Errorf("%w: the header of an input over the bound is incomplete", model.ErrCannotJudge)
 	}
-	event := model.Event{
-		Agent: "claude", Tool: w.Tool, Cwd: w.Cwd, Target: got.path,
-		SessionID: w.Session, AgentID: w.Agent, ToolUseID: w.Use,
-	}
-	switch w.Name {
-	case preEvent:
-		event.Shape = preShape(w.Tool)
-	case postEvent, failureEvent:
-		event.Shape = model.ShapePost
-		event.Post = &model.PostResult{Failed: w.Name == failureEvent}
-	default:
-		return model.Event{}, fmt.Errorf("%w: unsupported Claude event", model.ErrCannotJudge)
-	}
-	return event, nil
+	return header(w, got.path)
 }
 
 // headerKey reports a field of the envelope Oversized keeps.

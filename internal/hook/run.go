@@ -31,7 +31,7 @@ type completed struct {
 // goleak rule), so a reader that never returns is bounded by the host
 // timeout and the fail-closed mode the installer configures.
 func Run(ctx context.Context, agent string, input io.Reader, adapter Adapter, dependencies Dependencies) Reply {
-	if adapter.Header == nil || adapter.Decode == nil || adapter.Encode == nil {
+	if adapter.Parse == nil || adapter.Encode == nil {
 		return Reply{ExitCode: 2, Stderr: "cannot judge: incomplete adapter\n"}
 	}
 	budget := dependencies.Budget

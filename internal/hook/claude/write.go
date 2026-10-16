@@ -17,14 +17,17 @@ type writeInput struct {
 
 // Write reconstructs candidates without executing the intercepted operation.
 func Write(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
-	event, err := Header(data)
+	w, event, in, err := parse(data)
 	if err != nil {
 		return hook.Request{}, err
 	}
-	w, err := envelope(data)
-	if err != nil {
-		return hook.Request{}, err
-	}
+	return writeRequest(w, event, in, base, snapshot)
+}
+
+// writeRequest is the request of a pre event of a write tool from its one
+// parse: the candidate with its bytes, the compatibility denial of
+// NotebookEdit, or the gap of an edit of a file over the read bound.
+func writeRequest(w wire, event model.Event, in toolInput, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 	if w.Name != preEvent {
 		return hook.Request{}, fmt.Errorf("%w: expected pre event", model.ErrCannotJudge)
 	}
@@ -34,7 +37,7 @@ func Write(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, 
 			Denial: "NotebookEdit is not supported by this adapter",
 		}, nil
 	}
-	candidate, content, err := candidateOf(w, base, snapshot)
+	candidate, content, err := candidateOf(w, in, base, snapshot)
 	event.Shape = model.ShapeWrite
 	event.Candidates = []model.Candidate{candidate}
 	if errors.Is(err, model.ErrTooLarge) && candidate.Path != "" {
@@ -52,22 +55,22 @@ func Write(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, 
 }
 
 // candidateOf reconstructs the candidate of a write tool with its bytes.
-func candidateOf(w wire, base hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
+func candidateOf(w wire, in toolInput, base hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
 	switch w.Tool {
 	case writeTool:
-		return fullCandidate(w, base, snapshot)
+		return fullCandidate(w, in, base, snapshot)
 	case editTool:
-		return editCandidate(w, base, snapshot)
+		return editCandidate(w, in, base, snapshot)
 	default:
 		return model.Candidate{}, nil, fmt.Errorf("%w: unsupported write tool", model.ErrCannotJudge)
 	}
 }
 
-func fullCandidate(w wire, base hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
-	var input writeInput
-	if err := strictInput(w.Input, &input); err != nil {
-		return model.Candidate{}, nil, err
+func fullCandidate(w wire, in toolInput, base hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
+	if in.err != nil {
+		return model.Candidate{}, nil, in.err
 	}
+	input := in.write
 	if input.Content == nil {
 		return model.Candidate{}, nil, fmt.Errorf("%w: Write content is absent", model.ErrCannotJudge)
 	}

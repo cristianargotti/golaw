@@ -51,8 +51,7 @@ func noticeOf(t *testing.T, reply hook.Reply) (string, string) {
 // is judged whole, a write over 8 MiB is allowed with a notice naming the
 // file it did not measure, whether its path comes before or after its
 // content, and the policy file stays protected at any size.
-func TestHookJudgesAWriteUpToTheReadBound(t *testing.T) {
-	t.Parallel()
+func TestHookJudgesAWriteUpToTheReadBound(t *testing.T) { //nolint:paralleltest // an event of 8 MiB runs alone, so its deadline measures the hook, not the tests beside it
 	e := enrolledHook(t)
 	agent := agentUnderTest()
 	run := func(path, content string) hook.Reply {
@@ -88,8 +87,7 @@ func TestHookJudgesAWriteUpToTheReadBound(t *testing.T) {
 // whose detection meets a bound or no baseline: a file a command wrote over
 // the read bound and a post event without its pre event are each allowed
 // with a notice the agent reads, naming the file when there is one.
-func TestHookPostBoundsAreNotices(t *testing.T) {
-	t.Parallel()
+func TestHookPostBoundsAreNotices(t *testing.T) { //nolint:paralleltest // an event of 8 MiB runs alone, so its deadline measures the hook, not the tests beside it
 	e := enrolledHook(t)
 	agent := agentUnderTest()
 	shell := func(name, use string) hook.Reply {

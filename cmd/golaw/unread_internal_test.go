@@ -38,8 +38,7 @@ func hintedPost(t *testing.T, cwd, use string, changed []string) string {
 // rules still judge them, so a name the tree forbids is fed back, hinted by
 // the host or found by the detection alike, with the notice of what was not
 // measured, while a name the tree allows is a notice alone.
-func TestHookJudgesTheNameOfWhatItCannotRead(t *testing.T) {
-	t.Parallel()
+func TestHookJudgesTheNameOfWhatItCannotRead(t *testing.T) { //nolint:paralleltest // an event of 8 MiB runs alone, so its deadline measures the hook, not the tests beside it
 	agent := agentUnderTest()
 	for _, tc := range []struct {
 		name, path, rule string
@@ -72,8 +71,7 @@ func TestHookJudgesTheNameOfWhatItCannotRead(t *testing.T) {
 // and an edit of a file over the read bound are judged by the name rules,
 // so a name the tree forbids is denied, while an allowed name is allowed
 // with the notice of what was not measured.
-func TestHookJudgesTheNameOfAWriteItCannotRead(t *testing.T) {
-	t.Parallel()
+func TestHookJudgesTheNameOfAWriteItCannotRead(t *testing.T) { //nolint:paralleltest // an event of 8 MiB runs alone, so its deadline measures the hook, not the tests beside it
 	e := enrolledHook(t)
 	agent := agentUnderTest()
 	large := strings.Repeat("a", hook.MaxInputBytes)

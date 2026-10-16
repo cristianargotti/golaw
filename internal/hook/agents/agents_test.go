@@ -17,7 +17,7 @@ func TestAllListsOneCompleteAgent(t *testing.T) {
 		t.Fatalf("agents = %+v", all)
 	}
 	a := all[0]
-	if a.Adapter.Header == nil || a.Adapter.Decode == nil || a.Adapter.Encode == nil || a.Plan == nil || a.ConfigDir == nil {
+	if a.Adapter.Parse == nil || a.Adapter.Encode == nil || a.Adapter.Oversized == nil || a.Plan == nil || a.ConfigDir == nil {
 		t.Fatal("the agent is incomplete")
 	}
 	if got := agents.IDs(); !slices.Equal(got, []string{"claude"}) {

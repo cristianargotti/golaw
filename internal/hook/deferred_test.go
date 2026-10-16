@@ -70,13 +70,12 @@ func TestAFailedListingAnswersAnEmptyUniverse(t *testing.T) {
 		dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
 			return nil, failure
 		}
-		decode, empty := adapter.Decode, false
-		adapter.Decode = func(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
+		empty := false
+		adapter = decoding(adapter, func(snapshot model.Snapshot) {
 			_, readErr := snapshot.Read("a.go")
 			empty = readErr != nil && len(snapshot.Files()) == 0 && snapshot.Class("a.go") == model.ClassUnknown &&
 				len(model.Select(snapshot, every)) == 0 && !model.Any(snapshot, every)
-			return decode(data, base, snapshot)
-		}
+		})
 		_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 		if !empty || !got.CannotJudge || !strings.Contains(got.Reason, "snapshot") {
 			t.Fatalf("%v: empty %v, %+v", failure, empty, got)

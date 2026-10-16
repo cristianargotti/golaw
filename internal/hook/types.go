@@ -52,14 +52,21 @@ type Reply struct {
 	ExitCode int
 }
 
-// Adapter prevents vendor wire formats from entering the engine. Decode
-// names the files of an event against the root of its repository and the
-// home the host expands a tool's path from. Oversized, when set, reads the
-// header of an event from the whole of an input over the bound, in bounded
-// memory.
+// Adapter prevents vendor wire formats from entering the engine. Parse
+// decodes an event once: the header enrollment reads before any target is
+// reconstructed, and the decoder that names the files of the event against
+// the root of its repository and the home the host expands a tool's path
+// from. Oversized, when set, reads the header of an event from the whole of
+// an input over the bound, in bounded memory.
 type Adapter struct {
-	Header    func([]byte) (model.Event, error)
-	Decode    func([]byte, Base, model.Snapshot) (Request, error)
+	Parse     func([]byte) (Parsed, error)
 	Encode    func(model.Event, Result) Reply
 	Oversized func(io.Reader) (model.Event, error)
+}
+
+// Parsed is an event an adapter decoded once: its header, and the decoder
+// of its request, which reads none of the bytes of the event again.
+type Parsed struct {
+	Event  model.Event
+	Decode func(Base, model.Snapshot) (Request, error)
 }

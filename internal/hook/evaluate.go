@@ -19,7 +19,11 @@ func evaluateEvent(ctx context.Context, agent string, data []byte, adapter Adapt
 	if dependencies.Begin != nil {
 		dependencies.Begin()
 	}
-	event, err := adapter.Header(data)
+	parsed, err := adapter.Parse(data)
+	if err == nil && parsed.Decode == nil {
+		err = fmt.Errorf("%w: the adapter answered no decoder", model.ErrCannotJudge)
+	}
+	event := parsed.Event
 	if err != nil {
 		return completed{event: event, result: failure(event, err)}
 	}
@@ -33,7 +37,7 @@ func evaluateEvent(ctx context.Context, agent string, data []byte, adapter Adapt
 	if repository.Enrollment.State == model.EnrollmentNone {
 		return completed{event: event, result: Result{Outcome: Allow}}
 	}
-	run, err := loadExecution(ctx, repository, data, adapter, dependencies)
+	run, err := loadExecution(ctx, repository, parsed.Decode, dependencies)
 	answer := completed{event: event, language: run.language()}
 	switch {
 	case err != nil:
@@ -90,12 +94,14 @@ func enroll(ctx context.Context, event model.Event, dependencies Dependencies) (
 	return repository, err
 }
 
-func loadExecution(ctx context.Context, repository Repository, data []byte, adapter Adapter, dependencies Dependencies) (execution, error) {
+// loadExecution loads what an enrolled event is judged with and decodes its
+// request with the decoder of its one parse.
+func loadExecution(ctx context.Context, repository Repository, decode func(Base, model.Snapshot) (Request, error), dependencies Dependencies) (execution, error) {
 	run, snapshot, err := prepare(ctx, repository, dependencies)
 	if err != nil {
 		return run, err
 	}
-	request, err := adapter.Decode(data, Base{Root: repository.Root, Home: dependencies.Home}, snapshot)
+	request, err := decode(Base{Root: repository.Root, Home: dependencies.Home}, snapshot)
 	if failed := snapshot.failure(); failed != nil {
 		return run, failed
 	}

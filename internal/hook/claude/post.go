@@ -9,7 +9,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-func postRequest(w wire, event model.Event, base hook.Base) (hook.Request, error) {
+func postRequest(w wire, event model.Event, in toolInput, base hook.Base) (hook.Request, error) {
 	response := w.Response
 	if event.Post.Failed {
 		if event.Tool != bashTool && event.Tool != powerTool {
@@ -25,7 +25,7 @@ func postRequest(w wire, event model.Event, base hook.Base) (hook.Request, error
 	var err error
 	switch event.Tool {
 	case writeTool, editTool, notebookTool:
-		hints, err = writeHints(w, base)
+		hints, err = writeHints(w, in, base)
 	case bashTool, powerTool:
 		hints = shellHints(w, base)
 	default:
@@ -37,19 +37,13 @@ func postRequest(w wire, event model.Event, base hook.Base) (hook.Request, error
 	return hook.Request{Event: event, Hints: hints}, nil
 }
 
-func writeHints(w wire, base hook.Base) ([]string, error) {
-	var input struct {
-		Path     string `json:"file_path"`
-		Notebook string `json:"notebook_path"`
+// writeHints names the file a post event of a write tool wrote: the path
+// its one parse read, file_path or notebook_path as its tool names it.
+func writeHints(w wire, in toolInput, base hook.Base) ([]string, error) {
+	if in.err != nil {
+		return nil, fmt.Errorf("%w: post write input: %w", model.ErrCannotJudge, in.err)
 	}
-	if err := json.Unmarshal(w.Input, &input); err != nil {
-		return nil, fmt.Errorf("%w: post write input: %w", model.ErrCannotJudge, err)
-	}
-	path := input.Path
-	if w.Tool == notebookTool {
-		path = input.Notebook
-	}
-	relative, err := base.Relative(w.Cwd, path)
+	relative, err := base.Relative(w.Cwd, in.target)
 	if err != nil {
 		return nil, fmt.Errorf("%w: post write path: %w", model.ErrCannotJudge, err)
 	}
