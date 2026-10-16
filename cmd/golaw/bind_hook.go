@@ -58,7 +58,7 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest, cache: source.NewCache()}
 	return hook.Dependencies{
 		Home: b.processHome(), Begin: h.cache.Reset,
-		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Overlay: h.overlay,
+		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Blobs: h.blobs, Overlay: h.overlay,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
 }
@@ -203,19 +203,33 @@ func (h hookBinding) snapshot(ctx context.Context, repo hook.Repository) (model.
 }
 
 // changes is what git status reports changed in the repository, against
-// HEAD, the index or as untracked, as a snapshot of those paths only, so
-// the content identity of a shell command hashes nothing else. It is asked
-// once per event and never kept.
-func (h hookBinding) changes(ctx context.Context, repo hook.Repository) (model.Snapshot, []string, error) {
+// HEAD, the index or as untracked, as a snapshot of those paths and of the
+// paths of also only, so the content identity of a shell command hashes
+// nothing else, with the HEAD it compared with and the blobs HEAD holds at
+// those paths. It is asked once per event and never kept.
+func (h hookBinding) changes(ctx context.Context, repo hook.Repository, also []string) (hook.Changes, error) {
 	found, err := h.cache.Discover(ctx, repo.Root)
 	if err != nil {
-		return nil, nil, discoverFailed(repo.Root, err)
+		return hook.Changes{}, discoverFailed(repo.Root, err)
 	}
-	w, paths, err := source.Changes(ctx, found)
+	st, err := source.Changes(ctx, found, also)
 	if err != nil {
-		return nil, nil, fmt.Errorf("list the changes of %s: %w", found.Root, err)
+		return hook.Changes{}, fmt.Errorf("list the changes of %s: %w", found.Root, err)
 	}
-	return w, paths, nil
+	return hook.Changes{Snapshot: st.Worktree, Paths: st.Paths, Head: found.Head, Blobs: st.Heads}, nil
+}
+
+// blobs is the blob a commit holds at each path, in one question to git.
+func (h hookBinding) blobs(ctx context.Context, repo hook.Repository, commit string, paths []string) (map[string]string, error) {
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	blobs, err := source.Blobs(ctx, found, commit, paths)
+	if err != nil {
+		return nil, fmt.Errorf("read the blobs of %s at %s: %w", found.Root, commit, err)
+	}
+	return blobs, nil
 }
 
 // overlay folds the candidates of a write event, with the bytes the adapter

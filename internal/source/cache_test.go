@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -137,14 +138,49 @@ func TestChangesNamesWhatDiffersFromTheIndex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot, paths, err := source.Changes(t.Context(), repo)
-	if err != nil || !slices.Equal(paths, []string{"a.txt", "b.txt", "c.txt", "d.txt"}) {
-		t.Fatalf("Changes = %v, %v", paths, err)
+	st, err := source.Changes(t.Context(), repo, nil)
+	if err != nil || !slices.Equal(st.Paths, []string{"a.txt", "b.txt", "c.txt", "d.txt"}) {
+		t.Fatalf("Changes = %v, %v", st.Paths, err)
 	}
+	snapshot := st.Worktree
 	if mustRead(t, snapshot, "a.txt") != "two\n" || snapshot.Class("c.txt") != model.ClassUnknown || snapshot.Class("clean.txt") != model.ClassUnknown {
 		t.Fatal("the snapshot of the changes reads the changed paths only")
 	}
-	if _, _, err := source.Changes(t.Context(), source.Repo{Root: t.TempDir()}); err == nil {
+	blob := strings.TrimSpace(gitRun(t, root, "rev-parse", "HEAD:a.txt"))
+	if st.Heads["a.txt"] != blob || st.Heads["c.txt"] != blob || st.Heads["b.txt"] != "" {
+		t.Fatalf("the blobs HEAD holds = %v, want %s for a.txt and c.txt only", st.Heads, blob)
+	}
+	beside, err := source.Changes(t.Context(), repo, []string{"clean.txt", "gone.txt"})
+	if err != nil || mustRead(t, beside.Worktree, "clean.txt") != "one\n" || beside.Worktree.Class("gone.txt") != model.ClassUnknown || slices.Contains(beside.Paths, "clean.txt") {
+		t.Fatalf("the paths asked for beside the changes: %v, %v", beside.Paths, err)
+	}
+	if _, err := source.Changes(t.Context(), source.Repo{Root: t.TempDir()}, nil); err == nil {
 		t.Fatal("a directory outside git was listed")
+	}
+}
+
+// TestBlobsAnswersWhatACommitHolds asks a commit for the blobs of its
+// files in one git command: a file it holds answers the blob, a file it
+// never held, a directory and a name a line cannot carry are absent, and
+// a commit git does not know is an error.
+func TestBlobsAnswersWhatACommitHolds(t *testing.T) {
+	t.Parallel()
+	root := initRepo(t)
+	write(t, root, "a.txt", "one\n")
+	write(t, root, "dir/b.txt", "two\n")
+	commitAll(t, root, "one")
+	repo, err := source.Discover(t.Context(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blobs, err := source.Blobs(t.Context(), repo, repo.Head, []string{"a.txt", "dir", "never.txt", "line\nbreak", "dir/b.txt"})
+	if err != nil || len(blobs) != 2 || blobs["a.txt"] != strings.TrimSpace(gitRun(t, root, "rev-parse", "HEAD:a.txt")) || blobs["dir/b.txt"] == "" {
+		t.Fatalf("Blobs = %v, %v", blobs, err)
+	}
+	if none, err := source.Blobs(t.Context(), repo, "", []string{"a.txt"}); err != nil || len(none) != 0 {
+		t.Fatalf("an unborn commit = %v, %v", none, err)
+	}
+	if _, err := source.Blobs(t.Context(), source.Repo{Root: t.TempDir()}, repo.Head, []string{"a.txt"}); err == nil {
+		t.Fatal("a directory outside git answered blobs")
 	}
 }

@@ -25,22 +25,36 @@ type Repository struct {
 // tool's path to it before it opens the file. Begin, when set, is called
 // once before each event is evaluated, so a binding that keeps what git
 // answered forgets what an earlier event of the same dependencies learned.
-// Changes, when set, answers the paths that differ from HEAD or the index
-// or are untracked, a deleted one included, and a snapshot that reads
-// them: the content identity of a shell command reads only those, and a
-// path clean at both ends is unchanged. Without it the identity reads
-// every file of the snapshot.
+// Changes, when set, answers what git status reports changed, the paths
+// of also read beside them: the content identity of a shell command reads
+// only those, and a path clean at both ends is unchanged. Without it the
+// identity reads every file of the snapshot. Blobs answers the blob a
+// commit holds at each path, for a path whose status alone may have moved
+// while HEAD moved too.
 type Dependencies struct {
 	Home     string
 	Begin    func()
 	Enroll   func(ctx context.Context, dir, cwd string) (Repository, error)
 	Policy   func(context.Context, Repository) (*model.EffectivePolicy, error)
 	Snapshot func(context.Context, Repository) (model.Snapshot, error)
-	Changes  func(context.Context, Repository) (model.Snapshot, []string, error)
+	Changes  func(ctx context.Context, repository Repository, also []string) (Changes, error)
+	Blobs    func(ctx context.Context, repository Repository, commit string, paths []string) (map[string]string, error)
 	Overlay  func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
 	Registry *engine.Registry
 	State    Store
 	Budget   time.Duration
+}
+
+// Changes is what git status reported changed in a repository: a snapshot
+// of those paths and of the paths asked for beside them, the paths it
+// named, a deleted one included, the HEAD commit it compared with, empty
+// on an unborn branch, and the blob that commit holds at each tracked path
+// it named.
+type Changes struct {
+	Snapshot model.Snapshot
+	Paths    []string
+	Head     string
+	Blobs    map[string]string
 }
 
 type execution struct {

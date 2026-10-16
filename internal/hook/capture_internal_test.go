@@ -52,9 +52,10 @@ func (panickedCapture) Read(string) ([]byte, error) {
 
 // captureOf captures the identities of an execution over a base snapshot
 // with the changes a binding may answer.
-func captureOf(ctx context.Context, base model.Snapshot, changes func(context.Context, Repository) (model.Snapshot, []string, error)) (map[string]string, error) {
+func captureOf(ctx context.Context, base model.Snapshot, changes func(context.Context, Repository, []string) (Changes, error)) (map[string]string, error) {
 	run := execution{base: deferSnapshot(func() (model.Snapshot, error) { return base, nil })}
-	return run.captureIdentities(ctx, Dependencies{Changes: changes})
+	files, _, err := run.captureIdentities(ctx, Dependencies{Changes: changes}, nil)
+	return files, err
 }
 
 func TestCaptureFailureAndDeadline(t *testing.T) {
@@ -80,15 +81,15 @@ func TestCaptureFailureAndDeadline(t *testing.T) {
 func TestCaptureReadsOnlyTheChanges(t *testing.T) {
 	t.Parallel()
 	changed := proof.NewTree(map[string][]byte{"dirty.go": []byte("dirty")})
-	changes := func(context.Context, Repository) (model.Snapshot, []string, error) {
-		return changed, []string{"deleted.go", "dirty.go"}, nil
+	changes := func(context.Context, Repository, []string) (Changes, error) {
+		return Changes{Snapshot: changed, Paths: []string{"deleted.go", "dirty.go"}}, nil
 	}
 	files, err := captureOf(t.Context(), panickedCapture{}, changes)
 	if err != nil || len(files) != 2 || files["dirty.go"] != Hash([]byte("dirty")) || files["deleted.go"] != absentIdentity {
 		t.Fatalf("%v, %v", files, err)
 	}
-	failing := func(context.Context, Repository) (model.Snapshot, []string, error) {
-		return nil, nil, model.ErrUnreadable
+	failing := func(context.Context, Repository, []string) (Changes, error) {
+		return Changes{}, model.ErrUnreadable
 	}
 	if _, err := captureOf(t.Context(), panickedCapture{}, failing); !errors.Is(err, model.ErrUnreadable) {
 		t.Fatal(err)

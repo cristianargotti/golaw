@@ -100,6 +100,7 @@ func TestAgentContract(t *testing.T) {
 		"both by the name it asks for and by the file its links lead to",
 		"a submodule moved to another revision are excluded from detection",
 		"a path clean against the index at both ends is unchanged and never read",
+		"A path git status names at one end only is compared by its bytes",
 		"Accept one JSON object of at most 8 MiB",
 		"a post event it reaches is allowed with a notice",
 		"Post detection never blocks on what it could not measure",

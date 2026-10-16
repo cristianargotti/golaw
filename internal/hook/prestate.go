@@ -19,26 +19,26 @@ func (run execution) persistBefore(ctx context.Context, data []byte, dependencie
 	if err != nil {
 		return
 	}
-	before, reason := run.beforeCapture(ctx, dependencies)
+	before := run.beforeCapture(ctx, dependencies)
 	inputHash := Hash([]byte(joinParts([]string{
-		run.policy.Digest, Hash(data), MapHash(before), reason,
+		run.policy.Digest, Hash(data), MapHash(before.Files), before.Head, before.Reason,
 	})))
-	if err := dependencies.State.Save(ctx, key, inputHash, before, reason); err != nil {
-		if retryErr := dependencies.State.Save(ctx, key, inputHash, nil, err.Error()); retryErr != nil {
+	if err := dependencies.State.Save(ctx, key, inputHash, before); err != nil {
+		if retryErr := dependencies.State.Save(ctx, key, inputHash, Baseline{Reason: err.Error()}); retryErr != nil {
 			return
 		}
 	}
 }
 
-func (run execution) beforeCapture(ctx context.Context, dependencies Dependencies) (map[string]string, string) {
+func (run execution) beforeCapture(ctx context.Context, dependencies Dependencies) Baseline {
 	if run.stateReason != "" {
-		return nil, run.stateReason
+		return Baseline{Reason: run.stateReason}
 	}
-	before, err := run.captureIdentities(ctx, dependencies)
+	before, changes, err := run.captureIdentities(ctx, dependencies, nil)
 	if err != nil {
-		return nil, err.Error()
+		return Baseline{Reason: err.Error()}
 	}
-	return before, ""
+	return Baseline{Files: before, Head: changes.Head}
 }
 
 func (run execution) checkWriteFresh(ctx context.Context, dependencies Dependencies) error {

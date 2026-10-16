@@ -3,6 +3,7 @@ package hook
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -13,14 +14,16 @@ const (
 	captureReserve = time.Second
 )
 
-// captureIdentities hashes what the changes of the repository name, or
-// every file of the snapshot without them, inside the capture budget; the
-// files are read in memory and the context is checked between files, so
-// the reserve for the answer is never consumed.
-func (run execution) captureIdentities(ctx context.Context, dependencies Dependencies) (map[string]string, error) {
+// captureIdentities hashes what the changes of the repository name and
+// the paths of also beside them, or every file of the snapshot without
+// the changes, inside the capture budget; the files are read in memory
+// and the context is checked between files, so the reserve for the
+// answer is never consumed. It answers the changes it read them from.
+func (run execution) captureIdentities(ctx context.Context, dependencies Dependencies, also []string) (map[string]string, Changes, error) {
 	bounded, cancel := captureContext(ctx)
 	defer cancel()
 	var files map[string]string
+	changes := Changes{Snapshot: run.base}
 	var err error
 	func() {
 		defer func() {
@@ -28,19 +31,24 @@ func (run execution) captureIdentities(ctx context.Context, dependencies Depende
 				err = fmt.Errorf("%w: content capture panicked", model.ErrCannotJudge)
 			}
 		}()
-		var snapshot model.Snapshot = run.base
 		var paths []string
 		if dependencies.Changes != nil {
-			snapshot, paths, err = dependencies.Changes(bounded, run.repository)
+			changes, err = dependencies.Changes(bounded, run.repository, also)
+			// Never nil, so a deleted path is identified as absent instead
+			// of the whole snapshot being listed.
+			paths = make([]string, 0, len(changes.Paths)+len(also))
+			paths = append(append(paths, changes.Paths...), also...)
+			slices.Sort(paths)
+			paths = slices.Compact(paths)
 		}
 		if err == nil {
-			files, err = Identities(bounded, snapshot, paths)
+			files, err = Identities(bounded, changes.Snapshot, paths)
 		}
 	}()
 	if err != nil {
-		return nil, fmt.Errorf("optional content capture: %w", err)
+		return nil, Changes{}, fmt.Errorf("optional content capture: %w", err)
 	}
-	return files, nil
+	return files, changes, nil
 }
 
 func captureContext(ctx context.Context) (context.Context, context.CancelFunc) {

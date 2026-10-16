@@ -3,6 +3,7 @@ package hook
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -68,18 +69,18 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 	if err != nil {
 		return nil, err
 	}
-	before, reason, err := dependencies.State.Load(ctx, key)
+	before, err := dependencies.State.Load(ctx, key)
 	if err != nil {
 		return nil, err
 	}
-	if reason != "" {
-		return nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, reason)
+	if before.Reason != "" {
+		return nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, before.Reason)
 	}
-	after, err := run.captureIdentities(ctx, dependencies)
+	after, changes, err := run.captureIdentities(ctx, dependencies, slices.Sorted(maps.Keys(before.Files)))
 	if err != nil {
 		return nil, err
 	}
-	return Changed(before, after), nil
+	return run.contentChanged(ctx, dependencies, before, after, changes), nil
 }
 
 func protectPolicy(repository Repository, candidates []model.Candidate) error {

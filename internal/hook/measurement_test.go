@@ -38,11 +38,11 @@ func savedReason(t *testing.T, dependencies hook.Dependencies, event model.Event
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, reason, err := dependencies.State.Load(t.Context(), key)
-	if err != nil || files != nil {
-		t.Fatalf("%v, %q, %v", files, reason, err)
+	baseline, err := dependencies.State.Load(t.Context(), key)
+	if err != nil || baseline.Files != nil {
+		t.Fatalf("%+v, %v", baseline, err)
 	}
-	return reason
+	return baseline.Reason
 }
 
 func shellRequest() hook.Request {
@@ -63,8 +63,8 @@ func TestShellCaptureFailureDoesNotDeny(t *testing.T) {
 	t.Parallel()
 	req := shellRequest()
 	adapter, dependencies := harness(t, req)
-	dependencies.Changes = func(context.Context, hook.Repository) (model.Snapshot, []string, error) {
-		return nil, nil, model.ErrUnreadable
+	dependencies.Changes = func(context.Context, hook.Repository, []string) (hook.Changes, error) {
+		return hook.Changes{}, model.ErrUnreadable
 	}
 	event, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 	if got.Outcome != hook.Allow || got.CannotJudge {

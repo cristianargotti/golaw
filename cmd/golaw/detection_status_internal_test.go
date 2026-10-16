@@ -49,11 +49,11 @@ func rewriteInPlace(t *testing.T, path, content string) {
 // runs with reports changed in the repository.
 func statusIdentities(t *testing.T, h hookBinding, root string) map[string]string {
 	t.Helper()
-	snapshot, paths, err := h.changes(t.Context(), hook.Repository{Root: root})
+	changes, err := h.changes(t.Context(), hook.Repository{Root: root}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := hook.Identities(t.Context(), snapshot, paths)
+	got, err := hook.Identities(t.Context(), changes.Snapshot, changes.Paths)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,5 +121,81 @@ func TestHookPostJudgesWhatACommandWrote(t *testing.T) {
 		if pre.ExitCode != 0 || len(pre.Stdout) != 0 || post.ExitCode != 0 || blocked != (tc.path != "") || !strings.Contains(said, tc.path) {
 			t.Fatalf("%s: pre %+v, post exit %d, stdout %q, stderr %q", tc.name, pre, post.ExitCode, said, post.Stderr)
 		}
+	}
+}
+
+// statusCase is one command of a post detection fixture: what the
+// repository holds before the pre event, what the command does and
+// whether the post event feeds a dash back.
+type statusCase struct {
+	name           string
+	before, during func(root string)
+	fed            bool
+}
+
+// statusCases are the near misses and the controls of a command that
+// moves a file in or out of what git status reports.
+func statusCases(t *testing.T, dash string) []statusCase {
+	t.Helper()
+	commit := func(root, message string) { gitRun(t, root, "commit", "-q", "-am", message) }
+	return []statusCase{
+		{"a committed dash file made executable", nil, func(root string) { chmodFile(t, root, "legacy.md", 0o755) }, false},
+		{"a committed executable dash file made plain", func(root string) {
+			chmodFile(t, root, "legacy.md", 0o755)
+			commit(root, "test: executable")
+		}, func(root string) { chmodFile(t, root, "legacy.md", 0o644) }, false},
+		{"dirty dash bytes the command commits unchanged", func(root string) {
+			writeFiles(t, root, map[string]string{"notes.md": dash})
+			gitRun(t, root, "add", "notes.md")
+		}, func(root string) { commit(root, "test: commit the notes") }, false},
+		{"an untracked dash file the command adds and commits", func(root string) {
+			writeFiles(t, root, map[string]string{"draft.md": dash})
+		}, func(root string) {
+			gitRun(t, root, "add", "-A")
+			commit(root, "test: commit the draft")
+		}, false},
+		{"a committed dash file a soft reset leaves staged", func(root string) {
+			commitFiles(t, root, map[string]string{"other.md": dash})
+		}, func(root string) { gitRun(t, root, "reset", "-q", "--soft", "HEAD~1") }, false},
+		{"a dash written into a clean file", nil, func(root string) { writeFiles(t, root, map[string]string{"clean.md": dash}) }, true},
+		{"a dirty file written back to its committed dash", func(root string) {
+			writeFiles(t, root, map[string]string{"legacy.md": "clean\n"})
+		}, func(root string) { writeFiles(t, root, map[string]string{"legacy.md": dash}) }, true},
+	}
+}
+
+// TestHookPostLeavesWhatOnlyChangedItsStatus holds the near misses of
+// change detection through the real binding: a command that only moves a
+// file in or out of what git status reports, a mode change, a commit of
+// bytes already dirty, a soft reset that leaves a committed file staged,
+// leaves its content alone, so a dash already in it is not fed back, while
+// a dash written into a clean file and a file written back to its
+// committed content are.
+func TestHookPostLeavesWhatOnlyChangedItsStatus(t *testing.T) {
+	t.Parallel()
+	dash := "one \u2014 two\n"
+	agent := agentUnderTest()
+	for _, tc := range statusCases(t, dash) {
+		e := enrolledHook(t)
+		commitFiles(t, e.root, map[string]string{"legacy.md": dash, "clean.md": "clean\n"})
+		if tc.before != nil {
+			tc.before(e.root)
+		}
+		pre := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PreToolUse", e.root, "true")), agent.Adapter, e.deps)
+		tc.during(e.root)
+		post := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PostToolUse", e.root, "true")), agent.Adapter, e.deps)
+		said := string(post.Stdout)
+		fed := strings.Contains(said, `"decision":"block"`) && strings.Contains(said, "text.dashes")
+		if pre.ExitCode != 0 || len(pre.Stdout) != 0 || post.ExitCode != 0 || fed != tc.fed {
+			t.Fatalf("%s: pre %+v, post exit %d, stdout %q, stderr %q", tc.name, pre, post.ExitCode, said, post.Stderr)
+		}
+	}
+}
+
+// chmodFile sets the mode of a file of a test under the root.
+func chmodFile(t *testing.T, root, name string, mode os.FileMode) {
+	t.Helper()
+	if err := os.Chmod(filepath.Join(root, filepath.FromSlash(name)), mode); err != nil {
+		t.Fatal(err)
 	}
 }

@@ -29,11 +29,22 @@ type Store struct {
 	Now time.Time
 }
 
+// Baseline is what a pre event leaves its post event: the content
+// identities of the paths git status named, the HEAD commit they were
+// taken at, empty on an unborn branch, or the reason they could not be
+// taken.
+type Baseline struct {
+	Files  map[string]string
+	Head   string
+	Reason string
+}
+
 type stateRecord struct {
 	Key        string            `json:"key"`
 	Input      string            `json:"input"`
 	Hash       string            `json:"hash"`
 	Files      map[string]string `json:"files"`
+	Head       string            `json:"head,omitempty"`
 	Reason     string            `json:"reason"`
 	ReasonHash string            `json:"reason_hash"`
 	At         time.Time         `json:"at"`
@@ -49,15 +60,15 @@ func (s Store) Sweep(ctx context.Context) error {
 }
 
 // Save publishes complete immutable bytes before a reader can discover them.
-func (s Store) Save(ctx context.Context, key, inputHash string, files map[string]string, reason string) error {
+func (s Store) Save(ctx context.Context, key, inputHash string, baseline Baseline) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("%w: state save: %w", model.ErrDeadline, err)
 	}
-	if files == nil && reason == "" {
-		files = map[string]string{}
+	if baseline.Files == nil && baseline.Reason == "" {
+		baseline.Files = map[string]string{}
 	}
 	data, err := stateBytes(stateRecord{
-		Key: key, Input: inputHash, Files: files, Reason: reason, At: s.Now,
+		Key: key, Input: inputHash, Files: baseline.Files, Head: baseline.Head, Reason: baseline.Reason, At: s.Now,
 	})
 	if err != nil {
 		return err
@@ -71,7 +82,7 @@ func (s Store) Save(ctx context.Context, key, inputHash string, files map[string
 	if err := publishState(ctx, temp, final); err != nil {
 		return err
 	}
-	if _, _, err := s.Load(ctx, key); err != nil {
+	if _, err := s.Load(ctx, key); err != nil {
 		return fmt.Errorf("%w: duplicate state: %w", model.ErrCannotJudge,
 			errors.Join(err, removeState(final)))
 	}
@@ -79,7 +90,7 @@ func (s Store) Save(ctx context.Context, key, inputHash string, files map[string
 }
 
 // Load refuses ambiguous baselines instead of choosing a stale verdict.
-func (s Store) Load(ctx context.Context, key string) (map[string]string, string, error) {
+func (s Store) Load(ctx context.Context, key string) (Baseline, error) {
 	var found bool
 	var selected stateRecord
 	err := eachState(ctx, s.Dir, func(entry fs.DirEntry) error {
@@ -100,12 +111,12 @@ func (s Store) Load(ctx context.Context, key string) (map[string]string, string,
 		return nil
 	})
 	if err != nil {
-		return nil, "", err
+		return Baseline{}, err
 	}
 	if !found {
-		return nil, "", fmt.Errorf("%w: baseline absent: %w", model.ErrCannotJudge, fs.ErrNotExist)
+		return Baseline{}, fmt.Errorf("%w: baseline absent: %w", model.ErrCannotJudge, fs.ErrNotExist)
 	}
-	return selected.Files, selected.Reason, nil
+	return Baseline{Files: selected.Files, Head: selected.Head, Reason: selected.Reason}, nil
 }
 
 func (s Store) sweepEntry(entry fs.DirEntry) error {

@@ -128,8 +128,17 @@ func (e *gitError) Unwrap() error { return ErrGit }
 // still read. The kit's own plumbing is the only thing ever executed:
 // never repository code, never intercepted text.
 func git(ctx context.Context, dir string, args ...string) ([]byte, error) {
+	return gitInput(ctx, dir, nil, args...)
+}
+
+// gitInput is git with the bytes the command reads on its standard input,
+// none when input is nil.
+func gitInput(ctx context.Context, dir string, input []byte, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "git", args...) //nolint:gosec // the arguments are the kit's own plumbing
 	cmd.Dir = dir
+	if input != nil {
+		cmd.Stdin = bytes.NewReader(input)
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()

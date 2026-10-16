@@ -27,21 +27,22 @@ func TestStateRoundTripDuplicateAndExpiry(t *testing.T) {
 	if err := store.Sweep(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Save(t.Context(), key, input, files, ""); err != nil {
+	if err := store.Save(t.Context(), key, input, hook.Baseline{Files: files}); err != nil {
 		t.Fatal(err)
 	}
-	got, reason, err := store.Load(t.Context(), key)
+	loaded, err := store.Load(t.Context(), key)
+	got, reason := loaded.Files, loaded.Reason
 	if err != nil || reason != "" || !maps.Equal(got, files) {
 		t.Fatalf("got %v, %q, %v", got, reason, err)
 	}
-	if err := store.Save(t.Context(), key, input, files, ""); err == nil {
+	if err := store.Save(t.Context(), key, input, hook.Baseline{Files: files}); err == nil {
 		t.Fatal("duplicate identity accepted")
 	}
 	store.Now = now.Add(25 * time.Hour)
 	if err := store.Sweep(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := store.Load(t.Context(), key); !errors.Is(err, fs.ErrNotExist) {
+	if _, err := store.Load(t.Context(), key); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatal(err)
 	}
 }
@@ -51,11 +52,11 @@ func TestStateLoadIgnoresAnExpiredRecord(t *testing.T) {
 	now := time.Now()
 	store := hook.Store{Dir: t.TempDir(), Now: now.Add(-25 * time.Hour)}
 	key, input := hook.Hash([]byte("aged")), hook.Hash([]byte("input"))
-	if err := store.Save(t.Context(), key, input, nil, "aged capture"); err != nil {
+	if err := store.Save(t.Context(), key, input, hook.Baseline{Reason: "aged capture"}); err != nil {
 		t.Fatal(err)
 	}
 	store.Now = now
-	if _, _, err := store.Load(t.Context(), key); !errors.Is(err, fs.ErrNotExist) {
+	if _, err := store.Load(t.Context(), key); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatal("a record dated 25 hours ago was loaded:", err)
 	}
 }
@@ -94,7 +95,7 @@ func TestStateInterruptedTemporaryAndCorruption(t *testing.T) {
 	if err := os.WriteFile(corrupt, []byte("{"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := store.Load(t.Context(), key); err == nil {
+	if _, err := store.Load(t.Context(), key); err == nil {
 		t.Fatal("corrupt record accepted")
 	}
 	ctx, cancel := context.WithCancel(t.Context())
@@ -118,7 +119,7 @@ func TestConcurrentStatePublication(t *testing.T) {
 		group.Go(func() {
 			<-start
 			results <- store.Save(t.Context(), key, input,
-				map[string]string{"a.go": hook.Hash([]byte("safe"))}, "")
+				hook.Baseline{Files: map[string]string{"a.go": hook.Hash([]byte("safe"))}})
 		})
 	}
 	close(start)
@@ -139,10 +140,11 @@ func TestStateReasonAndReasonIntegrity(t *testing.T) {
 	t.Parallel()
 	store := hook.Store{Dir: t.TempDir(), Now: time.Now()}
 	key, input := hook.Hash([]byte("reason")), hook.Hash([]byte("input"))
-	if err := store.Save(t.Context(), key, input, nil, "capture unreadable"); err != nil {
+	if err := store.Save(t.Context(), key, input, hook.Baseline{Reason: "capture unreadable"}); err != nil {
 		t.Fatal(err)
 	}
-	files, reason, err := store.Load(t.Context(), key)
+	loaded, err := store.Load(t.Context(), key)
+	files, reason := loaded.Files, loaded.Reason
 	if err != nil || files != nil || reason != "capture unreadable" {
 		t.Fatalf("%v, %q, %v", files, reason, err)
 	}
@@ -167,7 +169,7 @@ func TestStateReasonAndReasonIntegrity(t *testing.T) {
 	if writeErr := os.WriteFile(path, body, 0o600); writeErr != nil {
 		t.Fatal(writeErr)
 	}
-	if _, _, loadErr := store.Load(t.Context(), key); loadErr == nil {
+	if _, loadErr := store.Load(t.Context(), key); loadErr == nil {
 		t.Fatal("changed reason accepted")
 	}
 }
@@ -177,7 +179,7 @@ func TestStateSweepExceedsOneBatch(t *testing.T) {
 	now := time.Now()
 	store := hook.Store{Dir: t.TempDir(), Now: now.Add(-25 * time.Hour)}
 	key, input := hook.Hash([]byte("expired")), hook.Hash([]byte("input"))
-	if err := store.Save(t.Context(), key, input, nil, "expired capture"); err != nil {
+	if err := store.Save(t.Context(), key, input, hook.Baseline{Reason: "expired capture"}); err != nil {
 		t.Fatal(err)
 	}
 	entries, err := os.ReadDir(store.Dir)
@@ -196,7 +198,7 @@ func TestStateSweepExceedsOneBatch(t *testing.T) {
 	}
 	store.Now = now
 	live := hook.Hash([]byte("live"))
-	if saveErr := store.Save(t.Context(), live, input, nil, "live capture"); saveErr != nil {
+	if saveErr := store.Save(t.Context(), live, input, hook.Baseline{Reason: "live capture"}); saveErr != nil {
 		t.Fatal(saveErr)
 	}
 	if sweepErr := store.Sweep(t.Context()); sweepErr != nil {
@@ -206,8 +208,8 @@ func TestStateSweepExceedsOneBatch(t *testing.T) {
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("unexpected surviving entries: %d, %v", len(entries), err)
 	}
-	if _, reason, loadErr := store.Load(t.Context(), live); loadErr != nil || reason != "live capture" {
-		t.Fatalf("%q, %v", reason, loadErr)
+	if loaded, loadErr := store.Load(t.Context(), live); loadErr != nil || loaded.Reason != "live capture" {
+		t.Fatalf("%+v, %v", loaded, loadErr)
 	}
 }
 
@@ -227,10 +229,11 @@ func TestStateOversizedMapBecomesReason(t *testing.T) {
 	store := hook.Store{Dir: t.TempDir(), Now: time.Now()}
 	key, input := hook.Hash([]byte("large")), hook.Hash([]byte("input"))
 	files := map[string]string{"large": strings.Repeat("x", (32<<20)+1)}
-	if err := store.Save(t.Context(), key, input, files, ""); err != nil {
+	if err := store.Save(t.Context(), key, input, hook.Baseline{Files: files}); err != nil {
 		t.Fatal(err)
 	}
-	got, reason, err := store.Load(t.Context(), key)
+	loaded, err := store.Load(t.Context(), key)
+	got, reason := loaded.Files, loaded.Reason
 	if err != nil || got != nil || reason != "content identity record exceeds 32 MiB" {
 		t.Fatalf("%v, %q, %v", got, reason, err)
 	}
