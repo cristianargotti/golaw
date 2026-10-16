@@ -24,6 +24,7 @@ func TestSecurityContract(t *testing.T) {
 		"wherever the session runs",
 		"cover only private key files, Terraform variable files, SSH keys, and cloud credential files",
 		"such as git -C, is not judged",
+		"a write through a link into an enrolled repository is judged there",
 	)
 }
 
@@ -53,6 +54,7 @@ func TestAgentContract(t *testing.T) {
 		"waits for the Windows live record",
 		"doctor-json",
 		"deepest existing directory above tool_input.file_path",
+		"every symbolic link in it is followed, the last one included, dangling or not",
 		"records the fault and proves no denial",
 		"A failed run closes with the rows that fail it",
 	)

@@ -24,7 +24,7 @@ These are release requirements, not a substitute for the recorded acceptance res
 
 In an enrolled repository, supported pre events deny a typographic dash write, a prohibited secret read, a --no-verify commit, and an oversized candidate whose whole content can be reconstructed. An Edit is applied in memory before measurement.
 
-The repository that holds the file a write or read names governs it, wherever the session runs. A write outside every enrolled repository, such as the agent's own plan files, is a positively unenrolled location. A read outside every enrolled repository is judged by the session's repository, so the person's credential stores stay behind the secret boundary of an enrolled session.
+The repository that holds the file a write or read names governs it, wherever the session runs. A symbolic link changes neither: the file a name leads to through every link is placed first, then the link the name opens, so a write through a link into an enrolled repository is judged there, and a write through a link of an enrolled repository to a file outside it is refused as one that repository cannot place. A write outside every enrolled repository, such as the agent's own plan files, is a positively unenrolled location. A read outside every enrolled repository is judged by the session's repository, so the person's credential stores stay behind the secret boundary of an enrolled session.
 
 Malformed input, an unreadable target, an envelope mismatch, and an unsupported mutation shape are denials. The internal deadline is shorter than the host timeout. The installed handler uses timeout 10 and onFailure: block, requiring Claude Code 2.1.295 or newer.
 

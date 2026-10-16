@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -84,6 +85,61 @@ func TestHookJudgesTheRepositoryThatHoldsTheTarget(t *testing.T) {
 		reply := hook.Run(t.Context(), agent.ID, strings.NewReader(event), agent.Adapter, e.deps)
 		denied := strings.Contains(string(reply.Stdout), `"permissionDecision":"deny"`)
 		if reply.ExitCode != 0 || denied != tc.denied || reply.Stderr != "" {
+			t.Fatalf("%s: exit %d, stdout %q, stderr %q", tc.name, reply.ExitCode, reply.Stdout, reply.Stderr)
+		}
+	}
+}
+
+// links makes the symbolic links of a test, each a target and a name, or
+// skips the test where the system has none.
+func links(t *testing.T, pairs ...[2]string) {
+	t.Helper()
+	for _, pair := range pairs {
+		if err := os.Symlink(pair[0], pair[1]); err != nil {
+			t.Skipf("symbolic links are not available: %v", err)
+		}
+	}
+}
+
+// TestHookFollowsEveryLinkOfTheTarget drives the real binding with writes
+// through links: one outside the repository to its policy file is denied
+// from the repository and from outside, as is the policy file named with
+// the leading space the host trims, a dash through a dangling link into
+// the repository is denied while a clean write through it is allowed, and
+// a link of the repository to a file outside stays with that repository,
+// which cannot place it and refuses it.
+func TestHookFollowsEveryLinkOfTheTarget(t *testing.T) {
+	t.Parallel()
+	e := enrolledHook(t)
+	root, outside := e.root, t.TempDir()
+	plain := filepath.Join(outside, "plain.md")
+	if err := os.WriteFile(plain, []byte("plain\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	alias, dangling, out := filepath.Join(outside, "alias"), filepath.Join(outside, "dangling.md"), filepath.Join(root, "out.md")
+	links(t, [2]string{filepath.Join(root, "golaw.yml"), alias}, [2]string{filepath.Join(root, "fresh.md"), dangling}, [2]string{plain, out})
+	write := func(target, content string) map[string]any {
+		return map[string]any{"file_path": target, "content": content}
+	}
+	for _, tc := range []struct {
+		name, cwd    string
+		input        map[string]any
+		exit         int
+		denied       bool
+		reasonOrPath string
+	}{
+		{"the policy through an alias from the repository", root, write(alias, "x: 1\n"), 0, true, "golaw.yml"},
+		{"the policy through an alias from outside", outside, write(alias, "x: 1\n"), 0, true, "golaw.yml"},
+		{"the policy named with a leading space from outside", outside, write(" "+filepath.Join(root, "golaw.yml"), "x: 1\n"), 0, true, "golaw.yml"},
+		{"a dash through a dangling alias from outside", outside, write(dangling, "one \u2014 two\n"), 0, true, "fresh.md"},
+		{"a clean write through a dangling alias", outside, write(dangling, "one-two\n"), 0, false, ""},
+		{"a link of the repository to a file outside", root, write(out, "one-two\n"), 2, false, "outside the repository"},
+	} {
+		agent := agentUnderTest()
+		reply := hook.Run(t.Context(), agent.ID, strings.NewReader(eventAt(t, "Write", tc.cwd, tc.input)), agent.Adapter, e.deps)
+		denied := strings.Contains(string(reply.Stdout), `"permissionDecision":"deny"`)
+		said := string(reply.Stdout) + reply.Stderr
+		if reply.ExitCode != tc.exit || denied != tc.denied || !strings.Contains(said, tc.reasonOrPath) {
 			t.Fatalf("%s: exit %d, stdout %q, stderr %q", tc.name, reply.ExitCode, reply.Stdout, reply.Stderr)
 		}
 	}

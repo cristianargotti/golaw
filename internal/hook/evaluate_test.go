@@ -216,7 +216,7 @@ func TestDecisionAndSelectionMutations(t *testing.T) {
 // session's working directory is kept for the shell shape and as evidence.
 func TestEnrollmentFollowsTheTarget(t *testing.T) {
 	t.Parallel()
-	session, repo := t.TempDir(), t.TempDir()
+	session, repo := realDir(t), realDir(t)
 	for _, dir := range []string{filepath.Join(repo, "internal"), filepath.Join(session, "sub")} {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			t.Fatal(err)
@@ -255,7 +255,7 @@ func TestEnrollmentFollowsTheTarget(t *testing.T) {
 // there is a positively unenrolled location that no policy loads for.
 func TestReadOutsideEveryRepositoryFallsBackToTheSession(t *testing.T) {
 	t.Parallel()
-	session, outside := t.TempDir(), t.TempDir()
+	session, outside := realDir(t), realDir(t)
 	for _, tc := range []struct {
 		shape  model.EventShape
 		calls  []string
