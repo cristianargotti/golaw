@@ -11,3 +11,7 @@ checks:
     code: ci-safety
     red: testdata/ci.safety/red
     near: testdata/ci.safety/near
+  - id: release.assets
+    code: release-assets
+    red: testdata/release.assets/red
+    near: testdata/release.assets/near
