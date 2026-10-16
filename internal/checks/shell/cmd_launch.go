@@ -25,24 +25,43 @@ func cmdSegments(command string) []segment {
 // runs the rest of its line, and start the program after its switches.
 // The first word after the switches is the program or, when it was quoted,
 // a title before more switches and the program; the words no longer carry
-// their quotes, so both readings are answered.
+// their quotes, so both readings are answered. Every such command is the
+// tail of the words from some index, so each index is read once: a run of
+// start words then costs one reading per word instead of doubling at each.
 func cmdLaunched(words []string) [][]string {
-	if len(words) < 2 {
+	var out [][]string
+	seen := make([]bool, len(words)+1)
+	for queue := []int{0}; len(queue) > 0; queue = queue[1:] {
+		for _, at := range launches(words, queue[0]) {
+			if !seen[at] {
+				seen[at] = true
+				out = append(out, words[at:])
+				queue = append(queue, at)
+			}
+		}
+	}
+	return out
+}
+
+// launches answers the indices of the commands the call or the start at
+// an index runs: the word after call, and the program after the switches
+// of start with, when a word follows it, the program after a title.
+func launches(words []string, at int) []int {
+	if len(words)-at < 2 {
 		return nil
 	}
-	switch strings.ToLower(words[0]) {
+	switch strings.ToLower(words[at]) {
 	case "call":
-		return append([][]string{words[1:]}, cmdLaunched(words[1:])...)
+		return []int{at + 1}
 	case "start":
-		rest := startSwitches(words[1:])
+		rest := startSwitches(words[at+1:])
 		if len(rest) == 0 {
 			return nil
 		}
-		out := append([][]string{rest}, cmdLaunched(rest)...)
 		if titled := startSwitches(rest[1:]); len(titled) > 0 {
-			out = append(append(out, titled), cmdLaunched(titled)...)
+			return []int{len(words) - len(rest), len(words) - len(titled)}
 		}
-		return out
+		return []int{len(words) - len(rest)}
 	default:
 		return nil
 	}

@@ -1,6 +1,7 @@
 package shell_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks/shell"
@@ -166,6 +167,9 @@ func TestCmdSeesTheCommandCallAndStartRun(t *testing.T) {
 		{shell.NoVerify(), "Bash", `cmd /c 'start /b cmd /c git commit --no-verify -m x'`, "no-verify"},
 		{shell.NoVerify(), "Bash", `cmd /c 'if exist marker call git commit --no-verify -m x'`, "no-verify"},
 		{shell.SecretTokens(), "Bash", `cmd /c 'start /d deploy\secrets\db notepad'`, "secret-token"},
+		{shell.NoVerify(), "Bash", "cmd /c '" + strings.Repeat("start ", 60) + "git commit --no-verify -m x'", "no-verify"},
+		{shell.NoVerify(), "Bash", "cmd /c '" + strings.Repeat("call start /b ", 30) + "git commit --no-verify -m x'", "no-verify"},
+		{shell.NoVerify(), "Bash", "cmd /c '" + strings.Repeat("start ", 60) + "git status'", ""},
 		{shell.NoVerify(), "Bash", `cmd /c 'call git commit -m x'`, ""},
 		{shell.NoVerify(), "Bash", `cmd /c 'echo call git commit --no-verify'`, ""},
 		{shell.NoVerify(), "Bash", `cmd /c 'start "git commit --no-verify" notepad'`, ""},

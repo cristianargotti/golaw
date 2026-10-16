@@ -4,6 +4,10 @@ import "strings"
 
 const overBodyWidth = 101
 
+// startRun is the number of start words of the repeated start rows, enough
+// for a reading that doubles at each start to spend the hook budget.
+const startRun = 30
+
 type shellFixture struct {
 	name string
 	text string
@@ -66,6 +70,8 @@ func cmdScripts() []shellFixture {
 		{"cmd-call", `cmd /c 'call git commit --no-verify -m x'`, wantDeny},
 		{"cmd-start", `cmd /c 'start /b git commit --no-verify -m x'`, wantDeny},
 		{"cmd-call-control", `cmd /c 'call git commit -m x'`, wantAllow},
+		{"cmd-start-run", "cmd /c '" + strings.Repeat("start ", startRun) + "git commit -n -m x'", wantDeny},
+		{"cmd-start-run-control", "cmd /c '" + strings.Repeat("start ", startRun) + "git status'", wantAllow},
 		{"cmd-control", `cmd /c "git status"`, wantAllow},
 	}
 }
