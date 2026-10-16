@@ -1,0 +1,66 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"time"
+)
+
+const delay = 20 * time.Second
+
+// ErrMode identifies an unsupported fault selection.
+var ErrMode = errors.New("unknown fault mode")
+
+func main() {
+	path, err := os.Executable()
+	if err != nil {
+		fail(err)
+	}
+	mode, err := os.ReadFile(path + ".mode")
+	if err != nil {
+		fail(err)
+	}
+	switch strings.TrimSpace(string(mode)) {
+	case "crash":
+		panic("controlled crash")
+	case "empty":
+		return
+	case "timeout":
+		time.Sleep(delay)
+	case "slowgit":
+		git(path)
+	default:
+		fail(ErrMode)
+	}
+}
+
+func git(path string) {
+	for _, arg := range os.Args[1:] {
+		if arg == "ls-files" {
+			time.Sleep(delay)
+			return
+		}
+	}
+	body, err := os.ReadFile(path + ".real")
+	if err != nil {
+		fail(err)
+	}
+	cmd := exec.Command(string(body), os.Args[1:]...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		if cmd.ProcessState != nil {
+			os.Exit(cmd.ProcessState.ExitCode())
+		}
+		fail(err)
+	}
+}
+
+func fail(err error) {
+	if _, writeErr := fmt.Fprintln(os.Stderr, err); writeErr != nil {
+		os.Exit(2)
+	}
+	os.Exit(2)
+}
