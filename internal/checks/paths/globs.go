@@ -6,16 +6,24 @@ package paths
 // what a repository may hold and a home relative one for the credential
 // stores of the person. A source file named like a credential stays
 // readable, as the check leaves it to gitleaks, and a documented template
-// is not listed, because a glob cannot tell it from the real file.
+// is not listed, because a glob cannot tell it from the real file; for the
+// same reason a dotenv or kubeconfig file named for a stage is listed by
+// its usual names, since .env.* and kubeconfig.* would also deny
+// .env.example and kubeconfig.go.
 func SecretGlobs() []string {
 	return []string{
 		"**/.env", "**/.env.local", "**/*.env", "**/.envrc",
+		"**/.env.dev", "**/.env.development", "**/.env.stage", "**/.env.staging",
+		"**/.env.prod", "**/.env.production", "**/.env.test",
 		"**/secrets/**", "**/secret/**",
 		"**/credentials/*.json", "**/keys/*.json",
 		"**/*secrets.json", "**/*secrets.yml", "**/*secrets.yaml",
 		"**/*credentials*.json", "**/*credentials*.csv",
 		"**/kubeconfig", "**/*.kubeconfig", "**/.kube/**", "~/.kube/**",
-		"**/.docker/config.json", "~/.docker/config.json", "~/.vault-token",
+		"**/kubeconfig.yaml", "**/kubeconfig.yml", "**/kubeconfig.json", "**/kubeconfig.local",
+		"**/kubeconfig.dev", "**/kubeconfig.development", "**/kubeconfig.stage", "**/kubeconfig.staging",
+		"**/kubeconfig.prod", "**/kubeconfig.production", "**/kubeconfig.test",
+		"**/.docker/config.json", "~/.docker/config.json", "**/.vault-token", "~/.vault-token",
 		"**/*.tfstate", "**/*.tfstate.backup", "**/*.tfvars", "**/*.tfvars.json",
 		"**/*.pem", "**/*.key", "**/*.p12", "**/*.pfx", "**/*.jks", "**/*.kdbx",
 		"**/id_rsa", "**/id_dsa", "**/id_ecdsa", "**/id_ed25519",
