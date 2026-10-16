@@ -83,6 +83,61 @@ func TestStateKeyIsolation(t *testing.T) {
 	}
 }
 
+func TestStateKeyRefusesAnIncompleteIdentity(t *testing.T) {
+	t.Parallel()
+	whole := model.Event{Agent: "claude", SessionID: "session", ToolUseID: "tool"}
+	if _, err := hook.StateKey("repository", whole); err != nil {
+		t.Fatal("an event without agent_id was refused:", err)
+	}
+	for _, tc := range []struct {
+		repository string
+		event      model.Event
+	}{
+		{"", whole},
+		{"repository", model.Event{SessionID: "session", ToolUseID: "tool"}},
+		{"repository", model.Event{Agent: "claude", ToolUseID: "tool"}},
+		{"repository", model.Event{Agent: "claude", SessionID: "session"}},
+	} {
+		if _, err := hook.StateKey(tc.repository, tc.event); !errors.Is(err, model.ErrCannotJudge) {
+			t.Fatal(tc, err)
+		}
+	}
+}
+
+// sizedSnapshot answers every file from one shared buffer, so the total
+// byte bound is reached without holding every file in memory.
+type sizedSnapshot struct {
+	count int
+	body  []byte
+}
+
+func (s sizedSnapshot) Files() []model.File {
+	files := make([]model.File, s.count)
+	for i := range files {
+		files[i] = model.File{Path: fmt.Sprintf("file-%d.go", i), Class: model.ClassTracked}
+	}
+	return files
+}
+
+func (sizedSnapshot) Class(string) model.FileClass { return model.ClassTracked }
+
+func (s sizedSnapshot) Read(string) ([]byte, error) { return s.body, nil }
+
+func TestIdentityByteBoundAndOversizedRead(t *testing.T) {
+	t.Parallel()
+	body := make([]byte, model.MaxReadBytes)
+	if _, err := hook.Identities(t.Context(), sizedSnapshot{count: 8, body: body}, nil); err != nil {
+		t.Fatal("64 MiB of content was refused:", err)
+	}
+	if _, err := hook.Identities(t.Context(), sizedSnapshot{count: 9, body: body}, nil); !errors.Is(err, model.ErrCannotJudge) {
+		t.Fatal(err)
+	}
+	oversized := sizedSnapshot{count: 1, body: make([]byte, model.MaxReadBytes+1)}
+	if _, err := hook.Identities(t.Context(), oversized, nil); !errors.Is(err, model.ErrTooLarge) {
+		t.Fatal(err)
+	}
+}
+
 func TestIdentityBoundsAndCancellation(t *testing.T) {
 	t.Parallel()
 	tree := proof.NewTree(map[string][]byte{

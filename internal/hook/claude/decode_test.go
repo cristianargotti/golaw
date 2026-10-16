@@ -131,6 +131,10 @@ func TestDecodeRejectsUnknownShapes(t *testing.T) {
 		frame(t, "PostToolUse", "Bash", root, map[string]any{"command": "true"}),
 		postFrame(t, "PostToolUseFailure", "Write", root,
 			map[string]any{"file_path": filepath.Join(root, "a.go")}, "failed"),
+		postFrame(t, "PostToolUse", "Write", root,
+			map[string]any{"file_path": filepath.Join(root, "a.go")}, nil),
+		postFrame(t, "PostToolUse", "Read", root,
+			map[string]any{"file_path": filepath.Join(root, "a.go")}, map[string]any{"content": "x"}),
 	} {
 		if _, err := claude.Decode(data, root, nil); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatalf("%s: %v", data, err)

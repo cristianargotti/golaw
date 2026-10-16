@@ -98,17 +98,21 @@ func TestStaleCandidateAndProtectedPolicy(t *testing.T) {
 	}
 }
 
-func TestProtectedPolicyFoldsCaseOnACaseInsensitiveRepository(t *testing.T) {
+func TestProtectedPolicyCaseAndMoveSource(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		path               string
+		path, from         string
 		insensitive, wants bool
 	}{
-		{"GOLAW.yml", true, true},
-		{"GOLAW.yml", false, false},
+		{"GOLAW.yml", "", true, true},
+		{"GOLAW.yml", "", false, false},
+		{"b.go", "golaw.yml", false, true},
 	} {
 		req := request("safe")
 		req.Event.Candidates[0].Path = tc.path
+		if tc.from != "" {
+			req.Event.Candidates[0].Op, req.Event.Candidates[0].From = model.CandidateMove, tc.from
+		}
 		adapter, dependencies := harness(t, req)
 		enroll := dependencies.Enroll
 		dependencies.Enroll = func(ctx context.Context, cwd string) (hook.Repository, error) {
@@ -120,6 +124,25 @@ func TestProtectedPolicyFoldsCaseOnACaseInsensitiveRepository(t *testing.T) {
 		if refused := got.Outcome == hook.Deny && strings.Contains(got.Reason, "golaw.yml"); refused != tc.wants {
 			t.Fatal(tc, got)
 		}
+	}
+}
+
+func TestEnrollFailureAndUnknownAgentCannotBeJudged(t *testing.T) {
+	t.Parallel()
+	adapter, dependencies := harness(t, request("safe"))
+	dependencies.Enroll = func(context.Context, string) (hook.Repository, error) {
+		return hook.Repository{}, fmt.Errorf("%w: discovery failed", model.ErrCannotJudge)
+	}
+	_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
+	if got.Outcome != hook.Deny || !got.CannotJudge || !strings.Contains(got.Reason, "discovery failed") {
+		t.Fatal(got)
+	}
+	req := request("safe")
+	req.Event.Agent = "other"
+	adapter, dependencies = harness(t, req)
+	_, got = hook.Evaluate(t.Context(), "other", []byte("{}"), adapter, dependencies)
+	if got.Outcome != hook.Deny || !got.CannotJudge {
+		t.Fatal("an unknown agent was judged:", got)
 	}
 }
 

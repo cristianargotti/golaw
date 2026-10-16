@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/hook"
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 func TestStateRoundTripDuplicateAndExpiry(t *testing.T) {
@@ -42,6 +43,31 @@ func TestStateRoundTripDuplicateAndExpiry(t *testing.T) {
 	}
 	if _, _, err := store.Load(t.Context(), key); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatal(err)
+	}
+}
+
+func TestStateLoadIgnoresAnExpiredRecord(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	store := hook.Store{Dir: t.TempDir(), Now: now.Add(-25 * time.Hour)}
+	key, input := hook.Hash([]byte("aged")), hook.Hash([]byte("input"))
+	if err := store.Save(t.Context(), key, input, nil, "aged capture"); err != nil {
+		t.Fatal(err)
+	}
+	store.Now = now
+	if _, _, err := store.Load(t.Context(), key); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatal("a record dated 25 hours ago was loaded:", err)
+	}
+}
+
+func TestStateSweepRefusesANonregularEntry(t *testing.T) {
+	t.Parallel()
+	store := hook.Store{Dir: t.TempDir(), Now: time.Now()}
+	if err := os.Mkdir(filepath.Join(store.Dir, "nested"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Sweep(t.Context()); !errors.Is(err, model.ErrCannotJudge) {
+		t.Fatal("a directory in the state was swept:", err)
 	}
 }
 
