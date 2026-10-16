@@ -5,7 +5,7 @@ import "strings"
 // The sizes of the fixture groups, for their allocation.
 const (
 	editCases      = 4
-	policyCases    = 4
+	policyCases    = 6
 	protocolCases  = 6
 	postWriteCases = 6
 	postShellCases = 4
@@ -23,6 +23,8 @@ const (
 	modeUnreadable = "unreadable"
 	modeDeleted    = "deleted-policy"
 	modeWeakening  = "staged-weakening"
+	modeUnstaged   = "staged-deletion"
+	modeCommitted  = "committed-policy"
 	pathNote       = "note.txt"
 	pathSize       = "size.go"
 	keyFilePath    = "file_path"
@@ -121,11 +123,11 @@ func editFixtures() []fixture {
 
 func policyFixtures() []fixture {
 	out := make([]fixture, 0, policyCases)
-	for _, mode := range []string{modeUnreadable, modeDeleted, modeWeakening, modeUnenrolled} {
+	for _, mode := range []string{modeUnreadable, modeDeleted, modeWeakening, modeUnstaged, modeCommitted, modeUnenrolled} {
 		f := writeFixture(mode, pathNote, textSafe, wantDeny)
 		f.category, f.mode = "policy", mode
 		switch mode {
-		case modeUnenrolled:
+		case modeUnenrolled, modeCommitted:
 			f.want = wantAllow
 		case modeUnreadable:
 			f.category, f.tool, f.want = wantFailure, toolEdit, wantError

@@ -123,8 +123,9 @@ func (h hookBinding) observe(root, cwd string) {
 
 // policy is the policy in force of the repository with its enrollment
 // state, after the proposal in the checkout is judged (A2, A3): on an
-// enrolled repository a policy file gone from the checkout and a staged
-// policy that weakens the one in force are both denials naming the cause.
+// enrolled repository a policy file gone from the checkout, a staged
+// deletion of the file HEAD holds and a staged policy that weakens the one
+// in force are all denials naming the cause.
 func (h hookBinding) policy(ctx context.Context, repo hook.Repository) (*model.EffectivePolicy, error) {
 	l, err := h.loaded(ctx, repo.Root, h.now)
 	if err != nil {
@@ -136,10 +137,32 @@ func (h hookBinding) policy(ctx context.Context, repo hook.Repository) (*model.E
 	if err := enrolledCheckout(l); err != nil {
 		return nil, err
 	}
+	if err := stagedDeletion(ctx, l); err != nil {
+		return nil, err
+	}
 	if _, _, err := policy.Proposed(ctx, l, schemas()); err != nil {
 		return nil, fmt.Errorf("staged %s: %w", policy.FileName, err)
 	}
 	return l.Policy, nil
+}
+
+// stagedDeletion refuses an index without golaw.yml while HEAD holds it:
+// Proposed reads such an index as nothing staged, yet the next commit
+// deletes the policy in force. On an unborn branch the bootstrap record
+// governs and the untracked file init --apply wrote is the expected state,
+// so only a policy in force from HEAD is checked.
+func stagedDeletion(ctx context.Context, l *policy.Loaded) error {
+	if l.Origin != policy.OriginHead {
+		return nil
+	}
+	_, staged, err := policy.ReadIndex(ctx, l.Root)
+	if err != nil {
+		return fmt.Errorf("staged %s: %w", policy.FileName, err)
+	}
+	if !staged {
+		return fmt.Errorf("%w: the deletion of %s is staged in %s (%s)", model.ErrEnrollment, policy.FileName, l.Root, model.EnrollmentMissing)
+	}
+	return nil
 }
 
 // snapshot is the frozen worktree of the repository.

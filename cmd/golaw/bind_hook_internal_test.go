@@ -12,6 +12,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/hook/agents"
 	"github.com/cristianargotti/golaw/internal/install"
 	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/policy"
 	"github.com/cristianargotti/golaw/internal/proof"
 	"github.com/cristianargotti/golaw/internal/source"
 )
@@ -126,6 +127,39 @@ func TestHookPolicyDeniesADeletedOrWeakenedProposal(t *testing.T) {
 	}
 	if _, err = h.policy(t.Context(), repo); !errors.Is(err, model.ErrEnrollment) {
 		t.Fatalf("a deleted policy file was accepted: %v", err)
+	}
+}
+
+func TestHookPolicyDeniesAStagedDeletionOfThePolicyAtHead(t *testing.T) {
+	t.Parallel()
+	b, _ := testBinding(t)
+	h := hookBindingFor(t, b)
+	root := repository(t, true)
+	data := renderedPolicy(t)
+	p, err := b.compile(data, now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = b.enroll(root, data, p, now()); err != nil {
+		t.Fatal(err)
+	}
+	repo, err := h.enroll(t.Context(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded, policyErr := h.policy(t.Context(), repo); policyErr != nil || loaded.Enrollment.State != model.EnrollmentEnrolled {
+		t.Fatalf("the committed policy was refused: %+v, %v", loaded, policyErr)
+	}
+	gitRun(t, root, "rm", "-q", "--cached", "golaw.yml")
+	if _, err = os.Stat(filepath.Join(root, "golaw.yml")); err != nil {
+		t.Fatalf("the checkout lost the file: %v", err)
+	}
+	if _, err = h.policy(t.Context(), repo); !errors.Is(err, model.ErrEnrollment) || !strings.Contains(err.Error(), "deletion of golaw.yml is staged") {
+		t.Fatalf("a staged deletion was accepted: %v", err)
+	}
+	unreadable := &policy.Loaded{Origin: policy.OriginHead, Root: filepath.Join(root, "absent")}
+	if err = stagedDeletion(t.Context(), unreadable); err == nil || errors.Is(err, model.ErrEnrollment) {
+		t.Fatalf("an unreadable index = %v", err)
 	}
 }
 

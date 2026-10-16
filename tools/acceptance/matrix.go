@@ -83,6 +83,40 @@ func (s *suite) configureFixture(ctx context.Context, repo string, f fixture) er
 		}
 	case modeWeakening:
 		return s.weakenPolicy(ctx, repo)
+	case modeCommitted, modeUnstaged:
+		return s.commitPolicy(ctx, repo, f.mode == modeUnstaged)
+	}
+	return nil
+}
+
+// commitPolicy gives the repository a first commit that holds the policy,
+// so HEAD governs instead of the bootstrap record; unstage then drops the
+// file from the index and keeps it in the checkout, the deletion the next
+// commit would carry.
+func (s *suite) commitPolicy(ctx context.Context, repo string, unstage bool) error {
+	steps := [][]string{{"add", "--", policyFile}, commitArgs("build: adopt the policy")}
+	if unstage {
+		steps = append(steps, []string{"rm", "-q", "--cached", "--", policyFile})
+	}
+	return s.gitSteps(ctx, repo, steps...)
+}
+
+// commitArgs is a commit in the isolated home, which carries no git
+// identity and no signing key of its own.
+func commitArgs(message string) []string {
+	return []string{
+		"-c", "user.name=golaw acceptance", "-c", "user.email=acceptance@example.invalid",
+		"-c", "commit.gpgsign=false", "commit", "-q", "-m", message,
+	}
+}
+
+// gitSteps runs git commands in a fixture repository in order and stops at
+// the first one that fails.
+func (s *suite) gitSteps(ctx context.Context, repo string, steps ...[]string) error {
+	for _, args := range steps {
+		if err := success(s.execute(ctx, command{program: s.git, args: args, dir: repo, env: s.env})); err != nil {
+			return err
+		}
 	}
 	return nil
 }

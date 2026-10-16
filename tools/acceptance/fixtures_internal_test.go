@@ -22,8 +22,8 @@ func TestClaudeMatrixRows(t *testing.T) {
 		"edit-300", "edit-301", "function-40", "function-41",
 		"test-function-41", "malformed", "empty", "truncated", "oversized",
 		"foreign-envelope", "notebook", "unreadable", "deleted-policy",
-		"staged-weakening", "unenrolled", "post-Write", "post-Edit",
-		"post-NotebookEdit", "post-Bash", "failure-Bash",
+		"staged-weakening", "staged-deletion", "committed-policy", "unenrolled",
+		"post-Write", "post-Edit", "post-NotebookEdit", "post-Bash", "failure-Bash",
 		"post-PowerShell", "failure-PowerShell",
 	} {
 		if !names[name] {
