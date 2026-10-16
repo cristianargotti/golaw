@@ -1,9 +1,11 @@
 package goast_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks/goast"
+	"github.com/cristianargotti/golaw/internal/report"
 )
 
 const messagesSource = `package app
@@ -37,7 +39,25 @@ func TestSonarLiteralRepeat(t *testing.T) {
 	res := scan(t, goast.SonarLiteralRepeat(), map[string]string{"internal/app/m.go": messagesSource})
 	expectCodes(t, res, "literal-repeat", "literal-repeat")
 	expectLines(t, res, 7, 19)
-	if res.Findings[0].Message != `the literal "order not found" appears 4 times in the file: name it once` {
+	if res.Findings[0].Message != "a string literal appears 4 times in the file: name it once" {
 		t.Errorf("message = %q", res.Findings[0].Message)
+	}
+}
+
+func TestSonarLiteralRepeatKeepsTheValueOutOfTheReport(t *testing.T) {
+	t.Parallel()
+	const value = "dsn://app:synthetic-pass@db:5432/app"
+	source := "package app\n\nvar dsns = []string{\"" + value + "\", \"" + value + "\", \"" + value + "\"}\n"
+	res := scan(t, goast.SonarLiteralRepeat(), map[string]string{"internal/app/db.go": source})
+	expectCodes(t, res, "literal-repeat")
+	expectLines(t, res, 3)
+	var text strings.Builder
+	if err := report.WriteText(&text, report.Document{Findings: res.Findings}); err != nil {
+		t.Fatal(err)
+	}
+	for _, out := range []string{res.Findings[0].Message, text.String()} {
+		if strings.Contains(out, "synthetic-pass") {
+			t.Errorf("the literal value reaches the report: %q", out)
+		}
 	}
 }

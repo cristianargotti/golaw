@@ -60,12 +60,14 @@ func judgeLiteralRepeat(t *target, _ *state) ([]model.Finding, error) {
 }
 
 // repeatedLiterals turns the counts at the threshold into findings in
-// source order.
+// source order. The message names the count and the finding the place,
+// never the value: a repeated literal can be a credential, and a report
+// never carries a secret value.
 func repeatedLiterals(t *target, counts map[string]*literalCount) []model.Finding {
 	var out []model.Finding
-	for value, c := range counts {
+	for _, c := range counts {
 		if c.count >= literalThreshold {
-			message := fmt.Sprintf("the literal %q appears %d times in the file: name it once", value, c.count)
+			message := fmt.Sprintf("a string literal appears %d times in the file: name it once", c.count)
 			out = append(out, t.finding(codeLiteralRepeat, c.first, message))
 		}
 	}
