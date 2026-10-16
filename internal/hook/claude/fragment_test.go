@@ -48,8 +48,9 @@ func TestPluginFragment(t *testing.T) {
 	}
 }
 
-// checkGroups asserts the matchers of one event and the exec form of
-// every handler.
+// checkGroups pins every handler to the exec form, the ten second timeout
+// and onFailure block, so the host runs the binary without a shell and
+// fails closed when it cannot answer.
 func checkGroups(t *testing.T, groups []fragmentGroup, matchers []string) {
 	t.Helper()
 	if len(groups) != len(matchers) {

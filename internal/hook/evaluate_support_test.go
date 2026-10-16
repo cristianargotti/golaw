@@ -60,8 +60,8 @@ func harness(t *testing.T, req hook.Request) (hook.Adapter, hook.Dependencies) {
 	return harnessAdapter(req), harnessDependencies(t, root)
 }
 
-// harnessAdapter answers the request whatever the bytes say and encodes
-// the outcome as plain text.
+// harnessAdapter ignores the bytes and encodes plain text, so the hook
+// tests exercise the engine path without any vendor wire format.
 func harnessAdapter(req hook.Request) hook.Adapter {
 	return hook.Adapter{
 		Header: func([]byte) (model.Event, error) { return req.Event, nil },
@@ -80,8 +80,8 @@ func harnessAdapter(req hook.Request) hook.Adapter {
 	}
 }
 
-// harnessDependencies are the dependencies of an enrolled repository at
-// root with one probe check and one safe file.
+// harnessDependencies start from an enrolled repository whose only file is
+// safe, so each test changes exactly the dependency it is about.
 func harnessDependencies(t *testing.T, root string) hook.Dependencies {
 	t.Helper()
 	registry := engine.New()

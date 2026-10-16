@@ -78,7 +78,9 @@ func enrolledPolicy(policy *model.EffectivePolicy) error {
 	}
 }
 
-// unenrolled is the denial of a policy whose repository is not enrolled.
+// unenrolled names the state in the denial: discovery did not report this
+// location unenrolled, so a policy that carries no positive enrollment is
+// a contradiction the hook refuses rather than an allow.
 func unenrolled(policy *model.EffectivePolicy) error {
 	return fmt.Errorf("%w: effective policy enrollment is %s", model.ErrEnrollment, policy.Enrollment.State)
 }

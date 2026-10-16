@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-// resultCase is one process result and whether it satisfies an expectation.
 type resultCase struct {
 	got  result
 	want string

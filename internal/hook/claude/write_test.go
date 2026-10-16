@@ -11,7 +11,8 @@ import (
 	"github.com/cristianargotti/golaw/internal/proof"
 )
 
-// writeCase is one write or edit of the agent and the candidate it yields.
+// writeCase is shared by the Write and Decode tests, so both entry points
+// must reconstruct the same candidates.
 type writeCase struct {
 	name, tool, before, want string
 	exists                   bool
@@ -73,7 +74,8 @@ func TestWriteCandidates(t *testing.T) {
 	}
 }
 
-// checkCandidate asserts the one candidate of a write request.
+// checkCandidate also validates the event, so a decoder that builds a
+// candidate the model refuses fails here and not in the engine.
 func checkCandidate(t *testing.T, got hook.Request, want string, op model.CandidateOp, before string, exists bool) {
 	t.Helper()
 	candidate := got.Event.Candidates[0]

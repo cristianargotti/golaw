@@ -11,7 +11,6 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// goldenCase is one reply of testdata/replies.json.
 type goldenCase struct {
 	Name        string          `json:"name"`
 	Post        bool            `json:"post"`
@@ -25,7 +24,6 @@ type goldenCase struct {
 	Exit        int             `json:"exit"`
 }
 
-// goldenCases reads the golden replies.
 func goldenCases(t *testing.T) []goldenCase {
 	t.Helper()
 	data, err := os.ReadFile("testdata/replies.json")
@@ -67,8 +65,8 @@ func TestEncodeGolden(t *testing.T) {
 	}
 }
 
-// goldenEvent is the event of a golden case: empty before execution, a
-// post event with its failure flag after it.
+// goldenEvent carries only the shape and the failure flag, the two facts
+// Encode reads to choose its response surface.
 func goldenEvent(post, failed bool) model.Event {
 	event := model.Event{}
 	if post {
@@ -78,7 +76,8 @@ func goldenEvent(post, failed bool) model.Event {
 	return event
 }
 
-// expectedStdout compacts the golden stdout; null is no output.
+// expectedStdout normalizes the golden to the compact line Encode writes,
+// so the comparison is byte for byte; a null golden is no output.
 func expectedStdout(t *testing.T, raw json.RawMessage) []byte {
 	t.Helper()
 	if string(raw) == "null" {
@@ -94,8 +93,8 @@ func expectedStdout(t *testing.T, raw json.RawMessage) []byte {
 	return expected.Bytes()
 }
 
-// mutable reports whether the golden case has an opposite decision to
-// encode: a judged outcome, and feedback only after execution.
+// mutable excludes feedback before execution: Encode refuses it as cannot
+// judge, so it has no opposite decision to flip.
 func mutable(outcome hook.Outcome, cannotJudge, post bool) bool {
 	if cannotJudge || outcome != hook.Allow && outcome != hook.Deny && outcome != hook.Feedback {
 		return false
@@ -103,8 +102,8 @@ func mutable(outcome hook.Outcome, cannotJudge, post bool) bool {
 	return outcome != hook.Feedback || post
 }
 
-// oppositeOutcome flips a decision: an allow becomes the denial of its
-// phase and a denial becomes an allow.
+// oppositeOutcome flips an allow to feedback after execution, because a
+// post event cannot deny a tool that already ran.
 func oppositeOutcome(outcome hook.Outcome, post bool) hook.Outcome {
 	if outcome != hook.Allow {
 		return hook.Allow

@@ -12,8 +12,8 @@ import (
 	"github.com/cristianargotti/golaw/internal/proof"
 )
 
-// asPostEvent turns the shell request into the post event of the same
-// command and answers an adapter that decodes it.
+// asPostEvent keeps the identities of the shell request, so the post event
+// finds the state its pre event saved.
 func asPostEvent(req *hook.Request, cwd string, failed bool) hook.Adapter {
 	req.Event.Cwd = cwd
 	req.Event.Shape, req.Event.Shell = model.ShapePost, nil
@@ -26,7 +26,8 @@ func asPostEvent(req *hook.Request, cwd string, failed bool) hook.Adapter {
 	return adapter
 }
 
-// savedReason reads the reason the shell event saved for its post event.
+// savedReason reads the store directly, because the allow of the pre event
+// never shows whether its capture failed.
 func savedReason(t *testing.T, dependencies hook.Dependencies, event model.Event) string {
 	t.Helper()
 	repository, err := dependencies.Enroll(t.Context(), event.Cwd)

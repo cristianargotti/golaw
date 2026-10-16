@@ -9,7 +9,6 @@ import (
 
 const policyFile = "golaw.yml"
 
-// sentences are the formats of the hook's own sentences in one language.
 type sentences struct {
 	blocked string
 	post    string
