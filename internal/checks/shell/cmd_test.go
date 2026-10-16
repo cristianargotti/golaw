@@ -107,6 +107,40 @@ func TestCmdSeesTheCommandsOfItsControlBlocks(t *testing.T) {
 	}
 }
 
+// TestCmdReadsTheCommandOfAForFSet reads the command the set of a for /f
+// runs, the text between single quotes, or between backquotes with
+// usebackq, which cmd hands to a child cmd /c: a git call there is judged
+// like one on the line, through a nested cmd /c and a caret escaped pipe
+// too; a single quoted set under usebackq is a string, and a set of a for
+// without /f or without quotes names words or files.
+func TestCmdReadsTheCommandOfAForFSet(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		check         model.Check
+		tool, command string
+		want          string
+	}{
+		{shell.NoVerify(), "Bash", `cmd /c "for /f %i in ('git commit --no-verify -m x') do echo %i"`, "no-verify"},
+		{shell.NoVerify(), "PowerShell", `cmd /c "for /f %i in ('git commit --no-verify -m x') do echo %i"`, "no-verify"},
+		{shell.NoVerify(), "Bash", "cmd /c 'for /F \"usebackq tokens=1\" %i in (`git commit --no-verify -m x`) do echo %i'", "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c "for /f %i in ( 'git commit --no-verify -m x' ) do (echo %i)"`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c "for /f %i in ('cmd /c git commit --no-verify -m x') do echo %i"`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c "for /f %i in ('git status ^| git commit --no-verify -m x') do echo %i"`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c "for /f %i in ('git log --format=(%h)') do git commit --no-verify -m x"`, "no-verify"},
+		{shell.SecretTokens(), "Bash", `cmd /c "for /f %i in ('type .env') do echo %i"`, "secret-token"},
+		{shell.NoVerify(), "Bash", `cmd /c "for /f \"usebackq\" %i in ('git commit --no-verify -m x') do echo %i"`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c "for /f %i in ('git log -1') do echo %i"`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c "for %i in ('git commit --no-verify -m x') do echo %i"`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c "for /f %i in (git commit --no-verify) do echo %i"`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c "echo for /f %i in ('git commit --no-verify -m x') do echo %i"`, ""},
+	} {
+		got := judgeTool(t, tc.check, tc.tool, tc.command)
+		if tc.want == "" && len(got) != 0 || tc.want != "" && (len(got) != 1 || got[0] != tc.want) {
+			t.Errorf("%s %q: codes %v, want %q", tc.tool, tc.command, got, tc.want)
+		}
+	}
+}
+
 // TestCmdJudgesTheNamesOfItsControlPrefixes judges the names a control
 // prefix of cmd holds, which the command it runs reads: the items of the
 // set of a for, spaced or glued to its parentheses, quoted or apart by a

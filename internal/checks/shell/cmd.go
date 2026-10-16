@@ -12,10 +12,6 @@ const cmdSpecial = "&<>()@^|"
 // cmdDelimiters are the runes cmd skips before the name of a command.
 const cmdDelimiters = " \t,;="
 
-// spacedComparison is the number of words of an if comparison written
-// with spaces: a string, the operator and a string.
-const spacedComparison = 3
-
 // splitCmd reads a script cmd runs (cmd /c) in two passes, because cmd and
 // the program it starts read the line apart: cmd applies the quote rule of
 // /c and separates the commands by its own quoting, then the program splits
@@ -25,7 +21,8 @@ const spacedComparison = 3
 func splitCmd(script string) []segment {
 	var out []segment
 	for _, reading := range cmdReadings(script) {
-		for _, command := range cmdCommands(reading) {
+		commands, scripts := cmdCommands(reading)
+		for _, command := range commands {
 			modern, legacy := msvcWords(command, false), msvcWords(command, true)
 			if len(modern) > 0 {
 				out = append(out, modern)
@@ -33,6 +30,9 @@ func splitCmd(script string) []segment {
 			if len(legacy) > 0 && !slices.Equal(modern, legacy) {
 				out = append(out, legacy)
 			}
+		}
+		for _, inner := range scripts {
+			out = append(out, segment{cmdProgram, "/c", inner})
 		}
 	}
 	return out
@@ -62,14 +62,16 @@ func cmdReadings(script string) []string {
 
 // cmdLine reads a script rune by rune the way cmd finds its commands.
 type cmdLine struct {
-	out    []string
-	cur    []rune   // the command being read, as its program receives it
-	word   []rune   // the word of that command being read, its quotes kept
-	words  []string // the words of that command read so far
-	quoted bool     // inside cmd's double quotes, which a backslash never escapes
-	caret  bool     // the next rune is literal
-	blocks int      // the parenthesized blocks open
-	sets   int      // the parentheses the set of a for holds open
+	out     []string
+	cur     []rune   // the command being read, as its program receives it
+	word    []rune   // the word of that command being read, its quotes kept
+	words   []string // the words of that command read so far
+	quoted  bool     // inside cmd's double quotes, which a backslash never escapes
+	caret   bool     // the next rune is literal
+	blocks  int      // the parenthesized blocks open
+	sets    int      // the parentheses the set of a for holds open
+	set     []rune   // the text of that set, which a for /f may run
+	scripts []string // the commands the sets of a for /f run
 }
 
 // cmdCommands splits a script into the commands cmd runs: outside its
@@ -82,14 +84,15 @@ type cmdLine struct {
 // cmd reads them and runs what follows; such a prefix is a command of its
 // own, because the names it holds, the set of a for or the file of an if
 // exist, are read by what it runs, and the items of a set are apart from
-// its parentheses and its delimiters.
-func cmdCommands(script string) []string {
+// its parentheses and its delimiters. The commands the sets of a for /f
+// run are answered apart, as the scripts of a child cmd /c.
+func cmdCommands(script string) ([]string, []string) {
 	l := &cmdLine{}
 	for _, r := range script {
 		l.step(r)
 	}
 	l.end()
-	return l.out
+	return l.out, l.scripts
 }
 
 func (l *cmdLine) step(r rune) {
@@ -118,14 +121,14 @@ func (l *cmdLine) plain(r rune) {
 	switch {
 	case len(l.cur) == 0 && (r == '@' || strings.ContainsRune(cmdDelimiters, r)):
 	case l.sets > 0 && strings.ContainsRune(cmdDelimiters, r):
-		l.item()
+		l.item(r)
 	case r == ' ' || r == '\t':
 		l.boundary(r)
 	case r == '(':
 		l.open()
 	case r == ')' && l.sets > 0:
 		l.sets--
-		l.item()
+		l.item(r)
 	case r == ')' && l.blocks > 0:
 		l.blocks--
 		l.end()
@@ -143,16 +146,20 @@ func (l *cmdLine) boundary(r rune) {
 		l.word = l.word[:0]
 	}
 	if cmdControl(l.words, l.sets) {
-		l.end()
+		l.control()
 		return
 	}
 	l.cur = append(l.cur, r)
 }
 
-// item ends an item of the set of a for: its runes stay in the command
-// for the rules that read names and never count as a word of the for, so
-// an item named do completes no prefix.
-func (l *cmdLine) item() {
+// item ends an item of the set of a for at a delimiter or a parenthesis of
+// the set, which stays in the text of the set while it is open: the runes
+// of the item stay in the command for the rules that read names and never
+// count as a word of the for, so an item named do completes no prefix.
+func (l *cmdLine) item(r rune) {
+	if l.sets > 0 {
+		l.set = append(l.set, r)
+	}
 	l.word = l.word[:0]
 	l.cur = append(l.cur, ' ')
 }
@@ -168,21 +175,24 @@ func (l *cmdLine) open() {
 	}
 	switch {
 	case l.sets > 0:
+		l.item('(')
 		l.sets++
-		l.item()
 	case len(l.cur) == 0 || cmdControl(words, l.sets):
-		l.end()
+		l.control()
 		l.blocks++
-	case len(words) > 0 && strings.EqualFold(words[0], "for"):
-		l.words = words
+	case len(words) > 0 && strings.EqualFold(words[0], keywordFor):
+		l.words, l.set = words, l.set[:0]
+		l.item('(')
 		l.sets++
-		l.item()
 	default:
 		l.add('(')
 	}
 }
 
 func (l *cmdLine) add(r rune) {
+	if l.sets > 0 {
+		l.set = append(l.set, r)
+	}
 	l.cur = append(l.cur, r)
 	l.word = append(l.word, r)
 }
@@ -194,65 +204,5 @@ func (l *cmdLine) end() {
 
 // restart begins another command in the blocks open.
 func (l *cmdLine) restart() {
-	l.cur, l.word, l.words, l.sets = l.cur[:0], l.word[:0], nil, 0
-}
-
-// cmdControl reports whether the words of a command so far, which hold
-// at least the word it starts with, are a whole control prefix: an else,
-// the clause of a for up to its do once its set is closed, or an if with
-// its condition.
-func cmdControl(words []string, sets int) bool {
-	switch strings.ToLower(words[0]) {
-	case "else":
-		return len(words) == 1
-	case "for":
-		return len(words) > 1 && sets == 0 && strings.EqualFold(words[len(words)-1], "do")
-	case "if":
-		return ifCondition(words[1:])
-	default:
-		return false
-	}
-}
-
-// ifCondition reports whether the words are the whole condition of an if:
-// /i and not before it, then a test that names one word (exist, defined,
-// errorlevel, cmdextversion) or two strings compared by == or by an
-// operator, spaced or not.
-func ifCondition(words []string) bool {
-	for len(words) > 0 && (strings.EqualFold(words[0], "/i") || strings.EqualFold(words[0], "not")) {
-		words = words[1:]
-	}
-	switch len(words) {
-	case 1:
-		at := strings.Index(words[0], "==")
-		return at > 0 && at+2 < len(words[0])
-	case 2:
-		return oneWordTest(words[0]) ||
-			len(words[0]) > 2 && strings.HasSuffix(words[0], "==") ||
-			len(words[1]) > 2 && strings.HasPrefix(words[1], "==")
-	case spacedComparison:
-		return compareOperator(words[1])
-	default:
-		return false
-	}
-}
-
-// oneWordTest reports whether an if test takes the one word after it.
-func oneWordTest(word string) bool {
-	switch strings.ToLower(word) {
-	case "exist", "defined", "errorlevel", "cmdextversion":
-		return true
-	default:
-		return false
-	}
-}
-
-// compareOperator reports whether a word compares the two strings of an if.
-func compareOperator(word string) bool {
-	switch strings.ToLower(word) {
-	case "==", "equ", "neq", "lss", "leq", "gtr", "geq":
-		return true
-	default:
-		return false
-	}
+	l.cur, l.word, l.words, l.sets, l.set = l.cur[:0], l.word[:0], nil, 0, l.set[:0]
 }

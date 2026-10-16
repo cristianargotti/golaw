@@ -34,6 +34,8 @@ func shellCommands() []shellFixture {
 		{"cmd-control-block-control", `cmd /c 'if exist marker (git commit -m "fix: x")'`, wantAllow},
 		{"cmd-for-set", `cmd /c 'for /f %i in ( .env ) do echo %i'`, wantDeny},
 		{"cmd-for-set-control", `cmd /c 'for %i in (a.txt b.txt) do type %i'`, wantAllow},
+		{"cmd-for-command", `cmd /c "for /f %i in ('git commit --no-verify -m x') do echo %i"`, wantDeny},
+		{"cmd-for-command-control", `cmd /c "for /f %i in ('git log -1') do echo %i"`, wantAllow},
 		{"reserved-word-bypass", "if true; then git commit --no-verify -m 'fix: safe'; fi", wantDeny},
 		{"reserved-word-control", "if true; then git commit -m 'fix: safe'; fi", wantAllow},
 		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},

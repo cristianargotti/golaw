@@ -15,11 +15,11 @@ func TestShellFixturePairs(t *testing.T) {
 	}
 	denied := []string{
 		"bypass", "short-bypass", "commit-dash", "body-101",
-		"secret-token", "secret-directory", "package-redirect", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "reserved-word-bypass", "bash", "sh",
+		"secret-token", "secret-directory", "package-redirect", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "cmd-for-command", "reserved-word-bypass", "bash", "sh",
 	}
 	allowed := []string{
 		"commit-control", "push-default", "fetch", "body-100", "source-token", "package-pattern",
-		"pwsh-control", "powershell-control", "cmd-control", "cmd-escaped-quote-control", "cmd-control-block-control", "cmd-for-set-control",
+		"pwsh-control", "powershell-control", "cmd-control", "cmd-escaped-quote-control", "cmd-control-block-control", "cmd-for-set-control", "cmd-for-command-control",
 		"reserved-word-control", "bash-control", "sh-control",
 	}
 	for _, tool := range []string{toolBash, toolPowerShell} {

@@ -25,6 +25,9 @@ const (
 	cmdShell   dialect = 0
 )
 
+// cmdProgram is the program name of cmd, which reads its script apart.
+const cmdProgram = "cmd"
+
 // segments splits a command line into simple commands the way the tool's
 // shell reads it: quotes and escapes are resolved, the separators end a
 // segment, and a shell that runs a script argument (sh -c, bash -lc, pwsh
@@ -148,7 +151,7 @@ func base(word string) string {
 // isShell reports whether a program runs a script given as an argument.
 func isShell(name string) bool {
 	switch base(name) {
-	case "sh", "bash", "zsh", "dash", "ksh", "fish", "pwsh", "powershell", "cmd":
+	case "sh", "bash", "zsh", "dash", "ksh", "fish", "pwsh", "powershell", cmdProgram:
 		return true
 	default:
 		return false
@@ -175,7 +178,7 @@ func dialectOf(program string) dialect {
 	switch base(program) {
 	case "pwsh", "powershell":
 		return powerShell
-	case "cmd":
+	case cmdProgram:
 		return cmdShell
 	default:
 		return posix
