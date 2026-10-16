@@ -24,7 +24,8 @@ var wordOnly = regexp.MustCompile(`^\w+$`)
 // SonarLiteralRepeat is goast.sonar-literal-repeat (Sonar rule S1192): an
 // interpreted string literal longer than five characters that is not a
 // bare word and appears three or more times in one file is a finding at
-// its first occurrence.
+// its first occurrence. A struct tag never counts, whatever its quotes:
+// the language takes a tag only as a literal, so it cannot be named once.
 func SonarLiteralRepeat() model.Check {
 	return check{spec: spec("sonar-literal-repeat"), judge: judgeLiteralRepeat}
 }
@@ -41,9 +42,13 @@ func judgeLiteralRepeat(t *target, _ *state) ([]model.Finding, error) {
 		return nil, err
 	}
 	counts := map[string]*literalCount{}
+	tags := map[*ast.BasicLit]bool{}
 	ast.Inspect(file, func(n ast.Node) bool {
+		if field, ok := n.(*ast.Field); ok && field.Tag != nil {
+			tags[field.Tag] = true
+		}
 		lit, ok := n.(*ast.BasicLit)
-		if !ok || lit.Kind != token.STRING || lit.Value[0] != '"' {
+		if !ok || tags[lit] || lit.Kind != token.STRING || lit.Value[0] != '"' {
 			return true
 		}
 		value, ok := stringLiteral(lit)

@@ -44,6 +44,28 @@ func TestSonarLiteralRepeat(t *testing.T) {
 	}
 }
 
+const tagsSource = `package app
+
+type row struct {
+	A string "json:\"order_id\""
+	B string "json:\"order_id\""
+	C struct {
+		D string "json:\"order_id\""
+	}
+}
+
+func f() any {
+	return struct {
+		E string "json:\"order_id\""
+	}{}
+}
+`
+
+func TestSonarLiteralRepeatNeverCountsAStructTag(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, scan(t, goast.SonarLiteralRepeat(), map[string]string{"internal/app/row.go": tagsSource}))
+}
+
 func TestSonarLiteralRepeatKeepsTheValueOutOfTheReport(t *testing.T) {
 	t.Parallel()
 	const value = "dsn://app:synthetic-pass@db:5432/app"
