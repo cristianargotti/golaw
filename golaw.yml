@@ -1,0 +1,42 @@
+# golaw policy of the kit itself: a command line tool in Go, core only, every
+# floor at its default and no exemption (specification section 10.5). The
+# tool names the self scan forbids are allowed only under the scopes of
+# section 3, each with a red case in the proof fixtures; this file is one of
+# them because the list itself names the terms.
+golaw: 1
+kit: { version: 0.1.0 }
+language: pt-BR
+capabilities: [cli, go]
+layout: { main: cmd, decisions: docs/adr }
+checks:
+  sizes: { file_lines: 300, function_lines: 40 }
+  coverage: { total: 80, package: 80, file: 80, min_statements: 20, file_exemptions: [] }
+  terms:
+    tools: [anthropic, claude, codex, cursor, openai]
+    allow_paths:
+      - .claude-plugin/
+      - .github/
+      - CHANGELOG.md
+      - CONTRIBUTING.md
+      - README.md
+      - agents/
+      - docs/
+      - golaw.yml
+      - internal/doctor/
+      - internal/hook/
+      - internal/install/
+      - internal/proof/testdata/
+      - tools/acceptance/
+  lint:
+    allowed_exclusions:
+      - path: _test\.go
+        linters: [funlen, mnd, goconst, dupl, gosec, noctx, bodyclose, gochecknoglobals, musttag]
+      - path: internal/model/
+        linters: [iface]
+      - path: (^cmd/|_test\.go)
+        linters: [forbidigo]
+  shell: { deny_push: false, deny_pr: false }
+ladder: { pre_commit: true, commit_msg: true, pre_push: true, test_staged: false }
+vulnerability_waivers: []
+exceptions: []
+managed: []
