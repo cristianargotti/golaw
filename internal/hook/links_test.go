@@ -2,6 +2,7 @@ package hook_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -106,5 +107,43 @@ func TestEnrollmentFollowsEveryLinkOfTheTarget(t *testing.T) {
 		if got := enrollmentCalls(t, tc.shape, session, tc.target); !slices.Equal(got, tc.want) {
 			t.Errorf("%s: enrolled from %v, want %v", tc.name, got, tc.want)
 		}
+	}
+}
+
+// TestRequestedSpellsTheNameBelowTheRoot names a read as it was asked for:
+// the path below the deepest directory that is the root, through whatever
+// links lead there, so a directory link inside the repository keeps its own
+// name and a link outside that leads to the root names the file from it; a
+// name no directory of the root holds is outside the repository.
+func TestRequestedSpellsTheNameBelowTheRoot(t *testing.T) {
+	t.Parallel()
+	repo, outside := realDir(t), realDir(t)
+	touch(t, filepath.Join(repo, "plain", "x.txt"))
+	link(t, "plain", filepath.Join(repo, "vault"))
+	link(t, repo, filepath.Join(outside, "proj"))
+	for _, tc := range []struct{ cwd, name, want string }{
+		{repo, filepath.Join(repo, "vault", "x.txt"), "vault/x.txt"},
+		{outside, filepath.Join(outside, "proj", "notes.md"), "notes.md"},
+		{repo, filepath.Join("vault", "x.txt"), "vault/x.txt"},
+	} {
+		if got, err := hook.Requested(repo, tc.cwd, tc.name); err != nil || got != tc.want {
+			t.Errorf("%s: %q, %v, want %q", tc.name, got, err, tc.want)
+		}
+	}
+	for _, tc := range []struct{ root, name string }{
+		{repo, filepath.Join(outside, "plain.md")},
+		{repo, ""},
+		{repo, repo},
+		{filepath.Join(outside, "absent-root"), filepath.Join(outside, "a.md")},
+	} {
+		if got, err := hook.Requested(tc.root, repo, tc.name); !errors.Is(err, model.ErrCannotJudge) {
+			t.Errorf("%s under %s: %q, %v, want cannot judge", tc.name, tc.root, got, err)
+		}
+	}
+	if got := hook.Resolve(outside, filepath.Join("proj", "plain", "x.txt")); got != filepath.Join(repo, "plain", "x.txt") {
+		t.Errorf("Resolve through a linked directory: %q", got)
+	}
+	if got := hook.Resolve("relative", "x.txt"); got != filepath.Join("relative", "x.txt") {
+		t.Errorf("a relative path has no place to start from: %q", got)
 	}
 }
