@@ -1,0 +1,5 @@
+checks:
+  - id: docs.public-text
+    code: docs-public-text
+    red: testdata/docs.public-text/red
+    near: testdata/docs.public-text/near
