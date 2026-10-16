@@ -78,3 +78,13 @@ func TestVerifyProfile(t *testing.T) {
 		t.Errorf("a broken stamp is not a missing bundle: %v", err)
 	}
 }
+
+func TestVerifyProfileRefusesAStampOfAnotherName(t *testing.T) {
+	t.Parallel()
+	config := t.TempDir()
+	write(t, config, "profiles/acme/profile.yml", strings.Replace(acmeStamp, "name: acme", "name: other", 1))
+	_, err := policy.VerifyProfile(config, acmeRef())
+	if !errors.Is(err, model.ErrPolicy) || !strings.Contains(err.Error(), "name is acme in golaw.yml and other in the installed bundle") {
+		t.Errorf("a bundle under acme whose stamp names other: %v", err)
+	}
+}
