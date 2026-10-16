@@ -31,6 +31,7 @@ func TestSecurityContract(t *testing.T) {
 		"splits its arguments by the Microsoft runtime rules",
 		"past the condition of an if, the clause of a for up to its do and an else",
 		"These rules cannot express an exception",
+		"a negation rule for the templates would also lift the person's own deny rules for them",
 	)
 }
 
