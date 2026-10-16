@@ -184,6 +184,27 @@ func TestProposed(t *testing.T) {
 	}
 }
 
+func TestProposedValidatesBeforeTheDigest(t *testing.T) {
+	t.Parallel()
+	root, d := enrolled(t, fullPolicy)
+	l, err := policy.Load(t.Context(), input(root, d))
+	if err != nil {
+		t.Fatal(err)
+	}
+	staged := map[string]string{
+		"a value the encoder refuses":         strings.Replace(fullPolicy, "limit: 3", "limit: .nan", 1),
+		"an infinite value":                   strings.Replace(fullPolicy, "limit: 3", "limit: .inf", 1),
+		"the policy in force, invalid around": strings.Replace(fullPolicy, abHash, "abc", 1),
+	}
+	for name, text := range staged {
+		write(t, root, "golaw.yml", text)
+		gitRun(t, root, "add", "golaw.yml")
+		if _, found, err := policy.Proposed(t.Context(), l, schemas()); !errors.Is(err, model.ErrPolicy) || found {
+			t.Errorf("%s: %v, %v, want ErrPolicy", name, found, err)
+		}
+	}
+}
+
 func TestProposedFromCore(t *testing.T) {
 	t.Parallel()
 	d := dirs(t)

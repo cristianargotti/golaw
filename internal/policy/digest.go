@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"slices"
 	"strings"
 )
@@ -60,8 +61,8 @@ func Digest(f File) string {
 	})
 	encoded, err := json.Marshal(c)
 	if err != nil {
-		// Every field is a plain value or a map of plain values; the encoder
-		// cannot refuse them, so an error here is a programming mistake.
+		// Every field is a plain value and canonicalValue leaves only option
+		// values the encoder takes, so an error here is a programming mistake.
 		panic(err)
 	}
 	sum := sha256.Sum256(encoded)
@@ -84,18 +85,26 @@ func canonicalOptions(options map[string]map[string]any) map[string]map[string]a
 }
 
 // canonicalValue answers a list of strings in its canonical order and any
-// other value as decoded; a list holding something else is invalid, which
-// Validate reports, and is hashed as it came.
+// other value as decoded; a value Validate refuses is hashed as it came.
 func canonicalValue(raw any) any {
-	items, isList := raw.([]any)
-	if !isList {
-		return raw
+	if items, isList := raw.([]any); isList {
+		v, err := stringsValue(items)
+		if err == nil {
+			return sortedUnique(v.Strings)
+		}
 	}
-	v, err := stringsValue(items)
-	if err != nil {
-		return raw
+	return encodable(raw)
+}
+
+// encodable prints a decoded value the encoder refuses (a .nan, an .inf, a
+// mapping whose keys are not strings): a caller may hash a file that failed
+// validation, such as the file at HEAD of a repository whose policy does
+// not load, and its digest must be a digest, not a panic.
+func encodable(raw any) any {
+	if _, err := json.Marshal(raw); err != nil {
+		return fmt.Sprint(raw)
 	}
-	return sortedUnique(v.Strings)
+	return raw
 }
 
 // canonical answers the coverage block with its exemptions sorted.

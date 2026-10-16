@@ -163,7 +163,9 @@ func (l *Loaded) enroll() error {
 // Proposed reads the next policy the index holds and checks it as a
 // tightening of the one in force (A2). It answers false when nothing is
 // staged at golaw.yml or when the staged file means the policy already in
-// force; without a policy in force only validation applies.
+// force; without a policy in force only validation applies. The staged
+// file is validated before its digest is compared, so a file that hashes
+// like the policy in force is still refused when it breaks the schema.
 func Proposed(ctx context.Context, inForce *Loaded, schemas Schemas) (File, bool, error) {
 	data, found, err := ReadIndex(ctx, inForce.Root)
 	if err != nil || !found {
@@ -173,16 +175,16 @@ func Proposed(ctx context.Context, inForce *Loaded, schemas Schemas) (File, bool
 	if err != nil {
 		return File{}, false, err
 	}
+	if err := next.Validate(schemas); err != nil {
+		return File{}, false, err
+	}
 	if Digest(next) == inForce.Policy.Digest {
 		return File{}, false, nil
 	}
-	if inForce.Origin == OriginCore {
-		err = next.Validate(schemas)
-	} else {
-		err = CheckTightening(inForce.File, next, schemas)
-	}
-	if err != nil {
-		return File{}, false, err
+	if inForce.Origin != OriginCore {
+		if err := CheckTightening(inForce.File, next, schemas); err != nil {
+			return File{}, false, err
+		}
 	}
 	return next, true, nil
 }

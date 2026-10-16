@@ -114,6 +114,11 @@ func TestDigest(t *testing.T) {
 	if policy.Digest(decode(t, strings.Replace(fullPolicy, "names: [a, b]", "names: [a, c]", 1))) == d {
 		t.Error("another entry of a list option changes the digest")
 	}
+	for _, value := range []string{".nan", ".inf", "{1: a}", "[.nan]"} {
+		if got := policy.Digest(decode(t, strings.Replace(fullPolicy, "limit: 3", "limit: "+value, 1))); len(got) != 64 || got == d {
+			t.Errorf("limit %s: a value the encoder refuses still has a digest of its own: %q", value, got)
+		}
+	}
 	if policy.Digest(decode(t, minimalPolicy)) == policy.Digest(decode(t, minimalPolicy+"checks: {terms: {tools: []}}\n")) {
 		t.Error("an explicit empty block is a different policy text but the same floors")
 	}
