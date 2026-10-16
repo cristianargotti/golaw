@@ -22,6 +22,11 @@ var g = 1
 var h *T
 var i pkg.T
 var j []int
+
+// bare:
+// prose with bare: inside
+/* block: says why */
+/* empty: */
 `
 
 func parse(t *testing.T) (*ast.File, *token.FileSet) {
@@ -115,11 +120,24 @@ func TestTypeNameLiteralsAndComments(t *testing.T) {
 	if _, ok := stringLiteral(&ast.BasicLit{Kind: token.STRING, Value: `"broken`}); ok {
 		t.Error("an unterminated literal does not unquote")
 	}
-	marked := commentLines(file, fset, "marker")
+	marked := commentLines(file, fset, "note:")
 	if len(marked) != 1 || !marked[5] {
-		t.Errorf("commentLines(marker) = %v", marked)
+		t.Errorf("commentLines(note) = %v", marked)
 	}
 	if trailing := commentLines(file, fset, "trailing:"); !trailing[6] {
 		t.Errorf("commentLines(trailing) = %v", trailing)
+	}
+}
+
+func TestCommentLinesWantTheMarkerFirstAndText(t *testing.T) {
+	t.Parallel()
+	file, fset := parse(t)
+	if block := commentLines(file, fset, "block:"); len(block) != 1 || !block[19] {
+		t.Errorf("commentLines(block) = %v", block)
+	}
+	for _, marker := range []string{"marker", "bare:", "empty:"} {
+		if lines := commentLines(file, fset, marker); len(lines) != 0 {
+			t.Errorf("a marker inside prose or with no text clears nothing: commentLines(%s) = %v", marker, lines)
+		}
 	}
 }

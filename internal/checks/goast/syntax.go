@@ -60,17 +60,30 @@ func typeName(expr ast.Expr) string {
 	}
 }
 
-// commentLines lists the lines whose comments carry a marker.
+// commentLines lists the lines that hold a comment opening with the marker
+// and going on with text. A marker stands for the reason a reader needs,
+// so a bare marker, or one inside a sentence, clears nothing.
 func commentLines(file *ast.File, fset *token.FileSet, marker string) map[int]bool {
 	lines := map[int]bool{}
 	for _, group := range file.Comments {
 		for _, c := range group.List {
-			if strings.Contains(c.Text, marker) {
+			if justifies(c.Text, marker) {
 				lines[fset.Position(c.Pos()).Line] = true
 			}
 		}
 	}
 	return lines
+}
+
+// justifies reports a line or block comment whose text opens with the
+// marker and has more than space after it.
+func justifies(comment, marker string) bool {
+	text := strings.TrimPrefix(comment, "//")
+	if body, ok := strings.CutPrefix(comment, "/*"); ok {
+		text = strings.TrimSuffix(body, "*/")
+	}
+	rest, ok := strings.CutPrefix(strings.TrimSpace(text), marker)
+	return ok && strings.TrimSpace(rest) != ""
 }
 
 // stringLiteral returns the value of a string literal expression.

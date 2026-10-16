@@ -52,6 +52,30 @@ func f(raw string, resolve func() (string, error), use func(string)) int {
 }
 `
 
+// fallbackSource clears an init-if only where the marker opens the
+// comment and says why the default applies.
+const fallbackSource = `package app
+
+func f(resolve func() (string, error), use func(string)) {
+	if dir, err := resolve(); err == nil { // fallback:
+		use(dir)
+	}
+	if dir, err := resolve(); err == nil { // no fallback: here
+		use(dir)
+	}
+	if dir, err := resolve(); err == nil { // fallback: the working directory serves
+		use(dir)
+	}
+}
+`
+
+func TestInitIfErrNilNeedsAMarkerThatSaysWhy(t *testing.T) {
+	t.Parallel()
+	res := scan(t, goast.InitIfErrNil(), map[string]string{"internal/app/mount.go": fallbackSource})
+	expectCodes(t, res, "init-if-err-nil", "init-if-err-nil")
+	expectLines(t, res, 4, 7)
+}
+
 func TestInitIfErrNil(t *testing.T) {
 	t.Parallel()
 	res := scan(t, goast.InitIfErrNil(), map[string]string{

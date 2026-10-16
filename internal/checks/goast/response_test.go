@@ -47,6 +47,28 @@ func TestRawErrorResponseReadsTheLiteralAsGoDoes(t *testing.T) {
 	expectLines(t, res, 4, 5, 6)
 }
 
+// markerSource clears a raw error only where the marker opens the comment
+// and names the envelope.
+const markerSource = `package h
+
+import "net/http"
+
+func f(c responder) {
+	c.JSON(http.StatusNotFound, nil) // contract:
+	c.JSON(http.StatusNotFound, nil) // breaks the contract: no envelope
+	c.JSON(http.StatusNotFound, nil) /* contract: */
+	c.JSON(http.StatusNotFound, nil) // contract: mirrors the v1 envelope
+	c.JSON(http.StatusNotFound, nil) /* contract: mirrors the v1 envelope */
+}
+`
+
+func TestRawErrorResponseNeedsAMarkerThatNamesTheEnvelope(t *testing.T) {
+	t.Parallel()
+	res := scan(t, goast.RawErrorResponse(), map[string]string{"internal/http/h.go": markerSource})
+	expectCodes(t, res, "raw-error-response", "raw-error-response", "raw-error-response")
+	expectLines(t, res, 6, 7, 8)
+}
+
 func TestRawErrorResponse(t *testing.T) {
 	t.Parallel()
 	res := scan(t, goast.RawErrorResponse(), map[string]string{

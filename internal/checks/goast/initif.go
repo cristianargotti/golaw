@@ -20,7 +20,8 @@ var parseIdiom = regexp.MustCompile(`^(Parse\w*|Sscan\w*|Unmarshal\w*|Decode\w*|
 
 // InitIfErrNil is goast.init-if-err-nil: an init-if that keeps the happy
 // path on err == nil drops the error; a parse or decode idiom and a line
-// marked fallback: are the accepted shapes.
+// whose comment opens with fallback: and says why the default applies are
+// the accepted shapes.
 func InitIfErrNil() model.Check {
 	return check{spec: spec("init-if-err-nil"), judge: judgeInitIf}
 }
