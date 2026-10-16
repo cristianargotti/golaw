@@ -15,3 +15,7 @@ checks:
     code: release-assets
     red: testdata/release.assets/red
     near: testdata/release.assets/near
+  - id: release.pipeline
+    code: release-pipeline
+    red: testdata/release.pipeline/red
+    near: testdata/release.pipeline/near
