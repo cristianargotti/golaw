@@ -49,8 +49,28 @@ func TestReleasingProcedure(t *testing.T) {
 		"go run ./tools/acceptance -release",
 		"docs/live/"+agentID(t)+"-darwin.json",
 		"-buildvcs=false",
+		"Go "+gateToolchain(t)+", the go-version of release.yml",
+		"needs a new live record",
 		"immutable candidate",
 		"SKIP never counts as PASS",
 		"cosign verifies the bundle",
 	)
+}
+
+// gateToolchain reads the Go version of the gate job, because the gate
+// rebuilds the candidate with it and the digest the live record names
+// holds only for that toolchain.
+func gateToolchain(t *testing.T) string {
+	t.Helper()
+	root, err := document(kitBytes(t, ".github/workflows/release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, step := range children(at(root, "jobs", "gate", "steps")) {
+		if strings.HasPrefix(value(at(step, "uses")), "actions/setup-go@") {
+			return value(at(step, "with", "go-version"))
+		}
+	}
+	t.Fatal("the gate job sets up no Go toolchain")
+	return ""
 }

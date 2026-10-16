@@ -45,6 +45,7 @@ func TestAgentContract(t *testing.T) {
 		agentID(t)+" plugin validate --strict is a required row",
 		"docs/live/"+agentID(t)+"-darwin.json",
 		"-buildvcs=false",
+		"Go "+gateToolchain(t)+", the go-version of release.yml",
 		"waits for the Windows live record",
 		"doctor-json",
 	)
