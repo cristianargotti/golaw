@@ -1,0 +1,143 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/cristianargotti/golaw/internal/engine"
+	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/proof"
+)
+
+// stubCheck is a file check with a fixed result, so a test drives the
+// decision the scan command maps to an exit code.
+type stubCheck struct {
+	result model.Result
+}
+
+func (stubCheck) Spec() model.Spec {
+	return model.Spec{ID: "stub.rule", Rule: "rules/0@1", Scope: model.ScopeFile, Owner: model.OwnerCore, Proof: "stub.rule"}
+}
+
+func (c stubCheck) Run(context.Context, model.Input) (model.Result, error) { return c.result, nil }
+
+// scanApp wires the scan seams with fakes: one stub check, one file, the
+// proof policy and a renderer that prints the decision in one line.
+func scanApp(t *testing.T, result model.Result) testApp {
+	t.Helper()
+	ta := newTestApp(t)
+	ta.registry = func() (*engine.Registry, error) {
+		b := engine.New()
+		if err := b.Register(stubCheck{result: result}); err != nil {
+			t.Fatal(err)
+		}
+		return b.Build()
+	}
+	ta.snapshot = func(_ context.Context, _ string) (model.Snapshot, error) {
+		return proof.NewTree(map[string][]byte{"docs/a.md": []byte("title\n")}), nil
+	}
+	ta.load = func(_ context.Context, _ string, _ time.Time) (*model.EffectivePolicy, error) {
+		return proof.Policy(), nil
+	}
+	ta.render = func(w io.Writer, in model.Input, _ *engine.Run, d engine.Decision, asJSON bool) error {
+		_, err := fmt.Fprintf(w, "%s findings=%d unmeasured=%d json=%v digest=%s\n",
+			d.Verdict, len(d.Findings), len(d.Unmeasured), asJSON, in.Policy.Digest)
+		if err != nil {
+			return fmt.Errorf("render: %w", err)
+		}
+		return nil
+	}
+	return ta
+}
+
+func finding() model.Result {
+	return model.Result{Status: model.Measured(), Findings: []model.Finding{
+		{Path: "docs/a.md", Line: 1, Code: "em-dash", Message: "em dash in text", Severity: model.SeverityDeny},
+	}}
+}
+
+func TestScanExitCodes(t *testing.T) {
+	t.Parallel()
+	cases := map[string]struct {
+		result model.Result
+		code   int
+		line   string
+	}{
+		"clean":      {model.Result{Status: model.Measured()}, exitClean, "clean findings=0 unmeasured=0"},
+		"findings":   {finding(), exitFindings, "fail findings=1 unmeasured=0"},
+		"unmeasured": {model.Result{Status: model.Unmeasured("no reader")}, exitFailure, "fail findings=0 unmeasured=1"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ta := scanApp(t, tc.result)
+			if got := ta.run(t.Context(), []string{"scan", "."}); got != tc.code {
+				t.Fatalf("exit = %d, want %d, stderr = %q", got, tc.code, ta.stderr.String())
+			}
+			if !strings.HasPrefix(ta.stdout.String(), tc.line) {
+				t.Fatalf("stdout = %q, want prefix %q", ta.stdout.String(), tc.line)
+			}
+			if ta.stderr.Len() != 0 {
+				t.Fatalf("stderr = %q", ta.stderr.String())
+			}
+		})
+	}
+}
+
+func TestScanPassesTheJSONFlagAndTheDefaultPath(t *testing.T) {
+	t.Parallel()
+	ta := scanApp(t, model.Result{Status: model.Measured()})
+	var root string
+	ta.snapshot = func(_ context.Context, path string) (model.Snapshot, error) {
+		root = path
+		return proof.NewTree(map[string][]byte{"docs/a.md": []byte("title\n")}), nil
+	}
+	if got := ta.run(t.Context(), []string{"scan", "--json"}); got != exitClean {
+		t.Fatalf("exit = %d, stderr = %q", got, ta.stderr.String())
+	}
+	if root != "." || !strings.Contains(ta.stdout.String(), "json=true digest=proof") {
+		t.Fatalf("root = %q, stdout = %q", root, ta.stdout.String())
+	}
+}
+
+func TestScanReportsEverySeamFailureAsExitTwo(t *testing.T) {
+	t.Parallel()
+	broken := map[string]func(ta *testApp){
+		"load": func(ta *testApp) {
+			ta.load = func(context.Context, string, time.Time) (*model.EffectivePolicy, error) { return nil, errBoom }
+		},
+		"snapshot": func(ta *testApp) {
+			ta.snapshot = func(context.Context, string) (model.Snapshot, error) { return nil, errBoom }
+		},
+		"registry": func(ta *testApp) {
+			ta.registry = func() (*engine.Registry, error) { return nil, errBoom }
+		},
+		"render": func(ta *testApp) {
+			ta.render = func(io.Writer, model.Input, *engine.Run, engine.Decision, bool) error { return errBoom }
+		},
+	}
+	for name, breakSeam := range broken {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ta := scanApp(t, model.Result{Status: model.Measured()})
+			breakSeam(&ta)
+			if got := ta.run(t.Context(), []string{"scan"}); got != exitFailure {
+				t.Fatalf("exit = %d", got)
+			}
+			if got := ta.stderr.String(); got != "golaw: scan: boom\n" {
+				t.Fatalf("stderr = %q", got)
+			}
+		})
+	}
+}
+
+func TestCodeOfTreatsDenyLikeFail(t *testing.T) {
+	t.Parallel()
+	if got := codeOf(engine.Decision{Verdict: engine.VerdictDeny}); got != exitFindings {
+		t.Fatalf("deny = %d", got)
+	}
+}

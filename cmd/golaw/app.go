@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cristianargotti/golaw/internal/buildinfo"
+	"github.com/cristianargotti/golaw/internal/engine"
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // The exit codes of the command tree (specification section 4.4): clean,
@@ -28,6 +30,10 @@ type app struct {
 	buildInfo      func() buildinfo.Info
 	now            func() time.Time
 	home           func() (string, error)
+	registry       func() (*engine.Registry, error)
+	snapshot       func(ctx context.Context, root string) (model.Snapshot, error)
+	load           func(ctx context.Context, root string, now time.Time) (*model.EffectivePolicy, error)
+	render         func(w io.Writer, in model.Input, run *engine.Run, d engine.Decision, asJSON bool) error
 }
 
 // exitError carries an exit code that is a result, not a failure: findings
@@ -39,7 +45,7 @@ func (e exitError) Error() string { return fmt.Sprintf("exit %d", e.code) }
 // run executes the command tree over the arguments and returns the exit
 // code; every failure is printed once, prefixed with the binary name.
 func (a *app) run(ctx context.Context, args []string) int {
-	root := a.rootCommand()
+	root := a.rootCommand() //nolint:contextcheck // cobra hands ctx to every RunE through ExecuteContext
 	root.SetArgs(args)
 	root.SetOut(a.stdout)
 	root.SetErr(a.stderr)
@@ -56,7 +62,7 @@ func (a *app) rootCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(a.versionCommand())
+	root.AddCommand(a.versionCommand(), a.scanCommand())
 	return root
 }
 
