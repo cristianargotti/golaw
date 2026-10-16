@@ -27,12 +27,22 @@ func Diff(old, current []byte) string {
 	return strings.Join(out, "\n") + "\n"
 }
 
+// noNewline is the unified diff marker under a last line that has no
+// newline. It rides on that line, so a change of the final newline alone
+// still compares as a changed line and prints the marker below it.
+const noNewline = "\n\\ No newline at end of file"
+
 // lines splits content into lines without a trailing empty line.
 func lines(data []byte) []string {
 	if len(data) == 0 {
 		return nil
 	}
-	return strings.Split(strings.TrimSuffix(string(data), "\n"), "\n")
+	text, complete := strings.CutSuffix(string(data), "\n")
+	out := strings.Split(text, "\n")
+	if !complete {
+		out[len(out)-1] += noNewline
+	}
+	return out
 }
 
 // edits walks the longest common subsequence of the two line lists and

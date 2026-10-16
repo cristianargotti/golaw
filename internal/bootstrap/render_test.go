@@ -112,4 +112,17 @@ func TestDiffShowsEveryLineOnceAndIsEmptyWhenEqual(t *testing.T) {
 	if changed != wantChanged {
 		t.Fatalf("changed diff = %q", changed)
 	}
+	newline := map[string]struct{ old, current, want string }{
+		"added":   {"a", "a\n", "@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n+a\n"},
+		"removed": {"a\nb\n", "a\nb", "@@ -1,2 +1,2 @@\n a\n-b\n+b\n\\ No newline at end of file\n"},
+		"neither": {"x\na", "x\nb", "@@ -1,2 +1,2 @@\n x\n-a\n\\ No newline at end of file\n+b\n\\ No newline at end of file\n"},
+	}
+	for name, tc := range newline {
+		if got := bootstrap.Diff([]byte(tc.old), []byte(tc.current)); got != "--- golaw.yml\n+++ golaw.yml\n"+tc.want {
+			t.Fatalf("final newline %s: diff = %q", name, got)
+		}
+	}
+	if got := bootstrap.Diff([]byte("a"), []byte("a")); got != "" {
+		t.Fatalf("equal without a final newline = %q", got)
+	}
 }
