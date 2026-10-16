@@ -173,3 +173,52 @@ func TestIdentityPathLimitAndCancelledCapture(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// linkedSnapshot answers like the worktree for the classes that hold no
+// bytes: listed with the size the listing knows, refused on read.
+type linkedSnapshot struct {
+	files []model.File
+}
+
+func (s linkedSnapshot) Files() []model.File { return s.files }
+
+func (s linkedSnapshot) Class(path string) model.FileClass {
+	for _, file := range s.files {
+		if file.Path == path {
+			return file.Class
+		}
+	}
+	return model.ClassUnknown
+}
+
+func (linkedSnapshot) Read(path string) ([]byte, error) {
+	return nil, fmt.Errorf("%w: %s holds no bytes", model.ErrUnreadable, path)
+}
+
+func TestLinksAndSubmodulesHaveAnIdentityWithoutARead(t *testing.T) {
+	t.Parallel()
+	link := model.File{Path: "link.go", Class: model.ClassSymlink, Size: 4}
+	module := model.File{Path: "vendor/mod", Class: model.ClassGitlink}
+	before, err := hook.Identities(t.Context(), linkedSnapshot{files: []model.File{link, module}}, nil)
+	if err != nil {
+		t.Fatal("a link or a submodule stopped the capture:", err)
+	}
+	retarget := link
+	retarget.Size = 9
+	after, err := hook.Identities(t.Context(), linkedSnapshot{files: []model.File{retarget, module}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(hook.Changed(before, after), []string{"link.go"}) {
+		t.Fatal(hook.Changed(before, after))
+	}
+	listed, err := hook.Identities(t.Context(), linkedSnapshot{files: []model.File{module}},
+		[]string{"vendor/mod", "gone"})
+	if err != nil || listed["vendor/mod"] == listed["gone"] {
+		t.Fatalf("a listed submodule reads as absent: %v, %v", listed, err)
+	}
+	unreadable := model.File{Path: "locked.go", Class: model.ClassUnreadable}
+	if _, err := hook.Identities(t.Context(), linkedSnapshot{files: []model.File{unreadable}}, nil); !errors.Is(err, model.ErrCannotJudge) {
+		t.Fatal("an unreadable file was identified without its bytes:", err)
+	}
+}

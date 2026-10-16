@@ -31,10 +31,9 @@ func StateKey(repository string, event model.Event) (string, error) {
 
 // Identities detects modifications even when a file was already dirty.
 func Identities(ctx context.Context, snapshot model.Snapshot, paths []string) (map[string]string, error) {
+	sizes, listed := fileSizes(snapshot)
 	if paths == nil {
-		for _, file := range snapshot.Files() {
-			paths = append(paths, file.Path)
-		}
+		paths = listed
 	}
 	if len(paths) > maxIdentityPaths {
 		return nil, fmt.Errorf("%w: content identity path bound exceeded", model.ErrCannotJudge)
@@ -45,7 +44,7 @@ func Identities(ctx context.Context, snapshot model.Snapshot, paths []string) (m
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("%w: capture: %w", model.ErrDeadline, err)
 		}
-		identity, size, err := pathIdentity(snapshot, path)
+		identity, size, err := pathIdentity(snapshot, sizes, path)
 		if err != nil {
 			return nil, err
 		}
@@ -58,12 +57,31 @@ func Identities(ctx context.Context, snapshot model.Snapshot, paths []string) (m
 	return out, nil
 }
 
-func pathIdentity(snapshot model.Snapshot, path string) (string, int, error) {
+// fileSizes keeps what the listing knows of every path before any read,
+// because a link or a submodule is identified from it alone.
+func fileSizes(snapshot model.Snapshot) (map[string]int64, []string) {
+	files := snapshot.Files()
+	sizes := make(map[string]int64, len(files))
+	paths := make([]string, 0, len(files))
+	for _, file := range files {
+		sizes[file.Path] = file.Size
+		paths = append(paths, file.Path)
+	}
+	return sizes, paths
+}
+
+func pathIdentity(snapshot model.Snapshot, sizes map[string]int64, path string) (string, int, error) {
 	if !filepath.IsLocal(filepath.FromSlash(path)) || path == "." {
 		return "", 0, fmt.Errorf("%w: invalid snapshot path", model.ErrCannotJudge)
 	}
-	if snapshot.Class(path) == model.ClassUnknown {
+	class := snapshot.Class(path)
+	if class == model.ClassUnknown {
 		return absentIdentity, 0, nil
+	}
+	// No check follows a link or enters a submodule, and the snapshot holds
+	// no bytes for either, so the entry itself is what can change.
+	if class == model.ClassSymlink || class == model.ClassGitlink {
+		return class.String() + ":" + strconv.FormatInt(sizes[path], 10), 0, nil
 	}
 	content, err := snapshot.Read(path)
 	if err != nil {

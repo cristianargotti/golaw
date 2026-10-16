@@ -30,3 +30,4 @@ Every rule change is dated here with its reason. The format follows Keep a Chang
 - 2026-10-16: the coexistence check reads the gate in the configuration directory of the agent, because with its override set agent install wrote one settings file and the check read another.
 - 2026-10-16: the skill names the rules page of the kit at its release tag, because M1 init writes no docs/rules.md in an adopting repository.
 - 2026-10-16: the empty output acceptance row is recorded as a protocol limit, because exit 0 with no output is the allow of the host and proves no denial.
+- 2026-10-16: change detection identifies a symbolic link and a submodule by their class and listed size instead of reading them, because every shell command in an enrolled repository that tracks one answered detection not measured.
