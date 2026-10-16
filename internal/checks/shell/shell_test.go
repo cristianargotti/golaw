@@ -96,6 +96,29 @@ func TestNoVerify(t *testing.T) {
 	})
 }
 
+func TestNoVerifyReadsCommitOptions(t *testing.T) {
+	t.Parallel()
+	denies(t, shell.NoVerify(), "no-verify", map[string]bool{
+		"git commit -nm 'fix: x'":             true,
+		"git commit -anm x":                   true,
+		"git commit -vn -m x":                 true,
+		"git commit -m x -n":                  true,
+		"git commit -F msg.txt --no-verify":   true,
+		"git commit -m --no-verify":           false,
+		"git commit --message --no-verify":    false,
+		"git commit -mn":                      false,
+		"git commit -uno -m x":                false,
+		"git commit -C HEAD -m x":             false,
+		"git commit --author me -m x":         false,
+		"git commit -m x -- --no-verify":      false,
+		"git commit --message=--no-verify":    false,
+		"git commit --fixup --no-verify":      false,
+		"git commit -S -m 'fix: signed'":      false,
+		"git commit -a -v -m x":               false,
+		"git commit --amend -m x --no-verify": true,
+	})
+}
+
 func TestTokenizerShapes(t *testing.T) {
 	t.Parallel()
 	denies(t, shell.NoVerify(), "no-verify", map[string]bool{
