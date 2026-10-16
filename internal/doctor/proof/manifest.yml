@@ -23,3 +23,23 @@ checks:
     code: plugin-unavailable
     red: testdata/trust/red
     near: testdata/trust/near
+  - id: doctor.version
+    code: agent-version-below-floor
+    red: testdata/version/red
+    near: testdata/version/near
+  - id: doctor.pin
+    code: kit-version-differs
+    red: testdata/pin/red
+    near: testdata/pin/near
+  - id: doctor.build
+    code: build-metadata-unavailable
+    red: testdata/build/red
+    near: testdata/build/near
+  - id: doctor.enrollment
+    code: enrollment-invalid
+    red: testdata/enrollment/red
+    near: testdata/enrollment/near
+  - id: doctor.python
+    code: python-ownership-unresolved
+    red: testdata/python/red
+    near: testdata/python/near

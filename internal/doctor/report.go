@@ -48,6 +48,11 @@ func assessments() []assessment {
 		{"doctor.plugin", pluginLines},
 		{"doctor.read", readLines},
 		{idHooks, hookLines},
+		{"doctor.version", versionLines},
+		{"doctor.pin", pinLines},
+		{"doctor.build", buildLines},
+		{"doctor.enrollment", enrollmentLines},
+		{idPython, pythonLines},
 		{"doctor.trust", trustLines},
 	}
 }
