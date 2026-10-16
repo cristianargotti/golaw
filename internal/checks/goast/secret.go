@@ -13,9 +13,11 @@ import (
 const codeSecretField = "secret-field"
 
 var (
-	// credentialName matches a field that holds a credential.
+	// credentialName anchors at the end of the name, plural included, so
+	// APIKeys and DBPassword hold a credential and TokenSource does not.
 	credentialName = regexp.MustCompile(`(?i)(api_?key|secret|token|password|passphrase|credential)s?$`)
-	// credentialReference matches a field that only refers to one.
+	// credentialReference matches the names that point at a credential
+	// kept elsewhere, a TokenID or a SecretName, which hold no secret.
 	credentialReference = regexp.MustCompile(`(?i)(id|hash|name|path|url)$`)
 )
 
@@ -28,7 +30,8 @@ func SecretFields() model.Check {
 	return check{spec: spec("secret-fields"), judge: judgeSecretFields}
 }
 
-// credentialField is one bare string field that holds a credential.
+// credentialField keeps its owner, because the redaction that exempts a
+// field belongs to its struct.
 type credentialField struct {
 	owner string
 	name  string
@@ -56,8 +59,8 @@ func judgeSecretFields(t *target, s *state) ([]model.Finding, error) {
 	return out, nil
 }
 
-// credentialFields lists the bare string fields of the package-level
-// structs whose name holds a credential.
+// credentialFields reads the package-level structs only, the types a
+// LogValue method can be declared on.
 func credentialFields(file *ast.File) []credentialField {
 	var out []credentialField
 	for _, decl := range file.Decls {
@@ -72,7 +75,6 @@ func credentialFields(file *ast.File) []credentialField {
 	return out
 }
 
-// structCredentials lists the credential fields of one struct type spec.
 func structCredentials(s ast.Spec) []credentialField {
 	spec, ok := s.(*ast.TypeSpec)
 	if !ok {
@@ -96,14 +98,13 @@ func structCredentials(s ast.Spec) []credentialField {
 	return out
 }
 
-// isCredential reports a field name that holds a credential rather than a
-// reference to one.
 func isCredential(name string) bool {
 	return credentialName.MatchString(name) && !credentialReference.MatchString(name)
 }
 
-// redacting lists the types of one directory that implement
-// slog.LogValuer, read once per run from its non-test Go files.
+// redacting reads every non-test Go file of the directory once per run,
+// because the slog.LogValuer of a struct may sit in any file of its
+// package.
 func (s *state) redacting(dir string) (map[string]bool, error) {
 	if types, ok := s.redacted[dir]; ok {
 		return types, nil
@@ -142,7 +143,8 @@ func isLogValuer(fn *ast.FuncDecl) bool {
 	return ok && pkg == "slog" && name == "Value"
 }
 
-// parseSource parses a sibling file read through the snapshot.
+// parseSource gives a sibling a file set of its own, since no finding
+// ever points into a sibling.
 func parseSource(name string, src []byte) (*ast.File, error) {
 	file, err := parser.ParseFile(token.NewFileSet(), name, src, parser.SkipObjectResolution)
 	if err != nil {

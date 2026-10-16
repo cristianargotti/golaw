@@ -15,7 +15,6 @@ var (
 	errBoom  = errors.New("boom")
 )
 
-// tree builds an in-memory snapshot from path to text.
 func tree(files map[string]string) *proof.Tree {
 	content := make(map[string][]byte, len(files))
 	for p, text := range files {

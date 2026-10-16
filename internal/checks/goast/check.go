@@ -78,7 +78,8 @@ func newState(in model.Input) *state {
 	return &state{in: in, once: map[string]bool{}, redacted: map[string]map[string]bool{}}
 }
 
-// first reports whether key is seen for the first time in the run.
+// first lets a directory-level rule report once per run, however many
+// targets its directory holds.
 func (s *state) first(key string) bool {
 	if s.once[key] {
 		return false
@@ -87,7 +88,8 @@ func (s *state) first(key string) bool {
 	return true
 }
 
-// siblings lists the Go files of one directory of the snapshot.
+// siblings reads the snapshot and not the targets, so a directory rule
+// sees every Go file of the package even when only one file is judged.
 func (s *state) siblings(dir string) []model.File {
 	var out []model.File
 	for _, f := range s.in.Snapshot.Files() {
@@ -175,8 +177,8 @@ func (c check) applies(f model.File) bool {
 		f.Class == model.ClassTest || f.Class == model.ClassUnreadable
 }
 
-// fixturePath reports a path inside a testdata directory, the rule the
-// source classifies fixtures by, readable or not.
+// fixturePath applies the testdata rule source classifies fixtures by to
+// the path alone, so it holds for a file whose bytes were never read.
 func fixturePath(p string) bool {
 	return strings.HasPrefix(p, fixtureDir+"/") || strings.Contains(p, "/"+fixtureDir+"/")
 }
@@ -196,7 +198,8 @@ func spec(name string, needs ...string) model.Spec {
 	}
 }
 
-// requireFile gates a check on a file at the snapshot root.
+// requireFile asks the snapshot for the class of a file at the root, so
+// the gate answers without a read.
 func requireFile(name string) gate {
 	return func(in model.Input) (model.Status, bool) {
 		if in.Snapshot.Class(name) == model.ClassUnknown {
@@ -206,7 +209,8 @@ func requireFile(name string) gate {
 	}
 }
 
-// requireDir gates a check on a directory of the snapshot.
+// requireDir looks for a file below the directory, because a snapshot
+// lists files and never directories.
 func requireDir(dir string) gate {
 	return func(in model.Input) (model.Status, bool) {
 		for _, f := range in.Snapshot.Files() {
@@ -218,12 +222,14 @@ func requireDir(dir string) gate {
 	}
 }
 
-// parseError wraps a parse failure with the path it happened in.
+// parseError names the path, because the error becomes the Unmeasured
+// reason a reader acts on.
 func parseError(name string, err error) error {
 	return fmt.Errorf("parse %s: %w", name, err)
 }
 
-// under reports whether a path sits below one of the root-level prefixes.
+// under matches each prefix at the start of the path only, so cmd/ never
+// matches internal/cmd/.
 func under(p string, prefixes ...string) bool {
 	for _, prefix := range prefixes {
 		if strings.HasPrefix(p, prefix) {

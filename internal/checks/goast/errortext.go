@@ -102,7 +102,8 @@ func dataUse(stack []ast.Node) string {
 	return ""
 }
 
-// typedError reports a type named like an error value or an error type.
+// typedError goes by the type's name, the Err prefix or the Error suffix,
+// because the check reads syntax and has no type to ask.
 func typedError(name string) bool {
 	return strings.HasSuffix(name, "Error") || strings.HasPrefix(name, "Err")
 }
@@ -113,7 +114,8 @@ func chainReceivers() []string {
 	return []string{"slog", "log", "logger", "zap", "t", "require", "assert"}
 }
 
-// chainFunctions are the wrappers and matchers that keep the chain.
+// chainFunctions wrap the text into an error or only compare it, so the
+// text never leaves as data.
 func chainFunctions() []string {
 	return []string{
 		"fmt.Errorf", "errors.Is", "errors.As", "errors.New",
@@ -121,17 +123,21 @@ func chainFunctions() []string {
 	}
 }
 
-// chainMethods are the logging methods on any receiver.
+// chainMethods are matched on any receiver, because a syntax check cannot
+// tell a logger by its type.
 func chainMethods() []string {
 	return []string{"Warn", "Info", "Debug", errorMethod, "Errorw", "Infow", "Warnw"}
 }
 
-// rootFunctions are the functions that answer the root cause of a chain.
+// rootFunctions read the root cause of a chain, the text the rule asks for
+// instead of the wrapped one.
 func rootFunctions() []string {
 	return []string{"Root", "RootCause", "rootCause", "Cause", "Unwrap"}
 }
 
-// keepsChain reports a call that logs, wraps, matches or unwraps.
+// keepsChain goes by the callee's name, so a logger, a wrapper or a
+// matcher of any package keeps the chain without the check knowing its
+// type.
 func keepsChain(call *ast.CallExpr) bool {
 	name := callee(call)
 	receiver, _, _ := strings.Cut(name, ".")

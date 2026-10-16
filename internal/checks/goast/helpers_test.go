@@ -36,7 +36,6 @@ func scan(t *testing.T, c model.Check, files map[string]string) model.Result {
 	return res
 }
 
-// codes lists the finding codes of a result in order.
 func codes(res model.Result) []string {
 	out := make([]string, 0, len(res.Findings))
 	for _, f := range res.Findings {
@@ -45,7 +44,6 @@ func codes(res model.Result) []string {
 	return out
 }
 
-// lines lists the finding lines of a result in order.
 func lines(res model.Result) []int {
 	out := make([]int, 0, len(res.Findings))
 	for _, f := range res.Findings {

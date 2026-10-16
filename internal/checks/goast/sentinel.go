@@ -39,7 +39,6 @@ func judgeSentinelDecl(t *target, _ *state) ([]model.Finding, error) {
 	return out, nil
 }
 
-// sentinelValues lists the errors.New calls of a var declaration.
 func sentinelValues(gen *ast.GenDecl) []ast.Expr {
 	var out []ast.Expr
 	for _, s := range gen.Specs {

@@ -30,7 +30,7 @@ func SonarLiteralRepeat() model.Check {
 	return check{spec: spec("sonar-literal-repeat"), judge: judgeLiteralRepeat}
 }
 
-// literalCount is the first position and the count of one literal.
+// literalCount keeps the first position, where the finding sits.
 type literalCount struct {
 	first token.Pos
 	count int

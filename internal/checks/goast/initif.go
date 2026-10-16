@@ -46,8 +46,9 @@ func judgeInitIf(t *target, _ *state) ([]model.Finding, error) {
 	return out, nil
 }
 
-// keepsHappyPath reports if x, err := call(); err == nil over a call that
-// is not a parse idiom.
+// keepsHappyPath matches if v, err := expr; err == nil, whose error lives
+// only inside the if and is never handled; a call of the parse idiom falls
+// back by design.
 func keepsHappyPath(stmt *ast.IfStmt) bool {
 	init, ok := stmt.Init.(*ast.AssignStmt)
 	if !ok || init.Tok != token.DEFINE || len(init.Rhs) != 1 {
@@ -61,7 +62,6 @@ func keepsHappyPath(stmt *ast.IfStmt) bool {
 	return !ok || !parseIdiom.MatchString(lastSegment(callee(call)))
 }
 
-// isIdent reports an identifier with the name.
 func isIdent(expr ast.Expr, name string) bool {
 	ident, ok := expr.(*ast.Ident)
 	return ok && ident.Name == name

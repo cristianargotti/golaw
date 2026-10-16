@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-// selector splits X.Sel when X is a plain identifier.
+// selector answers only for X.Sel on a plain identifier, the shape of a
+// package-qualified name the package rules of the family look for.
 func selector(n ast.Node) (string, string, bool) {
 	sel, ok := n.(*ast.SelectorExpr)
 	if !ok {
@@ -20,9 +21,10 @@ func selector(n ast.Node) (string, string, bool) {
 	return ident.Name, sel.Sel.Name, true
 }
 
-// callee names what a call invokes: pkg.Name for a selector on an
-// identifier, Name for a plain identifier, .Name for a method on anything
-// else, and empty for a call of an expression.
+// callee spells a call the way the rules list names, since the check
+// resolves no type: pkg.Name for a selector on an identifier, Name for a
+// plain identifier, .Name for a method on anything else, and empty for a
+// call of an expression.
 func callee(call *ast.CallExpr) string {
 	switch fun := call.Fun.(type) {
 	case *ast.Ident:
@@ -37,7 +39,8 @@ func callee(call *ast.CallExpr) string {
 	}
 }
 
-// lastSegment is the part of a callee name after its last dot.
+// lastSegment drops the package or the receiver, so a rule matches a call
+// by its name alone.
 func lastSegment(name string) string {
 	if _, after, ok := strings.CutLast(name, "."); ok {
 		return after
@@ -45,8 +48,8 @@ func lastSegment(name string) string {
 	return name
 }
 
-// typeName names a type expression: the identifier, the selector's name or
-// the pointed type; empty for any other shape.
+// typeName drops the package and the pointer, so a method on *T and a
+// literal of pkg.T both name T; any other shape names nothing.
 func typeName(expr ast.Expr) string {
 	switch e := expr.(type) {
 	case *ast.Ident:
@@ -75,8 +78,8 @@ func commentLines(file *ast.File, fset *token.FileSet, marker string) map[int]bo
 	return lines
 }
 
-// justifies reports a line or block comment whose text opens with the
-// marker and has more than space after it.
+// justifies strips the comment delimiters first, so a block comment
+// carries a marker the way a line comment does.
 func justifies(comment, marker string) bool {
 	text := strings.TrimPrefix(comment, "//")
 	if body, ok := strings.CutPrefix(comment, "/*"); ok {
@@ -86,7 +89,8 @@ func justifies(comment, marker string) bool {
 	return ok && strings.TrimSpace(rest) != ""
 }
 
-// stringLiteral returns the value of a string literal expression.
+// stringLiteral unquotes the literal, so a rule matches its value and not
+// its spelling with quotes and escapes.
 func stringLiteral(expr ast.Expr) (string, bool) {
 	lit, ok := expr.(*ast.BasicLit)
 	if !ok || lit.Kind != token.STRING {

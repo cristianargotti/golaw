@@ -54,7 +54,9 @@ func judgeAdapterPackageSize(t *target, s *state) ([]model.Finding, error) {
 	return []model.Finding{{Path: dir, Code: codeAdapterPackageSize, Message: message, Severity: model.SeverityDeny}}, nil
 }
 
-// adapterRoot reports a directory of the form internal/adapters/<side>/<name>.
+// adapterRoot matches internal/adapters/<side>/<name> exactly: each
+// package below a root is one context of its own, so only the root is
+// limited.
 func adapterRoot(dir string) bool {
 	parts := strings.Split(dir, "/")
 	return len(parts) == adapterRootDepth && strings.HasPrefix(dir, adaptersDir+"/")

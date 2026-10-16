@@ -34,8 +34,8 @@ func judgeEmptyBody(t *target, _ *state) ([]model.Finding, error) {
 	return out, nil
 }
 
-// functionBody returns the body and the name of a function declaration or
-// literal, nil for any other node or a declaration without a body.
+// functionBody gives the name the message uses, and nil for a declaration
+// without a body, whose code lives elsewhere and cannot be empty.
 func functionBody(n ast.Node) (*ast.BlockStmt, string) {
 	switch fn := n.(type) {
 	case *ast.FuncDecl:
@@ -47,8 +47,8 @@ func functionBody(n ast.Node) (*ast.BlockStmt, string) {
 	}
 }
 
-// hasComment reports a comment inside the braces of a body or on the line
-// of its closing brace.
+// hasComment takes the closing line too, so a one-line body such as
+// func() {} // why passes like a comment inside the braces.
 func hasComment(file *ast.File, fset *token.FileSet, body *ast.BlockStmt) bool {
 	closing := fset.Position(body.Rbrace).Line
 	for _, group := range file.Comments {

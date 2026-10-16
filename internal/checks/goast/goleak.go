@@ -41,8 +41,8 @@ func judgeGoleak(t *target, s *state) ([]model.Finding, error) {
 	return []model.Finding{t.finding(codeGoleak, start, message)}, nil
 }
 
-// goroutineStart is the position of the first go statement or Go method
-// call of a file, token.NoPos when it starts none.
+// goroutineStart stops at the first start: one is enough to need goleak,
+// and the finding sits there.
 func goroutineStart(file *ast.File) token.Pos {
 	found := token.NoPos
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -62,8 +62,8 @@ func goroutineStart(file *ast.File) token.Pos {
 	return found
 }
 
-// verifiesGoleak reports whether a test file of the directory imports
-// goleak.
+// verifiesGoleak parses the imports only, because importing goleak in a
+// test of the package is all the rule asks.
 func (s *state) verifiesGoleak(dir string) (bool, error) {
 	for _, f := range s.siblings(dir) {
 		if f.Class != model.ClassTest {

@@ -47,8 +47,8 @@ func judgeSQL(t *target, _ *state) ([]model.Finding, error) {
 	return out, nil
 }
 
-// formatsQuery reports a fmt.Sprintf or fmt.Sprint whose first argument is
-// a statement literal.
+// formatsQuery reads the first argument only: a query formatted from
+// strings carries its statement in the format.
 func formatsQuery(call *ast.CallExpr) bool {
 	name := callee(call)
 	if (name != "fmt.Sprintf" && name != "fmt.Sprint") || len(call.Args) == 0 {
@@ -58,8 +58,8 @@ func formatsQuery(call *ast.CallExpr) bool {
 	return ok && sqlStatement.MatchString(value)
 }
 
-// concatenatesQuery reports a + chain that mixes a clause literal with a
-// value that is not a literal.
+// concatenatesQuery wants a clause literal and a value that is not a
+// literal, because a chain of literals alone is a constant query.
 func concatenatesQuery(expr *ast.BinaryExpr) bool {
 	clause, dynamic := false, false
 	for _, operand := range operands(expr) {
@@ -74,7 +74,8 @@ func concatenatesQuery(expr *ast.BinaryExpr) bool {
 	return clause && dynamic
 }
 
-// operands flattens a left-nested + chain into its operands in order.
+// operands flattens the left-nested tree the parser builds for a + b + c,
+// so a chain is judged as a whole.
 func operands(expr ast.Expr) []ast.Expr {
 	if bin, ok := expr.(*ast.BinaryExpr); ok && bin.Op == token.ADD {
 		return append(operands(bin.X), operands(bin.Y)...)

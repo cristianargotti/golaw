@@ -90,8 +90,9 @@ func nodeText(n ast.Node) string {
 	return nodeLayout(n)
 }
 
-// nodeToken is the operator or the keyword a node holds outside its
-// children, ILLEGAL for a node that holds none.
+// nodeToken is the operator or keyword a node keeps in a field and not in
+// a child, which the walk of the children misses: without it a += and a
+// -= read alike.
 func nodeToken(n ast.Node) token.Token {
 	switch n := n.(type) {
 	case *ast.BinaryExpr:
@@ -145,7 +146,8 @@ func nodeLayout(n ast.Node) string {
 	}
 }
 
-// present writes one digit per optional part, 1 when it is there.
+// present writes the flags in a fixed order, so the key tells which part
+// is absent and not only how many.
 func present(parts ...bool) string {
 	out := make([]byte, len(parts))
 	for i, part := range parts {

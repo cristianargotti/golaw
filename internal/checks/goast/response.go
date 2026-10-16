@@ -49,12 +49,14 @@ func judgeRawErrorResponse(t *target, _ *state) ([]model.Finding, error) {
 	return out, nil
 }
 
-// responseMethods are the handler methods that write a body with a status.
+// responseMethods are matched by name on any receiver, because a syntax
+// check cannot tell a handler context by its type.
 func responseMethods() []string {
 	return []string{"JSON", "String", "Data", "AbortWithStatusJSON", "IndentedJSON"}
 }
 
-// respondsWithError reports a c.JSON-shaped call whose status is an error.
+// respondsWithError reads the status from the first argument, where each
+// of the response methods takes it.
 func respondsWithError(call *ast.CallExpr) bool {
 	_, method, ok := selector(call.Fun)
 	if !ok || !slices.Contains(responseMethods(), method) || len(call.Args) == 0 {
@@ -79,7 +81,8 @@ func errorStatus(arg ast.Expr) bool {
 	return err == nil && code >= firstErrorStatus && code <= lastErrorStatus
 }
 
-// errorStatusNames are the net/http constants of the 4xx and 5xx classes.
+// errorStatusNames spells out the 4xx and 5xx constants of net/http,
+// because the check reads names and never evaluates a constant.
 func errorStatusNames() []string {
 	return []string{
 		"StatusBadRequest", "StatusUnauthorized", "StatusPaymentRequired", "StatusForbidden",
