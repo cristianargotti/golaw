@@ -31,3 +31,19 @@ func TestCommentLanguage(t *testing.T) {
 		t.Errorf("code = %q", res.Findings[0].Code)
 	}
 }
+
+// TestCommentLanguageReadsShortNamesAsCode keeps two-letter Go names out of
+// the function words: an English comment about the variable el or la is
+// English, while a Spanish sentence still carries another function word.
+func TestCommentLanguageReadsShortNamesAsCode(t *testing.T) {
+	t.Parallel()
+	res := run(t, text.CommentLanguage(), map[string]string{
+		"a.go": "package a\n" +
+			"// el is the current element of the walk.\n" +
+			"// la holds the last address.\n" +
+			"// devuelve el valor para el usuario\n",
+	})
+	if len(res.Findings) != 1 || res.Findings[0].Line != 4 {
+		t.Fatalf("findings = %+v", res.Findings)
+	}
+}

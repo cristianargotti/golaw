@@ -10,12 +10,14 @@ import (
 
 // The comment grammar and the two signs of a comment that is not English: a
 // Spanish or Portuguese function word, or two accented letters outside
-// quotes (one alone is a proper noun or a quoted term). The accented letters
-// are spelled by code point so this file carries none.
+// quotes (one alone is a proper noun or a quoted term). The two-letter
+// articles stay out of the function words, because el and la are as often
+// Go names an English comment talks about. The accented letters are
+// spelled by code point so this file carries none.
 var (
 	commentLine  = regexp.MustCompile(`^\s*(?://|/\*|\*)\s?(.*)$`)
 	quotedText   = regexp.MustCompile("\"[^\"]*\"|'[^']*'|`[^`]*`")
-	functionWord = regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{N}_])(?:el|la|los|las|una|para|porque|n\x{e3}o|tamb\x{e9}m|isso|esto|aqui|ent\x{e3}o|hasta|pero|quando|cuando|j\x{e1}|est\x{e1}|deve|debe|cada|ainda|todav\x{ed}a|sino|sen\x{e3}o)(?:$|[^\p{L}\p{N}_])`)
+	functionWord = regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{N}_])(?:los|las|una|para|porque|n\x{e3}o|tamb\x{e9}m|isso|esto|aqui|ent\x{e3}o|hasta|pero|quando|cuando|j\x{e1}|est\x{e1}|deve|debe|cada|ainda|todav\x{ed}a|sino|sen\x{e3}o)(?:$|[^\p{L}\p{N}_])`)
 	accentedRune = regexp.MustCompile(`[\x{e1}\x{e9}\x{ed}\x{f3}\x{fa}\x{e3}\x{f5}\x{e7}\x{f1}\x{c1}\x{c9}\x{cd}\x{d3}\x{da}]`)
 )
 
