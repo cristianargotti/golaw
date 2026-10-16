@@ -21,6 +21,8 @@ const (
 	family     = "goast."
 	capability = "go"
 	goSuffix   = ".go"
+	testSuffix = "_test.go"
+	fixtureDir = "testdata"
 	cmdDir     = "cmd/"
 )
 
@@ -153,15 +155,24 @@ func (c check) Run(ctx context.Context, in model.Input) (model.Result, error) {
 
 // applies reports whether a target is a Go file the check judges: tracked
 // and untracked sources always, test files when the check keeps them, and
-// never a fixture, a generated file or a non-text class.
+// never a fixture, a generated file or a non-text class. An unreadable file
+// has no class its bytes could give, so its path decides: unless it is a
+// fixture or a test file the check skips, it applies, and its failed read
+// leaves the check Unmeasured instead of clean.
 func (c check) applies(f model.File) bool {
-	if !strings.HasSuffix(f.Path, goSuffix) {
+	if !strings.HasSuffix(f.Path, goSuffix) || fixturePath(f.Path) {
 		return false
 	}
-	if f.Class == model.ClassTest {
-		return c.tests
+	if strings.HasSuffix(f.Path, testSuffix) {
+		return c.tests && (f.Class == model.ClassTest || f.Class == model.ClassUnreadable)
 	}
-	return f.Class == model.ClassTracked || f.Class == model.ClassUntracked
+	return f.Class == model.ClassTracked || f.Class == model.ClassUntracked || f.Class == model.ClassUnreadable
+}
+
+// fixturePath reports a path inside a testdata directory, the rule the
+// source classifies fixtures by, readable or not.
+func fixturePath(p string) bool {
+	return strings.HasPrefix(p, fixtureDir+"/") || strings.Contains(p, "/"+fixtureDir+"/")
 }
 
 // spec builds the specification of one check of the family: the id is the

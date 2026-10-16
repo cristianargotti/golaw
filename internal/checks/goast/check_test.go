@@ -3,12 +3,14 @@ package goast_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks/goast"
 	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/proof"
 )
 
 func TestChecksCarryValidSpecs(t *testing.T) {
@@ -53,6 +55,80 @@ func TestRunLeavesAnUnreadableTargetUnmeasured(t *testing.T) {
 	t.Parallel()
 	big := strings.Repeat("x", model.MaxReadBytes+1)
 	expectUnmeasured(t, scan(t, goast.FileLength(), map[string]string{"a.go": big}), "read bound")
+}
+
+// unreadableTree is a proof tree whose listed paths the source could not
+// read: their class is unreadable and a read answers ErrUnreadable, the
+// way the worktree treats a file it cannot stat or open.
+type unreadableTree struct {
+	tree  *proof.Tree
+	paths []string
+}
+
+func (u unreadableTree) Files() []model.File {
+	files := u.tree.Files()
+	for i := range files {
+		files[i].Class = u.Class(files[i].Path)
+	}
+	return files
+}
+
+func (u unreadableTree) Read(p string) ([]byte, error) {
+	if slices.Contains(u.paths, p) {
+		return nil, fmt.Errorf("%w: %s is unreadable", model.ErrUnreadable, p)
+	}
+	content, err := u.tree.Read(p)
+	if err != nil {
+		return nil, fmt.Errorf("proof tree: %w", err)
+	}
+	return content, nil
+}
+
+func (u unreadableTree) Class(p string) model.FileClass {
+	if slices.Contains(u.paths, p) {
+		return model.ClassUnreadable
+	}
+	return u.tree.Class(p)
+}
+
+// runUnreadable runs a check over a tree that opens every gate of the
+// family, with the given paths unreadable.
+func runUnreadable(t *testing.T, c model.Check, paths ...string) model.Result {
+	t.Helper()
+	snapshot := unreadableTree{tree: proof.NewTree(map[string][]byte{
+		"sqlc.yaml":                           []byte("version: \"2\"\n"),
+		"internal/adapters/inbound/http/h.go": []byte("package http\n"),
+		"internal/app/service.go":             []byte("package app\n"),
+		"internal/app/service_test.go":        []byte("package app\n"),
+		"internal/app/testdata/fixture.go":    []byte("package fixture\n"),
+	}), paths: paths}
+	res, err := c.Run(t.Context(), model.Input{
+		Mode: model.ModeScan, Policy: proof.Policy(), Snapshot: snapshot,
+		Targets: snapshot.Files(), Options: c.Spec().Options.Defaults(),
+	})
+	if err != nil {
+		t.Fatalf("%s: %v", c.Spec().ID, err)
+	}
+	return res
+}
+
+func TestRunLeavesTheUnreadableClassUnmeasured(t *testing.T) {
+	t.Parallel()
+	for _, c := range goast.Checks() {
+		t.Run(c.Spec().ID, func(t *testing.T) {
+			t.Parallel()
+			expectUnmeasured(t, runUnreadable(t, c, "internal/app/service.go"), "internal/app/service.go is unreadable")
+			if res := runUnreadable(t, c, "internal/app/testdata/fixture.go"); res.Status.Kind != model.StatusMeasured {
+				t.Errorf("an unreadable fixture is never judged: status = %s (%s)", res.Status.Kind, res.Status.Reason)
+			}
+			res := runUnreadable(t, c, "internal/app/service_test.go")
+			if c.Spec().ID == "goast.file-length" {
+				expectUnmeasured(t, res, "internal/app/service_test.go is unreadable")
+			} else if res.Status.Kind != model.StatusMeasured {
+				t.Errorf("an unreadable test file is never judged here: status = %s (%s)", res.Status.Kind, res.Status.Reason)
+			}
+		})
+	}
 }
 
 func TestRunFailsOnPassedDeadline(t *testing.T) {
