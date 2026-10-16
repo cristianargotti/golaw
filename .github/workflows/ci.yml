@@ -13,9 +13,12 @@ on:
 permissions:
   contents: read
 
+# A pull request cancels its older runs. A push to main runs in a group of
+# its own commit, so a newer merge neither cancels it nor replaces it while
+# it waits: the release gate requires a successful push run for the tag.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   GOFLAGS: -mod=readonly

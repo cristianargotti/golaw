@@ -74,3 +74,20 @@ func gateToolchain(t *testing.T) string {
 	t.Fatal("the gate job sets up no Go toolchain")
 	return ""
 }
+
+// A newer merge must neither cancel the push run of an older main commit
+// nor replace it while it waits, because the gate refuses a tag whose
+// commit has no successful push run; only a pull request yields its runs.
+func TestMainPushRunsComplete(t *testing.T) {
+	t.Parallel()
+	root, err := document(kitBytes(t, ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	group := value(at(root, "concurrency", "group"))
+	cancel := value(at(root, "concurrency", "cancel-in-progress"))
+	if group != "ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}" ||
+		cancel != "${{ github.event_name == 'pull_request' }}" {
+		t.Fatalf("concurrency group %q, cancel-in-progress %q", group, cancel)
+	}
+}
