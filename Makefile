@@ -15,7 +15,7 @@ test:
 	go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
 coverage:
-	go tool cover -func=coverage.out
+	go run ./tools/coverage -profile coverage.out -root . -min 80 -min-statements 20
 
 build:
 	go build ./...
