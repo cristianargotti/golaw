@@ -25,6 +25,7 @@ func TestSecretMaterial(t *testing.T) {
 	denied := []string{
 		".env", "/work/app/.env.local", ".env.production", "prod.env", ".envrc",
 		"secrets/nested/key.yaml", "deploy/secrets/token.txt", "secrets/testdata.json",
+		"secrets/testdata/token.txt", "internal/secrets/testdata/payload.json", "secrets/testdata/x.json",
 		"credentials/app.json", "keys/signing.json",
 		"kubeconfig", "cluster.kubeconfig", ".kube/config",
 		".docker/config.json", ".vault-token",
@@ -46,7 +47,7 @@ func TestSecretMaterial(t *testing.T) {
 		".env.example", ".env.sample", "id_rsa.pub", "config/app.yaml", "README.md", "Makefile", "profile.png", "token.go",
 		"deploy/external-secret.yaml", "charts/app/templates/secret.yaml", "config/secrets.json", "secrets.yml",
 		"config/credentials.example.json", "config/app.sample.yaml", "deploy/secret/token.txt",
-		"internal/secrets/testdata/payload.json", "secrets/testdata/x.json",
+		"internal/secrets/testdata/fixture.go", "internal/secrets/vault.go",
 	}
 	for _, path := range allowed {
 		if res := read(t, path); len(res.Findings) != 0 || res.Status.Kind != model.StatusMeasured {

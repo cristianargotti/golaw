@@ -16,9 +16,6 @@ var (
 	sourceFile    = regexp.MustCompile(`(?i)\.(?:go|ts|tsx|js|mjs|cjs|py|md|sql|proto|tmpl)$`)
 	exampleFile   = regexp.MustCompile(`(?i)\.(?:example|sample|template|dist)(?:\.[a-z0-9]+)?$`)
 	secretPattern = regexp.MustCompile(`(?i)(?:^|/)(?:` + strings.Join(secretNames(), "|") + `)$`)
-	// secretsDir is the secrets directory entry of the name list, apart
-	// from the fixtures of a testdata directory below it.
-	secretsDir = regexp.MustCompile(`(?i)(?:^|/)secrets/(.+)$`)
 )
 
 // secretNames is the name list as data; every entry matches the end of a
@@ -26,6 +23,7 @@ var (
 func secretNames() []string {
 	return []string{
 		`\.env(?:\.[^/]+)?`, `[^/]+\.env`, `\.envrc`,
+		`secrets/.+`,
 		`(?:credentials|keys)/[^/]+\.json`,
 		`kubeconfig(?:\.[^/]+)?`, `[^/]+\.kubeconfig`, `\.kube/.+`,
 		`\.docker/config\.json`, `\.vault-token`,
@@ -47,11 +45,7 @@ func secretName(token string) bool {
 	if sourceFile.MatchString(name) || exampleFile.MatchString(name) {
 		return false
 	}
-	if secretPattern.MatchString(token) {
-		return true
-	}
-	under := secretsDir.FindStringSubmatch(token)
-	return len(under) == 2 && !strings.HasPrefix(under[1], "testdata/") && !strings.Contains(under[1], "/testdata/")
+	return secretPattern.MatchString(token)
 }
 
 // hookRule is the rule reference of the hook denials, until docs/rules.md

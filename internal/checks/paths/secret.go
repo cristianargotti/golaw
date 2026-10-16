@@ -14,12 +14,6 @@ var sourceFile = regexp.MustCompile(`(?i)\.(?:go|ts|tsx|js|mjs|cjs|py|md|sql|pro
 // the name (.env.example, credentials.example.json).
 var exampleFile = regexp.MustCompile(`(?i)\.(?:example|sample|template|dist)(?:\.[a-z0-9]+)?$`)
 
-// secretsDir is the secrets directory entry of the name list: anything
-// under a directory named secrets at any depth, apart from the fixtures of
-// a testdata directory below it, which a package named secrets keeps for
-// its tests.
-var secretsDir = regexp.MustCompile(`(?i)(?:^|/)secrets/(.+)$`)
-
 // secretPattern joins the name list into one case-insensitive match over
 // the end of a slash separated path.
 var secretPattern = regexp.MustCompile(`(?i)(?:^|/)(?:` + strings.Join(secretNames(), "|") + `)$`)
@@ -29,6 +23,7 @@ var secretPattern = regexp.MustCompile(`(?i)(?:^|/)(?:` + strings.Join(secretNam
 func secretNames() []string {
 	return []string{
 		`\.env(?:\.[^/]+)?`, `[^/]+\.env`, `\.envrc`,
+		`secrets/.+`,
 		`(?:credentials|keys)/[^/]+\.json`,
 		`kubeconfig(?:\.[^/]+)?`, `[^/]+\.kubeconfig`, `\.kube/.+`,
 		`\.docker/config\.json`, `\.vault-token`,
@@ -50,9 +45,5 @@ func secretName(path string) bool {
 	if sourceFile.MatchString(base) || exampleFile.MatchString(base) {
 		return false
 	}
-	if secretPattern.MatchString(path) {
-		return true
-	}
-	under := secretsDir.FindStringSubmatch(path)
-	return len(under) == 2 && !strings.HasPrefix(under[1], "testdata/") && !strings.Contains(under[1], "/testdata/")
+	return secretPattern.MatchString(path)
 }

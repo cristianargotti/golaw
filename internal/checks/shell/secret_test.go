@@ -42,7 +42,9 @@ func TestSecretTokens(t *testing.T) {
 		"cat deploy/secrets/token.txt":                    true,
 		"cat charts/app/templates/secret.yaml":            false,
 		"cat config/credentials.example.json":             false,
-		"cat internal/secrets/testdata/payload.json":      false,
+		"cat internal/secrets/testdata/payload.json":      true,
+		"cat secrets/testdata/token.txt":                  true,
+		"cat internal/secrets/testdata/fixture.go":        false,
 	})
 	res := judge(t, shell.SecretTokens(), "cat /work/app/.env")
 	if res.Findings[0].Message != "the command names secret material (/work/app/.env); secrets never enter the context" {
@@ -67,7 +69,7 @@ func nameLiterals(t *testing.T, source []byte) []string {
 		case *ast.FuncDecl:
 			return n.Name.Name == "secretNames"
 		case *ast.ValueSpec:
-			return n.Names[0].Name == "sourceFile" || n.Names[0].Name == "exampleFile" || n.Names[0].Name == "secretsDir"
+			return n.Names[0].Name == "sourceFile" || n.Names[0].Name == "exampleFile"
 		case *ast.BasicLit:
 			if n.Kind == token.STRING {
 				literals = append(literals, n.Value)
