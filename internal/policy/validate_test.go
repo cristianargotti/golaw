@@ -20,6 +20,10 @@ func TestValidateAccepts(t *testing.T) {
 	if err := decode(t, edge).Validate(nil); err != nil {
 		t.Errorf("the floors at their bounds: %v", err)
 	}
+	defaults := minimalPolicy + "checks: {text.tool-terms: {strict: true, limit: 5, names: []}}\n"
+	if err := decode(t, defaults).Validate(schemas()); err != nil {
+		t.Errorf("the options at their core defaults: %v", err)
+	}
 }
 
 // invalidCase is one file Validate must refuse with the words it names.
@@ -68,6 +72,8 @@ func invalidHeads() map[string]invalidCase {
 		"option name":       {minimalPolicy + "checks: {text.tool-terms: {depth: 1}}\n", "checks.text.tool-terms.depth"},
 		"option kind":       {minimalPolicy + "checks: {text.tool-terms: {limit: true}}\n", "checks.text.tool-terms.limit"},
 		"option list":       {minimalPolicy + "checks: {text.tool-terms: {names: [1]}}\n", "not a string"},
+		"option weaker":     {minimalPolicy + "checks: {text.tool-terms: {limit: 1000}}\n", "checks.text.tool-terms.limit: 5 to 1000"},
+		"option one weaker": {minimalPolicy + "checks: {text.tool-terms: {limit: 6}}\n", "checks.text.tool-terms.limit: 5 to 6"},
 	}
 }
 

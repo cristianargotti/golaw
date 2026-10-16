@@ -207,4 +207,9 @@ func TestProposedFromCore(t *testing.T) {
 	if _, _, err := policy.Proposed(t.Context(), base, schemas()); !errors.Is(err, model.ErrPolicy) {
 		t.Errorf("an invalid first policy: %v", err)
 	}
+	write(t, core, "golaw.yml", minimalPolicy+"checks: {text.tool-terms: {limit: 1000}}\n")
+	gitRun(t, core, "add", "golaw.yml")
+	if _, found, err := policy.Proposed(t.Context(), base, schemas()); !errors.Is(err, model.ErrPolicy) || found {
+		t.Errorf("a first policy whose option weakens its core default: %v, %v", found, err)
+	}
 }

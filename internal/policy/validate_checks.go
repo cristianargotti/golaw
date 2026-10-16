@@ -95,8 +95,10 @@ func (l *Lint) validate() error {
 }
 
 // validateOptions judges the options of one check against its schema: the
-// id must be a check that declares options, every option must be declared
-// and every value must be of its kind.
+// id must be a check that declares options, every option must be declared,
+// every value must be of its kind and none may move from its core default
+// against the direction its schema declares, because an option is a floor
+// like the named blocks and only tightens the core.
 func validateOptions(id string, values map[string]any, schemas Schemas) error {
 	schema, known := schemas[id]
 	if !model.ValidID(id) || !known {
@@ -107,8 +109,12 @@ func validateOptions(id string, values map[string]any, schemas Schemas) error {
 		if i < 0 {
 			return invalid("checks.%s.%s is not an option of the check", id, name)
 		}
-		if _, err := optionValue(schema[i].Kind, values[name]); err != nil {
+		v, err := optionValue(schema[i].Kind, values[name])
+		if err != nil {
 			return invalid("checks.%s.%s: %v", id, name, err)
+		}
+		if err := tightens("checks."+id+"."+name, schema[i].Tighten, schema[i].Default, v); err != nil {
+			return invalid("%v: an option may only tighten its core default", err)
 		}
 	}
 	return nil
