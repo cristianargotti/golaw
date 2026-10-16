@@ -1,0 +1,20 @@
+# Version updates enter seven days after publication and a major thirty
+# days after, the laws CONTRIBUTING.md states; security updates bypass the
+# cooldown by the platform's rule, and deps-age in make ci holds every other
+# change to the same seven days. The actions ecosystem takes the default
+# days only.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

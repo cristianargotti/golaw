@@ -31,8 +31,10 @@ func isolatedEnvironment(parent []string, home, bin string) []string {
 		"XDG_CACHE_HOME=" + filepath.Join(home, "cache"),
 		"CODEX_HOME=" + filepath.Join(home, ".codex"),
 		"CLAUDE_CONFIG_DIR=" + filepath.Join(home, ".claude"),
-		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
-		"DISABLE_AUTOUPDATER=1", "GOFLAGS=-mod=readonly", "GOTOOLCHAIN=auto",
+		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "DISABLE_AUTOUPDATER=1", "GOTOOLCHAIN=auto",
+		// go fills a module cache under the home with read-only directories,
+		// which os.RemoveAll cannot delete; -modcacherw lets the home go.
+		"GOFLAGS=-mod=readonly -modcacherw",
 	}
 	for _, key := range []string{
 		"SystemRoot", "SystemDrive", "COMSPEC", "PATHEXT",

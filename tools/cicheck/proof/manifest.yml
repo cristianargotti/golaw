@@ -7,3 +7,19 @@ checks:
     code: docs-skill
     red: testdata/docs.skill/red
     near: testdata/docs.skill/near
+  - id: ci.safety
+    code: ci-safety
+    red: testdata/ci.safety/red
+    near: testdata/ci.safety/near
+  - id: release.assets
+    code: release-assets
+    red: testdata/release.assets/red
+    near: testdata/release.assets/near
+  - id: release.pipeline
+    code: release-pipeline
+    red: testdata/release.pipeline/red
+    near: testdata/release.pipeline/near
+  - id: ci.plugin
+    code: ci-plugin
+    red: testdata/ci.plugin/red
+    near: testdata/ci.plugin/near

@@ -4,5 +4,8 @@ import "testing"
 
 func auditRules(t *testing.T) []auditRule {
 	t.Helper()
-	return []auditRule{publicTextRule(), skillRule()}
+	return []auditRule{
+		publicTextRule(), skillRule(), ciRule(),
+		artifactRule(), releaseRule(), pluginRule(agentID(t)),
+	}
 }
