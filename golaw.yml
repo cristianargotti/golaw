@@ -16,7 +16,6 @@ checks:
     allow_paths:
       - .claude-plugin/
       - .github/
-      - CHANGELOG.md
       - CONTRIBUTING.md
       - README.md
       - agents/

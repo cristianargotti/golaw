@@ -51,3 +51,26 @@ func TestToolTermsFromPolicy(t *testing.T) {
 		t.Errorf("result = %+v, %v", res, err)
 	}
 }
+
+// TestToolTermsAllowAFileScopeExactly reads an allowed path that ends in a
+// slash as a directory and any other as one file, so README.md lets the
+// names into the README and not into README.md.bak, and docs/ into the
+// documentation and not into docsx/.
+func TestToolTermsAllowAFileScopeExactly(t *testing.T) {
+	t.Parallel()
+	policy := proof.Policy()
+	policy.Terms = model.TermPolicy{Tools: []string{"ourtool"}, AllowPaths: []string{"README.md", "docs/"}}
+	files := map[string][]byte{}
+	for _, path := range []string{"README.md", "README.md.bak", "docs/a.md", "docsx/a.md"} {
+		files[path] = []byte("ourtool\n")
+	}
+	tree := proof.NewTree(files)
+	res, err := text.ToolTerms().Run(t.Context(), model.Input{Mode: model.ModeScan, Policy: policy, Snapshot: tree, Targets: tree.Files()})
+	got := make([]string, 0, len(res.Findings))
+	for _, f := range res.Findings {
+		got = append(got, f.Path)
+	}
+	if err != nil || !slices.Equal(got, []string{"README.md.bak", "docsx/a.md"}) {
+		t.Errorf("reported %v, %v", got, err)
+	}
+}

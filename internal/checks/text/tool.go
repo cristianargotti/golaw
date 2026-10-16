@@ -65,10 +65,12 @@ func wordPattern(name string) *regexp.Regexp {
 	return regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(strings.ToLower(name)) + `\b`)
 }
 
-// underAny reports whether a path starts with one of the prefixes.
+// underAny reports whether a path lies under one of the allowed paths: an
+// entry that ends in a slash is a directory and holds what starts with it,
+// any other entry is one file, so README.md never allows README.md.bak.
 func underAny(path string, prefixes []string) bool {
 	for _, p := range prefixes {
-		if strings.HasPrefix(path, p) {
+		if strings.HasSuffix(p, "/") && strings.HasPrefix(path, p) || path == p {
 			return true
 		}
 	}
