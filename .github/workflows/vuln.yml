@@ -36,4 +36,8 @@ jobs:
       - name: Install pinned govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
       - name: Scan with the waivers of golaw.yml
+        # Without a shell the step runs as bash -e, where a pipe takes the
+        # exit code of vulngate alone; shell: bash adds pipefail, so a failed
+        # scan fails the lane.
+        shell: bash
         run: govulncheck -format json ./... | go run ./tools/vulngate -waivers golaw.yml -today "$(date -u +%F)"

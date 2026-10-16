@@ -99,7 +99,9 @@ func TestExecuteWithoutReachableFindingsIsClean(t *testing.T) {
 	t.Parallel()
 	var stdout, stderr bytes.Buffer
 	args := []string{"-waivers", waiversFile(t, ""), "-today", "2026-10-14"}
-	if got := execute(args, strings.NewReader(`{"finding": {"osv": "GO-1", "trace": [{"module": "m"}]}}`), &stdout, &stderr); got != exitClean {
+	clean := `{"config": {"scanner_name": "govulncheck"}}
+{"finding": {"osv": "GO-1", "trace": [{"module": "m"}]}}`
+	if got := execute(args, strings.NewReader(clean), &stdout, &stderr); got != exitClean {
 		t.Fatalf("exit = %d, stderr = %q", got, stderr.String())
 	}
 	if stdout.String() != "vulngate: no reachable vulnerability\n" {
@@ -108,5 +110,21 @@ func TestExecuteWithoutReachableFindingsIsClean(t *testing.T) {
 	missing := []string{"-waivers", filepath.Join(t.TempDir(), "none.yml"), "-today", "2026-10-14"}
 	if got := execute(missing, strings.NewReader(""), &stdout, &stderr); got != exitFailure {
 		t.Fatalf("missing waivers exit = %d", got)
+	}
+}
+
+// A scanner that stops before its config line leaves the pipe empty, and a
+// stream without that line never came from a scan; neither may read as clean.
+func TestExecuteRefusesAStreamWithoutConfig(t *testing.T) {
+	t.Parallel()
+	args := []string{"-waivers", waiversFile(t, ""), "-today", "2026-10-14"}
+	for name, input := range map[string]string{
+		"empty stream": "",
+		"no config":    `{"finding": {"osv": "GO-1", "trace": [{"module": "m"}]}}`,
+	} {
+		var stdout, stderr bytes.Buffer
+		if got := execute(args, strings.NewReader(input), &stdout, &stderr); got != exitFailure || stdout.Len() != 0 {
+			t.Errorf("%s: exit = %d, stdout = %q, want %d and no verdict", name, got, stdout.String(), exitFailure)
+		}
 	}
 }

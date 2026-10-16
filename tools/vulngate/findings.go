@@ -10,10 +10,11 @@ import (
 	"time"
 )
 
-// message is one object of the govulncheck JSON stream; only findings
-// matter here, every other kind is decoded into nothing.
+// message is one object of the govulncheck JSON stream; only the config and
+// the findings matter here, every other kind is decoded into nothing.
 type message struct {
-	Finding *finding `json:"finding"`
+	Config  *struct{} `json:"config"`
+	Finding *finding  `json:"finding"`
 }
 
 // finding is one advisory hit with the call trace that reaches it.
@@ -31,24 +32,31 @@ type frame struct {
 	Function string `json:"function"`
 }
 
-// readReachable decodes the stream and keeps, per advisory, the fixed
-// version of the findings whose trace reaches a function.
+// readReachable requires the config message because govulncheck writes it
+// before anything else: a stream without it comes from a scan that never
+// started, and reading no finding there as clean would pass a failed scan.
 func readReachable(r io.Reader) (map[string]string, error) {
 	out := map[string]string{}
+	configured := false
 	decoder := json.NewDecoder(r)
 	for {
 		var m message
 		err := decoder.Decode(&m)
 		if errors.Is(err, io.EOF) {
-			return out, nil
+			break
 		}
 		if err != nil {
 			return nil, fmt.Errorf("decode govulncheck stream: %w", err)
 		}
+		configured = configured || m.Config != nil
 		if m.Finding != nil && m.Finding.reachable() {
 			out[m.Finding.OSV] = m.Finding.FixedVersion
 		}
 	}
+	if !configured {
+		return nil, ErrNoConfig
+	}
+	return out, nil
 }
 
 // reachable reports whether the trace reaches a function.
