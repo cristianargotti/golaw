@@ -20,3 +20,23 @@ func TestBareNolint(t *testing.T) {
 		t.Errorf("finding = %+v", res.Findings[2])
 	}
 }
+
+func TestBareNolintNeedsTheLinterAndTheReason(t *testing.T) {
+	t.Parallel()
+	res := run(t, text.BareNolint(), map[string]string{
+		"a.go": "a //nol" + "int // the reason\n" +
+			"b //nol" + "int:gosec //\n" +
+			"c //nol" + "int:gosec //  \n" +
+			"d //nol" + "int every linter\n" +
+			"e //nol" + "int:gosec,errcheck // why\n" +
+			"f //nol" + "int:gosec// why\n" +
+			"// Nol" + "int directives are rare\n",
+	})
+	lines := make([]int, 0, len(res.Findings))
+	for _, f := range res.Findings {
+		lines = append(lines, f.Line)
+	}
+	if !slices.Equal(lines, []int{1, 2, 3, 4}) {
+		t.Errorf("lines = %v", lines)
+	}
+}
