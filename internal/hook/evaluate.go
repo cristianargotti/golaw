@@ -41,7 +41,7 @@ func evaluateEvent(ctx context.Context, agent string, data []byte, adapter Adapt
 	case run.request.Denial != "":
 		answer.result = rejectionLanguage(event, run.request.Denial, false, run.language())
 	case len(run.request.Gaps) > 0:
-		answer.event, answer.result = run.request.Event, run.unmeasured()
+		answer.event, answer.result = run.request.Event, run.unmeasured(ctx, dependencies)
 	default:
 		answer.event, answer.result = run.request.Event, run.evaluate(ctx, data, dependencies)
 	}
@@ -49,13 +49,23 @@ func evaluateEvent(ctx context.Context, agent string, data []byte, adapter Adapt
 }
 
 // unmeasured answers a write the decoder could not reconstruct within the
-// read bound: golaw.yml stays protected, anything else is allowed with the
-// notice of what was not measured.
-func (run execution) unmeasured() Result {
-	if denial := protectPolicy(run.repository, run.request.Event.Candidates); denial != nil {
-		return failureLanguage(run.request.Event, denial, run.language())
+// read bound: golaw.yml stays protected, the name rules judge its files,
+// whose bytes on disk are over the bound, and anything else is allowed with
+// the notice of what was not measured.
+func (run execution) unmeasured(ctx context.Context, dependencies Dependencies) Result {
+	event := run.request.Event
+	if denial := protectPolicy(run.repository, event.Candidates); denial != nil {
+		return failureLanguage(event, denial, run.language())
 	}
-	return noticed(run.request.Gaps, run.language())
+	in := model.Input{
+		Mode: model.ModeHook, Policy: run.policy, Snapshot: run.base,
+		Targets: selectFiles(run.base, candidatePaths(event.Candidates)), Event: &event,
+	}
+	result := judgeUnread(ctx, dependencies, in, run.request.Gaps, run.language())
+	if failed := run.base.failure(); failed != nil {
+		return failureLanguage(event, failed, run.language())
+	}
+	return result
 }
 
 // enroll resolves the repository that governs an event (A3): the first
@@ -142,7 +152,9 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 	if err != nil {
 		return failureLanguage(run.request.Event, err, run.language())
 	}
-	result := decisionResult(run.request.Event, engine.Decide(dispatched), run.language())
+	decision := engine.Decide(dispatched)
+	gaps = withUnread(gaps, decision.Unread)
+	result := decisionResult(run.request.Event, decision, run.language())
 	if result.Outcome != Allow {
 		return withGaps(result, gaps, run.language())
 	}

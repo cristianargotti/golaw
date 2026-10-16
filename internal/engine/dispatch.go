@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -42,6 +43,19 @@ func (r *Run) Unmeasured() []Outcome {
 	return out
 }
 
+// Unread returns the files over the read bound the measured checks of the
+// run left unread, sorted and each once.
+func (r *Run) Unread() []string {
+	var out []string
+	for i := range r.Outcomes {
+		if r.Outcomes[i].Result.Status.Kind == model.StatusMeasured {
+			out = append(out, r.Outcomes[i].Result.Unread...)
+		}
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
 // Dispatch runs every applicable check of the registry over the input and
 // records one outcome per registered check. A check that panics, errs or
 // forgets its status is Unmeasured, never silent; once the context is done
@@ -66,7 +80,18 @@ func dispatchOne(ctx context.Context, c model.Check, spec model.Spec, in model.I
 		return model.Result{Status: status}
 	}
 	in.Options = resolveOptions(spec, in.Policy)
-	return normalize(spec, in.Policy, runOne(ctx, c, in))
+	return unread(in.Mode, normalize(spec, in.Policy, runOne(ctx, c, in)))
+}
+
+// unread holds a check to the read bound by mode: a hook keeps the files
+// the check left unread beside its measured result, to name them in a
+// notice, and every other mode counts the check unmeasured, never clean.
+func unread(mode model.Mode, res model.Result) model.Result {
+	if len(res.Unread) == 0 || mode == model.ModeHook || res.Status.Kind != model.StatusMeasured {
+		return res
+	}
+	res.Status = model.Unmeasured(fmt.Sprintf("read %s: %v", res.Unread[0], model.ErrTooLarge))
+	return res
 }
 
 // validate refuses an input Dispatch cannot judge, as a usage error.

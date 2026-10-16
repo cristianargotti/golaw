@@ -2,6 +2,7 @@ package paths
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -27,9 +28,11 @@ func GeneratedTracked() model.Check { return generatedTracked{} }
 func (generatedTracked) Spec() model.Spec { return spec("paths.generated-tracked", model.ScopeFile) }
 
 // Run reads every ignore file among the targets, an unreadable one
-// included: its failed read answers Unmeasured instead of clean.
+// included: its failed read answers Unmeasured instead of clean, and one
+// over the read bound is left unread and named.
 func (generatedTracked) Run(_ context.Context, in model.Input) (model.Result, error) {
 	var findings []model.Finding
+	var unread []string
 	files := 0
 	for _, f := range in.Targets {
 		readable := f.Class.IsText() || f.Class == model.ClassUnreadable
@@ -37,13 +40,17 @@ func (generatedTracked) Run(_ context.Context, in model.Input) (model.Result, er
 			continue
 		}
 		content, err := in.Snapshot.Read(f.Path)
+		if errors.Is(err, model.ErrTooLarge) {
+			unread = append(unread, f.Path)
+			continue
+		}
 		if err != nil {
 			return unreadable(f.Path, err), nil
 		}
 		files++
 		findings = append(findings, ignoredTrees(f.Path, string(content))...)
 	}
-	return model.Result{Status: model.Measured(), Scope: fmt.Sprintf("%d ignore files", files), Findings: findings}, nil
+	return model.Result{Status: model.Measured(), Scope: fmt.Sprintf("%d ignore files", files), Findings: findings, Unread: unread}, nil
 }
 
 // ignoredTrees reports every rule of an ignore file that hides a generated

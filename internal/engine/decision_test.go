@@ -95,3 +95,28 @@ func TestVerdictNames(t *testing.T) {
 		}
 	}
 }
+
+// TestDecideCountsAFileLeftUnreadByMode holds a check that went on past a
+// file over the read bound to the mode: a scan counts it unmeasured, never
+// clean, while a hook keeps its findings and names the file unread for
+// its notice.
+func TestDecideCountsAFileLeftUnreadByMode(t *testing.T) {
+	t.Parallel()
+	partial := func(findings ...model.Finding) fake {
+		return fake{spec: spec("text.dashes", model.ScopeFile), run: func(context.Context, model.Input) (model.Result, error) {
+			return model.Result{Status: model.Measured(), Findings: findings, Unread: []string{"big.md", "big.md"}}, nil
+		}}
+	}
+	d := decide(t, scanInput(), partial())
+	if d.Verdict != engine.VerdictFail || len(d.Unmeasured) != 1 || d.Reason != "text.dashes: not measured: read big.md: file larger than the read bound" {
+		t.Errorf("scan: %+v", d)
+	}
+	d = decide(t, hookInput(model.ShapePost), partial())
+	if d.Verdict != engine.VerdictClean || len(d.Unmeasured) != 0 || len(d.Unread) != 1 || d.Unread[0] != "big.md" {
+		t.Errorf("hook without a finding: %+v", d)
+	}
+	d = decide(t, hookInput(model.ShapePost), partial(finding("em-dash", "a.md", 1)))
+	if d.Verdict != engine.VerdictDeny || len(d.Unread) != 1 {
+		t.Errorf("hook with a finding: %+v", d)
+	}
+}

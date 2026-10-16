@@ -86,18 +86,3 @@ func detectionGap(err error) Gap {
 		return Gap{Cause: err.Error()}
 	}
 }
-
-// measurable keeps the targets a check can read and names the others, a
-// text file over the read bound, as gaps.
-func measurable(targets []model.File) ([]model.File, []Gap) {
-	var gaps []Gap
-	kept := targets[:0:0]
-	for _, file := range targets {
-		if file.Class.IsText() && file.Size > model.MaxReadBytes {
-			gaps = append(gaps, OverReadBound(file.Path))
-			continue
-		}
-		kept = append(kept, file)
-	}
-	return kept, gaps
-}

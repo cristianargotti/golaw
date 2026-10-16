@@ -8,6 +8,7 @@ import (
 
 	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/proof"
 )
 
 // noticing encodes the outcome and the notice of a result, so a test reads
@@ -123,6 +124,7 @@ func TestAnInputOverTheBoundIsMeasuredWhereItCan(t *testing.T) {
 	for _, tc := range []boundCase{
 		{"a post event", "", "allow|", model.ShapePost, true, enrolled, nil, nil},
 		{"a write", "notes.md", "allow|", model.ShapeWrite, true, enrolled, nil, nil},
+		{"a write to a name the rules forbid", "forbidden/notes.md", "deny|", model.ShapeWrite, true, enrolled, nil, nil},
 		{"a write of the policy", "golaw.yml", "deny|", model.ShapeWrite, true, enrolled, nil, nil},
 		{"an unenrolled location", "notes.md", "plain", model.ShapeWrite, true, model.EnrollmentNone, nil, nil},
 		{"a missing policy", "notes.md", "deny|", model.ShapeWrite, true, enrolled, model.ErrEnrollment, nil},
@@ -180,15 +182,19 @@ func answers(reply hook.Reply, want, target string) bool {
 }
 
 // TestADecoderGapIsANotice answers a write the decoder could not
-// reconstruct within the read bound with an allow and a notice naming the
-// file, and keeps golaw.yml protected however large it is.
+// reconstruct within the read bound by the name rules over its file, whose
+// bytes on disk are over the bound: a name they forbid is denied, any
+// other is an allow with a notice naming the file, and golaw.yml stays
+// protected however large it is.
 func TestADecoderGapIsANotice(t *testing.T) {
 	t.Parallel()
-	for path, want := range map[string]hook.Outcome{"big.sql": hook.Allow, "golaw.yml": hook.Deny} {
+	for path, want := range map[string]hook.Outcome{"big.sql": hook.Allow, "forbidden/big.sql": hook.Deny, "golaw.yml": hook.Deny} {
 		req := request("safe")
 		req.Event.Candidates[0].Path, req.Content = path, nil
 		req.Gaps = []hook.Gap{hook.OverReadBound(path)}
 		adapter, dependencies := harness(t, req)
+		large := proof.NewTree(map[string][]byte{path: make([]byte, model.MaxReadBytes+1)})
+		dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) { return large, nil }
 		_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 		if got.Outcome != want || want == hook.Allow && (!strings.Contains(got.Notice, path) || !strings.Contains(got.Human, path)) {
 			t.Fatalf("%s: %+v", path, got)

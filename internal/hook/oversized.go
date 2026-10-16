@@ -36,8 +36,9 @@ func evaluateOversized(ctx context.Context, agent string, prefix []byte, adapter
 }
 
 // oversizedAnswer is the answer of an enrolled event over the bound once
-// its policy is in force: the notice of the path it names, or of the
-// changes of a command, and the denial of a write of golaw.yml.
+// its policy is in force: the denial of a write of golaw.yml, the name
+// rules over the path a write names, and otherwise the notice of that
+// path, or of the changes of a command.
 func oversizedAnswer(ctx context.Context, event model.Event, repository Repository, dependencies Dependencies) completed {
 	answer := completed{event: event, language: model.DefaultLanguage}
 	policy, err := dependencies.Policy(ctx, repository)
@@ -62,6 +63,29 @@ func oversizedAnswer(ctx context.Context, event model.Event, repository Reposito
 		answer.result = failureLanguage(event, denial, answer.language)
 		return answer
 	}
-	answer.result = noticed([]Gap{gap}, answer.language)
+	if event.Shape != model.ShapeWrite {
+		answer.result = noticed([]Gap{gap}, answer.language)
+		return answer
+	}
+	answer.result = judgeOversizedWrite(ctx, event, repository, policy, dependencies, gap)
 	return answer
+}
+
+// judgeOversizedWrite judges a write over the input bound by the path it
+// names: the snapshot reads that path as over the bound, so the name rules
+// judge it and no rule reads what the file held before the write.
+func judgeOversizedWrite(ctx context.Context, event model.Event, repository Repository, policy *model.EffectivePolicy, dependencies Dependencies, gap Gap) Result {
+	base := deferSnapshot(func() (model.Snapshot, error) { return dependencies.Snapshot(ctx, repository) })
+	view := unreadView{base: base, files: map[string]model.File{gap.Path: overBound(base, gap.Path)}}
+	op := model.CandidateCreate
+	if base.Class(gap.Path) != model.ClassUnknown {
+		op = model.CandidateReplace
+	}
+	event.Candidates = []model.Candidate{{Path: gap.Path, Op: op}}
+	in := model.Input{Mode: model.ModeHook, Policy: policy, Snapshot: view, Targets: []model.File{view.files[gap.Path]}, Event: &event}
+	result := judgeUnread(ctx, dependencies, in, []Gap{gap}, policy.Language)
+	if failed := base.failure(); failed != nil {
+		return failureLanguage(event, failed, policy.Language)
+	}
+	return result
 }

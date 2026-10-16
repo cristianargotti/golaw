@@ -99,6 +99,17 @@ func TestUnreadableTargetIsUnmeasured(t *testing.T) {
 	}
 }
 
+// TestTargetOverTheReadBoundIsLeftUnread names a target over the read
+// bound among the files the walk left unread and still judges the others.
+func TestTargetOverTheReadBoundIsLeftUnread(t *testing.T) {
+	t.Parallel()
+	tree := proof.NewTree(map[string][]byte{"big.md": []byte(strings.Repeat("x", model.MaxReadBytes+1)), "notes.md": []byte("one \u2014 two\n")})
+	res, err := text.Dashes().Run(t.Context(), model.Input{Mode: model.ModeScan, Policy: proof.Policy(), Snapshot: tree, Targets: tree.Files()})
+	if err != nil || res.Status.Kind != model.StatusMeasured || !slices.Equal(res.Unread, []string{"big.md"}) || len(res.Findings) != 1 || res.Findings[0].Path != "notes.md" {
+		t.Errorf("result = %+v, %v", res, err)
+	}
+}
+
 // unreadable is a snapshot whose one file the source could not read, so
 // it carries the class source assigns instead of a fake readable one.
 type unreadable struct{ class model.FileClass }

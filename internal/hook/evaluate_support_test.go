@@ -2,6 +2,7 @@ package hook_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -22,10 +23,22 @@ func (probeCheck) Spec() model.Spec {
 	}
 }
 
+// Run judges a target by its name, a path under forbidden/ whatever its
+// bytes, and by its bytes, leaving a target over the read bound unread as
+// every production check does.
 func (probeCheck) Run(_ context.Context, in model.Input) (model.Result, error) {
 	result := model.Result{Status: model.Measured()}
 	for _, target := range in.Targets {
+		if strings.HasPrefix(target.Path, "forbidden/") {
+			result.Findings = append(result.Findings, model.Finding{
+				Path: target.Path, Code: "forbidden-name", Message: "forbidden name", Severity: model.SeverityDeny,
+			})
+		}
 		content, err := in.Snapshot.Read(target.Path)
+		if errors.Is(err, model.ErrTooLarge) {
+			result.Unread = append(result.Unread, target.Path)
+			continue
+		}
 		if err != nil {
 			return model.Result{}, fmt.Errorf("probe read: %w", err)
 		}

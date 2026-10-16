@@ -26,10 +26,10 @@ func (r lineRule) Spec() model.Spec { return r.spec }
 // Run walks the targets and reports the first match of every term per line.
 func (r lineRule) Run(_ context.Context, in model.Input) (model.Result, error) {
 	var findings []model.Finding
-	files, err := walk(in, r.accept, func(path string, number int, line string) {
+	read, err := walk(in, r.accept, func(path string, number int, line string) {
 		findings = append(findings, matches(r.terms, path, number, line)...)
 	})
-	return result(files, err, findings), nil
+	return result(read, err, findings), nil
 }
 
 // matches reports the terms a line carries, one finding per term.

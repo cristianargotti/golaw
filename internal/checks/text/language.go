@@ -38,7 +38,7 @@ func (commentLanguage) Spec() model.Spec { return spec("text.comment-language") 
 // Run reports every comment line that reads as Spanish or Portuguese.
 func (commentLanguage) Run(_ context.Context, in model.Input) (model.Result, error) {
 	var findings []model.Finding
-	files, err := walk(in, goFile, func(path string, number int, line string) {
+	read, err := walk(in, goFile, func(path string, number int, line string) {
 		loc := commentLine.FindStringSubmatchIndex(line)
 		if len(loc) == 0 || english(line[loc[2]:loc[3]]) {
 			return
@@ -46,7 +46,7 @@ func (commentLanguage) Run(_ context.Context, in model.Input) (model.Result, err
 		message := "code comment not in English; comments are English and only for the why"
 		findings = append(findings, finding(path, number, column(line, loc[2]), "comment-language", message))
 	})
-	return result(files, err, findings), nil
+	return result(read, err, findings), nil
 }
 
 // english reports whether a comment reads as English: no Spanish or

@@ -5,6 +5,7 @@
 package text
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode/utf8"
@@ -35,34 +36,46 @@ type keep func(model.File) bool
 // answers Unmeasured naming the path instead of clean (section 5.2).
 func anyText(f model.File) bool { return f.Class.IsText() || f.Class == model.ClassUnreadable }
 
+// walked is what a walk read: how many files, and the files it left unread
+// because they are over the read bound.
+type walked struct {
+	files  int
+	unread []string
+}
+
 // walk reads every target that accept keeps and hands each line to visit
-// with its 1-based number. It returns how many files it read; a failed read
-// ends the walk with the error so the check answers Unmeasured, never clean.
-func walk(in model.Input, accept keep, visit func(path string, number int, line string)) (int, error) {
-	files := 0
+// with its 1-based number. A target over the read bound is left unread and
+// named, and the walk goes on; any other failed read ends the walk with
+// the error so the check answers Unmeasured, never clean.
+func walk(in model.Input, accept keep, visit func(path string, number int, line string)) (walked, error) {
+	var w walked
 	for _, f := range in.Targets {
 		if !accept(f) {
 			continue
 		}
 		content, err := in.Snapshot.Read(f.Path)
-		if err != nil {
-			return files, fmt.Errorf("read %s: %w", f.Path, err)
+		if errors.Is(err, model.ErrTooLarge) {
+			w.unread = append(w.unread, f.Path)
+			continue
 		}
-		files++
+		if err != nil {
+			return w, fmt.Errorf("read %s: %w", f.Path, err)
+		}
+		w.files++
 		for i, line := range strings.Split(string(content), "\n") {
 			visit(f.Path, i+1, line)
 		}
 	}
-	return files, nil
+	return w, nil
 }
 
 // result turns a walk into the check result: Unmeasured on a read failure,
-// Measured with the file count otherwise.
-func result(files int, err error, findings []model.Finding) model.Result {
+// Measured with the file count and the files left unread otherwise.
+func result(w walked, err error, findings []model.Finding) model.Result {
 	if err != nil {
 		return model.Result{Status: model.Unmeasured(err.Error())}
 	}
-	return model.Result{Status: model.Measured(), Scope: fmt.Sprintf("%d files", files), Findings: findings}
+	return model.Result{Status: model.Measured(), Scope: fmt.Sprintf("%d files", w.files), Findings: findings, Unread: w.unread}
 }
 
 // finding builds a denial at a line and column; the engine fills the check,

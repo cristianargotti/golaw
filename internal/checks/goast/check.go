@@ -2,11 +2,13 @@ package goast
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -66,12 +68,23 @@ func (t *target) finding(code string, pos token.Pos, message string) model.Findi
 func (t *target) dir() string { return path.Dir(t.file.Path) }
 
 // state is what one run shares across its targets: the input, a memo so a
-// directory-level finding is reported once, and the redacting types found
-// per directory.
+// directory-level finding is reported once, the redacting types found per
+// directory and the files the run left unread.
 type state struct {
 	in       model.Input
 	once     map[string]bool
 	redacted map[string]map[string]bool
+	unread   []string
+}
+
+// read reads a file of the snapshot for the run; a file over the read bound
+// is named among the files the run left unread, once, so the run goes on.
+func (s *state) read(name string) ([]byte, error) {
+	src, err := s.in.Snapshot.Read(name)
+	if errors.Is(err, model.ErrTooLarge) && !slices.Contains(s.unread, name) {
+		s.unread = append(s.unread, name)
+	}
+	return src, err //nolint:wrapcheck // the snapshot names the path in its error
 }
 
 func newState(in model.Input) *state {
@@ -138,7 +151,10 @@ func (c check) Run(ctx context.Context, in model.Input) (model.Result, error) {
 		if !c.applies(f) {
 			continue
 		}
-		src, err := in.Snapshot.Read(f.Path)
+		src, err := st.read(f.Path)
+		if errors.Is(err, model.ErrTooLarge) {
+			continue
+		}
 		if err != nil {
 			return model.Result{Status: model.Unmeasured(err.Error())}, nil
 		}
@@ -150,7 +166,7 @@ func (c check) Run(ctx context.Context, in model.Input) (model.Result, error) {
 		findings = append(findings, found...)
 	}
 	scope := strconv.Itoa(measured) + " files"
-	return model.Result{Status: model.Measured(), Scope: scope, Findings: findings}, nil
+	return model.Result{Status: model.Measured(), Scope: scope, Findings: findings, Unread: st.unread}, nil
 }
 
 // applies reports whether a target is a Go file the check judges: tracked

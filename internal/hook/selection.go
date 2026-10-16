@@ -12,7 +12,9 @@ import (
 
 // input is what the engine judges: the candidates folded over the base for
 // a write, the files a command or a post event changed for a post event,
-// with the gaps of what could not be measured, and the event alone else.
+// with the gaps of a detection that could not be measured, and the event
+// alone else. A target over the read bound stays a target: the name rules
+// judge it and the rules that need its bytes leave it unread.
 func (run execution) input(ctx context.Context, dependencies Dependencies) (model.Input, []Gap, error) {
 	event := run.request.Event
 	var snapshot model.Snapshot = run.base
@@ -38,10 +40,9 @@ func (run execution) input(ctx context.Context, dependencies Dependencies) (mode
 	if err != nil {
 		return model.Input{}, nil, fmt.Errorf("%w: prepare hook input: %w", model.ErrCannotJudge, err)
 	}
-	targets, over := measurable(selectFiles(snapshot, paths))
 	return model.Input{
-		Mode: model.ModeHook, Policy: run.policy, Snapshot: snapshot, Targets: targets, Event: &event,
-	}, slices.Concat(gaps, over), nil
+		Mode: model.ModeHook, Policy: run.policy, Snapshot: snapshot, Targets: selectFiles(snapshot, paths), Event: &event,
+	}, gaps, nil
 }
 
 // postPaths are the files a post event judges: those the host reports and

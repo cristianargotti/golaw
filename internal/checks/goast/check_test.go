@@ -51,10 +51,18 @@ func TestRunJudgesOnlyGoSources(t *testing.T) {
 	}
 }
 
-func TestRunLeavesAnUnreadableTargetUnmeasured(t *testing.T) {
+// TestRunLeavesATargetOverTheReadBoundUnread names a target over the read
+// bound among the files the run left unread and goes on judging the rest;
+// the engine answers such a run unmeasured outside a hook.
+func TestRunLeavesATargetOverTheReadBoundUnread(t *testing.T) {
 	t.Parallel()
 	big := strings.Repeat("x", model.MaxReadBytes+1)
-	expectUnmeasured(t, scan(t, goast.FileLength(), map[string]string{"a.go": big}), "read bound")
+	long := "package a\n\n" + strings.Repeat("// line\n", 299)
+	res := scan(t, goast.FileLength(), map[string]string{"a.go": big, "b.go": long})
+	expectCodes(t, res, "file-length")
+	if !slices.Equal(res.Unread, []string{"a.go"}) || res.Findings[0].Path != "b.go" {
+		t.Fatalf("unread %v, findings %+v", res.Unread, res.Findings)
+	}
 }
 
 // unreadableTree is a proof tree whose listed paths the source could not

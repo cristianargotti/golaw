@@ -38,10 +38,10 @@ func (toolTerms) Run(_ context.Context, in model.Input) (model.Result, error) {
 	}
 	accept := func(f model.File) bool { return anyText(f) && !underAny(f.Path, scopes) }
 	var findings []model.Finding
-	files, err := walk(in, accept, func(path string, number int, line string) {
+	read, err := walk(in, accept, func(path string, number int, line string) {
 		findings = append(findings, matches(terms, path, number, line)...)
 	})
-	return result(files, err, findings), nil
+	return result(read, err, findings), nil
 }
 
 // defaultTools are the two product names of section 3, assembled from

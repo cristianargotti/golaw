@@ -45,13 +45,14 @@ type Decision struct {
 	Verdict    Verdict
 	Findings   []model.Finding // every finding, notes included, in order
 	Unmeasured []Unmeasured    // the required checks left unmeasured, in registry order
+	Unread     []string        // the files over the read bound a measured check left unread, sorted
 	Reason     string          // the first enforced finding or the first unmeasured check, empty when clean
 }
 
 // Decide turns a run into its verdict: any enforced finding or unmeasured
 // check denies in hook mode and fails elsewhere; notes never count.
 func Decide(run *Run) Decision {
-	d := Decision{Mode: run.Mode, Verdict: VerdictClean, Findings: run.Findings()}
+	d := Decision{Mode: run.Mode, Verdict: VerdictClean, Findings: run.Findings(), Unread: run.Unread()}
 	unmeasured := run.Unmeasured()
 	for i := range unmeasured {
 		o := &unmeasured[i]

@@ -2,6 +2,7 @@ package paths_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks/paths"
@@ -77,5 +78,19 @@ func TestGeneratedTrackedLeavesTheUnreadableClassUnmeasured(t *testing.T) {
 	res, err := paths.GeneratedTracked().Run(t.Context(), model.Input{Mode: model.ModeScan, Policy: proof.Policy(), Snapshot: tree, Targets: tree.Files()})
 	if err != nil || res.Status.Kind != model.StatusUnmeasured || res.Status.Reason != "read api/.gitignore: path unreadable" {
 		t.Errorf("unreadable ignore file = %+v, %v", res, err)
+	}
+}
+
+// TestGeneratedTrackedLeavesAnIgnoreFileOverTheBoundUnread names an ignore
+// file over the read bound among the files left unread and still judges
+// the other ignore files.
+func TestGeneratedTrackedLeavesAnIgnoreFileOverTheBoundUnread(t *testing.T) {
+	t.Parallel()
+	res := scan(t, paths.GeneratedTracked(), map[string]string{
+		".gitignore":     strings.Repeat("x", model.MaxReadBytes+1),
+		"api/.gitignore": "gen/\n",
+	})
+	if res.Status.Kind != model.StatusMeasured || !slices.Equal(res.Unread, []string{".gitignore"}) || !slices.Equal(pathsOf(res), []string{"api/.gitignore generated-ignored"}) {
+		t.Fatalf("result = %+v", res)
 	}
 }

@@ -48,9 +48,14 @@ func Unmeasured(reason string) Status {
 }
 
 // Result is what a check returns: its status, what it measured and what it
-// found. A required check left Unmeasured fails the run.
+// found. A required check left Unmeasured fails the run. Unread names the
+// files a measured check left unread because they are over the read
+// bound, a target or a file it reads beside one, having judged everything
+// else: a hook names them in a notice, every other mode counts the check
+// unmeasured.
 type Result struct {
 	Status   Status
 	Scope    string    // what was measured, for the report: "412 files", "1 command"
 	Findings []Finding // may be empty; the engine sorts and fingerprints them
+	Unread   []string  // the files over the read bound the check could not read
 }
