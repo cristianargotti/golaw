@@ -17,8 +17,10 @@ const (
 
 // AdapterPackageSize is goast.adapter-package-size: the root of an adapter
 // package, internal/adapters/<side>/<name>, keeps the shared plumbing only,
-// so more than max_files non-test Go files in it is a finding. The check
-// applies only when internal/adapters exists.
+// so more than max_files non-test Go files in it is a finding. Generated
+// files count, since they grow the package as much as written ones, and
+// any _test.go file does not, generated or not. The check applies only
+// when internal/adapters exists.
 func AdapterPackageSize() model.Check {
 	s := spec("adapter-package-size")
 	s.Options = model.OptionSchema{{
@@ -27,7 +29,7 @@ func AdapterPackageSize() model.Check {
 		Tighten: model.TightenDown,
 		Default: model.IntValue(defaultAdapterFiles),
 	}}
-	return check{spec: s, gate: requireDir(adaptersDir), judge: judgeAdapterPackageSize}
+	return check{spec: s, generated: true, gate: requireDir(adaptersDir), judge: judgeAdapterPackageSize}
 }
 
 func judgeAdapterPackageSize(t *target, s *state) ([]model.Finding, error) {
@@ -41,7 +43,7 @@ func judgeAdapterPackageSize(t *target, s *state) ([]model.Finding, error) {
 	}
 	count := 0
 	for _, f := range s.siblings(dir) {
-		if f.Class != model.ClassTest {
+		if !strings.HasSuffix(f.Path, testSuffix) {
 			count++
 		}
 	}

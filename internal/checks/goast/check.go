@@ -107,13 +107,14 @@ type judge func(t *target, s *state) ([]model.Finding, error)
 type gate func(in model.Input) (model.Status, bool)
 
 // check is one file-scoped check of the family: its spec, whether test
-// files are judged, an optional gate and the judge. Run is written once so
-// every check reads, parses and fails the same way.
+// files and generated files are judged, an optional gate and the judge.
+// Run is written once so every check reads, parses and fails the same way.
 type check struct {
-	spec  model.Spec
-	tests bool
-	gate  gate
-	judge judge
+	spec      model.Spec
+	tests     bool
+	generated bool
+	gate      gate
+	judge     judge
 }
 
 // Spec returns the check specification.
@@ -154,19 +155,24 @@ func (c check) Run(ctx context.Context, in model.Input) (model.Result, error) {
 }
 
 // applies reports whether a target is a Go file the check judges: tracked
-// and untracked sources always, test files when the check keeps them, and
-// never a fixture, a generated file or a non-text class. An unreadable file
-// has no class its bytes could give, so its path decides: unless it is a
-// fixture or a test file the check skips, it applies, and its failed read
-// leaves the check Unmeasured instead of clean.
+// and untracked sources always, test files when the check keeps them,
+// generated files when it counts them, and never a fixture, a binary or a
+// link. The fixture and test rules read the path, because a generated or an
+// unreadable file has no class that says so; an unreadable file that passes
+// them applies, and its failed read leaves the check Unmeasured instead of
+// clean.
 func (c check) applies(f model.File) bool {
 	if !strings.HasSuffix(f.Path, goSuffix) || fixturePath(f.Path) {
 		return false
 	}
-	if strings.HasSuffix(f.Path, testSuffix) {
-		return c.tests && (f.Class == model.ClassTest || f.Class == model.ClassUnreadable)
+	if strings.HasSuffix(f.Path, testSuffix) && !c.tests {
+		return false
 	}
-	return f.Class == model.ClassTracked || f.Class == model.ClassUntracked || f.Class == model.ClassUnreadable
+	if f.Class == model.ClassGenerated {
+		return c.generated
+	}
+	return f.Class == model.ClassTracked || f.Class == model.ClassUntracked ||
+		f.Class == model.ClassTest || f.Class == model.ClassUnreadable
 }
 
 // fixturePath reports a path inside a testdata directory, the rule the
