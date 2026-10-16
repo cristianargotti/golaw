@@ -35,6 +35,7 @@ func TestSecurityContract(t *testing.T) {
 		"A write is judged whole up to the read bound of 8 MiB",
 		"is a notice the agent reads, never a block",
 		"any other state is a denial whose reason asks for golaw.yml to be committed",
+		"git status reads as clean because the index tells it not to look, or because its stat data still matches the index, is invisible to detection",
 	)
 }
 
@@ -98,13 +99,23 @@ func TestAgentContract(t *testing.T) {
 		"so a host that sends the name as the model wrote it is placed the same way",
 		"then every directory that holds a link the name passes through",
 		"both by the name it asks for and by the file its links lead to",
-		"a submodule moved to another revision are excluded from detection",
-		"a path clean against the index at both ends is unchanged and never read",
-		"A path git status names at one end only is compared by its bytes",
 		"Accept one JSON object of at most 8 MiB",
 		"a post event it reaches is allowed with a notice",
 		"Post detection never blocks on what it could not measure",
 		"records the fault and proves no denial",
 		"A failed run closes with the rows that fail it",
+	)
+}
+
+// TestAgentContractDetection pins what docs/agent-contracts.md says change
+// detection after a shell command sees and where it trusts git status.
+func TestAgentContractDetection(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/agent-contracts.md",
+		"a submodule moved to another revision are excluded from detection",
+		"a path git status reports clean at both ends is unchanged and never read",
+		"A path git status names at one end only is compared by its bytes",
+		"Git status trusts what the index records",
+		"a file the index marks assume-unchanged, by git update-index or core.ignorestat, or skip-worktree reads clean whatever its bytes",
 	)
 }

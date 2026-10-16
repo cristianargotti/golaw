@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/hook"
 )
@@ -196,6 +197,58 @@ func TestHookPostLeavesWhatOnlyChangedItsStatus(t *testing.T) {
 func chmodFile(t *testing.T, root, name string, mode os.FileMode) {
 	t.Helper()
 	if err := os.Chmod(filepath.Join(root, filepath.FromSlash(name)), mode); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestHookDetectionTrustsWhatGitStatusReports pins the stated limit of
+// change detection through the real binding: git status trusts the index,
+// so a file the index marks assume-unchanged or skip-worktree, and a file
+// rewritten to its size with its modification time put back while
+// core.checkStat is minimal and core.trustctime false, read as clean
+// whatever their bytes, and a dash a command writes into them is not fed
+// back; the same write into an ordinary tracked file is.
+func TestHookDetectionTrustsWhatGitStatusReports(t *testing.T) {
+	t.Parallel()
+	stamp := time.Date(2020, time.January, 2, 3, 4, 5, 0, time.UTC)
+	agent := agentUnderTest()
+	for _, tc := range []struct {
+		name    string
+		setup   func(root string)
+		putBack bool
+		fedBack bool
+	}{
+		{"an ordinary tracked file", func(string) {}, false, true},
+		{"a file the index marks assume-unchanged", func(root string) { gitRun(t, root, "update-index", "--assume-unchanged", "same.md") }, false, false},
+		{"a file the index marks skip-worktree", func(root string) { gitRun(t, root, "update-index", "--skip-worktree", "same.md") }, false, false},
+		{"a same size rewrite with its time put back under minimal stat checks", func(root string) {
+			gitRun(t, root, "config", "core.checkStat", "minimal")
+			gitRun(t, root, "config", "core.trustctime", "false")
+		}, true, false},
+	} {
+		e := enrolledHook(t)
+		writeFiles(t, e.root, map[string]string{"same.md": "one --- two\n"})
+		stampFile(t, e.root, "same.md", stamp)
+		gitRun(t, e.root, "add", "same.md")
+		gitRun(t, e.root, "commit", "-q", "-m", "test: the file")
+		tc.setup(e.root)
+		pre := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PreToolUse", e.root, "true")), agent.Adapter, e.deps)
+		writeFiles(t, e.root, map[string]string{"same.md": "one \u2014 two\n"})
+		if tc.putBack {
+			stampFile(t, e.root, "same.md", stamp)
+		}
+		post := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PostToolUse", e.root, "true")), agent.Adapter, e.deps)
+		fed := strings.Contains(string(post.Stdout), "text.dashes")
+		if pre.ExitCode != 0 || post.ExitCode != 0 || fed != tc.fedBack {
+			t.Fatalf("%s: post exit %d, stdout %q, stderr %q, want fed back %v", tc.name, post.ExitCode, post.Stdout, post.Stderr, tc.fedBack)
+		}
+	}
+}
+
+// stampFile sets the access and modification times of a file of a test.
+func stampFile(t *testing.T, root, name string, at time.Time) {
+	t.Helper()
+	if err := os.Chtimes(filepath.Join(root, filepath.FromSlash(name)), at, at); err != nil {
 		t.Fatal(err)
 	}
 }
