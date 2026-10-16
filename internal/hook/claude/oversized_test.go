@@ -100,3 +100,29 @@ func TestOversizedLeavesATargetOnlyAWriteNames(t *testing.T) {
 		}
 	}
 }
+
+// TestOversizedSkipsEscapesAcrossItsBuffer reads past a content whose
+// escaped quotes and runs of backslashes fall on the edges of the slices
+// the skim searches, so the path after it is found only when every escape
+// is read as the string reads it.
+func TestOversizedSkipsEscapesAcrossItsBuffer(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	path := filepath.Join(root, "big.md")
+	for name, content := range map[string]string{
+		"an escaped quote on the edge":       strings.Repeat("a", 64<<10-1) + `\"` + "b",
+		"an escaped backslash on the edge":   strings.Repeat("a", 64<<10-1) + `\\`,
+		"a run of backslashes over the edge": strings.Repeat("a", 64<<10-3) + strings.Repeat(`\\`, 4) + `\"` + "c",
+		"a header field past the kept size":  "d",
+	} {
+		input := `{"content":"` + content + `","file_path":` + fmt.Sprintf("%q", path) + `}`
+		event := ordered("PreToolUse", root, input)
+		if name == "a header field past the kept size" {
+			event = `{"agent_id":"` + strings.Repeat("e", 70<<10) + `",` + event[1:]
+		}
+		got, err := claude.Oversized(strings.NewReader(event))
+		if err != nil || got.Target != path {
+			t.Errorf("%s = %+v, %v", name, got, err)
+		}
+	}
+}

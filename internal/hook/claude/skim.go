@@ -2,6 +2,7 @@ package claude
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,8 +11,12 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// maxField bounds a string the skim keeps: a header field, a key or a path.
-const maxField = 64 << 10
+// maxField bounds a string the skim keeps: a header field, a key or a path;
+// skimBuffer is the slice of the input the skim searches at a time.
+const (
+	maxField   = 64 << 10
+	skimBuffer = 64 << 10
+)
 
 // skimmed is what a skim of an event keeps: the string fields of its
 // header, the path of its tool input and whether a field of another agent
@@ -35,7 +40,7 @@ func errShape() error {
 // the tool input are kept, and every other value, the content of a write
 // of any size included, is read past without being held.
 func skim(r io.Reader) (skimmed, error) {
-	s := skimmer{r: bufio.NewReader(r)}
+	s := skimmer{r: bufio.NewReaderSize(r, skimBuffer)}
 	out := skimmed{fields: map[string]string{}}
 	err := s.object(func(key string) error {
 		out.foreign = out.foreign || foreignKey(key)
@@ -157,37 +162,64 @@ func (s *skimmer) keptString() (string, bool, error) {
 }
 
 // str reads a string whose opening quote was read, keeping and decoding it
-// when keep is true and its raw bytes fit in maxField.
+// when keep is true and its raw bytes fit in maxField; past that size the
+// rest is read past as any string the skim does not keep.
 func (s *skimmer) str(keep bool) (string, bool, error) {
+	if !keep {
+		return "", false, s.skipString()
+	}
 	var raw []byte
-	for {
+	for len(raw) <= maxField {
 		b, err := s.r.ReadByte()
 		if err != nil {
 			return "", false, err //nolint:wrapcheck // the skim names the shape of its input
 		}
 		if b == '"' {
-			return decoded(raw, keep)
+			return decoded(raw)
 		}
+		raw = append(raw, b)
 		if b == '\\' {
 			escaped, err := s.r.ReadByte()
 			if err != nil {
 				return "", false, err //nolint:wrapcheck // the skim names the shape of its input
 			}
-			raw = append(raw, b, escaped)
-		} else {
-			raw = append(raw, b)
+			raw = append(raw, escaped)
 		}
-		if !keep || len(raw) > maxField {
-			keep, raw = false, raw[:0]
+	}
+	return "", false, s.skipString()
+}
+
+// skipString reads past a string whose opening quote was read, one slice
+// of the buffer at a time, so a content of any size costs the reader's own
+// search: a quote ends the string unless an odd run of backslashes, which
+// may span slices, escapes it.
+func (s *skimmer) skipString() error {
+	run := 0
+	for {
+		chunk, err := s.r.ReadSlice('"')
+		if err != nil && !errors.Is(err, bufio.ErrBufferFull) {
+			return err //nolint:wrapcheck // the skim names the shape of its input
+		}
+		body := chunk
+		if err == nil {
+			body = chunk[:len(chunk)-1]
+		}
+		if trailing := len(body) - len(bytes.TrimRight(body, "\\")); trailing == len(body) {
+			run += trailing
+		} else {
+			run = trailing
+		}
+		if err == nil {
+			if run%2 == 0 {
+				return nil
+			}
+			run = 0
 		}
 	}
 }
 
-// decoded is the value of the raw bytes of a string, when kept.
-func decoded(raw []byte, keep bool) (string, bool, error) {
-	if !keep {
-		return "", false, nil
-	}
+// decoded is the value of the raw bytes of a kept string.
+func decoded(raw []byte) (string, bool, error) {
 	var value string
 	if err := json.Unmarshal(append(append([]byte{'"'}, raw...), '"'), &value); err != nil {
 		return "", false, errShape()
