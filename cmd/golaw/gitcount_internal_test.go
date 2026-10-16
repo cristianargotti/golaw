@@ -87,3 +87,74 @@ func TestHookAsksGitEachFactOnce(t *testing.T) {
 		}
 	}
 }
+
+// enrolledBeforeCommit is the real hook binding over a repository with a
+// history whose HEAD holds no golaw.yml yet, the policy init --apply wrote
+// enrolled and, when staged is true, added to the index.
+func enrolledBeforeCommit(t *testing.T, staged bool) enrolled {
+	t.Helper()
+	b, home := testBinding(t)
+	root := repository(t, false)
+	gitRun(t, root, "add", "go.mod")
+	gitRun(t, root, "commit", "-q", "-m", "build: start the module")
+	if staged {
+		gitRun(t, root, "add", "golaw.yml")
+	}
+	data := renderedPolicy(t)
+	p, err := b.compile(data, now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = b.enroll(root, data, p, now()); err != nil {
+		t.Fatal(err)
+	}
+	deps, err := b.hookDependencies(agentUnderTest(), now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return enrolled{deps: deps, root: root, home: home}
+}
+
+// TestHookAsksGitEachFactOnceBeforeTheFirstCommit counts the git commands
+// of a Read and a Write while golaw.yml waits for its first commit: the
+// index entry of the policy is listed once and the staged blob read once,
+// for the policy in force and for the proposal alike, so the counts stay
+// at those of a committed policy plus the one read of the staged blob.
+func TestHookAsksGitEachFactOnceBeforeTheFirstCommit(t *testing.T) {
+	trace := filepath.Join(t.TempDir(), "git.trace")
+	t.Setenv("GIT_TRACE", trace)
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	agent := agentUnderTest()
+	for _, tc := range []struct {
+		name          string
+		staged        bool
+		read, written int
+	}{
+		{"golaw.yml staged", true, 5, 6},
+		{"golaw.yml untracked", false, 4, 5},
+	} {
+		e := enrolledBeforeCommit(t, tc.staged)
+		for _, event := range []struct {
+			tool    string
+			input   map[string]any
+			ceiling int
+		}{
+			{"Read", map[string]any{"file_path": filepath.Join(e.root, "go.mod")}, tc.read},
+			{"Write", map[string]any{"file_path": filepath.Join(e.root, "notes.md"), "content": "one-two\n"}, tc.written},
+		} {
+			if err := os.WriteFile(trace, nil, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			reply := hook.Run(t.Context(), agent.ID, strings.NewReader(eventAt(t, event.tool, e.root, event.input)), agent.Adapter, e.deps)
+			if reply.ExitCode != 0 || len(reply.Stdout) != 0 || reply.Stderr != "" {
+				t.Fatalf("%s, %s: exit %d, stdout %q, stderr %q", tc.name, event.tool, reply.ExitCode, reply.Stdout, reply.Stderr)
+			}
+			commands := gitCommandsOf(t, trace)
+			sorted := slices.Sorted(slices.Values(commands))
+			if len(commands) > event.ceiling || len(slices.Compact(sorted)) != len(commands) {
+				t.Fatalf("%s, %s ran %d git commands, the ceiling is %d:\n%s", tc.name, event.tool, len(commands), event.ceiling, strings.Join(commands, "\n"))
+			}
+		}
+	}
+}

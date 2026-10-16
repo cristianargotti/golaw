@@ -88,3 +88,26 @@ func assertAsksForTheCommit(t *testing.T, root string, d policy.Dirs, name strin
 		t.Fatalf("%s: %v", name, err)
 	}
 }
+
+// TestProposeAnswersFromTheLoadBeforeTheFirstCommit holds the proposal of a
+// policy in force taken before the first commit to what its load read: the
+// checkout policy means nothing is staged, and the staged policy is the
+// one in force, so neither proposes a next policy.
+func TestProposeAnswersFromTheLoadBeforeTheFirstCommit(t *testing.T) {
+	t.Parallel()
+	root, d := beforeFirstCommit(t)
+	l, err := policy.Load(t.Context(), asTheHook(root, d))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if proposal, proposeErr := policy.Propose(t.Context(), l, schemas()); proposeErr != nil || proposal.Found || proposal.Staged {
+		t.Fatalf("the checkout policy proposes %+v, %v", proposal, proposeErr)
+	}
+	gitRun(t, root, "add", "golaw.yml")
+	if l, err = policy.Load(t.Context(), asTheHook(root, d)); err != nil || l.Origin != policy.OriginStaged {
+		t.Fatalf("the index = %+v, %v", l, err)
+	}
+	if proposal, proposeErr := policy.Propose(t.Context(), l, schemas()); proposeErr != nil || proposal.Found || !proposal.Staged {
+		t.Fatalf("the staged policy proposes %+v, %v", proposal, proposeErr)
+	}
+}

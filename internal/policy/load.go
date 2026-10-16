@@ -209,8 +209,17 @@ type Proposal struct {
 // Propose is Proposed that also answers whether the index holds golaw.yml,
 // from one listing of the index, so a caller that refuses a staged deletion
 // asks git nothing more; a staged blob that is the one at HEAD is not read
-// again.
+// again. A policy in force the load took from the index or the checkout
+// before the first commit answers from what that load read: the staged
+// policy is the one in force, and a checkout policy means nothing staged.
 func Propose(ctx context.Context, inForce *Loaded, schemas Schemas) (Proposal, error) {
+	switch inForce.Origin {
+	case OriginStaged:
+		return Proposal{Staged: true}, nil
+	case OriginCheckout:
+		return Proposal{}, nil
+	case OriginHead, OriginBootstrap, OriginCore:
+	}
 	staged := inForce.reads().staged(ctx)
 	if staged.err != nil || !staged.found {
 		return Proposal{}, staged.err
