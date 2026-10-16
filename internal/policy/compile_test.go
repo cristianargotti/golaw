@@ -106,6 +106,14 @@ func TestDigest(t *testing.T) {
 	if policy.Digest(floor) == d || policy.Digest(exception) == d {
 		t.Error("a floor and an exception change the digest")
 	}
+	for _, names := range []string{"names: [b, a]", "names: [a, b, a]"} {
+		if policy.Digest(decode(t, strings.Replace(fullPolicy, "names: [a, b]", names, 1))) != d {
+			t.Errorf("%s: the order and the repeats of a list option never change the digest", names)
+		}
+	}
+	if policy.Digest(decode(t, strings.Replace(fullPolicy, "names: [a, b]", "names: [a, c]", 1))) == d {
+		t.Error("another entry of a list option changes the digest")
+	}
 	if policy.Digest(decode(t, minimalPolicy)) == policy.Digest(decode(t, minimalPolicy+"checks: {terms: {tools: []}}\n")) {
 		t.Error("an explicit empty block is a different policy text but the same floors")
 	}

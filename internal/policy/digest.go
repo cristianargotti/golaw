@@ -47,15 +47,12 @@ func Digest(f File) string {
 		Terms:        f.Checks.Terms.canonical(),
 		Lint:         []string{},
 		Shell:        f.Checks.Shell,
-		Options:      f.Checks.Options,
+		Options:      canonicalOptions(f.Checks.Options),
 		Waivers:      slices.Clone(f.Waivers),
 		Exceptions:   slices.Clone(f.Exceptions),
 	}
 	if f.Checks.Lint != nil {
 		c.Lint = f.Checks.Lint.entries()
-	}
-	if c.Options == nil {
-		c.Options = map[string]map[string]any{}
 	}
 	slices.SortFunc(c.Waivers, func(a, b Waiver) int { return strings.Compare(a.ID+a.Until+a.Record, b.ID+b.Until+b.Record) })
 	slices.SortFunc(c.Exceptions, func(a, b ExceptionRule) int {
@@ -69,6 +66,36 @@ func Digest(f File) string {
 	}
 	sum := sha256.Sum256(encoded)
 	return hex.EncodeToString(sum[:])
+}
+
+// canonicalOptions copies the per-check options, never nil, with every list
+// of strings sorted and without repeats like the other lists of the form:
+// a list option is a set, so its order is layout, not policy.
+func canonicalOptions(options map[string]map[string]any) map[string]map[string]any {
+	out := make(map[string]map[string]any, len(options))
+	for id, values := range options {
+		block := make(map[string]any, len(values))
+		for name, raw := range values {
+			block[name] = canonicalValue(raw)
+		}
+		out[id] = block
+	}
+	return out
+}
+
+// canonicalValue answers a list of strings in its canonical order and any
+// other value as decoded; a list holding something else is invalid, which
+// Validate reports, and is hashed as it came.
+func canonicalValue(raw any) any {
+	items, isList := raw.([]any)
+	if !isList {
+		return raw
+	}
+	v, err := stringsValue(items)
+	if err != nil {
+		return raw
+	}
+	return sortedUnique(v.Strings)
 }
 
 // canonical answers the coverage block with its exemptions sorted.
