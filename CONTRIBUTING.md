@@ -13,6 +13,7 @@ The repository has a small set of laws. `make ci` checks every one a machine can
 - Commits are conventional and in English: `feat(scope): what changed`, `fix`, `docs`, `test`, `build`, `ci`, `chore`, `refactor`, `perf`, with `!` for a breaking change. No trailer of any kind: no sign-off, no co-author line, no generated-with line.
 - The public tree names no company, carries no session traces, no absolute home paths and no trailers. Agent and vendor names appear only under `agents/`, `.github/`, `docs/`, the README, this file and the narrow source scopes the self scan allows.
 - Hooks invoke the binary, never a shell script.
+- A reachable vulnerability found by the scheduled lane (`.github/workflows/vuln.yml`) is fixed by a toolchain or dependency bump. When no fix exists yet, a dated waiver in `vulnerability_waivers` of `golaw.yml` with its decision record keeps the lane green until the day it names, never longer; the pull request gate never depends on the live database.
 
 ## Proposing a change
 
