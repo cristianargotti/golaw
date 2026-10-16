@@ -10,6 +10,8 @@ import (
 
 const clientSource = `package gateway
 
+import "log/slog"
+
 type Secret string
 
 type Client struct {
@@ -37,10 +39,19 @@ type Redacted struct {
 	Password string
 }
 
-func (r *Redacted) LogValue() int { return 0 }
+func (r *Redacted) LogValue() slog.Value { return slog.StringValue("[redacted]") }
 `
 
-const pairSource = "package gateway\n\ntype Pair struct {\n\tSecret string\n}\n\nfunc (p Pair) LogValue() int { return 0 }\n"
+const pairSource = `package gateway
+
+import "log/slog"
+
+type Pair struct {
+	Secret string
+}
+
+func (p Pair) LogValue() slog.Value { return slog.StringValue("[redacted]") }
+`
 
 func TestSecretFields(t *testing.T) {
 	t.Parallel()
@@ -50,11 +61,51 @@ func TestSecretFields(t *testing.T) {
 		"internal/gw/client_test.go": "package gateway\n\ntype Fake struct {\n\tAPIKey string\n}\n",
 	})
 	expectCodes(t, res, "secret-field", "secret-field", "secret-field", "secret-field")
-	expectLines(t, res, 6, 7, 12, 21)
+	expectLines(t, res, 8, 9, 14, 23)
 	want := "credential in a bare string field Client.APIKey: give Client a LogValue that redacts it or type the field with a redacting type"
 	if res.Findings[0].Message != want {
 		t.Errorf("message = %q", res.Findings[0].Message)
 	}
+}
+
+// valuerSource gives a credential field to four structs and a LogValue
+// to each: only the last one has the slog.LogValuer signature.
+const valuerSource = `package gateway
+
+import "log/slog"
+
+type Counted struct {
+	Password string
+}
+
+func (c Counted) LogValue() int { return 0 }
+
+type Leveled struct {
+	Token string
+}
+
+func (l Leveled) LogValue(level int) slog.Value { return slog.Value{} }
+
+type Paired struct {
+	Secret string
+}
+
+func (p Paired) LogValue() (slog.Value, error) { return slog.Value{}, nil }
+
+type Valued struct {
+	Passphrase string
+}
+
+func (v *Valued) LogValue() (value slog.Value) { return slog.StringValue("[redacted]") }
+
+func LogValue() slog.Value { return slog.Value{} }
+`
+
+func TestSecretFieldsExemptOnlyASlogLogValuer(t *testing.T) {
+	t.Parallel()
+	res := scan(t, goast.SecretFields(), map[string]string{"internal/gw/valuer.go": valuerSource})
+	expectCodes(t, res, "secret-field", "secret-field", "secret-field")
+	expectLines(t, res, 6, 12, 18)
 }
 
 func TestSecretFieldsReadTheirSiblings(t *testing.T) {

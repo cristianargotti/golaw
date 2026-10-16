@@ -21,7 +21,7 @@ var (
 
 // SecretFields is goast.secret-fields: a credential never sits in a bare
 // string field. A credential-named string field of a package-level struct
-// is a finding unless the struct declares a LogValue method somewhere in
+// is a finding unless the struct implements slog.LogValuer somewhere in
 // its package; a field whose name ends in id, hash, name, path or url only
 // refers to a credential and passes.
 func SecretFields() model.Check {
@@ -102,8 +102,8 @@ func isCredential(name string) bool {
 	return credentialName.MatchString(name) && !credentialReference.MatchString(name)
 }
 
-// redacting lists the types of one directory that declare a LogValue
-// method, read once per run from its non-test Go files.
+// redacting lists the types of one directory that implement
+// slog.LogValuer, read once per run from its non-test Go files.
 func (s *state) redacting(dir string) (map[string]bool, error) {
 	if types, ok := s.redacted[dir]; ok {
 		return types, nil
@@ -122,13 +122,24 @@ func (s *state) redacting(dir string) (map[string]bool, error) {
 			return nil, err
 		}
 		for _, decl := range file.Decls {
-			if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv != nil && fn.Name.Name == "LogValue" {
+			if fn, ok := decl.(*ast.FuncDecl); ok && isLogValuer(fn) {
 				types[typeName(fn.Recv.List[0].Type)] = true
 			}
 		}
 	}
 	s.redacted[dir] = types
 	return types, nil
+}
+
+// isLogValuer reports a method with the signature of slog.LogValuer,
+// LogValue() slog.Value: slog calls no other shape, so a LogValue with
+// parameters or another result redacts nothing.
+func isLogValuer(fn *ast.FuncDecl) bool {
+	if fn.Recv == nil || fn.Name.Name != "LogValue" || fn.Type.Params.NumFields() != 0 || fn.Type.Results.NumFields() != 1 {
+		return false
+	}
+	pkg, name, ok := selector(fn.Type.Results.List[0].Type)
+	return ok && pkg == "slog" && name == "Value"
 }
 
 // parseSource parses a sibling file read through the snapshot.
