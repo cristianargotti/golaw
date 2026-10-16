@@ -91,21 +91,24 @@ func checkCandidate(t *testing.T, got hook.Request, want string, op model.Candid
 func TestWriteCannotJudgeAndNotebook(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	for _, input := range []map[string]any{
-		{"old_string": "missing", "new_string": "x"},
-		{"old_string": "a", "new_string": "x"},
-		{"old_string": "", "new_string": "x"},
-		{"old_string": "a"},
-		{"edits": []any{}},
-		{"content": "x"},
-		{"old_string": "a", "new_string": "b", "edits": []map[string]any{
+	for _, tc := range []struct {
+		base  string
+		input map[string]any
+	}{
+		{"a a", map[string]any{"old_string": "missing", "new_string": "x"}},
+		{"a a", map[string]any{"old_string": "a", "new_string": "x"}},
+		{"a a", map[string]any{"old_string": "", "new_string": "x", "replace_all": true}},
+		{"a", map[string]any{"old_string": "a"}},
+		{"a a", map[string]any{"edits": []any{}}},
+		{"a a", map[string]any{"content": "x"}},
+		{"a", map[string]any{"old_string": "a", "new_string": "b", "edits": []map[string]any{
 			{"old_string": "a", "new_string": "c"},
-		}},
+		}}},
 	} {
-		input["file_path"] = filepath.Join(root, "a.go")
-		if _, err := claude.Write(frame(t, "PreToolUse", "Edit", root, input),
-			root, proof.NewTree(map[string][]byte{"a.go": []byte("a a")})); !errors.Is(err, model.ErrCannotJudge) {
-			t.Fatal(err)
+		tc.input["file_path"] = filepath.Join(root, "a.go")
+		if _, err := claude.Write(frame(t, "PreToolUse", "Edit", root, tc.input),
+			root, proof.NewTree(map[string][]byte{"a.go": []byte(tc.base)})); !errors.Is(err, model.ErrCannotJudge) {
+			t.Fatal(tc.input, err)
 		}
 	}
 	for _, input := range []map[string]any{
