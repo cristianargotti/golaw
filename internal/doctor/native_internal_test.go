@@ -20,8 +20,9 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-// doubleOnPath copies the test binary under the agent's name into a fresh
-// directory and answers that directory.
+// doubleOnPath puts a copy of the test binary on a search path under the
+// agent's name, because TestMain answers its version and no agent need be
+// installed.
 func doubleOnPath(t *testing.T) string {
 	t.Helper()
 	self, err := os.Executable()

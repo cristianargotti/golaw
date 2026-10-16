@@ -73,8 +73,6 @@ func TestApplyDiffEnrollmentAndIdempotence(t *testing.T) {
 	}
 }
 
-// receiptHashesMatch checks every artifact of a receipt against the bytes
-// on disk.
 func receiptHashesMatch(t *testing.T, path string) {
 	t.Helper()
 	receipt, err := ReadReceipt(path)

@@ -31,8 +31,8 @@ func TestEnrollmentStatesAndBuildAssurance(t *testing.T) {
 	}
 }
 
-// enrollmentLine answers the state of the enrollment line and checks the
-// build line stays a source build.
+// enrollmentLine also holds the build line to source-build, because no
+// enrollment state may turn a source build into a verified one.
 func enrollmentLine(t *testing.T, input Snapshot) string {
 	t.Helper()
 	state := ""

@@ -32,7 +32,9 @@ type Plan struct {
 	Uninstall                   bool
 }
 
-// PlanClaude builds an offline installation from the validated embedded bundle.
+// PlanClaude plans from the embedded bundle alone, so the plugin it installs
+// is the one this binary was built and validated with, and nothing is
+// downloaded.
 func PlanClaude(options Options) (Plan, error) {
 	plan, previous, err := preparePlan(options)
 	if err != nil {

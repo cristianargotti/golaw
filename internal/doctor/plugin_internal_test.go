@@ -24,8 +24,6 @@ func TestEveryHookHasItsOwnFailureLine(t *testing.T) {
 	}
 }
 
-// failOpenReported sets one handler to fail open and reports whether its
-// own line turns red.
 func failOpenReported(t *testing.T, base Snapshot, event string, index int, key string) bool {
 	t.Helper()
 	changed, err := install.ParseHooks([]byte(base.Hooks))

@@ -27,7 +27,8 @@ type VersionRunner interface {
 // NativeRunner invokes the resolved executable directly, without a shell.
 type NativeRunner struct{}
 
-// Version obtains the installed agent version using the observed search path.
+// Version resolves the agent through the observed search path, because the
+// terminal PATH may name another executable.
 func (NativeRunner) Version(ctx context.Context, environment AgentEnvironment) (string, error) {
 	path, err := ResolveAgentBinary(agentClaude, environment)
 	if err != nil {

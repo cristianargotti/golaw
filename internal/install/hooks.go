@@ -38,7 +38,8 @@ func ParseHooks(data []byte) (Hooks, error) {
 	return value, nil
 }
 
-// ValidateHooks ensures all six required handlers use the exec form.
+// ValidateHooks pins the six exec handlers, because a shell string, a missing
+// matcher or a softer fail mode would let a tool call pass unjudged.
 func ValidateHooks(data []byte) error {
 	value, err := ParseHooks(data)
 	if err != nil {

@@ -37,8 +37,6 @@ func TestPluginSchema(t *testing.T) {
 	}
 }
 
-// rejectHandlerMutations checks that every change of the exec form is
-// refused.
 func rejectHandlerMutations(t *testing.T, data []byte) {
 	t.Helper()
 	for _, replacement := range []struct {

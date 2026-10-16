@@ -86,8 +86,8 @@ func TestCollectInstalledEvidenceAndCurrentEnrollment(t *testing.T) {
 	}
 }
 
-// assertInstalledLines checks the artifact and binary lines of a fresh
-// installation seen from the terminal.
+// assertInstalledLines expects the binary line unknown, because a test
+// collects from a terminal and no hook has observed the agent's environment.
 func assertInstalledLines(t *testing.T, lines []Line) {
 	t.Helper()
 	for _, line := range lines {
@@ -100,7 +100,6 @@ func assertInstalledLines(t *testing.T, lines []Line) {
 	}
 }
 
-// reportsCode reports whether a line carries the code.
 func reportsCode(lines []Line, code string) bool {
 	for _, line := range lines {
 		if line.Code == code {

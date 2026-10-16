@@ -10,7 +10,8 @@ import (
 	"testing"
 )
 
-// failAfterWriter accepts a number of writes and refuses the next ones.
+// failAfterWriter fails at a chosen write, so the header failure and the
+// line failure of WriteDiff are each reached.
 type failAfterWriter struct {
 	left int
 }
