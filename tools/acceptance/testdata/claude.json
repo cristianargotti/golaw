@@ -1,0 +1,12 @@
+{
+  "session_id": "acceptance",
+  "agent_id": "primary",
+  "cwd": ".",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Write",
+  "tool_use_id": "fixture",
+  "tool_input": {
+    "file_path": "note.txt",
+    "content": "safe\n"
+  }
+}

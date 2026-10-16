@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -30,8 +33,10 @@ func newTestApp(t *testing.T) testApp {
 		buildInfo: func() buildinfo.Info {
 			return buildinfo.Info{Version: "9.9.9", Module: "example.test/kit", Stamped: true}
 		},
-		now:  func() time.Time { return time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC) },
-		home: func() (string, error) { return t.TempDir(), nil },
+		now:      func() time.Time { return time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC) },
+		home:     func() (string, error) { return t.TempDir(), nil },
+		stdin:    strings.NewReader(""),
+		discover: func(_ context.Context, dir string) (string, error) { return dir, nil },
 	}
 	return testApp{app: a, stdout: stdout, stderr: stderr}
 }
@@ -78,13 +83,41 @@ func TestRunPrintsHelpOnStdout(t *testing.T) {
 	}
 }
 
+// TestNewAppBindsEverySeam walks the fields of the app, so a seam added
+// later and left unbound in newApp fails here before a command calls it.
 func TestNewAppBindsEverySeam(t *testing.T) {
 	t.Parallel()
 	a := newApp(&bytes.Buffer{}, &bytes.Buffer{})
-	if a.buildInfo == nil || a.now == nil || a.home == nil {
-		t.Fatal("a production seam is nil")
+	fields := reflect.ValueOf(a).Elem()
+	for i := range fields.NumField() {
+		field, name := fields.Field(i), fields.Type().Field(i).Name
+		if kind := field.Kind(); kind != reflect.Func && kind != reflect.Interface {
+			t.Errorf("the field %s is not a seam", name)
+			continue
+		}
+		if field.IsNil() {
+			t.Errorf("the seam %s is not bound", name)
+		}
 	}
 	if got := a.buildInfo(); !got.Stamped {
 		t.Fatalf("build info = %+v", got)
+	}
+}
+
+// TestNewAppExplainsThePolicyOfARepository runs config explain through the
+// production composition, over a home the test owns, which is why it sets
+// the environment and stays serial.
+func TestNewAppExplainsThePolicyOfARepository(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	root := repository(t, true)
+	var stdout, stderr bytes.Buffer
+	if got := newApp(&stdout, &stderr).run(t.Context(), []string{"config", "explain", root}); got != exitClean {
+		t.Fatalf("exit = %d, stderr = %q", got, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "kit.version") || !strings.Contains(stdout.String(), testVersion) {
+		t.Fatalf("stdout = %q", stdout.String())
 	}
 }

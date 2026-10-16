@@ -94,7 +94,7 @@ func readFile(path string) ([]byte, error) {
 
 func moduleRoot(start string) (string, error) {
 	for current := start; ; current = filepath.Dir(current) {
-		if info, err := os.Stat(filepath.Join(current, "go.mod")); err == nil && !info.IsDir() {
+		if info, err := os.Stat(filepath.Join(current, moduleFile)); err == nil && !info.IsDir() {
 			return current, nil
 		}
 		if filepath.Dir(current) == current {

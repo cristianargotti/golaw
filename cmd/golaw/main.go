@@ -8,9 +8,12 @@ import (
 	"context"
 	"io"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/buildinfo"
+	"github.com/cristianargotti/golaw/internal/checks"
+	"github.com/cristianargotti/golaw/internal/engine"
 )
 
 func main() {
@@ -20,11 +23,33 @@ func main() {
 // newApp binds the production implementations of the seams the commands
 // run through; a test builds an app with fakes instead.
 func newApp(stdout, stderr io.Writer) *app {
+	b := binding{
+		goos:    runtime.GOOS,
+		env:     os.Getenv,
+		environ: os.Environ,
+		home:    os.UserHomeDir,
+		exe:     os.Executable,
+		info:    buildinfo.Current(),
+	}
 	return &app{
-		stdout:    stdout,
-		stderr:    stderr,
-		buildInfo: buildinfo.Current,
-		now:       time.Now,
-		home:      os.UserHomeDir,
+		stdout:         stdout,
+		stderr:         stderr,
+		stdin:          os.Stdin,
+		buildInfo:      buildinfo.Current,
+		now:            time.Now,
+		home:           os.UserHomeDir,
+		registry:       func() (*engine.Registry, error) { return checks.Registry() },
+		snapshot:       b.snapshot,
+		load:           b.load,
+		compile:        b.compile,
+		enroll:         b.enroll,
+		explain:        b.explain,
+		render:         b.render,
+		discover:       b.discover,
+		hookDeps:       b.hookDependencies,
+		installOptions: b.installOptions,
+		receiptPath:    b.receiptPath,
+		enrollments:    b.enrollments,
+		doctorReport:   b.doctorReport,
 	}
 }

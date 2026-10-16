@@ -3,7 +3,13 @@
 # feature, no awk, no tar. Remote CI runs make ci; nothing here is a gate on
 # a developer's machine.
 
-.PHONY: fmt lint test coverage build ci
+.PHONY: mod deps-age fmt lint test coverage build scan secrets ci
+
+mod:
+	go mod verify
+
+deps-age:
+	go run ./tools/depsage -days 7
 
 fmt:
 	golangci-lint fmt ./...
@@ -20,4 +26,11 @@ coverage:
 build:
 	go build ./...
 
-ci: fmt lint test coverage build
+scan:
+	go run ./cmd/golaw scan .
+
+secrets:
+	gitleaks dir --redact --no-banner .
+	gitleaks git --redact --no-banner .
+
+ci: mod deps-age fmt lint test coverage build scan secrets
