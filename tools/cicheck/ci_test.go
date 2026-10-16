@@ -81,8 +81,8 @@ func TestCISafetyRejectsExtraJobs(t *testing.T) {
 	}
 }
 
-// cooldowns maps each ecosystem of a Dependabot file to its default and
-// major cooldown days.
+// cooldowns joins the two cooldown days of each ecosystem into one string,
+// so a single map comparison catches a lane missing, added or shortened.
 func cooldowns(t *testing.T, data []byte) map[string]string {
 	t.Helper()
 	root, err := document(data)

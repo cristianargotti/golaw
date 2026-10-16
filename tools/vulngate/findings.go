@@ -17,7 +17,6 @@ type message struct {
 	Finding *finding  `json:"finding"`
 }
 
-// finding is one advisory hit with the call trace that reaches it.
 type finding struct {
 	OSV          string  `json:"osv"`
 	FixedVersion string  `json:"fixed_version"`
@@ -59,7 +58,9 @@ func readReachable(r io.Reader) (map[string]string, error) {
 	return out, nil
 }
 
-// reachable reports whether the trace reaches a function.
+// reachable looks at the first frame alone because govulncheck orders a
+// trace from the vulnerable symbol to the entry point, so that frame names
+// a function only when the code calls the symbol.
 func (f *finding) reachable() bool {
 	return len(f.Trace) > 0 && f.Trace[0].Function != ""
 }
@@ -92,7 +93,8 @@ func judge(reachable map[string]string, waivers map[string]entry, today time.Tim
 	return lines, red
 }
 
-// fixedOr names the fixed version or says there is none yet.
+// fixedOr still renders an advisory without a fix, because that is the
+// case a dated waiver exists for.
 func fixedOr(version string) string {
 	if version == "" {
 		return "no version yet"

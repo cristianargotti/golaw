@@ -28,8 +28,8 @@ func main() {
 	os.Exit(execute(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
 
-// execute parses the flags, applies the waivers to the stream and returns
-// the exit code.
+// execute is main without the process, so the tests reach every exit code
+// in memory.
 func execute(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("vulngate", flag.ContinueOnError)
 	flags.SetOutput(stderr)
@@ -62,7 +62,8 @@ func execute(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	return exitClean
 }
 
-// fail prints the failure and returns its exit code.
+// fail returns exitFailure even when stderr refuses the message, because
+// the exit code is the only signal the lane reads.
 func fail(stderr io.Writer, err error) int {
 	if _, writeErr := fmt.Fprintln(stderr, "vulngate:", err); writeErr != nil {
 		return exitFailure

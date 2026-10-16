@@ -18,7 +18,8 @@ const stream = `{"config": {"scanner_name": "govulncheck"}}
 {"finding": {"osv": "GO-2026-0003", "trace": [{"module": "example.test/dep", "package": "example.test/dep", "function": "Do"}]}}
 `
 
-// waiversFile writes a policy file with the given waivers and returns its path.
+// waiversFile puts the waivers beside keys of the policy package, because
+// the tool reads the real golaw.yml and must ignore every key but its own.
 func waiversFile(t *testing.T, body string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "golaw.yml")
@@ -42,7 +43,6 @@ func TestReadReachableKeepsOnlyFunctionLevelFindings(t *testing.T) {
 	}
 }
 
-// executeCase is one run of the tool over the stream with a waivers file.
 type executeCase struct {
 	waivers string
 	args    []string

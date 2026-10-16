@@ -21,13 +21,16 @@ type policy struct {
 	Waivers []waiver `yaml:"vulnerability_waivers"`
 }
 
-// entry is a validated waiver.
+// entry keeps the day parsed, so a bad day fails the load before any
+// verdict and judge only compares days.
 type entry struct {
 	until  time.Time
 	record string
 }
 
-// loadWaivers reads and validates the waivers of the policy file.
+// loadWaivers fails on the first incomplete entry: a waiver counts only
+// with its advisory, its expiry and its decision record, so an entry
+// missing one must stop the lane, not waive or vanish in silence.
 func loadWaivers(path string) (map[string]entry, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // the policy path is a flag of this tool
 	if err != nil {
