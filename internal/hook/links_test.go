@@ -111,20 +111,27 @@ func TestEnrollmentFollowsEveryLinkOfTheTarget(t *testing.T) {
 }
 
 // TestRequestedSpellsTheNameBelowTheRoot names a read as it was asked for:
-// the path below the deepest directory that is the root, through whatever
-// links lead there, so a directory link inside the repository keeps its own
-// name and a link outside that leads to the root names the file from it; a
-// name no directory of the root holds is outside the repository.
+// the path below the outermost directory that is the root, through
+// whatever links lead there, so a directory link inside the repository
+// keeps its own name, a link back to the root keeps every element below
+// the repository boundary and a link outside that leads to the root names
+// the file from it; a name no directory of the root holds is outside the
+// repository.
 func TestRequestedSpellsTheNameBelowTheRoot(t *testing.T) {
 	t.Parallel()
 	repo, outside := realDir(t), realDir(t)
 	touch(t, filepath.Join(repo, "plain", "x.txt"))
 	link(t, "plain", filepath.Join(repo, "vault"))
 	link(t, repo, filepath.Join(outside, "proj"))
+	link(t, ".", filepath.Join(repo, "here"))
+	link(t, "..", filepath.Join(repo, "plain", "up"))
 	for _, tc := range []struct{ cwd, name, want string }{
 		{repo, filepath.Join(repo, "vault", "x.txt"), "vault/x.txt"},
 		{outside, filepath.Join(outside, "proj", "notes.md"), "notes.md"},
 		{repo, filepath.Join("vault", "x.txt"), "vault/x.txt"},
+		{repo, filepath.Join(repo, "here", "plain", "x.txt"), "here/plain/x.txt"},
+		{repo, filepath.Join(repo, "plain", "up", "here", "notes.md"), "plain/up/here/notes.md"},
+		{outside, filepath.Join(outside, "proj", "here", "notes.md"), "here/notes.md"},
 	} {
 		if got, err := hook.Requested(repo, tc.cwd, tc.name); err != nil || got != tc.want {
 			t.Errorf("%s: %q, %v, want %q", tc.name, got, err, tc.want)

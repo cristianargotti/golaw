@@ -60,7 +60,7 @@ A path exception by hash covers only an installed agent artifact recorded by the
 
 ## Secret boundary
 
-The first layer denies recognized secret-material names in Read and shell inputs. A Read is judged both by the name it asks for and by the file its links lead to, so a link named like secret material and a link to it are both denied. The second denies known credential-printing commands. Their exact patterns are executable data with red and near-miss fixtures.
+The first layer denies recognized secret-material names in Read and shell inputs. A Read is judged both by the name it asks for and by the file its links lead to, so a link named like secret material and a link to it are both denied. The name it asks for keeps every element below the repository boundary, a directory link back to the root included. The second denies known credential-printing commands. Their exact patterns are executable data with red and near-miss fixtures.
 
 The Read deny rules the installer writes for the @ reference gap cover only private key files, Terraform variable files, SSH keys, and cloud credential files. They live in the user settings, which the host applies to every project before any hook runs, so the broad name list stays with the hook, which judges each read in the repository that governs it. These rules cannot express an exception, so a template named like a file of those families, such as dev.example.tfvars or service-account.example.json, is denied to Read and to @ references even though the hook allows it; a shell command that names it is still judged by the hook, whose name list allows a template.
 

@@ -183,9 +183,10 @@ func Relative(root, cwd, name string) (string, error) {
 }
 
 // Requested is the name a read asks for, from the root: the path below the
-// deepest directory above it that is the root, whatever links lead there,
-// spelled as given, so a link between the root and the name, a directory or
-// the entry itself, changes no element the name rule reads.
+// outermost directory above it that is the root, whatever links lead
+// there, spelled as given, so a link between the root and the name, a
+// directory, the entry itself or a link back to the root, changes no
+// element of the name below the repository boundary the rule reads.
 func Requested(root, cwd, name string) (string, error) {
 	if err := validLocation(root, cwd, name); err != nil {
 		return "", err
@@ -194,15 +195,19 @@ func Requested(root, cwd, name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: repository root: %w", model.ErrCannotJudge, err)
 	}
-	path := absolute(cwd, name)
+	path, boundary := absolute(cwd, name), ""
 	for dir := filepath.Dir(path); ; dir = filepath.Dir(dir) {
 		if info, statErr := os.Stat(dir); statErr == nil && os.SameFile(info, rootInfo) {
-			return local(filepath.Rel(dir, path))
+			boundary = dir
 		}
 		if filepath.Dir(dir) == dir {
-			return "", fmt.Errorf("%w: candidate is outside the repository", model.ErrCannotJudge)
+			break
 		}
 	}
+	if boundary == "" {
+		return "", fmt.Errorf("%w: candidate is outside the repository", model.ErrCannotJudge)
+	}
+	return local(filepath.Rel(boundary, path))
 }
 
 // Resolve is the file a name leads to through every link, as an absolute

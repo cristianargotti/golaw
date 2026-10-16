@@ -190,10 +190,13 @@ func TestDecodeReadNamesTheEntryAndTheTarget(t *testing.T) {
 		{filepath.Join(root, ".env.local"), filepath.Join(outside, "alias.txt")},
 		{"plain", filepath.Join(root, "secrets")},
 		{root, filepath.Join(outside, "proj")},
+		{"..", filepath.Join(root, "plain", "secrets")},
 	})
 	for _, tc := range []struct{ cwd, name, path, real string }{
 		{root, filepath.Join(root, ".env"), ".env", "payload.txt"},
 		{root, filepath.Join(root, "secrets", "x.txt"), "secrets/x.txt", "plain/x.txt"},
+		{root, filepath.Join(root, "plain", "secrets", "payload.txt"), "plain/secrets/payload.txt", "payload.txt"},
+		{outside, filepath.Join(outside, "proj", "plain", "secrets", "payload.txt"), "plain/secrets/payload.txt", "payload.txt"},
 		{outside, filepath.Join(outside, "proj", ".env"), ".env", "payload.txt"},
 		{root, filepath.Join(root, "notes.txt"), "notes.txt", ".env.local"},
 		{root, filepath.Join(root, "config.txt"), "config.txt", filepath.ToSlash(store)},

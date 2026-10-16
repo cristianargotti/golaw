@@ -106,6 +106,7 @@ func TestHookJudgesBothNamesOfARead(t *testing.T) {
 		store: "[default]\n", filepath.Join(outside, "plain.txt"): "plain\n", filepath.Join(root, "plain", "x.txt"): "plain\n",
 	}, [][2]string{
 		{"plain", filepath.Join(root, "secrets")},
+		{"..", filepath.Join(root, "plain", "secrets")},
 		{"payload.txt", filepath.Join(root, ".env")},
 		{".env.local", filepath.Join(root, "notes.txt")},
 		{store, filepath.Join(root, "config.txt")},
@@ -120,6 +121,8 @@ func TestHookJudgesBothNamesOfARead(t *testing.T) {
 	}{
 		{"a link named like secret material", root, filepath.Join(root, ".env"), true},
 		{"a directory link named like secret material", root, filepath.Join(root, "secrets", "x.txt"), true},
+		{"a directory link back to the root named like secret material", root, filepath.Join(root, "plain", "secrets", "payload.txt"), true},
+		{"the same link back to the root read from outside", outside, filepath.Join(root, "plain", "secrets", "payload.txt"), true},
 		{"a link to secret material of the repository", root, filepath.Join(root, "notes.txt"), true},
 		{"a link to the credential store of the home", root, filepath.Join(root, "config.txt"), true},
 		{"a link outside to secret material of the repository", outside, filepath.Join(outside, "alias.txt"), true},

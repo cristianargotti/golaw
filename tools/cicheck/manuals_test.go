@@ -26,6 +26,7 @@ func TestSecurityContract(t *testing.T) {
 		"such as git -C, is not judged",
 		"a write through a link into an enrolled repository is judged there",
 		"judged both by the name it asks for and by the file its links lead to",
+		"keeps every element below the repository boundary, a directory link back to the root included",
 		"splits its arguments by the Microsoft runtime rules",
 		"past the condition of an if, the clause of a for up to its do and an else",
 		"These rules cannot express an exception",
