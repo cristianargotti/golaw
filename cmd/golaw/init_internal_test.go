@@ -16,6 +16,7 @@ import (
 type enrollment struct {
 	root   string
 	digest string
+	data   []byte
 	calls  int
 }
 
@@ -31,8 +32,8 @@ func initApp(t *testing.T) (testApp, *enrollment) {
 		policy.Enrollment.State = model.EnrollmentEnrolled
 		return &policy, nil
 	}
-	ta.enroll = func(root string, _ []byte, policy *model.EffectivePolicy, _ time.Time) error {
-		record.root, record.digest, record.calls = root, policy.Digest, record.calls+1
+	ta.enroll = func(root string, data []byte, policy *model.EffectivePolicy, _ time.Time) error {
+		record.root, record.digest, record.data, record.calls = root, policy.Digest, data, record.calls+1
 		return nil
 	}
 	return ta, record
@@ -186,5 +187,46 @@ func TestInitDoesNotWriteAPolicyTheKitCannotCompile(t *testing.T) {
 	}
 	if ta.stderr.String() != "golaw: init: boom\n" || record.calls != 0 {
 		t.Fatalf("stderr = %q, enrollment = %+v", ta.stderr.String(), record)
+	}
+}
+
+// TestInitKeepsAndEnrollsAnExistingPolicy never renders the defaults over
+// a golaw.yml the repository holds, the reviewed file of its person or of
+// a teammate in a clone: init prints that it keeps the file and enrolls
+// its bytes, whatever the flags say, and refuses a file the kit cannot
+// load without touching it.
+func TestInitKeepsAndEnrollsAnExistingPolicy(t *testing.T) {
+	t.Parallel()
+	ta, record := initApp(t)
+	root := checkout(t)
+	reviewed := "golaw: 1\nkit: { version: 9.9.9 }\nchecks:\n  sizes: { file_lines: 200 }\n"
+	file := filepath.Join(root, bootstrap.PolicyFile)
+	if err := os.WriteFile(file, []byte(reviewed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"init", root}, {"init", "--apply", "--language", "en-US", root}} {
+		ta.stdout.Reset()
+		if got := ta.run(t.Context(), args); got != exitClean {
+			t.Fatalf("%v exit = %d, stderr = %q", args, got, ta.stderr.String())
+		}
+		if out := ta.stdout.String(); !strings.HasPrefix(out, "golaw.yml: kept as reviewed") || strings.Contains(out, "+++ ") {
+			t.Fatalf("%v stdout = %q", args, out)
+		}
+	}
+	if data, err := os.ReadFile(file); err != nil || string(data) != reviewed || record.calls != 1 || string(record.data) != reviewed {
+		t.Fatalf("file = %q, %v, enrollment = %+v", data, err, record)
+	}
+	ta.compile = func(data []byte, _ time.Time) (*model.EffectivePolicy, error) {
+		if strings.Contains(string(data), "file_lines: 200") {
+			return nil, errBoom
+		}
+		p := model.CoreDefaults()
+		return &p, nil
+	}
+	if got := ta.run(t.Context(), []string{"init", "--apply", root}); got != exitFailure || !strings.Contains(ta.stderr.String(), "boom") {
+		t.Fatalf("an unloadable file: exit = %d, stderr = %q", got, ta.stderr.String())
+	}
+	if data, err := os.ReadFile(file); err != nil || string(data) != reviewed || record.calls != 1 {
+		t.Fatalf("the unloadable file was touched: %q, %v, enrollment = %+v", data, err, record)
 	}
 }

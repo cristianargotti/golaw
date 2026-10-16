@@ -70,7 +70,7 @@ Run golaw doctor before upgrading the kit or agent. Compare installed and valida
 
 When a payload change, panic, or missing executable blocks work, a person selects the last validated kit tag from the compatibility history. Install that tag with go install or its signed release asset, then run golaw agent install --agent claude.
 
-Restore the matching kit.version and enrollment digests as part of the person's reviewed change, committing the repository policy change and updating external enrollment, never lowering a policy floor. The binary and pin must move together.
+Restore the matching kit.version and enrollment digests as part of the person's reviewed change, committing the repository policy change and updating external enrollment through agent install, which enrolls the committed policy only as a tightening, never lowering a policy floor. The binary and pin must move together.
 
 Run doctor again. Replay the recovery-control row of go run ./tools/acceptance, which takes the binary away, puts the validated one back, runs agent install again and requires the allowed write through the installed invocation, before resuming work.
 

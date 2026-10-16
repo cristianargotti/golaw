@@ -40,5 +40,8 @@ func TestM1SetupSequence(t *testing.T) {
 		"only hard gate",
 		"golaw agent uninstall --agent "+agent,
 		"M1 does not provide golaw setup or scan --staged",
+		"init --apply never renders over a golaw.yml the checkout already holds",
+		"until agent install enrolls the policy in force",
+		"The record follows a tightening only",
 	)
 }

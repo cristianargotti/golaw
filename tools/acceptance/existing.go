@@ -29,7 +29,7 @@ func (s *suite) existingRow(ctx context.Context) row {
 	}
 	err := s.startModule(ctx, repo)
 	if err == nil {
-		err = success(golaw(commandInit, "--apply"))
+		err = success(golaw(commandInit, flagApply))
 	}
 	if err == nil {
 		err = refusedUntilCommitted(golaw(installArgs()...))
@@ -41,7 +41,7 @@ func (s *suite) existingRow(ctx context.Context) row {
 		err = success(golaw(installArgs()...))
 	}
 	if err == nil {
-		err = success(golaw("scan", "."))
+		err = success(golaw(commandScan, "."))
 	}
 	return measured(categoryInstallation, caseExisting, err)
 }

@@ -43,6 +43,11 @@ type Input struct {
 	Now      time.Time
 	Schemas  Schemas
 	Discover Discoverer
+	// Reenroll is set by a record writer (A3): a record whose digests
+	// differ from the policy in force is answered with the mismatch state
+	// instead of an error, once the policy in force tightens the policy
+	// the record enrolled (CheckReenrollment).
+	Reenroll bool
 }
 
 // Loaded is the policy in force with everything config explain reports.
@@ -92,7 +97,7 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 	if err := l.verifyProfile(in.Dirs.Config); err != nil {
 		return nil, err
 	}
-	if err := l.enroll(); err != nil {
+	if err := l.enroll(in.Reenroll, in.Schemas); err != nil {
 		return nil, err
 	}
 	return l, nil
@@ -117,8 +122,8 @@ func (l *Loaded) inForce(ctx context.Context) ([]byte, error) {
 		return []byte(l.Record.Bootstrap), nil
 	}
 	if l.Record != nil {
-		return nil, fmt.Errorf("%w: enrolled repository %s has no %s at HEAD (%s)",
-			model.ErrEnrollment, l.Root, FileName, model.EnrollmentMissing)
+		return nil, fmt.Errorf("%w: enrolled repository %s has no %s at HEAD (%s): %w",
+			model.ErrEnrollment, l.Root, FileName, model.EnrollmentMissing, ErrNotAtHead)
 	}
 	l.Origin = OriginCore
 	return nil, nil
@@ -138,8 +143,9 @@ func (l *Loaded) verifyProfile(configDir string) error {
 }
 
 // enroll fills the enrollment state from the record: none without one,
-// enrolled when both digests match, ErrEnrollment otherwise.
-func (l *Loaded) enroll() error {
+// enrolled when both digests match, ErrEnrollment otherwise, unless a
+// record writer re-enrolls a tightening.
+func (l *Loaded) enroll(reenroll bool, schemas Schemas) error {
 	if l.Record == nil {
 		l.Policy.Enrollment = model.Enrollment{State: model.EnrollmentNone}
 		return nil
@@ -155,7 +161,10 @@ func (l *Loaded) enroll() error {
 	}
 	if l.Record.PolicyDigest != l.Policy.Digest || l.Record.ProfileDigest != profile {
 		l.Policy.Enrollment.State = model.EnrollmentMismatch
-		return fmt.Errorf("%w: %s of %s does not match the enrollment record (%s): run init --apply to enroll the reviewed policy",
+		if reenroll {
+			return CheckReenrollment(*l.Record, l.File, schemas)
+		}
+		return fmt.Errorf("%w: %s of %s does not match the enrollment record (%s): review the change, then run agent install to enroll the policy in force",
 			model.ErrEnrollment, FileName, l.Root, model.EnrollmentMismatch)
 	}
 	return nil

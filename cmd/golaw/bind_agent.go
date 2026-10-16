@@ -19,7 +19,7 @@ import (
 // refused, because the hooks it would arm enforce enrolled repositories
 // only (A3).
 func (b binding) installOptions(ctx context.Context, agent agents.Agent, root, scope string, now time.Time) (install.Options, error) {
-	l, err := b.loaded(ctx, root, now)
+	l, err := b.loadedFor(ctx, root, now, true)
 	if err != nil {
 		return install.Options{}, commitFirst(err)
 	}
@@ -50,7 +50,7 @@ func (b binding) installOptions(ctx context.Context, agent agents.Agent, root, s
 // init --apply wrote governs nothing until a commit holds it, and the
 // refusal says so instead of leaving the person at a missing policy.
 func commitFirst(err error) error {
-	if !errors.Is(err, model.ErrEnrollment) {
+	if !errors.Is(err, policy.ErrNotAtHead) {
 		return err
 	}
 	return fmt.Errorf("%w: on a branch with commits the policy in force is the %s HEAD holds: commit the reviewed %s, then run agent install again",
@@ -89,8 +89,9 @@ func (b binding) enrollments(root string, now time.Time) (enrollmentPort, error)
 }
 
 // WriteEnrollment writes the record when none holds the digests already,
-// keeping the bootstrap policy an earlier init wrote.
-func (r enrollmentRecord) WriteEnrollment(_ context.Context, identity, policyDigest, profileDigest string) (model.Enrollment, error) {
+// with the bytes of the policy it enrolls, which a later re-enrollment
+// must tighten.
+func (r enrollmentRecord) WriteEnrollment(ctx context.Context, identity, policyDigest, profileDigest string) (model.Enrollment, error) {
 	if err := r.verify(identity); err != nil {
 		return model.Enrollment{}, err
 	}
@@ -102,9 +103,13 @@ func (r enrollmentRecord) WriteEnrollment(_ context.Context, identity, policyDig
 	if found && existing.PolicyDigest == policyDigest && existing.ProfileDigest == profileDigest {
 		return enrolled, nil
 	}
+	enrolledPolicy, err := r.enrolledBytes(ctx, existing, policyDigest)
+	if err != nil {
+		return model.Enrollment{}, err
+	}
 	record := policy.Record{
 		Root: r.root, PolicyDigest: policyDigest, ProfileDigest: profileDigest, KitVersion: r.version,
-		Bootstrap: existing.Bootstrap, WrittenBy: policy.WrittenByInstall, WrittenAt: r.now,
+		Bootstrap: enrolledPolicy, WrittenBy: policy.WrittenByInstall, WrittenAt: r.now,
 	}
 	if err := policy.WriteRecord(r.stateDir, record); err != nil {
 		return model.Enrollment{}, fmt.Errorf("write the enrollment record: %w", err)
@@ -154,4 +159,35 @@ func (r enrollmentRecord) verify(identity string) error {
 		return fmt.Errorf("%w: identity %s is not the repository %s", model.ErrEnrollment, identity, r.root)
 	}
 	return nil
+}
+
+// enrolledBytes are the bytes of the policy a record enrolls: the
+// bootstrap policy the record holds when it is that policy, as on an
+// unborn branch, otherwise the golaw.yml HEAD holds when it hashes to the
+// digest, and none when neither does.
+func (r enrollmentRecord) enrolledBytes(ctx context.Context, existing policy.Record, digest string) (string, error) {
+	if digestOf([]byte(existing.Bootstrap)) == digest {
+		return existing.Bootstrap, nil
+	}
+	data, found, err := policy.ReadHead(ctx, r.root)
+	if err != nil {
+		return "", fmt.Errorf("read the policy at HEAD: %w", err)
+	}
+	if found && digestOf(data) == digest {
+		return string(data), nil
+	}
+	return "", nil
+}
+
+// digestOf is the digest of policy bytes, empty when there are none or
+// they do not decode.
+func digestOf(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	f, err := policy.Decode(data)
+	if err != nil {
+		return ""
+	}
+	return policy.Digest(f)
 }

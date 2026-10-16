@@ -90,10 +90,27 @@ func (a *app) agentInstall(ctx context.Context, out io.Writer, path string, opts
 	if err != nil {
 		return installFailed(err)
 	}
+	if err := reportEnrollment(ctx, out, port, plan); err != nil {
+		return installFailed(err)
+	}
 	if err := install.Apply(ctx, plan, out, port); err != nil {
 		return installFailed(err)
 	}
 	return installFailed(writeLines(out, []string{"installed: " + plan.ReceiptPath}))
+}
+
+// reportEnrollment names a re-enrollment before the diff (A3): the record
+// holds another policy, and agent install is about to enroll the policy in
+// force, which loaded as a tightening of it.
+func reportEnrollment(ctx context.Context, out io.Writer, port enrollmentPort, plan install.Plan) error {
+	current, err := port.ReadEnrollment(ctx, plan.Receipt.ProjectID, plan.PolicyDigest, plan.ProfileDigest)
+	if err != nil {
+		return fmt.Errorf("read the enrollment: %w", err)
+	}
+	if current.State != model.EnrollmentMismatch {
+		return nil
+	}
+	return writeLines(out, []string{"enrollment: policy " + current.PolicyDigest + " becomes " + plan.PolicyDigest})
 }
 
 // agentUninstall goes by the receipt alone, so it removes only what the kit

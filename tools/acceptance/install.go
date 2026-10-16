@@ -24,6 +24,8 @@ const (
 	dirRepos      = "repositories"
 	goBuild       = "build"
 	commandInit   = "init"
+	commandScan   = "scan"
+	flagApply     = "--apply"
 	gitAdd        = "add"
 	moduleFile    = "go.mod"
 )
@@ -100,7 +102,7 @@ func (s *suite) repository(ctx context.Context, name string, enrolled bool) (str
 		return "", err
 	}
 	got = s.execute(ctx, command{
-		program: s.binary, args: []string{commandInit, "--apply"}, dir: repo, env: s.env,
+		program: s.binary, args: []string{commandInit, flagApply}, dir: repo, env: s.env,
 	})
 	if err := success(got); err != nil {
 		return "", err

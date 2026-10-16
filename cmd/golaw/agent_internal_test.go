@@ -14,10 +14,13 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// fakePort records the enrollments the installer writes.
+// fakePort records the enrollments the installer writes; mismatch is the
+// digest of a record that holds another policy, readErr a failed read.
 type fakePort struct {
-	calls  int
-	digest string
+	calls    int
+	digest   string
+	mismatch string
+	readErr  error
 }
 
 func (p *fakePort) WriteEnrollment(_ context.Context, _, policyDigest, profileDigest string) (model.Enrollment, error) {
@@ -26,6 +29,12 @@ func (p *fakePort) WriteEnrollment(_ context.Context, _, policyDigest, profileDi
 }
 
 func (p *fakePort) ReadEnrollment(context.Context, string, string, string) (model.Enrollment, error) {
+	if p.readErr != nil {
+		return model.Enrollment{}, p.readErr
+	}
+	if p.mismatch != "" {
+		return model.Enrollment{State: model.EnrollmentMismatch, PolicyDigest: p.mismatch}, nil
+	}
 	return model.Enrollment{State: model.EnrollmentEnrolled, PolicyDigest: p.digest}, nil
 }
 

@@ -99,11 +99,18 @@ func schemas() policy.Schemas {
 }
 
 func (b binding) loaded(ctx context.Context, dir string, now time.Time) (*policy.Loaded, error) {
+	return b.loadedFor(ctx, dir, now, false)
+}
+
+// loadedFor is the policy in force; a record writer reenrolls, so a
+// committed tightening the record does not hold yet loads with the
+// mismatch state instead of refusing (A3).
+func (b binding) loadedFor(ctx context.Context, dir string, now time.Time, reenroll bool) (*policy.Loaded, error) {
 	dirs, err := b.dirs()
 	if err != nil {
 		return nil, err
 	}
-	in := policy.Input{Dir: dir, Dirs: dirs, Version: b.pin(), Now: now, Schemas: schemas(), Discover: locate}
+	in := policy.Input{Dir: dir, Dirs: dirs, Version: b.pin(), Now: now, Schemas: schemas(), Discover: locate, Reenroll: reenroll}
 	l, err := policy.Load(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("load the policy of %s: %w", dir, err)
@@ -187,7 +194,9 @@ func (b binding) compile(data []byte, now time.Time) (*model.EffectivePolicy, er
 }
 
 // enroll is the enroll seam: the record of A3 written by init --apply,
-// with the bytes written as the bootstrap policy of an unborn branch.
+// with the bytes written as the bootstrap policy of an unborn branch. A
+// record that already holds another policy moves only to a tightening of
+// it, so init never enrolls the defaults over a reviewed policy.
 func (b binding) enroll(root string, data []byte, p *model.EffectivePolicy, now time.Time) error {
 	dirs, err := b.dirs()
 	if err != nil {
@@ -196,6 +205,15 @@ func (b binding) enroll(root string, data []byte, p *model.EffectivePolicy, now 
 	f, err := policy.Decode(data)
 	if err != nil {
 		return fmt.Errorf("decode the written policy: %w", err)
+	}
+	existing, found, err := policy.ReadRecord(dirs.State, root)
+	if err != nil {
+		return fmt.Errorf("read the enrollment record of %s: %w", root, err)
+	}
+	if found && existing.PolicyDigest != p.Digest {
+		if err := policy.CheckReenrollment(existing, f, schemas()); err != nil {
+			return fmt.Errorf("enroll %s: %w", root, err)
+		}
 	}
 	record := policy.Record{
 		Root: root, PolicyDigest: p.Digest, ProfileDigest: profileDigest(f), KitVersion: p.KitVersion,

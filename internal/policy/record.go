@@ -29,8 +29,9 @@ const (
 
 // Record is the enrollment record of A3, kept outside the checkout in the
 // state directory and keyed by the repository identity: what golaw.yml
-// and the profile must hash to, and the bootstrap policy that governs the
-// repository while its branch is unborn.
+// and the profile must hash to, and the bytes of the policy it enrolled.
+// Those bytes are the bootstrap policy that governs the repository while
+// its branch is unborn, and the policy a re-enrollment must tighten.
 type Record struct {
 	Schema        int       `json:"golaw"`
 	Root          string    `json:"root"`

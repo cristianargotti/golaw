@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -41,7 +42,8 @@ func (a *app) initCommand() *cobra.Command {
 
 // initialize renders the policy, prints the diff against the file in the
 // checkout and, with --apply, publishes the file and enrolls the root with
-// the digest of the policy it compiled.
+// the digest of the policy it compiled. A file the checkout already holds
+// is kept and enrolled instead (keepPolicy).
 func (a *app) initialize(out io.Writer, path string, opts initOptions) error {
 	root, data, policy, err := a.prepareInit(path, opts)
 	if err != nil {
@@ -51,18 +53,46 @@ func (a *app) initialize(out io.Writer, path string, opts initOptions) error {
 	if err != nil {
 		return initFailed(err)
 	}
-	diff := bootstrap.Diff(current, data)
-	if err := writeLines(out, diffLines(diff)); err != nil {
+	if current != nil {
+		return a.keepPolicy(out, root, current, data, opts.apply)
+	}
+	if err := writeLines(out, diffLines(bootstrap.Diff(current, data))); err != nil {
 		return initFailed(err)
 	}
 	if !opts.apply {
 		return initFailed(writeLines(out, []string{"init: nothing written, run again with --apply"}))
 	}
-	if diff != "" {
-		if err := bootstrap.Write(root, data); err != nil {
-			return initFailed(err)
-		}
+	if err := bootstrap.Write(root, data); err != nil {
+		return initFailed(err)
 	}
+	return a.enrollInit(out, root, data, policy)
+}
+
+// keepPolicy enrolls the golaw.yml a checkout already holds instead of
+// rendering over it: the file is the reviewed policy of its person, or of
+// a teammate in a clone, and the defaults would weaken it, so the flags
+// that shape a render do not apply. A file the kit cannot load is refused
+// and left as it is.
+func (a *app) keepPolicy(out io.Writer, root string, current, rendered []byte, apply bool) error {
+	policy, err := a.compile(current, a.now())
+	if err != nil {
+		return initFailed(fmt.Errorf("%s of %s cannot be loaded, so init neither replaces nor enrolls it: %w", bootstrap.PolicyFile, root, err))
+	}
+	line := bootstrap.PolicyFile + ": no changes"
+	if !bytes.Equal(current, rendered) {
+		line = bootstrap.PolicyFile + ": kept as reviewed, init enrolls it and renders nothing over it"
+	}
+	if err := writeLines(out, []string{line}); err != nil {
+		return initFailed(err)
+	}
+	if !apply {
+		return initFailed(writeLines(out, []string{"init: nothing written, run again with --apply"}))
+	}
+	return a.enrollInit(out, root, current, policy)
+}
+
+// enrollInit writes the enrollment record of the policy init settled on.
+func (a *app) enrollInit(out io.Writer, root string, data []byte, policy *model.EffectivePolicy) error {
 	if err := a.enroll(root, data, policy, a.now()); err != nil {
 		return initFailed(err)
 	}
@@ -115,12 +145,8 @@ func pinOf(info buildinfo.Info) string {
 	return developmentPin
 }
 
-// diffLines is what init prints for the diff: the diff itself, or one line
-// saying the file already has the rendered content.
+// diffLines is what init prints for the diff of a file it renders.
 func diffLines(diff string) []string {
-	if diff == "" {
-		return []string{bootstrap.PolicyFile + ": no changes"}
-	}
 	return strings.Split(strings.TrimSuffix(diff, "\n"), "\n")
 }
 

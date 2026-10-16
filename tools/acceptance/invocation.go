@@ -80,11 +80,17 @@ func containsGolaw(hooks map[string][]hookGroup) bool {
 }
 
 func (s *suite) invoke(ctx context.Context, dir, event, tool string, input []byte) result {
+	return s.invokeIn(ctx, s.env, dir, event, tool, input)
+}
+
+// invokeIn runs the installed handler of an event with an environment of
+// its own, the home of a row that installs apart.
+func (s *suite) invokeIn(ctx context.Context, env []string, dir, event, tool string, input []byte) result {
 	handler, err := s.handler(event, tool)
 	if err != nil {
 		return result{err: err}
 	}
-	binary, err := resolveExecutable(handler.Command, s.env)
+	binary, err := resolveExecutable(handler.Command, env)
 	if err != nil {
 		return result{err: err}
 	}
@@ -93,7 +99,7 @@ func (s *suite) invoke(ctx context.Context, dir, event, tool string, input []byt
 	}
 	return s.execute(ctx, command{
 		program: binary, argv0: handler.Command, args: handler.Args,
-		dir: dir, env: s.env, input: string(input),
+		dir: dir, env: env, input: string(input),
 	})
 }
 
