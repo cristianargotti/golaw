@@ -17,7 +17,8 @@ type dialect rune
 
 // The dialects of the tools and the wrappers: a POSIX shell escapes with a
 // backslash, PowerShell with a backtick, where the backslash is the path
-// separator, and cmd has no escape a path could lose its separators to.
+// separator, and cmd is read apart (splitCmd), by its own rules and by the
+// Microsoft argument rules of the program it starts.
 const (
 	posix      dialect = '\\'
 	powerShell dialect = '`'
@@ -39,13 +40,19 @@ func segments(command, tool string) []segment {
 }
 
 func split(command string, d dialect, depth int) []segment {
-	s := &scanner{escapeRune: rune(d)}
-	for _, r := range command {
-		s.step(r)
+	var segs []segment
+	if d == cmdShell {
+		segs = splitCmd(command)
+	} else {
+		s := &scanner{escapeRune: rune(d)}
+		for _, r := range command {
+			s.step(r)
+		}
+		s.endSegment()
+		segs = s.out
 	}
-	s.endSegment()
 	var out []segment
-	for _, seg := range s.out {
+	for _, seg := range segs {
 		if script, inner, ok := shellScript(segment(unwrap(seg))); ok && depth < maxDepth {
 			out = append(out, split(script, inner, depth+1)...)
 			continue
