@@ -19,3 +19,7 @@ checks:
     code: release-pipeline
     red: testdata/release.pipeline/red
     near: testdata/release.pipeline/near
+  - id: ci.plugin
+    code: ci-plugin
+    red: testdata/ci.plugin/red
+    near: testdata/ci.plugin/near

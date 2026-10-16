@@ -1,0 +1,6 @@
+permissions: {contents: read}
+jobs:
+  clau\u0064e-plugin:
+    steps:
+      - run: npm install --global @anthro\u0070ic-ai/clau\u0064e-code@2.1.299
+      - run: clau\u0064e plugin validate --strict agents/clau\u0064e
