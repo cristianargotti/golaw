@@ -15,7 +15,7 @@ func TestShellFixturePairs(t *testing.T) {
 	}
 	denied := []string{
 		"bypass", "short-bypass", "commit-dash", "body-101",
-		"secret-token", "pwsh", "powershell", "cmd", "bash", "sh",
+		"secret-token", "secret-directory", "pwsh", "powershell", "cmd", "bash", "sh",
 	}
 	allowed := []string{
 		"commit-control", "push-default", "fetch", "body-100", "source-token", "package-pattern",

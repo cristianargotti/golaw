@@ -72,31 +72,56 @@ var privateKey = regexp.MustCompile(`(?i)^id_(?:rsa|dsa|ecdsa|ed25519)$`)
 
 // secretToken reports whether a token of a command names secret material:
 // a path or a file name through the name list, a bare word only when it is
-// a private key name. A Go package pattern (./internal/secrets/...) and a
-// directory with its trailing slash name no file.
+// a private key name. A directory operand is judged like a file, because a
+// recursive read of a directory under a secrets directory reads the files
+// below it.
 func secretToken(token string) bool {
-	if strings.HasSuffix(token, "/...") || strings.HasSuffix(token, "/") {
-		return false
-	}
 	if strings.ContainsAny(token, "/.") {
 		return secretName(token)
 	}
 	return privateKey.MatchString(token)
 }
 
+// goTool reports whether a program reads a Go package pattern
+// (./internal/secrets/...) as packages to build or analyze, never as files
+// to print: the go tool and the linters that take package patterns.
+func goTool(program string) bool {
+	switch base(program) {
+	case "go", "golangci-lint", "staticcheck", "govulncheck", "gosec", "revive", "errcheck":
+		return true
+	default:
+		return false
+	}
+}
+
 func judgeSecretTokens(_ model.Input, segs []segment) ([]model.Finding, error) {
 	for _, seg := range segs {
-		for _, word := range seg {
-			for token := range strings.SplitSeq(word, "=") {
-				// A backslash in a word is a Windows separator: PowerShell
-				// and cmd keep it, and a POSIX shell keeps only an escaped one.
-				token = strings.ReplaceAll(strings.TrimLeft(token, "<>"), `\`, "/")
-				if secretToken(token) {
-					message := fmt.Sprintf("the command names secret material (%s); secrets never enter the context", token)
-					return []model.Finding{deny("secret-token", message)}, nil
-				}
-			}
+		if token, found := secretIn(seg); found {
+			message := fmt.Sprintf("the command names secret material (%s); secrets never enter the context", token)
+			return []model.Finding{deny("secret-token", message)}, nil
 		}
 	}
 	return nil, nil
+}
+
+// secretIn answers the first token of a segment that names secret
+// material. A Go package pattern names packages, not files, for the go
+// tool and its linters only, so it is skipped for them alone.
+func secretIn(seg segment) (string, bool) {
+	program := unwrap(seg)
+	packages := len(program) > 0 && goTool(program[0])
+	for _, word := range seg {
+		for token := range strings.SplitSeq(word, "=") {
+			// A backslash in a word is a Windows separator: PowerShell
+			// and cmd keep it, and a POSIX shell keeps only an escaped one.
+			token = strings.ReplaceAll(strings.TrimLeft(token, "<>"), `\`, "/")
+			if packages && strings.HasSuffix(token, "/...") {
+				continue
+			}
+			if secretToken(token) {
+				return token, true
+			}
+		}
+	}
+	return "", false
 }

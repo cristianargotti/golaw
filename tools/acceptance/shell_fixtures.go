@@ -23,6 +23,7 @@ func shellCommands() []shellFixture {
 		{"secret-token", "cat .env", wantDeny},
 		{"source-token", "cat credentials.go", wantAllow},
 		{"package-pattern", "go test ./internal/secrets/...", wantAllow},
+		{"secret-directory", "grep -R . deploy/secrets/db/", wantDeny},
 		{"pwsh", `pwsh -Command "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"powershell", `powershell -NoProfile -Command "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"cmd", `cmd /c "git commit --no-verify -m 'fix: safe'"`, wantDeny},

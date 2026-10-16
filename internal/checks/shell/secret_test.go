@@ -36,9 +36,6 @@ func TestSecretTokens(t *testing.T) {
 		"git checkout -b fix-credentials":                 false,
 		"git commit -m 'fix: rotate the credentials'":     false,
 		"git commit -m 'docs: say where id_rsa lives'":    false,
-		"go test ./internal/secrets/...":                  false,
-		"go test ./internal/secret/...":                   false,
-		"ls internal/secrets/":                            false,
 		"cat deploy/secrets/token.txt":                    true,
 		"cat charts/app/templates/secret.yaml":            false,
 		"cat config/credentials.example.json":             false,
@@ -50,6 +47,27 @@ func TestSecretTokens(t *testing.T) {
 	if res.Findings[0].Message != "the command names secret material (/work/app/.env); secrets never enter the context" {
 		t.Errorf("message = %q", res.Findings[0].Message)
 	}
+}
+
+// TestSecretTokensReadDirectoriesAndPackagePatterns judges a directory
+// operand like a file, since a recursive read of a directory under a
+// secrets directory reads what lies below it, and leaves a Go package
+// pattern to the go tool and its linters alone, which build or analyze
+// the packages it names and print no file.
+func TestSecretTokensReadDirectoriesAndPackagePatterns(t *testing.T) {
+	t.Parallel()
+	denies(t, shell.SecretTokens(), "secret-token", map[string]bool{
+		"grep -R . deploy/secrets/db/":                             true,
+		"ls deploy/secrets/db/":                                    true,
+		"cat ./deploy/secrets/...":                                 true,
+		"go test ./internal/secrets/... && cat deploy/secrets/db/": true,
+		"go test ./internal/secrets/...":                           false,
+		"go test ./internal/secret/...":                            false,
+		"go vet ./internal/secrets/...":                            false,
+		"golangci-lint run ./internal/secrets/...":                 false,
+		"env GOFLAGS=-count=1 go test ./deploy/secrets/...":        false,
+		"ls internal/secrets/":                                     false,
+	})
 }
 
 // nameLiterals returns the string literals of the secretNames function and
