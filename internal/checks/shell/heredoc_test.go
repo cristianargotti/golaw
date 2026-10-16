@@ -37,6 +37,28 @@ func TestHeredocBodiesAreTheirCommandsInput(t *testing.T) {
 	})
 }
 
+// TestHereDocumentsSourcedFromTheStandardInputAreScripts reads the body of
+// a here-document its line sources from the standard input, source or dot
+// of /dev/stdin, /dev/fd/0 or /proc/self/fd/0, behind the wrappers too, as
+// a script of the shell itself, while a sourced file leaves the body the
+// input it is.
+func TestHereDocumentsSourcedFromTheStandardInputAreScripts(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "source /dev/stdin <<'EOF'\ngit commit --no-verify -m x\nEOF", "no-verify"},
+		{"Bash", ". /dev/stdin <<'EOF'\ngit commit --no-verify -m x\nEOF", "no-verify"},
+		{"Bash", "source /proc/self/fd/0 <<'EOF'\ngit commit --no-verify -m x\nEOF", "no-verify"},
+		{"Bash", "builtin source /dev/fd/0 <<EOF\ngit commit --no-verify -m x\nEOF", "no-verify"},
+		{"Bash", "cat <<'EOF' | . /dev/stdin\ngit commit --no-verify -m x\nEOF", "no-verify"},
+		{"Bash", ". ./env.sh <<'EOF'\ngit commit --no-verify -m x\nEOF", ""},
+		{"Bash", "echo source /dev/stdin <<'EOF'\ngit commit --no-verify -m x\nEOF", ""},
+		{"Bash", "source <<'EOF'\ngit commit --no-verify -m x\nEOF", ""},
+	})
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", "source /dev/fd/0 <<'EOF'\ncat .env\nEOF", "secret-token"},
+	})
+}
+
 // TestHereDocumentsOpenWhereTheShellOpensThem opens a here-document only
 // where the shell does: inside an arithmetic expansion or command, $(( ))
 // and (( )), a << is a shift and a < or > a comparison, so the lines after

@@ -31,8 +31,8 @@ func TestShellFixturePairs(t *testing.T) {
 	if _, found := seen["native-bypass-"+toolBash]; found {
 		t.Fatal("a native PowerShell row runs through Bash")
 	}
-	expectShell(t, seen, []string{"heredoc-script", "heredoc-substitution", "arithmetic-shift-bypass"}, toolBash, wantDeny)
-	expectShell(t, seen, []string{"heredoc-data", "heredoc-message", "heredoc-quoted-substitution", "arithmetic-shift-control"}, toolBash, wantAllow)
+	expectShell(t, seen, []string{"heredoc-script", "heredoc-substitution", "arithmetic-shift-bypass", "heredoc-source"}, toolBash, wantDeny)
+	expectShell(t, seen, []string{"heredoc-data", "heredoc-message", "heredoc-quoted-substitution", "arithmetic-shift-control", "heredoc-source-control"}, toolBash, wantAllow)
 	if _, found := seen["heredoc-data-"+toolPowerShell]; found {
 		t.Fatal("a POSIX row runs through PowerShell")
 	}

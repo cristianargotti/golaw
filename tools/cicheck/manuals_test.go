@@ -51,6 +51,7 @@ func TestSecurityShellReading(t *testing.T) {
 		"bash 3.2, the /bin/bash of macOS, ends it at the first parenthesis left open",
 		"A comment, from a hash that starts a word to the end of its line or a PowerShell block comment, is text no rule reads",
 		"the lines after a here-document the line never ends are read as commands as well as its body",
+		"a here-document a shell reads or its line sources from the standard input",
 	)
 }
 

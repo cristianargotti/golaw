@@ -44,7 +44,9 @@ func heredocOperator(op string) (bool, bool) {
 }
 
 // newLine ends a line of the command: the documents it opened, if any,
-// read the lines after it as their bodies.
+// read the lines after it as their bodies, the script of the shell a word
+// of the line names or of the shell itself when the line sources its
+// standard input.
 func (s *scanner) newLine() {
 	if len(s.docs.open) == 0 {
 		s.docs.first = len(s.out)
@@ -56,6 +58,26 @@ func (s *scanner) newLine() {
 			s.docs.shell = seg[i]
 			break
 		}
+		if sourcesInput(seg) {
+			s.docs.shell = "sh"
+			break
+		}
+	}
+}
+
+// sourcesInput reports whether a segment runs source or dot of the
+// standard input, which reads the body of a here-document as a script of
+// the shell itself.
+func sourcesInput(seg segment) bool {
+	words := unwrap(seg)
+	if len(words) < 2 || words[0] != "source" && words[0] != "." {
+		return false
+	}
+	switch words[1] {
+	case "/dev/stdin", "/dev/fd/0", "/proc/self/fd/0":
+		return true
+	default:
+		return false
 	}
 }
 
