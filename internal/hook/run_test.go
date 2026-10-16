@@ -35,6 +35,20 @@ func TestRunDeadlineCoversALateInput(t *testing.T) {
 	}
 }
 
+func TestRunReplacesALateAllow(t *testing.T) {
+	t.Parallel()
+	adapter, dependencies := harness(t, request("safe"))
+	dependencies.Budget = time.Millisecond
+	dependencies.Enroll = func(ctx context.Context, _ string) (hook.Repository, error) {
+		<-ctx.Done()
+		return hook.Repository{Enrollment: model.Enrollment{State: model.EnrollmentNone}}, nil
+	}
+	reply := hook.Run(t.Context(), "claude", strings.NewReader("{}"), adapter, dependencies)
+	if reply.ExitCode != 2 || !strings.Contains(reply.Stderr, "deadline") {
+		t.Fatal(reply)
+	}
+}
+
 func TestRunDeadlineAndPanic(t *testing.T) {
 	t.Parallel()
 	adapter, dependencies := harness(t, request("safe"))
