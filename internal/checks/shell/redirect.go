@@ -14,11 +14,16 @@ var posixStream = regexp.MustCompile(`^(?:\d+|\{[A-Za-z_][A-Za-z0-9_]*\})$`)
 // own, its operator and its file, which no rule reads as a program and
 // the secret rule judges by name.
 
-// operatorRune reads a rune after an operator rune: after an ampersand a
+// operatorRune reads a rune after an operator rune: in PowerShell a hash
+// after a lone less-than sign opens a block comment; after an ampersand a
 // greater-than sign makes the operator &>, which takes the rune, and any
 // other rune leaves the ampersand to separate the commands; an operator
 // the rune does not extend is whole, its file the next word.
 func (s *scanner) operatorRune(r rune) bool {
+	if r == '#' && s.escapeRune == rune(powerShell) && string(s.op) == "<" {
+		s.op, s.comment = s.op[:0], blockComment
+		return true
+	}
 	if s.amp {
 		s.amp = false
 		if r == '>' {

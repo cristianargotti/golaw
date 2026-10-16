@@ -39,6 +39,8 @@ func shellCommands() []shellFixture {
 		{"reserved-word-bypass", "if true; then git commit --no-verify -m 'fix: safe'; fi", wantDeny},
 		{"reserved-word-control", "if true; then git commit -m 'fix: safe'; fi", wantAllow},
 		{"substitution-bypass", `git commit -m "$(git commit --no-verify -m y)"`, wantDeny},
+		{"comment-quote-bypass", "# don't skip\ngit commit --no-verify -m 'fix: safe'", wantDeny},
+		{"comment-control", "# never run `git commit --no-verify`\ngo test ./...", wantAllow},
 		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"sh", `sh -c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"pwsh-control", `pwsh -Command "git status"`, wantAllow},

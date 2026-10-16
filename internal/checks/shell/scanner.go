@@ -40,6 +40,8 @@ type scanner struct {
 	inner      *scanner  // the reader of the substitution inside double quotes being read
 	dollar     bool      // the last rune was a dollar inside double quotes
 	ticks      bool      // a backquote inside double quotes opened a substitution
+	comment    comment   // the comment being read, none outside one
+	hash       bool      // the last rune of a block comment was a hash
 }
 
 func (s *scanner) step(r rune) {
@@ -66,6 +68,9 @@ func (s *scanner) step(r rune) {
 		s.newLine()
 	case r == '(' || r == ')':
 		s.paren(r)
+	case r == '#' && !s.open:
+		s.closeWord()
+		s.comment = lineComment
 	case strings.ContainsRune(separators, r):
 		s.endSegment()
 	default:

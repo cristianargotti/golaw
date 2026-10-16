@@ -83,12 +83,16 @@ func enclosed(runes []rune, from int, d dialect) int {
 }
 
 // diverted takes a rune that is no part of the command line the scanner
-// reads itself: a rune of a here-document body, or of a substitution
-// inside double quotes, whose end a reader of its own finds; every other
-// rune is kept in the line text and answered false.
+// reads itself: a rune of a here-document body or of a comment, which
+// stay out of the line text, or of a substitution inside double quotes,
+// whose end a reader of its own finds; every other rune is kept in the
+// line text and answered false.
 func (s *scanner) diverted(r rune) bool {
-	if s.docs.reading {
+	switch {
+	case s.docs.reading:
 		s.bodyRune(r)
+		return true
+	case s.comment != noComment && s.commented(r):
 		return true
 	}
 	s.line = append(s.line, r)

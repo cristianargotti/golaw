@@ -39,6 +39,7 @@ func TestSecurityContract(t *testing.T) {
 		"such as the else block of an if, are read as one command with the words before them",
 		"in the body of a here-document whose end word is unquoted, never in the body of one whose end word is quoted",
 		"bash 3.2, the /bin/bash of macOS, ends it at the first parenthesis left open",
+		"A comment, from a hash that starts a word to the end of its line or a PowerShell block comment, is text no rule reads",
 		"These rules cannot express an exception",
 		"a negation rule for the templates would also lift the person's own deny rules for them",
 	)
