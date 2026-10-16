@@ -33,6 +33,7 @@ type app struct {
 	registry       func() (*engine.Registry, error)
 	snapshot       func(ctx context.Context, root string) (model.Snapshot, error)
 	load           func(ctx context.Context, root string, now time.Time) (*model.EffectivePolicy, error)
+	explain        func(ctx context.Context, root string, now time.Time) (string, error)
 	render         func(w io.Writer, in model.Input, run *engine.Run, d engine.Decision, asJSON bool) error
 }
 
@@ -62,7 +63,7 @@ func (a *app) rootCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(a.versionCommand(), a.scanCommand())
+	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand())
 	return root
 }
 

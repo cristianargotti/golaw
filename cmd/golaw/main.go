@@ -38,6 +38,7 @@ func newApp(stdout, stderr io.Writer) *app {
 		registry:  func() (*engine.Registry, error) { return checks.Registry() },
 		snapshot:  b.snapshot,
 		load:      b.load,
+		explain:   b.explain,
 		render:    b.render,
 	}
 }
