@@ -131,3 +131,30 @@ func TestObservationBinding(t *testing.T) {
 		t.Fatalf("stale definition accepted: %v", err)
 	}
 }
+
+func TestObservationRefusesForeignOrUnreadableEvidence(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "observation.json")
+	terminal := Observation{
+		Identity: "repository", HookDigest: "definition",
+		Environment: AgentEnvironment{Source: "terminal", Path: "bin"},
+	}
+	if err := SaveObservation(path, terminal); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadObservation(path, "repository", "definition"); !errors.Is(err, ErrEnvironment) {
+		t.Fatalf("an observation from another source was accepted: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{path, filepath.Join(dir, "absent.json")} {
+		if _, err := LoadObservation(name, "repository", "definition"); err == nil {
+			t.Fatalf("an unreadable observation was accepted: %s", name)
+		}
+	}
+	if err := SaveObservation(filepath.Join(path, "child"), terminal); err == nil {
+		t.Fatal("an observation was written under a file")
+	}
+}

@@ -56,3 +56,16 @@ func TestPythonArgumentDoesNotBecomeAnInvocation(t *testing.T) {
 		t.Fatalf("harmless argument treated as a gate: %#v", lines)
 	}
 }
+
+func TestPinRequiresAnInstalledVersion(t *testing.T) {
+	t.Parallel()
+	input := baseline(t)
+	input.Receipt.Version, input.PinnedVersion = "", ""
+	if line := pinLines(input)[0]; line.State != stateRed || line.Code != "kit-version-differs" {
+		t.Fatalf("an empty installed version matched an empty pin: %#v", line)
+	}
+	input.Receipt.Version, input.PinnedVersion = "v0.1.0", "0.1.0"
+	if line := pinLines(input)[0]; line.State != stateOK {
+		t.Fatalf("a tag prefix broke the pin: %#v", line)
+	}
+}

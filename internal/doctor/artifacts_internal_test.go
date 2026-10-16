@@ -93,3 +93,11 @@ func writeJSON(t *testing.T, path string, value any) {
 		t.Fatal(err)
 	}
 }
+
+func TestAMissingReceiptIsReportedAsEmpty(t *testing.T) {
+	t.Parallel()
+	input := Input{Root: t.TempDir(), ReceiptPath: filepath.Join(t.TempDir(), "absent.json")}
+	if got := artifactCode(Assess(Collect(t.Context(), input, nil, nil)), ""); got != "receipt-artifacts-empty" {
+		t.Fatalf("a missing receipt was reported as %q", got)
+	}
+}

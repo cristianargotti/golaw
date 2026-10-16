@@ -84,7 +84,10 @@ func TestVersionFloorAndBuildMetadata(t *testing.T) {
 	if Metadata(nil) != (BuildMetadata{}) {
 		t.Fatal("missing metadata invented")
 	}
-	_ = RunningMetadata()
+	running, present := debug.ReadBuildInfo()
+	if !present || RunningMetadata() != Metadata(running) {
+		t.Fatalf("running metadata differs from the build info: %#v", RunningMetadata())
+	}
 }
 
 func TestBinaryIdentityIsTheFileNotItsName(t *testing.T) {
@@ -117,4 +120,61 @@ func TestBinaryIdentityIsTheFileNotItsName(t *testing.T) {
 	if evidence.Error != "" || evidence.HookPath != evidence.RunningPath || line.Code != "binary-matches" {
 		t.Fatalf("a hard link of the hook binary differed: %#v %#v", evidence, line)
 	}
+}
+
+func TestAgentEnvironmentFoldsTheNamesWindowsUses(t *testing.T) {
+	t.Parallel()
+	got := ObserveEnvironment([]string{"Path=bin", "PathExt=.EXE", "PATHEXTRA=other", "malformed"}, "work")
+	want := AgentEnvironment{Source: sourceAgent, Path: "bin", PathExt: ".EXE", WorkingDir: "work"}
+	if got != want {
+		t.Fatalf("environment = %#v", got)
+	}
+}
+
+func TestRelativeSearchEntriesResolveUnderTheWorkingDirectory(t *testing.T) {
+	t.Parallel()
+	work := t.TempDir()
+	want := agentFile(t, filepath.Join(work, "bin"), 0o700)
+	environment := AgentEnvironment{Source: sourceAgent, Path: "bin", PathExt: ".EXE", WorkingDir: work}
+	resolved, err := ResolveAgentBinary("golaw", environment)
+	if err != nil || resolved != want {
+		t.Fatalf("resolved %q, want %q: %v", resolved, want, err)
+	}
+}
+
+func TestSearchSkipsAFileWithoutTheExecuteBit(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		return
+	}
+	plain, runnable := t.TempDir(), t.TempDir()
+	agentFile(t, plain, 0o600)
+	want := agentFile(t, runnable, 0o700)
+	environment := AgentEnvironment{Source: sourceAgent, Path: plain + string(os.PathListSeparator) + runnable}
+	resolved, err := ResolveAgentBinary("golaw", environment)
+	if err != nil || resolved != want {
+		t.Fatalf("resolved %q, want %q: %v", resolved, want, err)
+	}
+}
+
+// agentFile answers the canonical path, the form ResolveAgentBinary reports,
+// because the temporary directory may sit behind a symbolic link.
+func agentFile(t *testing.T, dir string, mode os.FileMode) string {
+	t.Helper()
+	name := "golaw"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte("binary"), mode); err != nil {
+		t.Fatal(err)
+	}
+	canonical, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return canonical
 }
