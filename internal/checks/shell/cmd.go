@@ -17,19 +17,14 @@ const cmdDelimiters = " \t,;="
 // /c and separates the commands by its own quoting, then the program splits
 // its arguments by the Microsoft runtime rules. The two runtimes in use
 // read a doubled quote inside quotes differently, so a command whose two
-// readings differ contributes both.
+// readings differ contributes both, and the call and start of cmd add
+// the command they run (cmdSegments).
 func splitCmd(script string) []segment {
 	var out []segment
 	for _, reading := range cmdReadings(script) {
 		commands, scripts := cmdCommands(reading)
 		for _, command := range commands {
-			modern, legacy := msvcWords(command, false), msvcWords(command, true)
-			if len(modern) > 0 {
-				out = append(out, modern)
-			}
-			if len(legacy) > 0 && !slices.Equal(modern, legacy) {
-				out = append(out, legacy)
-			}
+			out = append(out, cmdSegments(command)...)
 		}
 		for _, inner := range scripts {
 			out = append(out, segment{cmdProgram, "/c", inner})

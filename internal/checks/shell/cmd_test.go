@@ -141,6 +141,45 @@ func TestCmdReadsTheCommandOfAForFSet(t *testing.T) {
 	}
 }
 
+// TestCmdSeesTheCommandCallAndStartRun reads call and start of cmd as the
+// wrappers they are: call runs the rest of its line, and start the
+// program after its switches, /d, /node, /affinity and /machine with their
+// values, and after a title when its first word is one; both readings of
+// that first word are judged, the value of a switch stays judged by name,
+// and an echo of the same words, a title of them or a launcher alone run
+// nothing.
+func TestCmdSeesTheCommandCallAndStartRun(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		check         model.Check
+		tool, command string
+		want          string
+	}{
+		{shell.NoVerify(), "Bash", `cmd /c 'call git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "PowerShell", `cmd /c 'CALL git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'start /b git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'start "" git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'start "build" /wait /d C:\repo git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'Start /dC:\repo /B git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'start /node 1 /affinity 3 /machine x86 git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'call start /b call git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'start /b cmd /c git commit --no-verify -m x'`, "no-verify"},
+		{shell.NoVerify(), "Bash", `cmd /c 'if exist marker call git commit --no-verify -m x'`, "no-verify"},
+		{shell.SecretTokens(), "Bash", `cmd /c 'start /d deploy\secrets\db notepad'`, "secret-token"},
+		{shell.NoVerify(), "Bash", `cmd /c 'call git commit -m x'`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c 'echo call git commit --no-verify'`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c 'start "git commit --no-verify" notepad'`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c 'start /b'`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c 'start /d'`, ""},
+		{shell.NoVerify(), "Bash", `cmd /c 'call'`, ""},
+	} {
+		got := judgeTool(t, tc.check, tc.tool, tc.command)
+		if tc.want == "" && len(got) != 0 || tc.want != "" && (len(got) != 1 || got[0] != tc.want) {
+			t.Errorf("%s %q: codes %v, want %q", tc.tool, tc.command, got, tc.want)
+		}
+	}
+}
+
 // TestCmdJudgesTheNamesOfItsControlPrefixes judges the names a control
 // prefix of cmd holds, which the command it runs reads: the items of the
 // set of a for, spaced or glued to its parentheses, quoted or apart by a
