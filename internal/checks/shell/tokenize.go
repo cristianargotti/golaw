@@ -52,11 +52,7 @@ func split(command string, d dialect, depth int) []segment {
 	}
 	var out []segment
 	for _, seg := range segs {
-		if script, inner, ok := shellScript(segment(unwrap(seg))); ok && depth < maxDepth {
-			out = append(out, split(script, inner, depth+1)...)
-			continue
-		}
-		out = append(out, seg)
+		out = append(out, unfold(seg, depth)...)
 	}
 	if d != cmdShell && depth < maxDepth {
 		for _, script := range substitutions(command, d) {
@@ -64,6 +60,20 @@ func split(command string, d dialect, depth int) []segment {
 		}
 	}
 	return out
+}
+
+// unfold answers the segments one segment contributes: itself or, when its
+// program is a shell, an eval or an Invoke-Expression that runs a script,
+// the words before the script, which the wrappers and the shell read as
+// their own options and the name rules judge, then the segments of the
+// script, read in its own dialect.
+func unfold(seg segment, depth int) []segment {
+	words, at := unwrapped(seg)
+	script, d, from, ok := shellScript(segment(words[at:]))
+	if !ok || depth >= maxDepth {
+		return []segment{seg}
+	}
+	return append([]segment{segment(words[:at+from])}, split(script, d, depth+1)...)
 }
 
 // scan reads a command line of a POSIX shell or of PowerShell into its
@@ -216,42 +226,43 @@ func isShell(name string) bool {
 }
 
 // shellScript returns the script a shell segment runs, the words after -c,
-// -lc, -Command or /c, with the dialect that shell reads it in, and the
-// script an eval or an Invoke-Expression reads again (evalScript).
-func shellScript(seg segment) (string, dialect, bool) {
-	if script, d, ok := evalScript(seg); ok {
-		return script, d, true
+// -lc, -Command or /c, with the dialect that shell reads it in and the
+// index of its first word, and the script an eval or an Invoke-Expression
+// reads again (evalScript).
+func shellScript(seg segment) (string, dialect, int, bool) {
+	if script, d, at, ok := evalScript(seg); ok {
+		return script, d, at, true
 	}
 	if len(seg) < 2 || !isShell(seg[0]) {
-		return "", posix, false
+		return "", posix, 0, false
 	}
 	for i := 1; i+1 < len(seg); i++ {
 		switch strings.ToLower(seg[i]) {
 		case "-c", "-lc", "-ec", "-command", "/c":
-			return strings.Join(seg[i+1:], " "), dialectOf(seg[0]), true
+			return strings.Join(seg[i+1:], " "), dialectOf(seg[0]), i + 1, true
 		}
 	}
-	return "", posix, false
+	return "", posix, 0, false
 }
 
 // evalScript returns the words of an eval joined by spaces, which the
 // POSIX shell reads again, and the string Invoke-Expression or its alias
 // iex runs as PowerShell, after its -Command parameter or an abbreviation
-// of it.
-func evalScript(seg segment) (string, dialect, bool) {
+// of it, each with the index of its first word.
+func evalScript(seg segment) (string, dialect, int, bool) {
 	switch {
 	case len(seg) < 2:
-		return "", posix, false
+		return "", posix, 0, false
 	case seg[0] == "eval":
-		return strings.Join(seg[1:], " "), posix, true
+		return strings.Join(seg[1:], " "), posix, 1, true
 	case strings.EqualFold(seg[0], "Invoke-Expression") || strings.EqualFold(seg[0], "iex"):
-		args := seg[1:]
-		if len(args) > 1 && abbreviates(args[0], "-command") {
-			args = args[1:]
+		at := 1
+		if len(seg) > 2 && abbreviates(seg[1], "-command") {
+			at = 2
 		}
-		return strings.Join(args, " "), powerShell, true
+		return strings.Join(seg[at:], " "), powerShell, at, true
 	default:
-		return "", posix, false
+		return "", posix, 0, false
 	}
 }
 

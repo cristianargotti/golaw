@@ -38,14 +38,6 @@ func shellCommands() []shellFixture {
 		{"powershell", `powershell -NoProfile -Command "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"reserved-word-bypass", "if true; then git commit --no-verify -m 'fix: safe'; fi", wantDeny},
 		{"reserved-word-control", "if true; then git commit -m 'fix: safe'; fi", wantAllow},
-		{"eval-bypass", `eval "git commit --no-verify -m 'fix: safe'"`, wantDeny},
-		{"xargs-bypass", "echo | xargs git commit --no-verify -m x", wantDeny},
-		{"eval-control", `eval "git commit -m 'fix: safe'"`, wantAllow},
-		{"git-dir-bypass", "git --git-dir .git commit --no-verify -m 'fix: safe'", wantDeny},
-		{"wrapper-option-bypass", "env -i git commit --no-verify -m 'fix: safe'", wantDeny},
-		{"split-string-value", "env -S 'go build -overlay ./deploy/secrets/overlay.json ./internal/...'", wantDeny},
-		{"split-string-control", "env -S 'go build -tags fast ./...'", wantAllow},
-		{"invoke-expression-bypass", `Invoke-Expression "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"substitution-bypass", `git commit -m "$(git commit --no-verify -m y)"`, wantDeny},
 		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"sh", `sh -c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
@@ -53,7 +45,26 @@ func shellCommands() []shellFixture {
 		{"powershell-control", `powershell -NoProfile -Command "git status"`, wantAllow},
 		{"bash-control", `bash -lc "git status"`, wantAllow},
 		{"sh-control", `sh -c "git status"`, wantAllow},
-	}, cmdScripts()...)
+	}, append(wrapperCommands(), cmdScripts()...)...)
+}
+
+// wrapperCommands are the commands that reach their program past eval,
+// Invoke-Expression, xargs, env and the global options of git, and the
+// words a wrapper reads before the script of a shell, each case with its
+// control.
+func wrapperCommands() []shellFixture {
+	return []shellFixture{
+		{"eval-bypass", `eval "git commit --no-verify -m 'fix: safe'"`, wantDeny},
+		{"xargs-bypass", "echo | xargs git commit --no-verify -m x", wantDeny},
+		{"eval-control", `eval "git commit -m 'fix: safe'"`, wantAllow},
+		{"git-dir-bypass", "git --git-dir .git commit --no-verify -m 'fix: safe'", wantDeny},
+		{"wrapper-option-bypass", "env -i git commit --no-verify -m 'fix: safe'", wantDeny},
+		{"split-string-value", "env -S 'go build -overlay ./deploy/secrets/overlay.json ./internal/...'", wantDeny},
+		{"split-string-control", "env -S 'go build -tags fast ./...'", wantAllow},
+		{"file-before-script", "xargs -a .env sh -c 'cat'", wantDeny},
+		{"file-before-script-control", "xargs -a list.txt sh -c 'cat'", wantAllow},
+		{"invoke-expression-bypass", `Invoke-Expression "git commit --no-verify -m 'fix: safe'"`, wantDeny},
+	}
 }
 
 // cmdScripts are the commands that run a script through cmd /c, each case

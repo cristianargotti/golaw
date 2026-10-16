@@ -85,6 +85,30 @@ func TestWrappersAreReadPastTheirOptions(t *testing.T) {
 	})
 }
 
+// TestShellScriptKeepsTheWordsBeforeIt judges by name the words before the
+// script a shell runs, the options of the wrappers that start the shell and
+// the options of the shell itself, because the programs read them: xargs -a
+// reads its file, env -C and sudo -D enter a directory, bash --rcfile and
+// pwsh -SettingsFile read a file before the script; the script itself is
+// read as before, its package operands still packages.
+func TestShellScriptKeepsTheWordsBeforeIt(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", `xargs -a .env sh -c 'printf "%s\n" "$@"' sh`, "secret-token"},
+		{"Bash", "env -C ./deploy/secrets/x sh -c 'ls'", "secret-token"},
+		{"Bash", "sudo -D ./deploy/secrets/x bash -c 'ls'", "secret-token"},
+		{"Bash", "bash --rcfile .env -c 'ls'", "secret-token"},
+		{"Bash", "pwsh -SettingsFile .env -Command 'echo hi'", "secret-token"},
+		{"PowerShell", "pwsh -SettingsFile .env -Command 'echo hi'", "secret-token"},
+		{"Bash", "env -S 'sh -c \"cat .env\"'", "secret-token"},
+		{"Bash", "timeout -s KILL 10 sh -c 'ls'", ""},
+		{"Bash", "bash -c 'go vet ./internal/secrets/...'", ""},
+		{"Bash", "sudo -u me bash -lc 'go test ./internal/secrets/...'", ""},
+		{"Bash", "cmd /c go vet ./internal/secrets/...", ""},
+		{"Bash", "eval 'go vet ./internal/secrets/...'", ""},
+	})
+}
+
 // TestEnvSplitStringKeepsTheRolesOfItsWords judges the words of an env -S
 // string where env puts them: each one is a word of the command at its own
 // index, so the value of a flag of the go tool in the string is judged by
