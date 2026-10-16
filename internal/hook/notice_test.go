@@ -2,6 +2,7 @@ package hook_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -156,16 +157,42 @@ func boundHarness(t *testing.T, tc boundCase) (hook.Adapter, hook.Dependencies) 
 		dependencies.Policy = func(context.Context, hook.Repository) (*model.EffectivePolicy, error) { return nil, tc.policy }
 	}
 	if tc.header {
-		adapter.Oversized = func(io.Reader) (model.Event, error) {
+		adapter.Oversized = func(io.Reader) (hook.Parsed, error) {
 			event := model.Event{Agent: "claude", Tool: "Write", Shape: tc.shape, Cwd: root, Target: tc.target}
 			if tc.shape == model.ShapePost {
 				event.Tool, event.SessionID, event.ToolUseID = "Bash", "session", "use"
 				event.Post = &model.PostResult{}
 			}
-			return event, nil
+			return hook.Parsed{Event: event, Decode: func(base hook.Base, _ model.Snapshot) (hook.Request, error) {
+				return overBoundRequest(base, event)
+			}}, nil
 		}
 	}
 	return adapter, dependencies
+}
+
+// overBoundRequest answers an event over the bound as an adapter does: a
+// post event with the path it names as its hint, a write as the candidate
+// of its path with the gap of the input, and any other event refused.
+func overBoundRequest(base hook.Base, event model.Event) (hook.Request, error) {
+	if event.Shape == model.ShapeShell {
+		return hook.Request{}, model.ErrCannotJudge
+	}
+	request := hook.Request{Event: event}
+	if event.Target == "" {
+		return request, nil
+	}
+	path, err := base.Relative(event.Cwd, event.Target)
+	if err != nil {
+		return hook.Request{}, fmt.Errorf("place: %w", err)
+	}
+	if event.Shape == model.ShapePost {
+		request.Hints = []string{path}
+		return request, nil
+	}
+	request.Event.Candidates = []model.Candidate{{Path: path, Op: model.CandidateCreate}}
+	request.Gaps = []hook.Gap{hook.OverInputBound(path)}
+	return request, nil
 }
 
 // answers reports whether a reply is the one a bound case wants: cannot

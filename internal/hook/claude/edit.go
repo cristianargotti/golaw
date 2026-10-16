@@ -59,10 +59,33 @@ func editSequence(input editInput) ([]edit, error) {
 	return []edit{{Old: input.Old, New: input.New, All: input.All}}, nil
 }
 
+// checkEdits checks the edits of an Edit as applyEdits does before it
+// reads the file: one schema, and each edit complete.
+func checkEdits(input editInput) error {
+	edits, err := editSequence(input)
+	if err != nil {
+		return err
+	}
+	for _, change := range edits {
+		if err := change.complete(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// complete refuses an edit without both strings or with an empty old one.
+func (change edit) complete() error {
+	if change.Old == nil || change.New == nil || *change.Old == "" {
+		return fmt.Errorf("%w: incomplete Edit operation", model.ErrCannotJudge)
+	}
+	return nil
+}
+
 func applyEdits(content string, edits []edit) (string, error) {
 	for _, change := range edits {
-		if change.Old == nil || change.New == nil || *change.Old == "" {
-			return "", fmt.Errorf("%w: incomplete Edit operation", model.ErrCannotJudge)
+		if err := change.complete(); err != nil {
+			return "", err
 		}
 		count := strings.Count(content, *change.Old)
 		if count == 0 || count > 1 && !change.All {

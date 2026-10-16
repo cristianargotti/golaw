@@ -16,10 +16,18 @@ func Evaluate(ctx context.Context, agent string, data []byte, adapter Adapter, d
 }
 
 func evaluateEvent(ctx context.Context, agent string, data []byte, adapter Adapter, dependencies Dependencies) completed {
+	return evaluateParsed(ctx, agent, func() (Parsed, error) { return adapter.Parse(data) }, data, dependencies)
+}
+
+// evaluateParsed judges an event from its one parse: the agent and the
+// enrollment first, then, once the policy in force is loaded, the request
+// its decoder answers. data is the input a shell pre event binds its
+// baseline to, none for an input over the bound.
+func evaluateParsed(ctx context.Context, agent string, parse func() (Parsed, error), data []byte, dependencies Dependencies) completed {
 	if dependencies.Begin != nil {
 		dependencies.Begin()
 	}
-	parsed, err := adapter.Parse(data)
+	parsed, err := parse()
 	if err == nil && parsed.Decode == nil {
 		err = fmt.Errorf("%w: the adapter answered no decoder", model.ErrCannotJudge)
 	}
@@ -52,18 +60,21 @@ func evaluateEvent(ctx context.Context, agent string, data []byte, adapter Adapt
 	return answer
 }
 
-// unmeasured answers a write the decoder could not reconstruct within the
-// read bound: golaw.yml stays protected, the name rules judge its files,
-// whose bytes on disk are over the bound, and anything else is allowed with
-// the notice of what was not measured.
+// unmeasured answers a write whose bytes the hook cannot hold, an edit of a
+// file over the read bound or a write over the bound of the input:
+// golaw.yml stays protected, the name rules judge its files over a view
+// that reads them as over the bound, so no rule reads what the base held
+// there, and anything else is allowed with the notice of what was not
+// measured.
 func (run execution) unmeasured(ctx context.Context, dependencies Dependencies) Result {
 	event := run.request.Event
 	if denial := protectPolicy(run.repository, event.Candidates); denial != nil {
 		return failureLanguage(event, denial, run.language())
 	}
+	view := unheld(run.base, run.request.Gaps)
 	in := model.Input{
-		Mode: model.ModeHook, Policy: run.policy, Snapshot: run.base,
-		Targets: selectFiles(run.base, candidatePaths(event.Candidates)), Event: &event,
+		Mode: model.ModeHook, Policy: run.policy, Snapshot: view,
+		Targets: selectFiles(view, candidatePaths(event.Candidates)), Event: &event,
 	}
 	result := judgeUnread(ctx, dependencies, in, run.request.Gaps, run.language())
 	if failed := run.base.failure(); failed != nil {

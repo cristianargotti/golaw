@@ -56,12 +56,13 @@ type Reply struct {
 // decodes an event once: the header enrollment reads before any target is
 // reconstructed, and the decoder that names the files of the event against
 // the root of its repository and the home the host expands a tool's path
-// from. Oversized, when set, reads the header of an event from the whole of
-// an input over the bound, in bounded memory.
+// from. Oversized, when set, parses an event from the whole of an input
+// over the bound, in bounded memory, with the validation of Parse and a
+// decoder that names what it could not hold instead of holding it.
 type Adapter struct {
 	Parse     func([]byte) (Parsed, error)
 	Encode    func(model.Event, Result) Reply
-	Oversized func(io.Reader) (model.Event, error)
+	Oversized func(io.Reader) (Parsed, error)
 }
 
 // Parsed is an event an adapter decoded once: its header, and the decoder

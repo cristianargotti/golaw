@@ -23,6 +23,10 @@ const (
 // names when it cannot reconstruct a write within the bound.
 func OverReadBound(path string) Gap { return Gap{Path: path, Cause: causeReadBound} }
 
+// OverInputBound is the gap of a write whose event is over the bound of the
+// input, which the decoder of such an event names in place of its content.
+func OverInputBound(path string) Gap { return Gap{Path: path, Cause: causeInput} }
+
 // noticed is the allow of an event that left something unmeasured: the
 // notice names each gap and its cause for the agent and leaves it to the
 // pipeline, and the human message names the same paths to the person.

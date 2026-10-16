@@ -111,6 +111,21 @@ func TestAgentContract(t *testing.T) {
 	)
 }
 
+// TestContractsCheckAnInputOverTheBound pins what both documents say the
+// hook checks of an input over its bound before any size exception.
+func TestContractsCheckAnInputOverTheBound(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/agent-contracts.md",
+		"it is checked as an event within the bound is: its JSON to the last byte and its envelope and tool input as their decoders check them",
+		"NotebookEdit is denied for compatibility at any size",
+		"a field it reads that holds one, and an input whose other bytes pass 8 MiB, is cannot judge",
+	)
+	requireText(t, "docs/security.md",
+		"An input over that bound is checked as one within it, its JSON to the last byte",
+		"so malformed input and an unsupported shape stay denials at any size",
+	)
+}
+
 // TestAgentContractDetection pins what docs/agent-contracts.md says change
 // detection after a shell command sees and where it trusts git status.
 func TestAgentContractDetection(t *testing.T) {

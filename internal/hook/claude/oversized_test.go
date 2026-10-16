@@ -24,6 +24,15 @@ func cut(event, body string) string {
 	return event[:strings.Index(event, body)+len(body)/2]
 }
 
+// header is the event an input over the bound parses to.
+func header(input string) (model.Event, error) {
+	parsed, err := claude.Oversized(strings.NewReader(input))
+	if err != nil {
+		return model.Event{}, fmt.Errorf("parse: %w", err)
+	}
+	return parsed.Event, nil
+}
+
 // TestOversizedReadsTheHeaderOfTheWholeInput reads the event name, the
 // tool, the working directory, the identities and the path of a write from
 // the whole input, the tool use id after the tool input and the path after
@@ -34,27 +43,28 @@ func TestOversizedReadsTheHeaderOfTheWholeInput(t *testing.T) {
 	path := filepath.Join(root, "big.md")
 	body := strings.Repeat("a", 64)
 	write := fmt.Sprintf(`{"file_path":%q,"content":%q}`, path, body)
-	got, err := claude.Oversized(strings.NewReader(ordered("PreToolUse", root, write)))
+	got, err := header(ordered("PreToolUse", root, write))
 	if err != nil || got.Shape != model.ShapeWrite || got.Target != path || got.Agent != "claude" ||
 		got.Cwd != root || got.SessionID != "session" || got.AgentID != "agent" || got.Tool != "Write" || got.ToolUseID != "tool" {
 		t.Fatalf("a write = %+v, %v", got, err)
 	}
 	for name, failed := range map[string]bool{"PostToolUse": false, "PostToolUseFailure": true} {
-		got, err = claude.Oversized(strings.NewReader(ordered(name, root, write)))
+		got, err = header(ordered(name, root, write))
 		if err != nil || got.Shape != model.ShapePost || got.Post == nil || got.Post.Failed != failed || got.Target != path {
 			t.Fatalf("%s = %+v, %v", name, got, err)
 		}
 	}
 	large := strings.Repeat("b", model.MaxReadBytes+1)
 	late := fmt.Sprintf(`{"content":%q,"extra":[1,{"x":"}"},true,null,-2.5e3],"file_path":"%sé"}`, large, path)
-	if got, err = claude.Oversized(strings.NewReader(ordered("PreToolUse", root, late))); err != nil || got.Target != path+"é" {
+	if got, err = header(ordered("PreToolUse", root, late)); err != nil || got.Target != path+"é" {
 		t.Fatalf("a path after the content = %+v, %v", got, err)
 	}
 }
 
 // TestOversizedRefusesWhatIsNotOneHeader refuses an input without the
-// header, a foreign envelope, an event the adapter does not answer and an
-// input that is not one JSON object.
+// header, a foreign envelope, an event the adapter does not answer, an
+// input that is not one JSON object, a tool input that is no object and a
+// field the hook reads past the size it keeps.
 func TestOversizedRefusesWhatIsNotOneHeader(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -75,6 +85,10 @@ func TestOversizedRefusesWhatIsNotOneHeader(t *testing.T) {
 		"an escape the input never ends":    `{"cwd":"x\`,
 		"a nested value that never ends":    `{"tool_response":{"a":[1,"b",`,
 		"an empty input":                    ``,
+		"a tool input that is a string":     ordered("PreToolUse", root, `"text"`),
+		"a tool input that is an array":     ordered("PreToolUse", root, `[{"file_path":"x"}]`),
+		"an identity past the kept size":    strings.Replace(ordered("PreToolUse", root, write), `"agent_id":"agent"`, `"agent_id":"`+strings.Repeat("e", 70<<10)+`"`, 1),
+		"a path past the kept size":         ordered("PreToolUse", root, `{"file_path":"`+strings.Repeat("p", 70<<10)+`","content":"`+body+`"}`),
 	} {
 		if _, err := claude.Oversized(strings.NewReader(input)); !errors.Is(err, model.ErrCannotJudge) {
 			t.Errorf("%s: %v", name, err)
@@ -82,19 +96,17 @@ func TestOversizedRefusesWhatIsNotOneHeader(t *testing.T) {
 	}
 }
 
-// TestOversizedLeavesATargetOnlyAWriteNames answers a tool input that is
-// no object, or an object without a path, with no target, so the hook
-// refuses a write it cannot place.
+// TestOversizedLeavesATargetOnlyAWriteNames answers a tool input without a
+// path, or whose path is no string, with no target, so the hook refuses a
+// write it cannot place.
 func TestOversizedLeavesATargetOnlyAWriteNames(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	for name, input := range map[string]string{
-		"a tool input that is a string": `"text"`,
-		"a tool input that is an array": `[{"file_path":"x"}]`,
-		"an empty tool input":           `{}`,
-		"a path that is no string":      `{"file_path":7}`,
+		"an empty tool input":      `{}`,
+		"a path that is no string": `{"file_path":7}`,
 	} {
-		got, err := claude.Oversized(strings.NewReader(ordered("PreToolUse", root, input)))
+		got, err := header(ordered("PreToolUse", root, input))
 		if err != nil || got.Target != "" || got.Shape != model.ShapeWrite {
 			t.Errorf("%s = %+v, %v", name, got, err)
 		}
@@ -113,14 +125,10 @@ func TestOversizedSkipsEscapesAcrossItsBuffer(t *testing.T) {
 		"an escaped quote on the edge":       strings.Repeat("a", 64<<10-1) + `\"` + "b",
 		"an escaped backslash on the edge":   strings.Repeat("a", 64<<10-1) + `\\`,
 		"a run of backslashes over the edge": strings.Repeat("a", 64<<10-3) + strings.Repeat(`\\`, 4) + `\"` + "c",
-		"a header field past the kept size":  "d",
+		"a unicode escape over the edge":     strings.Repeat("a", 64<<10-3) + `\u00e9` + "d",
 	} {
 		input := `{"content":"` + content + `","file_path":` + fmt.Sprintf("%q", path) + `}`
-		event := ordered("PreToolUse", root, input)
-		if name == "a header field past the kept size" {
-			event = `{"agent_id":"` + strings.Repeat("e", 70<<10) + `",` + event[1:]
-		}
-		got, err := claude.Oversized(strings.NewReader(event))
+		got, err := header(ordered("PreToolUse", root, input))
 		if err != nil || got.Target != path {
 			t.Errorf("%s = %+v, %v", name, got, err)
 		}

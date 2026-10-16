@@ -18,6 +18,18 @@ type unreadView struct {
 	files map[string]model.File
 }
 
+// unheld is the view of a base in which the path of each gap reads as over
+// the read bound.
+func unheld(base model.Snapshot, gaps []Gap) unreadView {
+	view := unreadView{base: base, files: make(map[string]model.File, len(gaps))}
+	for _, gap := range gaps {
+		if gap.Path != "" {
+			view.files[gap.Path] = overBound(base, gap.Path)
+		}
+	}
+	return view
+}
+
 // overBound is the file of a path whose bytes the hook cannot hold: its
 // class as the base knows it, untracked when the base holds none, and a
 // size over the read bound.

@@ -32,10 +32,7 @@ func writeRequest(w wire, event model.Event, in toolInput, base hook.Base, snaps
 		return hook.Request{}, fmt.Errorf("%w: expected pre event", model.ErrCannotJudge)
 	}
 	if event.Tool == notebookTool {
-		return hook.Request{
-			Event:  event,
-			Denial: "NotebookEdit is not supported by this adapter",
-		}, nil
+		return hook.Request{Event: event, Denial: notebookDenial}, nil
 	}
 	candidate, content, err := candidateOf(w, in, base, snapshot)
 	event.Shape = model.ShapeWrite
