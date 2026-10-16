@@ -17,7 +17,6 @@ const ignoreFile = ".gitignore"
 // under a double star.
 var ignoredTree = regexp.MustCompile(`(?:^|/)(?:gen|sqlcgen|test/mocks)(?:/\**|/)?$`)
 
-// generatedTracked is paths.generated-tracked.
 type generatedTracked struct{}
 
 // GeneratedTracked is paths.generated-tracked: no ignore file hides gen/,
@@ -25,7 +24,6 @@ type generatedTracked struct{}
 // fresh by the pipeline.
 func GeneratedTracked() model.Check { return generatedTracked{} }
 
-// Spec returns the check specification.
 func (generatedTracked) Spec() model.Spec { return spec("paths.generated-tracked", model.ScopeFile) }
 
 // Run reads every ignore file among the targets.

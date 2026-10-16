@@ -24,14 +24,12 @@ func goFile(f model.File) bool {
 	return f.Class.IsText() && f.Class != model.ClassGenerated && strings.HasSuffix(f.Path, ".go")
 }
 
-// commentLanguage is text.comment-language.
 type commentLanguage struct{}
 
 // CommentLanguage is text.comment-language: every comment of a Go file is
 // English; the human channel strings are not comments and are not read.
 func CommentLanguage() model.Check { return commentLanguage{} }
 
-// Spec returns the check specification.
 func (commentLanguage) Spec() model.Spec { return spec("text.comment-language") }
 
 // Run reports every comment line that reads as Spanish or Portuguese.

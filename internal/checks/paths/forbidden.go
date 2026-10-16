@@ -15,7 +15,6 @@ var (
 	binaryDocument = regexp.MustCompile(`(?i)\.(?:png|jpe?g|gif|xlsx|docx|pdf)$`)
 )
 
-// forbidden is paths.forbidden.
 type forbidden struct{}
 
 // Forbidden is paths.forbidden: no image or document outside public/,
@@ -23,7 +22,6 @@ type forbidden struct{}
 // anywhere in the tree.
 func Forbidden() model.Check { return forbidden{} }
 
-// Spec returns the check specification.
 func (forbidden) Spec() model.Spec { return spec("paths.forbidden", model.ScopeFile) }
 
 // Run judges the name of every target, binary files included.

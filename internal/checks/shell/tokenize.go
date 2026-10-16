@@ -38,7 +38,9 @@ func split(command string, depth int) []segment {
 	return out
 }
 
-// scanner builds segments rune by rune.
+// scanner reads the command one rune at a time, because a quote, a
+// backslash or a separator changes what the next rune means and a split on
+// blanks would cut a quoted message at its spaces.
 type scanner struct {
 	out    []segment
 	cur    segment

@@ -7,7 +7,6 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// secretMaterial is paths.secret-material.
 type secretMaterial struct{}
 
 // SecretMaterial is paths.secret-material: a read event whose path names
@@ -16,7 +15,6 @@ type secretMaterial struct{}
 // name list.
 func SecretMaterial() model.Check { return secretMaterial{} }
 
-// Spec returns the check specification.
 func (secretMaterial) Spec() model.Spec { return spec("paths.secret-material", model.ScopeEvent) }
 
 // Run judges the path of a read event and nothing else.

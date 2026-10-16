@@ -20,7 +20,6 @@ type toolTerms struct{}
 // same section.
 func ToolTerms() model.Check { return toolTerms{} }
 
-// Spec returns the check specification.
 func (toolTerms) Spec() model.Spec { return spec("text.tool-terms") }
 
 // Run scans every text target outside the allowed prefixes for the names.

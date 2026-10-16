@@ -21,7 +21,6 @@ type lineRule struct {
 	terms  []term
 }
 
-// Spec returns the check specification.
 func (r lineRule) Spec() model.Spec { return r.spec }
 
 // Run walks the targets and reports the first match of every term per line.

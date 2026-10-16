@@ -36,7 +36,6 @@ type commandRule struct {
 	judge judge
 }
 
-// Spec returns the check specification.
 func (r commandRule) Spec() model.Spec { return r.spec }
 
 // Run judges a shell event and answers NotApplicable on any other shape; a
