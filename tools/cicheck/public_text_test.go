@@ -102,3 +102,32 @@ func TestKitCarriesNoPipelineTraceWord(t *testing.T) {
 		}
 	}
 }
+
+// homePath is an absolute home path of Linux or macOS with a user name,
+// assembled from halves so this file carries none. Section 3 keeps every
+// such path out of the kit's tree, test inputs included; the core trace
+// rule refuses the macOS form only, as adopters write Linux paths of their
+// images and runners.
+var homePath = regexp.MustCompile(`(?:/ho` + `me|/Us` + `ers)/[A-Za-z0-9_.-]`)
+
+func TestKitCarriesNoHomePath(t *testing.T) {
+	t.Parallel()
+	for text, want := range map[string]bool{
+		"/ho" + "me/u/.config": true, "/Us" + "ers/me": true, "/h/u/.config": false, "home/u": false,
+	} {
+		if homePath.MatchString(text) != want {
+			t.Errorf("%q: match %v", text, !want)
+		}
+	}
+	command := exec.CommandContext(t.Context(), "git", "ls-files", "-z")
+	command.Dir = filepath.Join("..", "..")
+	output, err := command.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path := range strings.SplitSeq(string(output), "\x00") {
+		if path != "" && homePath.Match(kitBytes(t, path)) {
+			t.Errorf("%s carries an absolute home path", path)
+		}
+	}
+}
