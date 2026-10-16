@@ -89,6 +89,22 @@ func TestSecretGlobsCoverTheSecretPaths(t *testing.T) {
 	}
 }
 
+// TestSecretGlobsOverBlockTheTemplatesOfTheirFamilies pins the over-block
+// docs/security.md states: a deny rule has no exception, so a template
+// named like a file of a family the rules cover is denied to Read while the
+// check, which judges a template by its marker, allows it.
+func TestSecretGlobsOverBlockTheTemplatesOfTheirFamilies(t *testing.T) {
+	t.Parallel()
+	for _, template := range []string{"dev.example.tfvars", "infra/prod.sample.tfvars", "service-account.example.json"} {
+		if secretName(template) {
+			t.Errorf("%s is a template the check allows", template)
+		}
+		if !slices.ContainsFunc(SecretGlobs(), func(glob string) bool { return globMatch(glob, template) }) {
+			t.Errorf("no glob denies the template %s; narrow docs/security.md with the rules", template)
+		}
+	}
+}
+
 func TestSecretGlobsLeaveSourceAndDocumentationReadable(t *testing.T) {
 	t.Parallel()
 	readables := []string{

@@ -4,19 +4,19 @@ golaw checks repository content and supported agent operations. It is not a sand
 
 ## Assurance levels
 
-| Level | Evidence | Claim |
-| --- | --- | --- |
-| Rule proof | Production dispatch, red and near-miss fixtures, deletion and over-fire passes | The check distinguishes its intended violation |
-| Offline acceptance | The exact installed invocation receives recorded inputs | The adapter and launcher answer the protocol |
-| Live acceptance | A dated record identifies agent, OS, version, binary, and target state | The host dispatched and respected the installed hook |
+| Level              | Evidence                                                                       | Claim                                                |
+| ------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| Rule proof         | Production dispatch, red and near-miss fixtures, deletion and over-fire passes | The check distinguishes its intended violation       |
+| Offline acceptance | The exact installed invocation receives recorded inputs                        | The adapter and launcher answer the protocol         |
+| Live acceptance    | A dated record identifies agent, OS, version, binary, and target state         | The host dispatched and respected the installed hook |
 
-| Agent | OS | M1 offline scope | M1 live scope |
-| --- | --- | --- | --- |
-| Claude Code | Linux | Adapter and installed exec invocation | No live enforcement claim |
-| Claude Code | macOS | Adapter and installed exec invocation | Required for the released candidate |
-| Claude Code | Windows | Adapter, installed exec invocation, executable resolution | No live enforcement claim |
-| Codex CLI | Linux, macOS, Windows | Outside M1 | Outside M1 |
-| Cursor | Linux, macOS, Windows | Outside M1 | Outside M1 |
+| Agent       | OS                    | M1 offline scope                                          | M1 live scope                       |
+| ----------- | --------------------- | --------------------------------------------------------- | ----------------------------------- |
+| Claude Code | Linux                 | Adapter and installed exec invocation                     | No live enforcement claim           |
+| Claude Code | macOS                 | Adapter and installed exec invocation                     | Required for the released candidate |
+| Claude Code | Windows               | Adapter, installed exec invocation, executable resolution | No live enforcement claim           |
+| Codex CLI   | Linux, macOS, Windows | Outside M1                                                | Outside M1                          |
+| Cursor      | Linux, macOS, Windows | Outside M1                                                | Outside M1                          |
 
 These are release requirements, not a substitute for the recorded acceptance results. The historical macOS host evidence is in agent-contracts.md.
 
@@ -62,7 +62,7 @@ A path exception by hash covers only an installed agent artifact recorded by the
 
 The first layer denies recognized secret-material names in Read and shell inputs. A Read is judged both by the name it asks for and by the file its links lead to, so a link named like secret material and a link to it are both denied. The second denies known credential-printing commands. Their exact patterns are executable data with red and near-miss fixtures.
 
-The Read deny rules the installer writes for the @ reference gap cover only private key files, Terraform variable files, SSH keys, and cloud credential files. They live in the user settings, which the host applies to every project before any hook runs, so the broad name list stays with the hook, which judges each read in the repository that governs it.
+The Read deny rules the installer writes for the @ reference gap cover only private key files, Terraform variable files, SSH keys, and cloud credential files. They live in the user settings, which the host applies to every project before any hook runs, so the broad name list stays with the hook, which judges each read in the repository that governs it. These rules cannot express an exception, so a template named like a file of those families, such as dev.example.tfvars or service-account.example.json, is denied to Read and to @ references even though the hook allows it; a shell command that names it is still judged by the hook, whose name list allows a template.
 
 Inherited environment variables and secrets outside the recognized names remain exposed. Run the agent under an identity without long-lived credentials. Name checks do not prove that arbitrary file content is free of secrets.
 
