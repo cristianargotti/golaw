@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -120,6 +121,16 @@ func TestGoListPrintsTheGraphOfTheKit(t *testing.T) {
 	modules, err := decode(body)
 	if err != nil || len(modules) == 0 || !modules[0].Main || modules[0].Path != "github.com/cristianargotti/golaw" {
 		t.Fatalf("%+v %v", modules, err)
+	}
+	// A listing of the main module alone would judge nothing and pass, so
+	// the graph must hold every module the kit requires directly.
+	for _, required := range []string{"github.com/spf13/cobra", "gopkg.in/yaml.v3"} {
+		if !slices.ContainsFunc(modules, func(m module) bool { return m.Path == required && !m.Main }) {
+			t.Fatalf("the graph lacks %s: %+v", required, modules)
+		}
+	}
+	if _, judged := judge(modules, today(), defaultDays*day, nil); judged == 0 {
+		t.Fatal("the graph of the kit judged no module")
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
