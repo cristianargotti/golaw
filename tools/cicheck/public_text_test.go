@@ -132,22 +132,42 @@ func TestKitCarriesNoHomePath(t *testing.T) {
 	}
 }
 
-// privateTool is the name of the private tool whose file names the
-// coexistence check once spelled, assembled from halves so this file
-// carries none. The kit is global, so its tree names no private tool.
-var privateTool = regexp.MustCompile(`(?i)p` + `cc`)
+// privateTool matches a whole word and the two former file names, because
+// fragments inside ordinary words do not name the tool. Its spelling is
+// assembled from halves so this file carries none. A go.sum checksum is
+// replaced by a blank before the match, because its base64 text holds the
+// slash, the plus and the equals sign, word boundaries that would let the
+// three letters between two of them read as a word, and a blank never
+// joins the text around it into one.
+var privateTool = regexp.MustCompile(`(?i)\bp` + `cc(?:_gate\.py|-standards\.json)?\b`)
+
+var privateToolChecksum = regexp.MustCompile(`h1:[A-Za-z0-9+/]+={0,2}`)
+
+func namesPrivateTool(data []byte) bool {
+	return privateTool.Match(privateToolChecksum.ReplaceAll(data, []byte(" ")))
+}
 
 func TestKitNamesNoPrivateTool(t *testing.T) {
 	t.Parallel()
 	for text, want := range map[string]bool{
+		"the p" + "cc gate": true, "P" + "CC": true, "p" + "Cc": true,
+		"(p" + "cc)": true, "tools/p" + "cc/x.py": true,
 		"p" + "cc_gate.py": true, "P" + "CC-standards.json": true, "standards_gate.py": false, "standards-gate.json": false,
+		"P" + "CC_GATE.PY": true, "p" + "Cc-Standards.Json": true,
+		"p" + "ccard": false, "prefixp" + "cc": false,
+		"key_p" + "cc": false, "p" + "cc_key": false,
+		"7p" + "cc": false, "p" + "cc7": false,
+		"example.org/mod v1.0.0 h1:AAp" + "cc" + strings.Repeat("A", 38) + "=\n": false,
+		"example.org/mod v1.0.0 h1:/p" + "cc+" + strings.Repeat("A", 38) + "=\n": false,
+		"example.org/mod v1.0.0 h1:p" + "cc/" + strings.Repeat("A", 39) + "=\n":  false,
+		"h1:/p" + "cc+" + strings.Repeat("A", 38) + "= the p" + "cc gate":        true,
 	} {
-		if privateTool.MatchString(text) != want {
+		if namesPrivateTool([]byte(text)) != want {
 			t.Errorf("%q: match %v", text, !want)
 		}
 	}
 	for _, path := range trackedPaths(t) {
-		if privateTool.Match(kitBytes(t, path)) {
+		if namesPrivateTool(kitBytes(t, path)) {
 			t.Errorf("%s names the private tool", path)
 		}
 	}
