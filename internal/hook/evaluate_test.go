@@ -98,6 +98,31 @@ func TestStaleCandidateAndProtectedPolicy(t *testing.T) {
 	}
 }
 
+func TestProtectedPolicyFoldsCaseOnACaseInsensitiveRepository(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		path               string
+		insensitive, wants bool
+	}{
+		{"GOLAW.yml", true, true},
+		{"GOLAW.yml", false, false},
+	} {
+		req := request("safe")
+		req.Event.Candidates[0].Path = tc.path
+		adapter, dependencies := harness(t, req)
+		enroll := dependencies.Enroll
+		dependencies.Enroll = func(ctx context.Context, cwd string) (hook.Repository, error) {
+			repository, err := enroll(ctx, cwd)
+			repository.CaseInsensitive = tc.insensitive
+			return repository, err
+		}
+		_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
+		if refused := got.Outcome == hook.Deny && strings.Contains(got.Reason, "golaw.yml"); refused != tc.wants {
+			t.Fatal(tc, got)
+		}
+	}
+}
+
 func TestShellPostUsesContentIdentity(t *testing.T) {
 	t.Parallel()
 	req := request("safe")
