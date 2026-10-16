@@ -32,6 +32,8 @@ func TestSecurityContract(t *testing.T) {
 		"a negation rule for the templates would also lift the person's own deny rules for them",
 		"a template such as dev.example.tfvars, terraform.tfvars.example or service-account.example.json is readable, to Read and to @ references, as the hook allows it",
 		"outside an enrolled repository nothing denies their Read",
+		"Inside an enrolled repository too, an @ reference reads such a file",
+		"the hook still denies the agent's own Read of it and a shell command that names it",
 		"A write is judged whole up to the read bound of 8 MiB",
 		"is a notice the agent reads, never a block",
 		"any other state is a denial whose reason asks for golaw.yml to be committed",
