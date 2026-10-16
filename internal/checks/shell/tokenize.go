@@ -104,14 +104,16 @@ func (s *scanner) endSegment() {
 	s.cur = nil
 }
 
-// base is the program name of a word: its last path element, lower case.
+// base is the program name of a word: its last path element, lower case,
+// without the .exe suffix, so git.exe on Windows is the same program as git
+// for every rule that compares the name.
 func base(word string) string {
-	return strings.ToLower(word[strings.LastIndex(word, "/")+1:])
+	return strings.TrimSuffix(strings.ToLower(word[strings.LastIndex(word, "/")+1:]), ".exe")
 }
 
 // isShell reports whether a program runs a script given as an argument.
 func isShell(name string) bool {
-	switch strings.TrimSuffix(base(name), ".exe") {
+	switch base(name) {
 	case "sh", "bash", "zsh", "dash", "ksh", "fish", "pwsh", "powershell", "cmd":
 		return true
 	default:

@@ -85,6 +85,10 @@ func TestNoVerify(t *testing.T) {
 		"FOO=1 timeout 30 git commit --no-verify -m x":  true,
 		"sudo git commit --no-verify -m x":              true,
 		"git status; git commit -m x && git log -n 1":   false,
+		"git.exe commit --no-verify -m x":               true,
+		"C:/Git/bin/git.exe commit -n -m x":             true,
+		"git.exe commit -m x":                           false,
+		"git.exe status":                                false,
 	})
 }
 
