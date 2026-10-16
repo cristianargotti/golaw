@@ -123,3 +123,35 @@ func assertJSONEqual(t *testing.T, left, right []byte) {
 		t.Fatalf("JSON differs:\n%s\n%s", left, right)
 	}
 }
+
+func TestMergeKeepsForeignBytesAndKeyOrder(t *testing.T) {
+	t.Parallel()
+	original := []byte(`{"model":"fixed","permissions":{"defaultMode":"plan","deny":["Bash(echo <done>)"],` +
+		`"allow":["Bash(make && make test)"]},"hooks":{"PreToolUse":[{"matcher":"Bash",` +
+		`"hooks":[{"type":"command","command":"test -f a && echo <ok>"}]}]}}`)
+	merged, owned, err := MergeSettings(original, "/catalog", []string{"Read(private/**)"}, Ownership{})
+	must(t, err)
+	for _, fragment := range []string{`"test -f a && echo <ok>"`, `"Bash(echo <done>)"`, `"Bash(make && make test)"`} {
+		if !bytes.Contains(merged, []byte(fragment)) {
+			t.Errorf("foreign bytes changed: %s\n%s", fragment, merged)
+		}
+	}
+	position := 0
+	for _, key := range []string{
+		`"model"`, `"permissions"`, `"defaultMode"`, `"deny"`, `"allow"`, `"hooks"`,
+		`"enabledPlugins"`, `"extraKnownMarketplaces"`,
+	} {
+		offset := bytes.Index(merged[position:], []byte(key))
+		if offset < 0 {
+			t.Fatalf("key %s missing or out of order:\n%s", key, merged)
+		}
+		position += offset + len(key)
+	}
+	restored, err := RestoreSettings(merged, owned)
+	must(t, err)
+	var compact bytes.Buffer
+	must(t, json.Compact(&compact, restored))
+	if !bytes.Equal(compact.Bytes(), original) {
+		t.Fatalf("uninstall did not restore the original document:\n%s", restored)
+	}
+}

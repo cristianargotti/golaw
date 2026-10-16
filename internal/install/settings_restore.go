@@ -31,7 +31,7 @@ func RestoreSettings(data []byte, owned Ownership) ([]byte, error) {
 	if owned.Created && len(root) == 0 {
 		return nil, nil
 	}
-	return encodeSettings(root)
+	return encodeSettings(root, data)
 }
 
 // VerifySettings judges a settings file by the entries this installation

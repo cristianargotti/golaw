@@ -37,7 +37,7 @@ func MergeSettings(data []byte, marketplace string, rules []string, prior Owners
 	if err != nil {
 		return nil, prior, err
 	}
-	encoded, err := encodeSettings(root)
+	encoded, err := encodeSettings(root, data)
 	return encoded, owned, err
 }
 
@@ -70,7 +70,7 @@ func mergeRules(deny, rules []string, owned *Ownership) []string {
 }
 
 func mergePointers(root map[string]json.RawMessage, path string, owned *Ownership) error {
-	market, err := json.Marshal(map[string]any{
+	market, err := marshal(map[string]any{
 		"source": map[string]string{"source": "directory", "path": path},
 	})
 	if err != nil {
