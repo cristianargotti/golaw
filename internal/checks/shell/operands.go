@@ -47,6 +47,7 @@ type operandScan struct {
 	test   bool // go test: the packages are the first run of operands, as go test reads them
 	seen   bool // a package was read
 	closed bool // go test: a flag after the packages or a flag it does not take closed their list
+	rest   bool // after the flag terminator, every word is an operand
 }
 
 // packageWords marks the words of a segment its program reads as Go
@@ -108,12 +109,22 @@ func goPackageCommand(command string) bool {
 }
 
 // scan marks the operands among the words from the given index: a flag is
-// read by flagWord, and a word after the closed list of go test passes to
-// the test binary.
+// read by flagWord, a word after the closed list of go test passes to the
+// test binary, and after the flag terminator every word is an operand,
+// since the flag parser of the go tool, go vet and the linters keep
+// reading packages there, while go test hands -- and the rest to the test
+// binary (flagWord).
 func (s *operandScan) scan(words []string, from int) {
 	for i := from; i < len(words); i++ {
 		word := words[i]
 		switch {
+		case s.rest:
+			s.marks[i], s.seen = true, true
+			if s.run {
+				return
+			}
+		case word == "--" && !s.test:
+			s.rest = true
 		case len(word) > 1 && word[0] == '-':
 			next, stop := s.flagWord(words, i)
 			if stop {

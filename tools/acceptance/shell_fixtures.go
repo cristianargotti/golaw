@@ -23,6 +23,8 @@ func shellCommands() []shellFixture {
 		{"secret-token", "cat .env", wantDeny},
 		{"source-token", "cat credentials.go", wantAllow},
 		{"package-pattern", "go test ./internal/secrets/...", wantAllow},
+		{"package-terminator", "go build -- ./internal/secrets/...", wantAllow},
+		{"package-terminator-test", "go test -- ./internal/secrets/...", wantDeny},
 		{"package-redirect", "go run ./x.go < ./deploy/secrets/...", wantDeny},
 		{"redirect-flag-value", "go run -tags < ./deploy/secrets/... example ./readstdin.go", wantDeny},
 		{"redirect-bypass", "git commit -m 'fix: safe' 2>&1 --no-verify", wantDeny},

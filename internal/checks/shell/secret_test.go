@@ -117,6 +117,30 @@ func TestSecretTokensSkipOnlyPackageOperands(t *testing.T) {
 	})
 }
 
+// TestSecretTokensReadPackagesAfterTheFlagTerminator reads the operands
+// after -- the way each program does: the go tool's flag parser, go vet
+// and the linters keep reading packages after it, go run its package and
+// then the program's arguments, while go test hands it and every word
+// after it to the test binary.
+func TestSecretTokensReadPackagesAfterTheFlagTerminator(t *testing.T) {
+	t.Parallel()
+	denies(t, shell.SecretTokens(), "secret-token", map[string]bool{
+		"go build -- ./internal/secrets/...":               false,
+		"go vet -- ./internal/secrets/...":                 false,
+		"go list -- ./internal/secrets/...":                false,
+		"go install -- ./internal/secrets/...":             false,
+		"go build -race -- ./internal/secrets/... ./x/...": false,
+		"go run -- ./internal/secrets/...":                 false,
+		"golangci-lint run -- ./internal/secrets/...":      false,
+		"staticcheck -- ./internal/secrets/...":            false,
+		"go test -- ./internal/secrets/...":                true,
+		"go test -race -- ./internal/secrets/...":          true,
+		"go run -- ./x.go ./deploy/secrets/...":            true,
+		"go build -- ./deploy/secrets/main.txt":            true,
+		"go build -- ./... > ./deploy/secrets/...":         true,
+	})
+}
+
 // nameLiterals returns the string literals of the secretNames function and
 // of the sourceFile and exampleFile patterns of a family's secret.go, the
 // data the two families must carry alike.
