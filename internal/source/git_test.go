@@ -76,6 +76,14 @@ func TestDiscoverOutcomes(t *testing.T) {
 	if _, err := source.Discover(t.Context(), filepath.Join(t.TempDir(), "absent")); !errors.Is(err, source.ErrGit) {
 		t.Errorf("absent directory: %v, want ErrGit", err)
 	}
+	broken := initRepo(t)
+	write(t, broken, "sub/a.txt", "a\n")
+	gitRun(t, broken, "config", "core.bare", "maybe")
+	for _, dir := range []string{broken, filepath.Join(broken, "sub")} {
+		if _, err := source.Discover(t.Context(), dir); !errors.Is(err, source.ErrGit) || errors.Is(err, source.ErrNotRepository) {
+			t.Errorf("a repository git fails on (%s): %v, want ErrGit and not ErrNotRepository", dir, err)
+		}
+	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	_, err := source.Discover(ctx, initRepo(t))

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -33,11 +34,12 @@ type Repo struct {
 func (r Repo) Identity() string { return filepath.ToSlash(r.Root) }
 
 // Discover finds the repository that holds dir through git rev-parse. A
-// directory git does not recognize is ErrNotRepository; git missing or
-// failing otherwise is ErrGit; the two outcomes of A14 stay distinct.
+// directory git does not recognize, with no .git entry in it or above it,
+// is ErrNotRepository; git missing or failing otherwise, a repository git
+// cannot read included, is ErrGit; the two outcomes of A14 stay distinct.
 func Discover(ctx context.Context, dir string) (Repo, error) {
 	out, err := git(ctx, dir, "rev-parse", "--show-toplevel", "--absolute-git-dir")
-	if failure, fatal := errors.AsType[*gitError](err); fatal && failure.status == gitFatal {
+	if failure, fatal := errors.AsType[*gitError](err); fatal && failure.status == gitFatal && outsideCheckout(dir) {
 		return Repo{}, fmt.Errorf("%w: %s: %s", ErrNotRepository, dir, failure.reason)
 	}
 	if err != nil {
@@ -62,6 +64,30 @@ func Discover(ctx context.Context, dir string) (Repo, error) {
 	}
 	repo.Head, repo.IgnoreCase = head, flag == "true"
 	return repo, nil
+}
+
+// outsideCheckout reports whether no directory from dir up to the root of
+// the filesystem holds a .git entry. Git exits 128 for every fatal error
+// and translates the reason it prints, so the entry git looks for is what
+// tells a directory outside every repository from a repository git failed
+// on, such as one with an unparsable configuration.
+func outsideCheckout(dir string) bool {
+	resolved, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return false
+	}
+	abs, err := filepath.Abs(resolved)
+	if err != nil {
+		return false
+	}
+	for current := abs; ; current = filepath.Dir(current) {
+		if _, err := os.Lstat(filepath.Join(current, ".git")); err == nil {
+			return false
+		}
+		if filepath.Dir(current) == current {
+			return true
+		}
+	}
 }
 
 // query runs a plumbing question whose "no" is exit status 1 and answers
