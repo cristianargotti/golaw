@@ -21,7 +21,7 @@ golaw scan .
 
 init without --apply prints the complete deterministic diff and writes nothing. M1 init --apply writes golaw.yml and the external enrollment record, with no templates. A repeated apply produces no diff. init never arms git hooks.
 
-Commit the reviewed golaw.yml before agent install. On a branch that already has a commit, the policy in force is the golaw.yml at HEAD, so until a commit holds the file agent install refuses the enrolled repository and names this step, and scan exits 2. On a new repository without a commit, the enrollment record carries the policy until the first commit.
+Commit the reviewed golaw.yml before agent install; init --apply ends with a line that asks for that commit while HEAD does not hold the policy it enrolled. On a branch that already has a commit, the policy in force is the golaw.yml at HEAD, so until a commit holds the file agent install refuses the enrolled repository and names this step, and scan exits 2, while an installed agent guard judges with the enrolled golaw.yml the index or the checkout holds, as long as it is the policy init enrolled, and otherwise denies with a reason that asks for the commit. On a new repository without a commit, the enrollment record carries the policy until the first commit.
 
 init --apply never renders over a golaw.yml the checkout already holds: it keeps the file, as reviewed by its person or committed by a teammate, and enrolls it. To start again from the defaults, remove the file first.
 

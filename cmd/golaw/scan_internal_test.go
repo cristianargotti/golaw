@@ -150,7 +150,7 @@ func boundApp(t *testing.T) testApp {
 	ta.buildInfo = func() buildinfo.Info { return b.info }
 	ta.registry = func() (*engine.Registry, error) { return checks.Registry() }
 	ta.snapshot, ta.load, ta.render = b.snapshot, b.load, b.render
-	ta.compile, ta.enroll = b.compile, b.enroll
+	ta.compile, ta.enroll, ta.committed = b.compile, b.enroll, b.committed
 	return ta
 }
 

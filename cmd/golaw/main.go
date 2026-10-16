@@ -44,6 +44,7 @@ func newApp(stdout, stderr io.Writer) *app {
 		load:           b.load,
 		compile:        b.compile,
 		enroll:         b.enroll,
+		committed:      b.committed,
 		explain:        b.explain,
 		render:         b.render,
 		discover:       b.discover,

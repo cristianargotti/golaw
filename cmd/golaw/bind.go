@@ -106,20 +106,22 @@ func (b binding) loaded(ctx context.Context, dir string, now time.Time) (*policy
 // committed tightening the record does not hold yet loads with the
 // mismatch state instead of refusing (A3).
 func (b binding) loadedFor(ctx context.Context, dir string, now time.Time, reenroll bool) (*policy.Loaded, error) {
-	return b.loadedBy(ctx, dir, now, reenroll, locate)
+	return b.loadedBy(ctx, policy.Input{Dir: dir, Now: now, Reenroll: reenroll, Discover: locate})
 }
 
-// loadedBy is loadedFor through a discoverer of the caller's own, such as
-// the cache of a hook process.
-func (b binding) loadedBy(ctx context.Context, dir string, now time.Time, reenroll bool, discover policy.Discoverer) (*policy.Loaded, error) {
+// loadedBy is the policy in force for the directory, the clock, the
+// discoverer and the switches of an input, such as the cache of a hook
+// process and the policy it takes before the first commit; the binding
+// fills the directories, the pin and the schemas.
+func (b binding) loadedBy(ctx context.Context, in policy.Input) (*policy.Loaded, error) {
 	dirs, err := b.dirs()
 	if err != nil {
 		return nil, err
 	}
-	in := policy.Input{Dir: dir, Dirs: dirs, Version: b.pin(), Now: now, Schemas: schemas(), Discover: discover, Reenroll: reenroll}
+	in.Dirs, in.Version, in.Schemas = dirs, b.pin(), schemas()
 	l, err := policy.Load(ctx, in)
 	if err != nil {
-		return nil, fmt.Errorf("load the policy of %s: %w", dir, err)
+		return nil, fmt.Errorf("load the policy of %s: %w", in.Dir, err)
 	}
 	return l, nil
 }
@@ -229,6 +231,23 @@ func (b binding) enroll(root string, data []byte, p *model.EffectivePolicy, now 
 		return fmt.Errorf("write the enrollment record: %w", err)
 	}
 	return nil
+}
+
+// committed is the committed seam: whether HEAD holds the golaw.yml of a
+// digest, the policy init enrolled; an unborn branch holds none.
+func (b binding) committed(ctx context.Context, root, digest string) (bool, error) {
+	repo, err := source.Discover(ctx, root)
+	if err != nil {
+		return false, discoverFailed(root, err)
+	}
+	if repo.Head == "" {
+		return false, nil
+	}
+	data, found, err := policy.ReadHead(ctx, repo.Root)
+	if err != nil {
+		return false, fmt.Errorf("read the policy at HEAD of %s: %w", repo.Root, err)
+	}
+	return found && digestOf(data) == digest, nil
 }
 
 // profileDigest is the digest of the profile block, empty for core only.

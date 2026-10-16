@@ -48,6 +48,7 @@ type app struct {
 	load           func(ctx context.Context, root string, now time.Time) (*model.EffectivePolicy, error)
 	compile        func(data []byte, now time.Time) (*model.EffectivePolicy, error)
 	enroll         func(root string, data []byte, policy *model.EffectivePolicy, now time.Time) error
+	committed      func(ctx context.Context, root, digest string) (bool, error)
 	explain        func(ctx context.Context, root string, now time.Time) (string, error)
 	render         func(w io.Writer, in model.Input, run *engine.Run, d engine.Decision, asJSON bool) error
 	discover       func(ctx context.Context, dir string) (string, error)

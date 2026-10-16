@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -30,7 +31,7 @@ func (a *app) initCommand() *cobra.Command {
 		Short: "Write golaw.yml and enroll the repository; without --apply only print the diff",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return a.initialize(cmd.OutOrStdout(), rootArg(args), opts)
+			return a.initialize(cmd.Context(), cmd.OutOrStdout(), rootArg(args), opts)
 		},
 	}
 	cmd.Flags().BoolVar(&opts.apply, "apply", false, "write the policy file and the enrollment record")
@@ -44,7 +45,7 @@ func (a *app) initCommand() *cobra.Command {
 // checkout and, with --apply, publishes the file and enrolls the root with
 // the digest of the policy it compiled. A file the checkout already holds
 // is kept and enrolled instead (keepPolicy).
-func (a *app) initialize(out io.Writer, path string, opts initOptions) error {
+func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts initOptions) error {
 	root, data, policy, err := a.prepareInit(path, opts)
 	if err != nil {
 		return err
@@ -54,7 +55,7 @@ func (a *app) initialize(out io.Writer, path string, opts initOptions) error {
 		return initFailed(err)
 	}
 	if current != nil {
-		return a.keepPolicy(out, root, current, data, opts.apply)
+		return a.keepPolicy(ctx, out, root, current, data, opts.apply)
 	}
 	if err := writeLines(out, diffLines(bootstrap.Diff(current, data))); err != nil {
 		return initFailed(err)
@@ -65,7 +66,7 @@ func (a *app) initialize(out io.Writer, path string, opts initOptions) error {
 	if err := bootstrap.Write(root, data); err != nil {
 		return initFailed(err)
 	}
-	return a.enrollInit(out, root, data, policy)
+	return a.enrollInit(ctx, out, root, data, policy)
 }
 
 // keepPolicy enrolls the golaw.yml a checkout already holds instead of
@@ -73,7 +74,7 @@ func (a *app) initialize(out io.Writer, path string, opts initOptions) error {
 // a teammate in a clone, and the defaults would weaken it, so the flags
 // that shape a render do not apply. A file the kit cannot load is refused
 // and left as it is.
-func (a *app) keepPolicy(out io.Writer, root string, current, rendered []byte, apply bool) error {
+func (a *app) keepPolicy(ctx context.Context, out io.Writer, root string, current, rendered []byte, apply bool) error {
 	policy, err := a.compile(current, a.now())
 	if err != nil {
 		return initFailed(fmt.Errorf("%s of %s cannot be loaded, so init neither replaces nor enrolls it: %w", bootstrap.PolicyFile, root, err))
@@ -88,15 +89,31 @@ func (a *app) keepPolicy(out io.Writer, root string, current, rendered []byte, a
 	if !apply {
 		return initFailed(writeLines(out, []string{"init: nothing written, run again with --apply"}))
 	}
-	return a.enrollInit(out, root, current, policy)
+	return a.enrollInit(ctx, out, root, current, policy)
 }
 
-// enrollInit writes the enrollment record of the policy init settled on.
-func (a *app) enrollInit(out io.Writer, root string, data []byte, policy *model.EffectivePolicy) error {
+// enrollInit writes the enrollment record of the policy init settled on
+// and, while HEAD does not hold that policy, ends with the line that asks
+// for golaw.yml to be committed: until a commit holds it, it governs the
+// agent hooks only, and a HEAD that cannot be read still asks.
+func (a *app) enrollInit(ctx context.Context, out io.Writer, root string, data []byte, policy *model.EffectivePolicy) error {
 	if err := a.enroll(root, data, policy, a.now()); err != nil {
 		return initFailed(err)
 	}
-	return initFailed(writeLines(out, []string{"enrolled: " + root + " policy " + policy.Digest}))
+	lines := []string{"enrolled: " + root + " policy " + policy.Digest}
+	if committed, err := a.committed(ctx, root, policy.Digest); err != nil || !committed {
+		lines = append(lines, commitLine(policy.Language))
+	}
+	return initFailed(writeLines(out, lines))
+}
+
+// commitLine asks the person to commit golaw.yml, in the language of the
+// policy: Portuguese for pt-BR and English for any other.
+func commitLine(language string) string {
+	if language == model.DefaultLanguage {
+		return "Faça o commit de golaw.yml para fixar a política em HEAD."
+	}
+	return "Commit golaw.yml to fix the policy at HEAD."
 }
 
 // prepareInit resolves the root, detects the layout, renders the policy and

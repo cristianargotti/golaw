@@ -142,9 +142,11 @@ func (h hookBinding) observe(root, cwd string) {
 // state, after the proposal in the checkout is judged (A2, A3): on an
 // enrolled repository a policy file gone from the checkout, a staged
 // deletion of the file HEAD holds and a staged policy that weakens the one
-// in force are all denials naming the cause.
+// in force are all denials naming the cause. While HEAD holds no golaw.yml
+// yet, the enrolled policy of the index or the checkout is in force, and
+// any other state asks for the commit.
 func (h hookBinding) policy(ctx context.Context, repo hook.Repository) (*model.EffectivePolicy, error) {
-	l, err := h.loadedBy(ctx, repo.Root, h.now, false, h.locate)
+	l, err := h.loadedBy(ctx, policy.Input{Dir: repo.Root, Now: h.now, Discover: h.locate, Uncommitted: true})
 	if err != nil {
 		return nil, err
 	}

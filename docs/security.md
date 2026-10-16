@@ -56,7 +56,7 @@ Agent hooks execute no repository code. They use trusted git plumbing, keep snap
 
 init writes only within the real repository root and refuses symlinked path components. It never arms git hooks. Templates contain no project-level agent files.
 
-Policy authority is committed HEAD, or the enrolled bootstrap policy on an unborn branch. The indexed policy is a proposed replacement and cannot weaken the policy in force. Agent edits to golaw.yml are denied.
+Policy authority is committed HEAD, or the enrolled bootstrap policy on an unborn branch. Until HEAD holds golaw.yml on a branch with commits, the agent hooks take the golaw.yml the index holds, or the checkout when nothing is staged, only when its bytes mean the policy the enrollment record holds, never through a link; any other state is a denial whose reason asks for golaw.yml to be committed, so a file an agent can edit never weakens the policy in force. The indexed policy is a proposed replacement and cannot weaken the policy in force. Agent edits to golaw.yml are denied.
 
 Missing or mismatched policy in an enrolled repository is an error. A positively unenrolled location receives a valid allow.
 

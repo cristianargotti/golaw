@@ -30,6 +30,9 @@ func TestSecurityContract(t *testing.T) {
 		"keeps every element below the repository boundary, a directory link back to the root included",
 		"These rules cannot express an exception",
 		"a negation rule for the templates would also lift the person's own deny rules for them",
+		"A write is judged whole up to the read bound of 8 MiB",
+		"is a notice the agent reads, never a block",
+		"any other state is a denial whose reason asks for golaw.yml to be committed",
 	)
 }
 

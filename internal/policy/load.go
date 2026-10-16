@@ -11,11 +11,13 @@ import (
 // Origin says where the policy in force came from.
 type Origin int
 
-// The three origins of a policy in force.
+// The origins of a policy in force.
 const (
 	OriginCore      Origin = iota + 1 // no golaw.yml and no record: the core defaults
 	OriginHead                        // golaw.yml at HEAD (A2)
 	OriginBootstrap                   // the bootstrap policy of the record, HEAD unborn (A2)
+	OriginStaged                      // the enrolled golaw.yml the index holds, not at HEAD yet (hook only)
+	OriginCheckout                    // the enrolled golaw.yml the checkout holds, not staged yet (hook only)
 )
 
 // String names the origin for config explain.
@@ -27,6 +29,10 @@ func (o Origin) String() string {
 		return "HEAD:" + FileName
 	case OriginBootstrap:
 		return "bootstrap record"
+	case OriginStaged:
+		return "index:" + FileName
+	case OriginCheckout:
+		return "checkout:" + FileName
 	default:
 		return "unknown"
 	}
@@ -48,6 +54,11 @@ type Input struct {
 	// instead of an error, once the policy in force tightens the policy
 	// the record enrolled (CheckReenrollment).
 	Reenroll bool
+	// Uncommitted is set by the hook: while HEAD holds no golaw.yml yet,
+	// the policy in force is the enrolled one the index or the checkout
+	// holds, when its bytes mean the policy the record enrolled, so an
+	// agent works in a repository init --apply just enrolled.
+	Uncommitted bool
 }
 
 // Loaded is the policy in force with everything config explain reports.
@@ -76,7 +87,7 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 		return nil, err
 	}
 	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas}
-	data, err := l.inForce(ctx)
+	data, err := l.inForce(ctx, in.Uncommitted)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +117,10 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 
 // inForce answers the bytes of the policy in force and sets the origin:
 // HEAD when it holds the file, the bootstrap record on an unborn branch,
-// the core defaults for an unenrolled repository without the file.
-func (l *Loaded) inForce(ctx context.Context) ([]byte, error) {
+// for the hook the enrolled policy of the index or the checkout while
+// HEAD holds none, the core defaults for an unenrolled repository without
+// the file.
+func (l *Loaded) inForce(ctx context.Context, uncommitted bool) ([]byte, error) {
 	if l.Head != "" {
 		head := l.reads().atHead(ctx)
 		if head.err != nil {
@@ -121,6 +134,9 @@ func (l *Loaded) inForce(ctx context.Context) ([]byte, error) {
 	if l.Record != nil && l.Head == "" && l.Record.Bootstrap != "" {
 		l.Origin = OriginBootstrap
 		return []byte(l.Record.Bootstrap), nil
+	}
+	if l.Record != nil && uncommitted {
+		return l.uncommitted(ctx)
 	}
 	if l.Record != nil {
 		return nil, fmt.Errorf("%w: enrolled repository %s has no %s at HEAD (%s): %w",

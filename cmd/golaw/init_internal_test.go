@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,8 +37,13 @@ func initApp(t *testing.T) (testApp, *enrollment) {
 		record.root, record.digest, record.data, record.calls = root, policy.Digest, data, record.calls+1
 		return nil
 	}
+	ta.committed = func(context.Context, string, string) (bool, error) { return false, nil }
 	return ta, record
 }
+
+// commitAsked is the closing line init prints in Portuguese while HEAD
+// does not hold the policy it enrolled.
+const commitAsked = "Faça o commit de golaw.yml para fixar a política em HEAD.\n"
 
 // checkout creates a git checkout root with a go.mod and returns its real
 // path, so the symbolic link of the temporary directory on macOS never
@@ -114,7 +120,7 @@ func TestInitApplyWritesEnrollsAndIsIdempotent(t *testing.T) {
 	if record.calls != 1 || record.root != root || !strings.HasPrefix(record.digest, "sha256:") {
 		t.Fatalf("enrollment = %+v", record)
 	}
-	if !strings.HasSuffix(ta.stdout.String(), "enrolled: "+root+" policy "+record.digest+"\n") {
+	if !strings.HasSuffix(ta.stdout.String(), "enrolled: "+root+" policy "+record.digest+"\n"+commitAsked) {
 		t.Fatalf("stdout = %q", ta.stdout.String())
 	}
 	ta.stdout.Reset()
@@ -228,5 +234,33 @@ func TestInitKeepsAndEnrollsAnExistingPolicy(t *testing.T) {
 	}
 	if data, err := os.ReadFile(file); err != nil || string(data) != reviewed || record.calls != 1 {
 		t.Fatalf("the unloadable file was touched: %q, %v, enrollment = %+v", data, err, record)
+	}
+}
+
+// TestInitEndsWithTheCommitLine closes init --apply with one line in the
+// language of the policy that asks for golaw.yml to be committed while
+// HEAD does not hold the policy it enrolled, and ends with the enrollment
+// once HEAD does; a HEAD it cannot read still asks.
+func TestInitEndsWithTheCommitLine(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name      string
+		committed bool
+		err       error
+		ends      string
+	}{
+		{"not at HEAD", false, nil, commitAsked},
+		{"at HEAD", true, nil, "policy sha256:"},
+		{"a HEAD that cannot be read", true, errBoom, commitAsked},
+	} {
+		ta, _ := initApp(t)
+		ta.committed = func(context.Context, string, string) (bool, error) { return tc.committed, tc.err }
+		if got := ta.run(t.Context(), []string{"init", "--apply", checkout(t)}); got != exitClean {
+			t.Fatalf("%s: exit = %d, stderr = %q", tc.name, got, ta.stderr.String())
+		}
+		lines := strings.Split(strings.TrimSuffix(ta.stdout.String(), "\n"), "\n")
+		if last := lines[len(lines)-1] + "\n"; !strings.Contains(last, strings.TrimSuffix(tc.ends, "\n")) {
+			t.Fatalf("%s: stdout = %q", tc.name, ta.stdout.String())
+		}
 	}
 }
