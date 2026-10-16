@@ -2,6 +2,7 @@ package goast
 
 import (
 	"go/ast"
+	"go/token"
 	"path"
 	"slices"
 	"strings"
@@ -69,11 +70,16 @@ func isErrorText(call *ast.CallExpr) bool {
 // dataUse names how the nearest enclosing statement uses the text: stored
 // by an assignment, a declaration or a composite literal, returned, or
 // passed to a function that is not a logger, a wrapper or a matcher. Empty
-// means the use keeps the chain.
+// means the use keeps the chain. A concatenation hands the text on to its
+// own use; a comparison ends the walk, because only its bool goes on.
 func dataUse(stack []ast.Node) string {
 	for _, node := range slices.Backward(stack) {
 		switch parent := node.(type) {
-		case *ast.BinaryExpr, *ast.ParenExpr, *ast.KeyValueExpr:
+		case *ast.BinaryExpr:
+			if parent.Op != token.ADD {
+				return ""
+			}
+		case *ast.ParenExpr, *ast.KeyValueExpr:
 			continue
 		case *ast.AssignStmt, *ast.ValueSpec:
 			return "stored"

@@ -51,6 +51,30 @@ func f(err error, logger logs, repo repo) (string, error) {
 }
 `
 
+// compareSource stores and returns comparisons of the text, which leave
+// only a bool behind, beside one concatenation that is stored.
+const compareSource = `package application
+
+func g(err error) bool {
+	ok := err.Error() == "boom"
+	same := ("sync: " + err.Error()) != "x"
+	msg := "sync: " + err.Error()
+	_ = msg
+	return ok && same || err.Error() >= "a"
+}
+
+func h(err error) bool {
+	return err.Error() == "boom"
+}
+`
+
+func TestErrorTextAsDataKeepsAComparison(t *testing.T) {
+	t.Parallel()
+	res := scan(t, goast.ErrorTextAsData(), map[string]string{"internal/application/compare.go": compareSource})
+	expectCodes(t, res, "error-text-as-data")
+	expectLines(t, res, 6)
+}
+
 func TestErrorTextAsData(t *testing.T) {
 	t.Parallel()
 	res := scan(t, goast.ErrorTextAsData(), map[string]string{
