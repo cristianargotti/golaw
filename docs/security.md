@@ -62,6 +62,8 @@ A path exception by hash covers only an installed agent artifact recorded by the
 
 The first layer denies recognized secret-material names in Read and shell inputs. The second denies known credential-printing commands. Their exact patterns are executable data with red and near-miss fixtures.
 
+The Read deny rules the installer writes for the @ reference gap cover only private key files, Terraform variable files, SSH keys, and cloud credential files. They live in the user settings, which the host applies to every project before any hook runs, so the broad name list stays with the hook, which judges each read in the repository that governs it.
+
 Inherited environment variables and secrets outside the recognized names remain exposed. Run the agent under an identity without long-lived credentials. Name checks do not prove that arbitrary file content is free of secrets.
 
 ## Recovery

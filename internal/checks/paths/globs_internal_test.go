@@ -49,24 +49,30 @@ func TestSecretGlobsAgreeWithTheNameList(t *testing.T) {
 }
 
 // secretPaths are the paths the deny rules must cover, held apart from the
-// globs so that a list that loses an entry, or every entry, turns red: one
-// or more per family of the name list, with the stage variants of the
-// dotenv and kubeconfig files and the Vault token inside a project.
+// globs so that a list that loses an entry, or every entry, turns red: the
+// four families of section 8.2 the rules close the reference gap for,
+// private keys, Terraform variable files, SSH keys and cloud credentials.
 func secretPaths() []string {
 	return []string{
-		".env", "app/.env.local", "prod.env", ".envrc",
-		".env.development", "config/.env.staging", ".env.production", ".env.test", ".env.dev", ".env.stage", ".env.prod",
-		"secrets/db.yaml", "deploy/secret/token.txt", "credentials/app.json", "keys/signing.json",
-		"config/secrets.json", "app/secrets.yml", "aws-credentials.csv", "gcp-credentials.json",
-		"kubeconfig", "kubeconfig.prod", "deploy/kubeconfig.yaml", "kubeconfig.yml", "kubeconfig.json", "cluster.kubeconfig",
-		".kube/config", "home/.kube/config", ".docker/config.json", "home/.docker/config.json",
-		".vault-token", "deploy/.vault-token", "home/.vault-token",
-		"terraform.tfstate", "terraform.tfstate.backup", "prod.tfvars", "prod.tfvars.json",
 		"deploy.pem", "server.key", "store.p12", "cert.pfx", "trust.jks", "vault.kdbx",
-		"id_rsa", "keys/id_ed25519", "home/.ssh/id_ecdsa",
-		".aws/credentials", "home/.aws/credentials", "service-account.json", "sa_service_account.json",
-		"home/.config/gcloud/adc.json", "home/.azure/accessTokens.json",
-		".netrc", "_netrc", "home/.npmrc", "home/.pypirc", "home/.bashrc", "home/.zshrc", "home/.profile",
+		"prod.tfvars", "infra/prod.tfvars.json",
+		"home/.ssh/id_rsa", "home/.ssh/id_dsa", "home/.ssh/id_ecdsa", "home/.ssh/id_ed25519",
+		"home/.aws/credentials", "home/.config/gcloud/adc.json", "home/.azure/accessTokens.json",
+		"service-account.json", "deploy/sa_service_account.json",
+	}
+}
+
+// TestSecretGlobsStayNarrow holds the installer to the narrow rules of
+// section 8.2: the rules land in the user settings, which the host applies
+// to every project, enrolled or not, before any hook runs, so the broad
+// name list stays with the hook, which judges each read in its repository.
+func TestSecretGlobsStayNarrow(t *testing.T) {
+	t.Parallel()
+	narrow := regexp.MustCompile(`^(?:\*\*/\*\.(?:pem|key|p12|pfx|jks|kdbx|tfvars|tfvars\.json)|~/\.ssh/id_(?:rsa|dsa|ecdsa|ed25519)|~/\.aws/credentials|~/\.config/gcloud/\*\.json|~/\.azure/\*\*|\*\*/\*service[-_]account\*\.json)$`)
+	for _, glob := range SecretGlobs() {
+		if !narrow.MatchString(glob) {
+			t.Errorf("glob %q is broader than the families of section 8.2", glob)
+		}
 	}
 }
 
@@ -89,6 +95,8 @@ func TestSecretGlobsLeaveSourceAndDocumentationReadable(t *testing.T) {
 		"credentials.go", "internal/auth/credentials.go", "docs/secrets.md", "config/app.yaml", "cmd/keys.go",
 		".env.example", "config/.env.sample", ".env.template", "kubeconfig.example",
 		"internal/kube/kubeconfig.go", "docs/kubeconfig.md",
+		"secrets/client.go", "secret/client.go", "internal/secret/secret.go", "internal/secrets/vault.go",
+		"internal/secrets/testdata/payload.json", "charts/app/templates/secret.yaml",
 	}
 	for _, readable := range readables {
 		for _, glob := range SecretGlobs() {

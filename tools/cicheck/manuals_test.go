@@ -21,6 +21,7 @@ func TestSecurityContract(t *testing.T) {
 		"no repository-level advisory switch",
 		"recovery-control",
 		"wherever the session runs",
+		"cover only private key files, Terraform variable files, SSH keys, and cloud credential files",
 		"such as git -C, is not judged",
 	)
 }
