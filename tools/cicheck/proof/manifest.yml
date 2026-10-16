@@ -7,3 +7,7 @@ checks:
     code: docs-skill
     red: testdata/docs.skill/red
     near: testdata/docs.skill/near
+  - id: ci.safety
+    code: ci-safety
+    red: testdata/ci.safety/red
+    near: testdata/ci.safety/near
