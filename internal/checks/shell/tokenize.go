@@ -193,8 +193,12 @@ func isShell(name string) bool {
 }
 
 // shellScript returns the script a shell segment runs, the words after -c,
-// -lc, -Command or /c, with the dialect that shell reads it in.
+// -lc, -Command or /c, with the dialect that shell reads it in, and the
+// words of an eval joined by spaces, which the POSIX shell reads again.
 func shellScript(seg segment) (string, dialect, bool) {
+	if len(seg) > 1 && seg[0] == "eval" {
+		return strings.Join(seg[1:], " "), posix, true
+	}
 	if len(seg) < 2 || !isShell(seg[0]) {
 		return "", posix, false
 	}

@@ -15,12 +15,12 @@ func TestShellFixturePairs(t *testing.T) {
 	}
 	denied := []string{
 		"bypass", "short-bypass", "commit-dash", "body-101",
-		"secret-token", "secret-directory", "package-redirect", "package-terminator-test", "redirect-flag-value", "redirect-bypass", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "cmd-for-command", "cmd-call", "cmd-start", "reserved-word-bypass", "bash", "sh",
+		"secret-token", "secret-directory", "package-redirect", "package-terminator-test", "redirect-flag-value", "redirect-bypass", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "cmd-for-command", "cmd-call", "cmd-start", "reserved-word-bypass", "eval-bypass", "xargs-bypass", "bash", "sh",
 	}
 	allowed := []string{
 		"commit-control", "push-default", "fetch", "body-100", "source-token", "package-pattern", "package-terminator", "redirect-control",
 		"pwsh-control", "powershell-control", "cmd-control", "cmd-escaped-quote-control", "cmd-control-block-control", "cmd-for-set-control", "cmd-for-command-control", "cmd-call-control",
-		"reserved-word-control", "bash-control", "sh-control",
+		"reserved-word-control", "eval-control", "bash-control", "sh-control",
 	}
 	for _, tool := range []string{toolBash, toolPowerShell} {
 		expectShell(t, seen, denied, tool, wantDeny)

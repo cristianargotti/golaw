@@ -58,8 +58,9 @@ func gitCommand(seg segment) (gitCall, bool) {
 // unwrap drops the leading variable assignments, the reserved words a
 // shell puts before the command it runs (reserved), and the wrappers that
 // run their argument as the command (env, sudo, command, exec, nohup, time,
-// nice, timeout with its duration), so a rule sees the program; a wrapper
-// or a reserved word with nothing after it is the program itself.
+// nice, timeout with its duration, xargs after its options), so a rule
+// sees the program; a wrapper or a reserved word with nothing after it is
+// the program itself.
 func unwrap(seg segment) []string {
 	words := []string(seg)
 	for len(words) > 0 {
@@ -68,6 +69,8 @@ func unwrap(seg segment) []string {
 			words = words[1:]
 		case base(words[0]) == "timeout" && len(words) > 1:
 			words = words[2:]
+		case base(words[0]) == "xargs" && len(xargsCommand(words[1:])) > 0:
+			words = xargsCommand(words[1:])
 		case (isWrapper(words[0]) || reserved(words[0])) && len(words) > 1:
 			words = words[1:]
 		default:
