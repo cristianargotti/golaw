@@ -20,13 +20,24 @@ func TestReleaseWiring(t *testing.T) {
 		{"--certificate-identity", "--certificate-identity-regexp"},
 		{"--draft=false", "--draft=true"},
 		{"id: attest", "id: omitted"},
+		{"tags: ['v*']", "tags: ['*']"},
+		{"on:\n  push:", "on:\n  workflow_dispatch:\n  push:"},
+		{"id: eligible", "id: eligible\n        continue-on-error: true"},
+		{"id: eligible", "id: eligible\n        if: always()"},
+		{"id: acceptance", "id: acceptance\n        if: always()"},
+		{"ref: ${{ needs.gate.outputs.sha }}", "ref: ${{ github.sha }}"},
+		{"id: publish", "id: publish\n        if: always()"},
+		{"id: verify", "id: verify\n        continue-on-error: true"},
+		{"https://token.actions.githubusercontent.com", "https://issuer.invalid"},
+		{"--bundle dist/", "--bundle other/"},
+		{"actions/attest-build-provenance@", "actions/upload-artifact@"},
 	} {
 		changed := strings.Replace(string(data), mutation[0], mutation[1], 1)
 		if changed == string(data) {
-			t.Fatal("release mutation did not change its target")
+			t.Fatalf("release mutation did not change its target: %q", mutation[0])
 		}
 		if inspectRelease(".github/workflows/release.yml", []byte(changed)) == "" {
-			t.Fatal("unguarded release accepted")
+			t.Fatalf("unguarded release accepted: %q", mutation[1])
 		}
 	}
 }

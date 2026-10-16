@@ -17,13 +17,14 @@ func TestReleaseArtifactConfiguration(t *testing.T) {
 		{"ids: [binaries]", "ids: [golaw]"},
 		{"--new-bundle-format", "--output-signature"},
 		{"draft: true", "draft: false"},
+		{"\narchives:", "  - { id: extra, main: ./cmd/golaw }\n\narchives:"},
 	} {
 		changed := strings.Replace(string(data), mutation[0], mutation[1], 1)
 		if changed == string(data) {
-			t.Fatal("artifact mutation did not change its target")
+			t.Fatalf("artifact mutation did not change its target: %q", mutation[0])
 		}
 		if inspectArtifacts(".goreleaser.yml", []byte(changed)) == "" {
-			t.Fatal("incomplete artifact configuration accepted")
+			t.Fatalf("incomplete artifact configuration accepted: %q", mutation[1])
 		}
 	}
 }

@@ -8,6 +8,21 @@ import (
 	"github.com/cristianargotti/golaw/internal/proof"
 )
 
+// pluginMutations takes the agent because the fixture spells its name only
+// through escapes, and the mutations of the validate step must name it.
+func pluginMutations(agent string) [][2]string {
+	return [][2]string{
+		{"2.1.299", "2.1.294"},
+		{"2.1.299", "latest"},
+		{"2.1.299", "^2.1.299"},
+		{" validate --strict ", " validate "},
+		{"- run:", "- if: false\n        run:"},
+		{"- run: " + agent + " plugin", "- continue-on-error: true\n        run: " + agent + " plugin"},
+		{"    steps:", "    if: false\n    steps:"},
+		{"    steps:", "    continue-on-error: true\n    steps:"},
+	}
+}
+
 func TestPluginJob(t *testing.T) {
 	t.Parallel()
 	agent := agentID(t)
@@ -20,19 +35,13 @@ func TestPluginJob(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := string(proof.Unescape(fixture))
-	for _, mutation := range [][2]string{
-		{"2.1.299", "2.1.294"},
-		{"2.1.299", "latest"},
-		{"2.1.299", "^2.1.299"},
-		{" validate --strict ", " validate "},
-		{"- run:", "- if: false\n        run:"},
-	} {
+	for _, mutation := range pluginMutations(agent) {
 		changed := strings.Replace(source, mutation[0], mutation[1], 1)
 		if changed == source {
-			t.Fatal("plugin mutation did not change the fixture")
+			t.Fatalf("plugin mutation did not change the fixture: %q", mutation[0])
 		}
 		if inspectPlugin(agent, []byte(changed)) == "" {
-			t.Fatal("incomplete plugin job accepted")
+			t.Fatalf("incomplete plugin job accepted: %q", mutation[1])
 		}
 	}
 	for _, version := range []string{
