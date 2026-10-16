@@ -66,31 +66,41 @@ func gitValueOption(option string) bool {
 	}
 }
 
-// unwrap drops the leading variable assignments, the reserved words a
-// shell puts before the command it runs (reserved), and the wrappers that
-// run their arguments as the command (wrapperOf), each past its own
-// options, so a rule sees the program; a wrapper or a reserved word with
-// nothing after it is the program itself.
+// unwrap answers the words of the program a segment runs (unwrapped).
 func unwrap(seg segment) []string {
-	words := []string(seg)
-	for len(words) > 0 {
-		w, wraps := wrapperOf(words[0])
-		var command []string
-		if wraps {
-			command = w.command(words[1:])
+	words, at := unwrapped(seg)
+	return words[at:]
+}
+
+// unwrapped answers the words of a segment, the string of a split option
+// such as env -S in place of the option, and the index of the program
+// among them: past the leading variable assignments, the reserved words a
+// shell puts before the command it runs (reserved) and the wrappers that
+// run their arguments as the command (wrapperOf), each past its own
+// options, so a rule sees the program and every word keeps the index it
+// has for the programs; a wrapper or a reserved word with nothing after it
+// is the program itself.
+func unwrapped(seg segment) ([]string, int) {
+	words, at := []string(seg), 0
+	for at < len(words) {
+		if assignment.MatchString(words[at]) {
+			at++
+			continue
+		}
+		next := len(words)
+		if w, wraps := wrapperOf(words[at]); wraps {
+			words, next = w.command(words, at+1)
 		}
 		switch {
-		case assignment.MatchString(words[0]):
-			words = words[1:]
-		case len(command) > 0:
-			words = command
-		case reserved(words[0]) && len(words) > 1:
-			words = words[1:]
+		case next < len(words):
+			at = next
+		case reserved(words[at]) && at+1 < len(words):
+			at++
 		default:
-			return words
+			return words, at
 		}
 	}
-	return words
+	return words, at
 }
 
 // reserved reports whether a word is one a shell reads before the command

@@ -43,6 +43,8 @@ func shellCommands() []shellFixture {
 		{"eval-control", `eval "git commit -m 'fix: safe'"`, wantAllow},
 		{"git-dir-bypass", "git --git-dir .git commit --no-verify -m 'fix: safe'", wantDeny},
 		{"wrapper-option-bypass", "env -i git commit --no-verify -m 'fix: safe'", wantDeny},
+		{"split-string-value", "env -S 'go build -overlay ./deploy/secrets/overlay.json ./internal/...'", wantDeny},
+		{"split-string-control", "env -S 'go build -tags fast ./...'", wantAllow},
 		{"invoke-expression-bypass", `Invoke-Expression "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"substitution-bypass", `git commit -m "$(git commit --no-verify -m y)"`, wantDeny},
 		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},

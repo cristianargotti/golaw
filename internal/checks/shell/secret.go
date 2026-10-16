@@ -93,12 +93,13 @@ func judgeSecretTokens(_ model.Input, segs []segment) ([]model.Finding, error) {
 }
 
 // secretIn answers the first token of a segment that names secret
-// material. A Go package pattern ending in /... names packages, not files,
+// material, among the words the programs receive, a split string by its
+// words. A Go package pattern ending in /... names packages, not files,
 // only in a word the go tool or a linter reads as packages (packageWords),
 // so it is skipped there alone.
 func secretIn(seg segment) (string, bool) {
-	packages := packageWords(seg)
-	for i, word := range seg {
+	words, packages := packageWords(seg)
+	for i, word := range words {
 		for token := range strings.SplitSeq(word, "=") {
 			// A backslash in a word is a Windows separator: PowerShell
 			// and cmd keep it, and a POSIX shell keeps only an escaped one.

@@ -1,6 +1,9 @@
 package shell
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // wrapper is how a program that runs its arguments as the command reads
 // its own options before that command: the short options that take a
@@ -42,30 +45,43 @@ func wrapperOf(name string) (wrapper, bool) {
 	}
 }
 
-// command answers the words the wrapper runs, or nothing when no command
-// follows its options: an option is a word that starts with a dash, --
-// ends them and the positional words come next; the words of the command
-// line in the value of a split option take its place and are read on, as
-// env reads them.
-func (w wrapper) command(words []string) []string {
-	for len(words) > 0 && strings.HasPrefix(words[0], "-") {
-		word := words[0]
-		words = words[1:]
+// command reads the options of the wrapper from the index from and
+// answers the words, the string of a split option replaced by the words it
+// holds where it stood, which env reads on as options and command, and the
+// index of the command after the options and the positional words: an
+// option is a word that starts with a dash, and -- ends them.
+func (w wrapper) command(words []string, from int) ([]string, int) {
+	i := from
+	for i < len(words) && strings.HasPrefix(words[i], "-") {
+		word, at := words[i], i
+		i++
 		if word == "--" {
 			break
 		}
 		name, value, next := w.option(word)
-		if next && len(words) > 0 {
-			value, words = words[0], words[1:]
+		if next && i < len(words) {
+			value = words[i]
+			i++
 		}
 		if name != "" && strings.Contains(w.split, " "+name+" ") {
-			words = append(fields(value), words...)
+			words, i = splitString(words, at, i, name, value)
 		}
 	}
-	if len(words) < w.positional {
-		return nil
+	return words, i + w.positional
+}
+
+// splitString answers the words with the split option at the index at and
+// its string, through the index end, replaced by the words of the string,
+// the switches a cluster holds before the option kept, and the index of
+// the first word after those switches, where reading goes on.
+func splitString(words []string, at, end int, name, value string) ([]string, int) {
+	var head []string
+	if word := words[at]; !strings.HasPrefix(word, "--") {
+		if cluster, _, found := strings.Cut(word, name); found && len(cluster) > 1 {
+			head = []string{cluster}
+		}
 	}
-	return words[w.positional:]
+	return slices.Concat(words[:at], head, fields(value), words[end:]), at + len(head)
 }
 
 // option reads an option word and answers the name of the option that

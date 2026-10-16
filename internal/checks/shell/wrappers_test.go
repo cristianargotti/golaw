@@ -85,6 +85,32 @@ func TestWrappersAreReadPastTheirOptions(t *testing.T) {
 	})
 }
 
+// TestEnvSplitStringKeepsTheRolesOfItsWords judges the words of an env -S
+// string where env puts them: each one is a word of the command at its own
+// index, so the value of a flag of the go tool in the string is judged by
+// name while its package operands stay packages, behind assignments, in a
+// cluster, joined to the option or in its long form, and a string of any
+// length is measured.
+func TestEnvSplitStringKeepsTheRolesOfItsWords(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", "A=1 B=2 env -S 'go build -overlay ./deploy/secrets/... ./internal/...'", "secret-token"},
+		{"Bash", "A=1 B=2 env -S 'go build -overlay ./deploy/secrets/overlay.json ./internal/...'", "secret-token"},
+		{"Bash", "env --split-string='cat deploy/secrets/token.txt'", "secret-token"},
+		{"Bash", "env -iS'cat deploy/secrets/token.txt'", "secret-token"},
+		{"Bash", "env -S 'go build -tags fast ./...'", ""},
+		{"Bash", "env -S 'go vet ./internal/secrets/...'", ""},
+		{"Bash", "A=1 env -S 'go test -run X ./internal/secrets/...'", ""},
+		{"Bash", "env -S'-u HOME go vet ./internal/secrets/...'", ""},
+	})
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "env -iS'git commit --no-verify -m x'", "no-verify"},
+		{"Bash", `env -S 'git commit -m "a b" --no-verify'`, "no-verify"},
+		{"Bash", "env -S 'git commit -m x' --no-verify", "no-verify"},
+		{"Bash", "env -S 'git commit -m --no-verify'", ""},
+	})
+}
+
 // TestNoVerifyReadsTheGlobalOptionsOfGit reads the global options of git
 // the way git 2.44 does: -C, -c, --git-dir, --work-tree, --namespace,
 // --config-env, --attr-source and --shallow-file take the next word as
