@@ -34,6 +34,9 @@ func TestSecurityContract(t *testing.T) {
 		"the command the set of a for /f runs is read as the script of a child cmd /c",
 		"call and start are read as wrappers of the command after them",
 		"a redirection, wherever it stands and joined to a word or not, is no argument",
+		"A command line built while it runs is beyond that reading, because reading it would need a full interpreter",
+		"the input xargs reads, the lines a for /f hands its body and a variable cmd expands",
+		"such as the else block of an if, are read as one command with the words before them",
 		"These rules cannot express an exception",
 		"a negation rule for the templates would also lift the person's own deny rules for them",
 	)
