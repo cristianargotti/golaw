@@ -31,7 +31,7 @@ func hookFakes(t *testing.T, root string) hook.Dependencies {
 	}
 	base := map[string][]byte{"docs/a.md": []byte("title\n")}
 	return hook.Dependencies{
-		Enroll: func(context.Context, string) (hook.Repository, error) {
+		Enroll: func(context.Context, string, string) (hook.Repository, error) {
 			return hook.Repository{Root: root, Identity: root, Enrollment: model.Enrollment{State: model.EnrollmentEnrolled, PolicyDigest: "proof"}}, nil
 		},
 		Policy:   func(context.Context, hook.Repository) (*model.EffectivePolicy, error) { return proof.Policy(), nil },

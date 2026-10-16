@@ -18,6 +18,10 @@ func completeExecutor(t *testing.T) executor {
 	}
 	wants[caseAlias] = wantDeny
 	wants[caseDoctor], wants[caseRecovery] = wantAllow, wantAllow
+	cross := (&suite{}).crossCases("", "")
+	for i := range cross {
+		wants[cross[i].f.name] = cross[i].f.want
+	}
 	return existingAnswers(doctorAnswers(faultExecutor(t, func(ctx context.Context, c command) result {
 		if len(c.args) == 0 || c.args[0] != commandHook {
 			return base(ctx, c)

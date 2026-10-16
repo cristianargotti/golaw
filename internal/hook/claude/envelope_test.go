@@ -71,3 +71,47 @@ func TestHeaderForeignAndMalformed(t *testing.T) {
 		}
 	}
 }
+
+// TestHeaderNamesTheTarget pins the path enrollment is resolved from: the
+// file a write or read names, the notebook of NotebookEdit, and none for a
+// shell tool or a path that is not a string.
+func TestHeaderNamesTheTarget(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		event, tool string
+		input       map[string]any
+		want        string
+	}{
+		{"PreToolUse", "Write", map[string]any{"file_path": "/repo/a.go", "content": ""}, "/repo/a.go"},
+		{"PreToolUse", "Edit", map[string]any{"file_path": "/repo/b.go"}, "/repo/b.go"},
+		{"PreToolUse", "Read", map[string]any{"file_path": "/repo/notes.md"}, "/repo/notes.md"},
+		{"PreToolUse", "NotebookEdit", map[string]any{"notebook_path": "/repo/c.ipynb", "file_path": "/other"}, "/repo/c.ipynb"},
+		{"PostToolUse", "Edit", map[string]any{"file_path": "/repo/b.go"}, "/repo/b.go"},
+		{"PreToolUse", "Bash", map[string]any{"command": "cat /repo/a.go", "file_path": "/repo/a.go"}, ""},
+		{"PreToolUse", "Write", map[string]any{"file_path": 1}, ""},
+	} {
+		got, err := claude.Header(frame(t, tc.event, tc.tool, "/project", tc.input))
+		if err != nil || got.Target != tc.want || got.Cwd != "/project" {
+			t.Fatalf("%s %s: %+v, %v", tc.event, tc.tool, got, err)
+		}
+	}
+}
+
+// TestHeaderShapesThePreEvent pins the shape a pre event takes from its
+// tool, which enrollment reads before the decoder runs.
+func TestHeaderShapesThePreEvent(t *testing.T) {
+	t.Parallel()
+	for tool, want := range map[string]model.EventShape{
+		"Write": model.ShapeWrite, "Edit": model.ShapeWrite, "NotebookEdit": model.ShapeWrite,
+		"Read": model.ShapeRead, "Bash": model.ShapeShell, "PowerShell": model.ShapeShell, "Glob": 0,
+	} {
+		got, err := claude.Header(frame(t, "PreToolUse", tool, "/project", map[string]any{}))
+		if err != nil || got.Shape != want {
+			t.Fatalf("%s: %v, %v", tool, got.Shape, err)
+		}
+	}
+	got, err := claude.Header(frame(t, "PostToolUse", "Read", "/project", map[string]any{}))
+	if err != nil || got.Shape != model.ShapePost {
+		t.Fatalf("post: %v, %v", got.Shape, err)
+	}
+}

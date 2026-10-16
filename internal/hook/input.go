@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -49,6 +50,30 @@ func realLocation(path string) string {
 		}
 		rest = filepath.Join(filepath.Base(dir), rest)
 		dir = parent
+	}
+}
+
+// enrollmentDir is where the enrollment of an event is resolved (A3): the
+// deepest existing directory above the target a write or read names, so
+// the repository that holds the file governs it whatever the session's
+// working directory is, and a file outside every repository (the agent's
+// own plans, a scratch file) is a positively unenrolled location. A shell
+// command and an event without a target are judged where they run.
+func enrollmentDir(event model.Event) string {
+	if event.Target == "" {
+		return event.Cwd
+	}
+	path := filepath.FromSlash(event.Target)
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(event.Cwd, path)
+	}
+	for dir := filepath.Dir(filepath.Clean(path)); ; dir = filepath.Dir(dir) {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
+		}
+		if filepath.Dir(dir) == dir {
+			return event.Cwd
+		}
 	}
 }
 

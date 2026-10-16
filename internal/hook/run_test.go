@@ -39,7 +39,7 @@ func TestRunReplacesALateAllow(t *testing.T) {
 	t.Parallel()
 	adapter, dependencies := harness(t, request("safe"))
 	dependencies.Budget = time.Millisecond
-	dependencies.Enroll = func(ctx context.Context, _ string) (hook.Repository, error) {
+	dependencies.Enroll = func(ctx context.Context, _, _ string) (hook.Repository, error) {
 		<-ctx.Done()
 		return hook.Repository{Enrollment: model.Enrollment{State: model.EnrollmentNone}}, nil
 	}

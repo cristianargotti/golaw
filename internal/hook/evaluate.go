@@ -18,7 +18,7 @@ func Evaluate(ctx context.Context, agent string, data []byte, adapter Adapter, d
 	if !knownAgent(agent) || event.Agent != agent {
 		return event, failure(event, fmt.Errorf("%w: agent envelope mismatch", model.ErrCannotJudge))
 	}
-	repository, err := dependencies.Enroll(ctx, event.Cwd)
+	repository, err := enroll(ctx, event, dependencies)
 	if err != nil {
 		return event, failure(event, err)
 	}
@@ -33,6 +33,22 @@ func Evaluate(ctx context.Context, agent string, data []byte, adapter Adapter, d
 		return event, rejectionLanguage(event, run.request.Denial, false, run.language())
 	}
 	return run.request.Event, run.evaluate(ctx, data, dependencies)
+}
+
+// enroll resolves the repository that governs an event (A3): the one that
+// holds the target of a write or a read, wherever the session runs. A read
+// whose target no enrolled repository holds falls back to the session's
+// repository, because the secret boundary guards what enters the session's
+// context and the person's credential stores live outside every
+// repository; a write there is a positively unenrolled location.
+func enroll(ctx context.Context, event model.Event, dependencies Dependencies) (Repository, error) {
+	dir := enrollmentDir(event)
+	repository, err := dependencies.Enroll(ctx, dir, event.Cwd)
+	if err != nil || repository.Enrollment.State != model.EnrollmentNone ||
+		event.Shape != model.ShapeRead || dir == event.Cwd {
+		return repository, err
+	}
+	return dependencies.Enroll(ctx, event.Cwd, event.Cwd)
 }
 
 func loadExecution(ctx context.Context, repository Repository, data []byte, adapter Adapter, dependencies Dependencies) (execution, error) {

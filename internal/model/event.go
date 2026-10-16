@@ -138,6 +138,7 @@ type Event struct {
 	Agent      string        `json:"agent"` // the agent id as the hook package names it
 	Tool       string        `json:"tool"`
 	Cwd        string        `json:"cwd,omitempty"`
+	Target     string        `json:"target,omitempty"` // the path a write or read names, as given: enrollment is resolved from it (A3)
 	SessionID  string        `json:"session_id,omitempty"`
 	AgentID    string        `json:"agent_id,omitempty"`
 	ToolUseID  string        `json:"tool_use_id,omitempty"`

@@ -52,7 +52,7 @@ func observedRepository(t *testing.T, b binding, home string) string {
 	if h.hookDigest, err = hookDigest(agentUnderTest()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = h.enroll(t.Context(), root); err != nil {
+	if _, err = h.enroll(t.Context(), root, root); err != nil {
 		t.Fatal(err)
 	}
 	return root

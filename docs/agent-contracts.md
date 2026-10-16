@@ -36,6 +36,8 @@ No shell parses that invocation. doctor checks that executable resolution identi
 
 Accept one bounded JSON object and validate the envelope for the named adapter. An envelope from another agent is denied. A positively unenrolled location receives a valid allow. Missing or weakened policy in an enrolled repository is denied.
 
+The location of a write or read is the deepest existing directory above tool_input.file_path, or notebook_path for NotebookEdit, so the repository that holds the target governs it whatever cwd the session reports. A read outside every enrolled repository falls back to the repository of cwd. A shell event is located at cwd.
+
 ## Exit and output contract
 
 | Situation | Exit | Output |

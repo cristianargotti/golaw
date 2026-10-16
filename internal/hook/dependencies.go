@@ -17,8 +17,11 @@ type Repository struct {
 }
 
 // Dependencies keep policy authority and snapshot ownership in their packages.
+// Enroll discovers the repository that governs a directory, the one that
+// holds the event's target, and receives the session's working directory
+// apart, as the evidence of where the agent runs the hook.
 type Dependencies struct {
-	Enroll   func(context.Context, string) (Repository, error)
+	Enroll   func(ctx context.Context, dir, cwd string) (Repository, error)
 	Policy   func(context.Context, Repository) (*model.EffectivePolicy, error)
 	Snapshot func(context.Context, Repository) (model.Snapshot, error)
 	Overlay  func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)

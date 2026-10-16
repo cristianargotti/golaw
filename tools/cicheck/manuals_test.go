@@ -20,6 +20,8 @@ func TestSecurityContract(t *testing.T) {
 		"time-boxed",
 		"no repository-level advisory switch",
 		"recovery-control",
+		"wherever the session runs",
+		"such as git -C, is not judged",
 	)
 }
 
@@ -48,5 +50,6 @@ func TestAgentContract(t *testing.T) {
 		"Go "+gateToolchain(t)+", the go-version of release.yml",
 		"waits for the Windows live record",
 		"doctor-json",
+		"deepest existing directory above tool_input.file_path",
 	)
 }

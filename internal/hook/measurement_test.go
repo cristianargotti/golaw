@@ -30,7 +30,7 @@ func asPostEvent(req *hook.Request, cwd string, failed bool) hook.Adapter {
 // never shows whether its capture failed.
 func savedReason(t *testing.T, dependencies hook.Dependencies, event model.Event) string {
 	t.Helper()
-	repository, err := dependencies.Enroll(t.Context(), event.Cwd)
+	repository, err := dependencies.Enroll(t.Context(), event.Cwd, event.Cwd)
 	if err != nil {
 		t.Fatal(err)
 	}

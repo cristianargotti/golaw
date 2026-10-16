@@ -38,12 +38,13 @@ func TestHookEnrollAllowsAPositivelyUnenrolledLocation(t *testing.T) {
 	t.Parallel()
 	b, _ := testBinding(t)
 	h := hookBindingFor(t, b)
-	repo, err := h.enroll(t.Context(), t.TempDir())
+	outside := t.TempDir()
+	repo, err := h.enroll(t.Context(), outside, outside)
 	if err != nil || repo.Enrollment.State != model.EnrollmentNone {
 		t.Fatalf("outside git = %+v, %v", repo, err)
 	}
 	root := repository(t, true)
-	repo, err = h.enroll(t.Context(), root)
+	repo, err = h.enroll(t.Context(), root, root)
 	if err != nil || repo.Enrollment.State != model.EnrollmentNone || repo.Root != root {
 		t.Fatalf("unenrolled repository = %+v, %v", repo, err)
 	}
@@ -62,7 +63,7 @@ func TestHookEnrollPolicyAndSnapshotOfAnEnrolledRepository(t *testing.T) {
 	if err = b.enroll(root, data, p, now()); err != nil {
 		t.Fatal(err)
 	}
-	repo, err := h.enroll(t.Context(), root)
+	repo, err := h.enroll(t.Context(), root, root)
 	if err != nil || repo.Enrollment.State != model.EnrollmentEnrolled || repo.Enrollment.PolicyDigest != p.Digest || repo.Identity == "" {
 		t.Fatalf("enrolled repository = %+v, %v", repo, err)
 	}
@@ -84,7 +85,7 @@ func TestHookEnrollPolicyAndSnapshotOfAnEnrolledRepository(t *testing.T) {
 	if err = os.RemoveAll(filepath.Join(root, ".git")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = h.enroll(t.Context(), root); !errors.Is(err, model.ErrEnrollment) {
+	if _, err = h.enroll(t.Context(), root, root); !errors.Is(err, model.ErrEnrollment) {
 		t.Fatalf("an enrolled repository without git was not a denial: %v", err)
 	}
 }
@@ -102,7 +103,7 @@ func TestHookPolicyDeniesADeletedOrWeakenedProposal(t *testing.T) {
 	if err = b.enroll(root, data, p, now()); err != nil {
 		t.Fatal(err)
 	}
-	repo, err := h.enroll(t.Context(), root)
+	repo, err := h.enroll(t.Context(), root, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +144,7 @@ func TestHookPolicyDeniesAStagedDeletionOfThePolicyAtHead(t *testing.T) {
 	if err = b.enroll(root, data, p, now()); err != nil {
 		t.Fatal(err)
 	}
-	repo, err := h.enroll(t.Context(), root)
+	repo, err := h.enroll(t.Context(), root, root)
 	if err != nil {
 		t.Fatal(err)
 	}

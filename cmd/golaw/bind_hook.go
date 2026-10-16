@@ -71,8 +71,10 @@ func hookDigest(agent agents.Agent) (string, error) {
 
 // enroll consults the enrollment first (A3): a location outside git or an
 // unenrolled repository is a positively unenrolled location the hook
-// allows, an enrolled repository carries its record.
-func (h hookBinding) enroll(ctx context.Context, cwd string) (hook.Repository, error) {
+// allows, an enrolled repository carries its record. dir is where the
+// event's target lives; cwd is where the agent runs the hook, which the
+// observation keeps for doctor.
+func (h hookBinding) enroll(ctx context.Context, dir, cwd string) (hook.Repository, error) {
 	var found source.Repo
 	discover := func(ctx context.Context, dir string) (policy.Discovery, error) {
 		repo, err := source.Discover(ctx, dir)
@@ -82,15 +84,15 @@ func (h hookBinding) enroll(ctx context.Context, cwd string) (hook.Repository, e
 		found = repo
 		return policy.Discovery{Root: repo.Root, Head: repo.Head}, nil
 	}
-	loc, err := policy.Locate(ctx, h.dirs.State, cwd, discover)
+	loc, err := policy.Locate(ctx, h.dirs.State, dir, discover)
 	switch {
 	case err == nil:
 	case errors.Is(err, model.ErrEnrollment):
-		return hook.Repository{}, fmt.Errorf("locate %s: %w", cwd, err)
+		return hook.Repository{}, fmt.Errorf("locate %s: %w", dir, err)
 	case errors.Is(err, source.ErrNotRepository), errors.Is(err, source.ErrGit):
 		return hook.Repository{Enrollment: model.Enrollment{State: model.EnrollmentNone}}, nil
 	default:
-		return hook.Repository{}, fmt.Errorf("locate %s: %w", cwd, err)
+		return hook.Repository{}, fmt.Errorf("locate %s: %w", dir, err)
 	}
 	repo := hook.Repository{
 		Root: loc.Root, Identity: found.Identity(), CaseInsensitive: found.IgnoreCase,

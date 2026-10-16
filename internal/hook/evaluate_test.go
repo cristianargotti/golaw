@@ -3,6 +3,9 @@ package hook_test
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -15,7 +18,7 @@ import (
 func TestEnrollmentPrecedesPolicyAndTargets(t *testing.T) {
 	t.Parallel()
 	adapter, dependencies := harness(t, request("bad"))
-	dependencies.Enroll = func(context.Context, string) (hook.Repository, error) {
+	dependencies.Enroll = func(context.Context, string, string) (hook.Repository, error) {
 		return hook.Repository{
 			Enrollment: model.Enrollment{State: model.EnrollmentNone},
 		}, nil
@@ -115,8 +118,8 @@ func TestProtectedPolicyCaseAndMoveSource(t *testing.T) {
 		}
 		adapter, dependencies := harness(t, req)
 		enroll := dependencies.Enroll
-		dependencies.Enroll = func(ctx context.Context, cwd string) (hook.Repository, error) {
-			repository, err := enroll(ctx, cwd)
+		dependencies.Enroll = func(ctx context.Context, dir, cwd string) (hook.Repository, error) {
+			repository, err := enroll(ctx, dir, cwd)
 			repository.CaseInsensitive = tc.insensitive
 			return repository, err
 		}
@@ -130,7 +133,7 @@ func TestProtectedPolicyCaseAndMoveSource(t *testing.T) {
 func TestEnrollFailureAndUnknownAgentCannotBeJudged(t *testing.T) {
 	t.Parallel()
 	adapter, dependencies := harness(t, request("safe"))
-	dependencies.Enroll = func(context.Context, string) (hook.Repository, error) {
+	dependencies.Enroll = func(context.Context, string, string) (hook.Repository, error) {
 		return hook.Repository{}, fmt.Errorf("%w: discovery failed", model.ErrCannotJudge)
 	}
 	_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
@@ -204,5 +207,87 @@ func TestDecisionAndSelectionMutations(t *testing.T) {
 	})
 	if !got.CannotJudge || got.Reason != "check: not measured: unreadable" {
 		t.Fatal(got)
+	}
+}
+
+// TestEnrollmentFollowsTheTarget holds enrollment to the repository that
+// holds the file a write or read names, wherever the session runs: the
+// deepest existing directory above the target is discovered, and the
+// session's working directory is kept for the shell shape and as evidence.
+func TestEnrollmentFollowsTheTarget(t *testing.T) {
+	t.Parallel()
+	session, repo := t.TempDir(), t.TempDir()
+	for _, dir := range []string{filepath.Join(repo, "internal"), filepath.Join(session, "sub")} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(repo, "internal", "a.go"), []byte("safe"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, target, want string
+	}{
+		{"existing file", filepath.Join(repo, "internal", "a.go"), filepath.Join(repo, "internal")},
+		{"absent directories", filepath.Join(repo, "new", "deeper", "b.go"), repo},
+		{"relative to the session", filepath.Join("sub", "c.go"), filepath.Join(session, "sub")},
+		{"absent relative directory", filepath.Join("gone", "d.go"), session},
+		{"no target", "", session},
+	} {
+		req := request("bad")
+		req.Event.Cwd, req.Event.Target = session, tc.target
+		dependencies := harnessDependencies(t, repo)
+		var dir, cwd string
+		dependencies.Enroll = func(_ context.Context, d, c string) (hook.Repository, error) {
+			dir, cwd = d, c
+			return hook.Repository{Enrollment: model.Enrollment{State: model.EnrollmentNone}}, nil
+		}
+		_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), harnessAdapter(req), dependencies)
+		if got.Outcome != hook.Allow || dir != tc.want || cwd != session {
+			t.Fatalf("%s: enrolled from %q with cwd %q, %+v", tc.name, dir, cwd, got)
+		}
+	}
+}
+
+// TestReadOutsideEveryRepositoryFallsBackToTheSession keeps the secret
+// boundary of an enrolled session: a read whose target no enrolled
+// repository holds is judged by the session's repository, while a write
+// there is a positively unenrolled location that no policy loads for.
+func TestReadOutsideEveryRepositoryFallsBackToTheSession(t *testing.T) {
+	t.Parallel()
+	session, outside := t.TempDir(), t.TempDir()
+	for _, tc := range []struct {
+		shape  model.EventShape
+		calls  []string
+		judged bool
+	}{
+		{model.ShapeRead, []string{outside, session}, true},
+		{model.ShapeWrite, []string{outside}, false},
+	} {
+		req := request("bad")
+		req.Event.Shape, req.Event.Cwd, req.Event.Target = tc.shape, session, filepath.Join(outside, "file")
+		if tc.shape == model.ShapeRead {
+			req.Event.Candidates, req.Content = nil, nil
+			req.Event.Read = &model.ReadRequest{Path: req.Event.Target}
+		}
+		dependencies := harnessDependencies(t, session)
+		enroll, policy := dependencies.Enroll, dependencies.Policy
+		var calls []string
+		dependencies.Enroll = func(ctx context.Context, dir, cwd string) (hook.Repository, error) {
+			calls = append(calls, dir)
+			if dir != session {
+				return hook.Repository{Enrollment: model.Enrollment{State: model.EnrollmentNone}}, nil
+			}
+			return enroll(ctx, dir, cwd)
+		}
+		judged := false
+		dependencies.Policy = func(ctx context.Context, repository hook.Repository) (*model.EffectivePolicy, error) {
+			judged = true
+			return policy(ctx, repository)
+		}
+		_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), harnessAdapter(req), dependencies)
+		if !slices.Equal(calls, tc.calls) || judged != tc.judged || got.Outcome != hook.Allow {
+			t.Fatalf("%s: enrolled from %v, judged %v, %+v", tc.shape, calls, judged, got)
+		}
 	}
 }

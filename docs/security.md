@@ -24,6 +24,8 @@ These are release requirements, not a substitute for the recorded acceptance res
 
 In an enrolled repository, supported pre events deny a typographic dash write, a prohibited secret read, a --no-verify commit, and an oversized candidate whose whole content can be reconstructed. An Edit is applied in memory before measurement.
 
+The repository that holds the file a write or read names governs it, wherever the session runs. A write outside every enrolled repository, such as the agent's own plan files, is a positively unenrolled location. A read outside every enrolled repository is judged by the session's repository, so the person's credential stores stay behind the secret boundary of an enrolled session.
+
 Malformed input, an unreadable target, an envelope mismatch, and an unsupported mutation shape are denials. The internal deadline is shorter than the host timeout. The installed handler uses timeout 10 and onFailure: block, requiring Claude Code 2.1.295 or newer.
 
 Post events detect changes after execution. They cannot undo writes. Shell post failure detection also runs because a command can write before a later operation fails.
@@ -31,6 +33,8 @@ Post events detect changes after execution. They cannot undo writes. Shell post 
 ## What the guard cannot stop
 
 Background writers, manual edits, hosted tools, and MCP tools outside supported event routes can bypass the guard. Claude Code @ references bypass hooks; narrow Read deny rules cover only their listed paths.
+
+A shell command is judged by the repository of the session's working directory, because its targets cannot be known before it runs. A command sent from an unenrolled directory into an enrolled repository, such as git -C, is not judged.
 
 Codex CLI and Cursor enforcement are outside M1. Their later adapters have separate limits: Codex write_stdin into an existing interpreter, untrusted or failed hooks, and specialized tool routes; Cursor writes until its mutation payload is understood. M1 implies no enforcement by those adapters.
 

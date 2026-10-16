@@ -102,7 +102,7 @@ func harnessDependencies(t *testing.T, root string) hook.Dependencies {
 	base := proof.NewTree(map[string][]byte{"a.go": []byte("safe")})
 	return hook.Dependencies{
 		Registry: built, State: hook.Store{Dir: t.TempDir(), Now: time.Now()},
-		Enroll: func(context.Context, string) (hook.Repository, error) {
+		Enroll: func(context.Context, string, string) (hook.Repository, error) {
 			return repository, nil
 		},
 		Policy: func(context.Context, hook.Repository) (*model.EffectivePolicy, error) {
