@@ -79,7 +79,10 @@ type cmdLine struct {
 // at sign before a command are dropped, a semicolon inside one separates
 // nothing, and the condition of an if, the clause of a for up to its do
 // and an else are no part of the command they run (cmdControl), because
-// cmd reads them and runs what follows.
+// cmd reads them and runs what follows; such a prefix is a command of its
+// own, because the names it holds, the set of a for or the file of an if
+// exist, are read by what it runs, and the items of a set are apart from
+// its parentheses and its delimiters.
 func cmdCommands(script string) []string {
 	l := &cmdLine{}
 	for _, r := range script {
@@ -114,13 +117,15 @@ func (l *cmdLine) step(r rune) {
 func (l *cmdLine) plain(r rune) {
 	switch {
 	case len(l.cur) == 0 && (r == '@' || strings.ContainsRune(cmdDelimiters, r)):
+	case l.sets > 0 && strings.ContainsRune(cmdDelimiters, r):
+		l.item()
 	case r == ' ' || r == '\t':
 		l.boundary(r)
 	case r == '(':
 		l.open()
 	case r == ')' && l.sets > 0:
 		l.sets--
-		l.add(r)
+		l.item()
 	case r == ')' && l.blocks > 0:
 		l.blocks--
 		l.end()
@@ -130,7 +135,7 @@ func (l *cmdLine) plain(r rune) {
 }
 
 // boundary reads white space outside quotes: it ends a word, and a word
-// that completes a control prefix drops the prefix, so the command the
+// that completes a control prefix ends the prefix, so the command the
 // prefix runs starts after it.
 func (l *cmdLine) boundary(r rune) {
 	if len(l.word) > 0 {
@@ -138,27 +143,40 @@ func (l *cmdLine) boundary(r rune) {
 		l.word = l.word[:0]
 	}
 	if cmdControl(l.words, l.sets) {
-		l.restart()
+		l.end()
 		return
 	}
 	l.cur = append(l.cur, r)
 }
 
+// item ends an item of the set of a for: its runes stay in the command
+// for the rules that read names and never count as a word of the for, so
+// an item named do completes no prefix.
+func (l *cmdLine) item() {
+	l.word = l.word[:0]
+	l.cur = append(l.cur, ' ')
+}
+
 // open reads a parenthesis outside quotes: it opens a block at the start
-// of a command or right after a control prefix, belongs to the set of a
-// for before its do, and is an ordinary rune anywhere else.
+// of a command or right after a control prefix, opens the set of a for
+// before its do, nests inside a set, and is an ordinary rune anywhere
+// else.
 func (l *cmdLine) open() {
 	words := l.words
 	if len(l.word) > 0 {
 		words = append(slices.Clip(words), string(l.word))
 	}
 	switch {
+	case l.sets > 0:
+		l.sets++
+		l.item()
 	case len(l.cur) == 0 || cmdControl(words, l.sets):
-		l.restart()
+		l.end()
 		l.blocks++
 	case len(words) > 0 && strings.EqualFold(words[0], "for"):
+		l.words = words
 		l.sets++
-		l.add('(')
+		l.item()
 	default:
 		l.add('(')
 	}

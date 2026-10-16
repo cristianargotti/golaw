@@ -97,8 +97,44 @@ func TestCmdSeesTheCommandsOfItsControlBlocks(t *testing.T) {
 		{"Bash", `cmd /c 'for %i in (git commit --no-verify) do echo %i'`, ""},
 		{"Bash", `cmd /c 'if exist'`, ""},
 		{"Bash", `cmd /c 'if a b c git commit --no-verify -m x'`, ""},
+		{"Bash", `cmd /c 'for %i in (do) do git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'for %i in (a(do)) do git commit --no-verify -m x'`, "no-verify"},
 	} {
 		got := judgeTool(t, shell.NoVerify(), tc.tool, tc.command)
+		if tc.want == "" && len(got) != 0 || tc.want != "" && (len(got) != 1 || got[0] != tc.want) {
+			t.Errorf("%s %q: codes %v, want %q", tc.tool, tc.command, got, tc.want)
+		}
+	}
+}
+
+// TestCmdJudgesTheNamesOfItsControlPrefixes judges the names a control
+// prefix of cmd holds, which the command it runs reads: the items of the
+// set of a for, spaced or glued to its parentheses, quoted or apart by a
+// comma, the root of a for /r and the file of an if exist; a set of plain
+// names and the file of a plain if pass.
+func TestCmdJudgesTheNamesOfItsControlPrefixes(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		tool, command string
+		want          string
+	}{
+		{"Bash", `cmd /c 'for /f %i in ( .env ) do echo %i'`, "secret-token"},
+		{"PowerShell", `cmd /c 'for /f %i in ( .env ) do echo %i'`, "secret-token"},
+		{"Bash", `cmd /c 'for %i in ( secrets\token.txt ) do type %i'`, "secret-token"},
+		{"Bash", `cmd /c 'for /f %i in (.env) do echo %i'`, "secret-token"},
+		{"Bash", `cmd /c 'for /f "usebackq" %i in (".env") do echo %i'`, "secret-token"},
+		{"Bash", `cmd /c 'for %i in (a.txt,secrets\token.txt) do type %i'`, "secret-token"},
+		{"Bash", `cmd /c 'for %i in (a.txt;.env) do type %i'`, "secret-token"},
+		{"Bash", `cmd /c 'for /r deploy\secrets\db %i in (*) do type %i'`, "secret-token"},
+		{"Bash", `cmd /c 'if exist .env (echo y)'`, "secret-token"},
+		{"Bash", `cmd /c 'if exist .env git status'`, "secret-token"},
+		{"Bash", `cmd /c '(for %i in (.env) do type %i)'`, "secret-token"},
+		{"Bash", `cmd /c 'for %i in (a.txt b.txt) do type %i'`, ""},
+		{"Bash", `cmd /c 'for /l %i in (1,1,3) do echo %i'`, ""},
+		{"Bash", `cmd /c 'if exist marker (echo y)'`, ""},
+		{"Bash", `cmd /c 'if exist marker type notes.md'`, ""},
+	} {
+		got := judgeTool(t, shell.SecretTokens(), tc.tool, tc.command)
 		if tc.want == "" && len(got) != 0 || tc.want != "" && (len(got) != 1 || got[0] != tc.want) {
 			t.Errorf("%s %q: codes %v, want %q", tc.tool, tc.command, got, tc.want)
 		}
