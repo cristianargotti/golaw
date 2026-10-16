@@ -95,12 +95,20 @@ func hostSpace(r rune) bool {
 // followed, so the rest is kept as given; a loop of links stops the same way.
 // A relative path has no place to start from and is kept as given.
 func resolvePath(path string) string {
+	resolved, _ := resolveLinks(path)
+	return resolved
+}
+
+// resolveLinks is resolvePath that also answers the directories holding
+// the links the walk follows, in the order it meets them.
+func resolveLinks(path string) (string, []string) {
 	if !filepath.IsAbs(path) {
-		return path
+		return path, nil
 	}
+	var holders []string
 	vol := filepath.VolumeName(path)
 	done, todo := vol+string(filepath.Separator), elements(path[len(vol):])
-	for links := 0; len(todo) > 0; {
+	for len(todo) > 0 {
 		name := todo[0]
 		todo = todo[1:]
 		if name == ".." {
@@ -114,15 +122,15 @@ func resolvePath(path string) string {
 			continue
 		}
 		text, linkErr := os.Readlink(next)
-		if err != nil || linkErr != nil || links == maxLinks {
-			return filepath.Join(append([]string{next}, todo...)...)
+		if err != nil || linkErr != nil || len(holders) == maxLinks {
+			return filepath.Join(append([]string{next}, todo...)...), holders
 		}
-		links++
+		holders = append(holders, done)
 		var rest string
 		done, rest = rebase(done, text)
 		todo = append(elements(rest), todo...)
 	}
-	return done
+	return done, holders
 }
 
 // rebase answers where the walk resumes after a link: at the root its text
@@ -172,10 +180,11 @@ func existingDir(path, fallback string) string {
 // in order, the first enrolled one governing: for a write or a read, the
 // directory above the file its name, expanded as the host expands it,
 // leads to through every link, then the one above the entry the name
-// opens, so a link moves neither a write nor a read out of an enrolled
-// repository in either direction; a read then falls back to the session's
-// working directory. A shell command and an event without a target are
-// judged where they run.
+// opens, then every directory that holds a link the name passes through,
+// so a link, of a file or of a directory, moves neither a write nor a read
+// out of an enrolled repository in either direction; a read then falls
+// back to the session's working directory. A shell command and an event
+// without a target are judged where they run.
 func enrollmentDirs(event model.Event, home string) ([]string, error) {
 	if event.Target == "" {
 		return []string{event.Cwd}, nil
@@ -184,14 +193,24 @@ func enrollmentDirs(event model.Event, home string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	dirs := []string{existingDir(resolvePath(path), event.Cwd)}
-	if entry := existingDir(entryLocation(path), event.Cwd); entry != dirs[0] {
-		dirs = append(dirs, entry)
-	}
-	if event.Shape == model.ShapeRead && !slices.Contains(dirs, event.Cwd) {
+	resolved, holders := resolveLinks(path)
+	dirs := []string{existingDir(resolved, event.Cwd), existingDir(entryLocation(path), event.Cwd)}
+	dirs = append(dirs, holders...)
+	if event.Shape == model.ShapeRead {
 		dirs = append(dirs, event.Cwd)
 	}
-	return dirs, nil
+	return distinct(dirs), nil
+}
+
+// distinct keeps the first of each directory, in order.
+func distinct(dirs []string) []string {
+	out := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
+		if !slices.Contains(out, dir) {
+			out = append(out, dir)
+		}
+	}
+	return out
 }
 
 // Hash binds a decision to bytes without retaining their contents.

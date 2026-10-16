@@ -155,6 +155,8 @@ func TestHookJudgesBothNamesOfARead(t *testing.T) {
 		{"a plain file", root, filepath.Join(root, "payload.txt"), false},
 		{"a link outside to a plain file of the repository", outside, filepath.Join(outside, "plain-alias.txt"), false},
 		{"a link of the repository to a plain file outside", root, filepath.Join(root, "out.txt"), false},
+		{"a directory link of the repository to secret material outside, from outside", outside, filepath.Join(root, "linked", "keys", "token.json"), true},
+		{"a directory link of the repository to a plain file outside, from outside", outside, filepath.Join(root, "linked", "plain.txt"), false},
 	} {
 		agent := agentUnderTest()
 		event := eventAt(t, "Read", tc.cwd, map[string]any{"file_path": tc.target})
@@ -174,7 +176,9 @@ func plantReadLinks(t *testing.T, root, outside, store string) {
 	plant(t, map[string]string{
 		filepath.Join(root, "payload.txt"): "plain\n", filepath.Join(root, ".env.local"): "K=v\n",
 		store: "[default]\n", filepath.Join(outside, "plain.txt"): "plain\n", filepath.Join(root, "plain", "x.txt"): "plain\n",
+		filepath.Join(outside, "keys", "token.json"): "{}\n",
 	}, [][2]string{
+		{outside, filepath.Join(root, "linked")},
 		{"plain", filepath.Join(root, "secrets")},
 		{"..", filepath.Join(root, "plain", "secrets")},
 		{"payload.txt", filepath.Join(root, ".env")},
@@ -211,8 +215,9 @@ func plant(t *testing.T, files map[string]string, links [][2]string) {
 // from the repository and from outside, as is the policy file named with
 // the leading space the host trims, a dash through a dangling link into
 // the repository is denied while a clean write through it is allowed, and
-// a link of the repository to a file outside stays with that repository,
-// which cannot place it and refuses it.
+// a link of the repository to a file outside, of the file or of a
+// directory above it, stays with that repository, which cannot place it
+// and refuses it.
 func TestHookFollowsEveryLinkOfTheTarget(t *testing.T) {
 	t.Parallel()
 	e := enrolledHook(t)
@@ -220,7 +225,10 @@ func TestHookFollowsEveryLinkOfTheTarget(t *testing.T) {
 	plain := filepath.Join(outside, "plain.md")
 	alias, dangling, out := filepath.Join(outside, "alias"), filepath.Join(outside, "dangling.md"), filepath.Join(root, "out.md")
 	plant(t, map[string]string{plain: "plain\n"}, [][2]string{
-		{filepath.Join(root, "golaw.yml"), alias}, {filepath.Join(root, "fresh.md"), dangling}, {plain, out},
+		{filepath.Join(root, "golaw.yml"), alias},
+		{filepath.Join(root, "fresh.md"), dangling},
+		{plain, out},
+		{outside, filepath.Join(root, "linked")},
 	})
 	write := func(target, content string) map[string]any {
 		return map[string]any{"file_path": target, "content": content}
@@ -238,6 +246,8 @@ func TestHookFollowsEveryLinkOfTheTarget(t *testing.T) {
 		{"a dash through a dangling alias from outside", outside, write(dangling, "one \u2014 two\n"), 0, true, "fresh.md"},
 		{"a clean write through a dangling alias", outside, write(dangling, "one-two\n"), 0, false, ""},
 		{"a link of the repository to a file outside", root, write(out, "one-two\n"), 2, false, "outside the repository"},
+		{"a directory link of the repository to outside", root, write(filepath.Join(root, "linked", "new.md"), "one-two\n"), 2, false, "outside the repository"},
+		{"the same directory link from outside", outside, write(filepath.Join(root, "linked", "new.md"), "one-two\n"), 2, false, "outside the repository"},
 	} {
 		agent := agentUnderTest()
 		reply := hook.Run(t.Context(), agent.ID, strings.NewReader(eventAt(t, "Write", tc.cwd, tc.input)), agent.Adapter, e.deps)

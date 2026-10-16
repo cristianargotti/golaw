@@ -72,30 +72,17 @@ func enrollmentCallsFrom(t *testing.T, home string, shape model.EventShape, cwd,
 
 // TestEnrollmentFollowsEveryLinkOfTheTarget looks enrollment up where the
 // target of a write or read lands once every link of its name is followed,
-// the last one included, dangling or not, and then where the name itself
-// lives, so a link never moves a write or a read out of an enrolled
-// repository in either direction; a read then falls back to the session.
+// the last one included, dangling or not, then where the name itself
+// lives, then in every directory that holds a link the name passes
+// through, so a link, of a file or of a directory, never moves a write or
+// a read out of an enrolled repository in either direction; a read then
+// falls back to the session.
 func TestEnrollmentFollowsEveryLinkOfTheTarget(t *testing.T) {
 	t.Parallel()
 	repo, outside, session := realDir(t), realDir(t), realDir(t)
 	touch(t, filepath.Join(repo, "golaw.yml"))
 	touch(t, filepath.Join(outside, "plain.md"))
-	relative, err := filepath.Rel(outside, filepath.Join(repo, "golaw.yml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, pair := range [][2]string{
-		{filepath.Join(repo, "golaw.yml"), filepath.Join(outside, "alias")},
-		{filepath.Join(repo, "fresh.md"), filepath.Join(outside, "dangling.md")},
-		{relative, filepath.Join(outside, "relative")},
-		{filepath.Join(outside, "alias"), filepath.Join(outside, "chain")},
-		{filepath.Join(outside, "plain.md"), filepath.Join(repo, "out.md")},
-		{filepath.Join(outside, "absent.md"), filepath.Join(repo, "gone.md")},
-		{filepath.Join(outside, "loop-b"), filepath.Join(outside, "loop-a")},
-		{filepath.Join(outside, "loop-a"), filepath.Join(outside, "loop-b")},
-	} {
-		link(t, pair[0], pair[1])
-	}
+	linkEnrollmentCases(t, repo, outside, session)
 	for _, tc := range []struct {
 		name   string
 		shape  model.EventShape
@@ -109,12 +96,41 @@ func TestEnrollmentFollowsEveryLinkOfTheTarget(t *testing.T) {
 		{"a link of the repository to a file outside", model.ShapeWrite, filepath.Join(repo, "out.md"), []string{outside, repo}},
 		{"a dangling link of the repository", model.ShapeWrite, filepath.Join(repo, "gone.md"), []string{outside, repo}},
 		{"a loop of links", model.ShapeWrite, filepath.Join(outside, "loop-a"), []string{outside}},
+		{"a directory link of the repository to outside", model.ShapeWrite, filepath.Join(repo, "linked", "new.md"), []string{outside, repo}},
+		{"a hop through a directory link of the repository", model.ShapeWrite, filepath.Join(session, "hop", "new.md"), []string{outside, session, repo}},
+		{"a read through a directory link of the repository", model.ShapeRead, filepath.Join(repo, "linked", "plain.md"), []string{outside, repo, session}},
 		{"a read through an alias", model.ShapeRead, filepath.Join(outside, "alias"), []string{repo, outside, session}},
 		{"a plain read in the session", model.ShapeRead, filepath.Join(session, "notes.md"), []string{session}},
 	} {
 		if got := enrollmentCalls(t, tc.shape, session, tc.target); !slices.Equal(got, tc.want) {
 			t.Errorf("%s: enrolled from %v, want %v", tc.name, got, tc.want)
 		}
+	}
+}
+
+// linkEnrollmentCases makes the links the enrollment cases go through:
+// aliases outside into the repository, links of the repository outside,
+// a loop, and a directory link of the repository reached directly and
+// through another link.
+func linkEnrollmentCases(t *testing.T, repo, outside, session string) {
+	t.Helper()
+	relative, err := filepath.Rel(outside, filepath.Join(repo, "golaw.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, pair := range [][2]string{
+		{filepath.Join(repo, "golaw.yml"), filepath.Join(outside, "alias")},
+		{filepath.Join(repo, "fresh.md"), filepath.Join(outside, "dangling.md")},
+		{relative, filepath.Join(outside, "relative")},
+		{filepath.Join(outside, "alias"), filepath.Join(outside, "chain")},
+		{filepath.Join(outside, "plain.md"), filepath.Join(repo, "out.md")},
+		{filepath.Join(outside, "absent.md"), filepath.Join(repo, "gone.md")},
+		{filepath.Join(outside, "loop-b"), filepath.Join(outside, "loop-a")},
+		{filepath.Join(outside, "loop-a"), filepath.Join(outside, "loop-b")},
+		{outside, filepath.Join(repo, "linked")},
+		{filepath.Join(repo, "linked"), filepath.Join(session, "hop")},
+	} {
+		link(t, pair[0], pair[1])
 	}
 }
 
