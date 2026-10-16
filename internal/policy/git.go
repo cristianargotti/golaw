@@ -24,13 +24,29 @@ func ReadHead(ctx context.Context, root string) ([]byte, bool, error) {
 
 // ReadIndex reads golaw.yml as the index holds it: the proposed next
 // policy a staged change carries; found is false when nothing is staged
-// at that path.
+// at that path. A merge that left golaw.yml unresolved holds its sides at
+// stages 1 to 3 and no proposed policy at all, so it is ErrPolicy rather
+// than whichever side the listing names first.
 func ReadIndex(ctx context.Context, root string) ([]byte, bool, error) {
 	listing, err := plumbing(ctx, root, "ls-files", "-z", "--stage", "--", FileName)
 	if err != nil {
 		return nil, false, err
 	}
+	if unmerged(listing) {
+		return nil, false, fmt.Errorf("%w: %s is unresolved in the index: finish the merge before the policy is judged", model.ErrPolicy, FileName)
+	}
 	return readListed(ctx, root, listing, 1)
+}
+
+// unmerged reads the stage, the third field of a --stage line: 0 for a
+// resolved entry, 1 to 3 for the sides of a conflict.
+func unmerged(listing []byte) bool {
+	for line := range strings.SplitSeq(strings.TrimRight(string(listing), "\x00"), "\x00") {
+		if fields := strings.Fields(line); len(fields) > 2 && fields[2] != "0" {
+			return true
+		}
+	}
+	return false
 }
 
 // readListed takes the object id at a field of a listing line and reads
