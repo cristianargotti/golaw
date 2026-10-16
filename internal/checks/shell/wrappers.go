@@ -113,7 +113,7 @@ func (w wrapper) option(word string) (string, string, bool) {
 // the way env -S splits its string.
 func fields(line string) []string {
 	var out []string
-	for _, seg := range scan(line, posix) {
+	for _, seg := range scan(line, posix).out {
 		out = append(out, seg...)
 	}
 	return out

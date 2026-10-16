@@ -14,6 +14,26 @@ var posixStream = regexp.MustCompile(`^(?:\d+|\{[A-Za-z_][A-Za-z0-9_]*\})$`)
 // own, its operator and its file, which no rule reads as a program and
 // the secret rule judges by name.
 
+// operatorRune reads a rune after an operator rune: after an ampersand a
+// greater-than sign makes the operator &>, which takes the rune, and any
+// other rune leaves the ampersand to separate the commands; an operator
+// the rune does not extend is whole, its file the next word.
+func (s *scanner) operatorRune(r rune) bool {
+	if s.amp {
+		s.amp = false
+		if r == '>' {
+			s.closeWord()
+			s.op = append(s.op, '&', '>')
+			return true
+		}
+		s.endSegment()
+	}
+	if len(s.op) > 0 && !continuesOperator(s.op, r) {
+		s.pending, s.op = string(s.op), s.op[:0]
+	}
+	return false
+}
+
 // redirect reads a rune of a redirection operator outside quotes. The
 // first one starts the operator: a word right before it that names a
 // stream joins it, and any other word ends there, since an operator splits

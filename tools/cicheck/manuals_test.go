@@ -37,6 +37,8 @@ func TestSecurityContract(t *testing.T) {
 		"A command line built while it runs is beyond that reading, because reading it would need a full interpreter",
 		"the input xargs reads, the lines a for /f hands its body and a variable cmd expands",
 		"such as the else block of an if, are read as one command with the words before them",
+		"in the body of a here-document whose end word is unquoted, never in the body of one whose end word is quoted",
+		"bash 3.2, the /bin/bash of macOS, ends it at the first parenthesis left open",
 		"These rules cannot express an exception",
 		"a negation rule for the templates would also lift the person's own deny rules for them",
 	)

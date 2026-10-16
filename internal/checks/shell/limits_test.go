@@ -13,10 +13,16 @@ import (
 // the value of a variable eval runs, a program named by the output of a
 // command, the input xargs reads, the lines a for /f hands its body and a
 // variable cmd expands; and the blocks of a PowerShell statement after its
-// first are read as one command with the words before them.
+// first are read as one command with the words before them; and a
+// substitution inside double quotes ends where bash 4, zsh and dash end
+// it, so a line bash 3.2 would end at a parenthesis of a here-document body
+// inside it, and then read on as commands, is read as the newer shells
+// read it.
 func TestNoVerifyReadsTheLineAsWritten(t *testing.T) {
 	t.Parallel()
 	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "echo \"$(cat <<'EOF'\n) \" ; git commit --no-verify -m y ; echo \" (\nEOF\n)\"", ""},
+		{"Bash", "echo \"$(cat <<'EOF'\n)\nEOF\ngit commit --no-verify -m x)\"", "no-verify"},
 		{"Bash", `c='git commit --no-verify -m x'; eval "$c"`, ""},
 		{"Bash", "$(echo git) commit --no-verify -m x", ""},
 		{"Bash", "echo --no-verify | xargs git commit -m x", ""},

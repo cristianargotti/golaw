@@ -6,10 +6,13 @@ import (
 )
 
 // heredoc is a here-document a line of a POSIX shell opens: the word that
-// ends its body, and whether the body may indent that word with tabs.
+// ends its body, whether the body may indent that word with tabs, and
+// whether the word was quoted, which keeps the shell from expanding the
+// body.
 type heredoc struct {
-	end   string
-	strip bool
+	end    string
+	strip  bool
+	quoted bool
 }
 
 // documents holds the here-documents of a line and the lines after it,
@@ -81,10 +84,14 @@ func (s *scanner) bodyLine() {
 }
 
 // closeDocument ends the body of the first document open, which the shell
-// its line names reads as a script of its own.
+// its line names reads as a script of its own and which the shell expands
+// when its end word is unquoted.
 func (s *scanner) closeDocument() {
 	if s.docs.shell != "" {
 		s.out = append(s.out, segment{s.docs.shell, "-c", string(s.docs.body)})
+	}
+	if !s.docs.open[0].quoted {
+		s.bodies = append(s.bodies, string(s.docs.body))
 	}
 	s.docs.body, s.docs.open = s.docs.body[:0], s.docs.open[1:]
 	if len(s.docs.open) == 0 {
