@@ -9,6 +9,7 @@ import (
 
 	"github.com/cristianargotti/golaw/internal/hook/claude"
 	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/proof"
 )
 
 func postFrame(t *testing.T, event, tool, root string, input, response any) []byte {
@@ -53,6 +54,34 @@ func TestDecodeReadAndShell(t *testing.T) {
 				t.Fatalf("%+v, %v", got, err)
 			}
 		}
+	}
+}
+
+func TestDecodeRoutesWritesToTheirCandidates(t *testing.T) {
+	t.Parallel()
+	for _, tc := range writeCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			files := map[string][]byte{}
+			if tc.exists {
+				files["a.go"] = []byte(tc.before)
+			}
+			tc.input["file_path"] = filepath.Join(root, "a.go")
+			got, err := claude.Decode(frame(t, "PreToolUse", tc.tool, root, tc.input),
+				root, proof.NewTree(files))
+			if err != nil || got.Event.Shape != model.ShapeWrite || len(got.Event.Candidates) != 1 {
+				t.Fatalf("%+v, %v", got, err)
+			}
+			checkCandidate(t, got, tc.want, tc.op, tc.before, tc.exists)
+		})
+	}
+	root := t.TempDir()
+	got, err := claude.Decode(frame(t, "PreToolUse", "NotebookEdit", root,
+		map[string]any{"notebook_path": filepath.Join(root, "a.ipynb")}),
+		root, proof.NewTree(nil))
+	if err != nil || got.Denial != "NotebookEdit is not supported by this adapter" {
+		t.Fatalf("%+v, %v", got, err)
 	}
 }
 
