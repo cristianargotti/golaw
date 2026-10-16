@@ -52,6 +52,7 @@ func TestSecurityShellReading(t *testing.T) {
 		"A comment, from a hash that starts a word to the end of its line or a PowerShell block comment, is text no rule reads",
 		"the lines after a here-document the line never ends are read as commands as well as its body",
 		"a here-document a shell reads or its line sources from the standard input",
+		"a body eval runs through the output of cat, one xargs or a read loop turns into arguments and the script of another interpreter",
 	)
 }
 

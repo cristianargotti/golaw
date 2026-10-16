@@ -34,3 +34,27 @@ func TestNoVerifyReadsTheLineAsWritten(t *testing.T) {
 		{"PowerShell", "if ($a) { git commit --no-verify -m x } else { echo y }", "no-verify"},
 	})
 }
+
+// TestHereDocumentBodiesOtherProgramsReadAreData pins the limit
+// docs/security.md states for here-documents: a body is read as a script
+// only when its line names a shell or sources the standard input, so a
+// body eval runs through the output of cat, one xargs or a read loop turns
+// into arguments and the script of another interpreter pass, for the hook
+// bypass flag and for the secret names, beside their counterparts the hook
+// reads.
+func TestHereDocumentBodiesOtherProgramsReadAreData(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "eval \"$(cat)\" <<'EOF'\ngit commit --no-verify -m x\nEOF", ""},
+		{"Bash", "xargs git commit -m x <<'EOF'\n--no-verify\nEOF", ""},
+		{"Bash", "python3 - <<'EOF'\nimport os; os.system('git commit --no-verify -m x')\nEOF", ""},
+		{"Bash", "bash <<'EOF'\ngit commit --no-verify -m x\nEOF", "no-verify"},
+		{"Bash", "source /dev/stdin <<'EOF'\ngit commit --no-verify -m x\nEOF", "no-verify"},
+	})
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", "xargs cat <<'EOF'\n.env\nEOF", ""},
+		{"Bash", "while read f; do cat \"$f\"; done <<'EOF'\n.env\nEOF", ""},
+		{"Bash", "python3 - <<'EOF'\nprint(open('.env').read())\nEOF", ""},
+		{"Bash", "bash <<'EOF'\ncat .env\nEOF", "secret-token"},
+	})
+}
