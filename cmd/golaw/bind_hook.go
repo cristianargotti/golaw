@@ -24,7 +24,9 @@ const hookStateDir = "hook"
 
 // hookBinding binds the callbacks of hook.Dependencies for one hook
 // process: the enrollment, the policy in force, the worktree snapshot and
-// the candidate overlay, all from the source and policy packages.
+// the candidate overlay, all from the source and policy packages. The
+// cache keeps what git answered in this process, so the process asks each
+// repository fact once and lists each worktree once.
 type hookBinding struct {
 	binding
 
@@ -33,6 +35,7 @@ type hookBinding struct {
 	now        time.Time
 	agent      string
 	hookDigest string
+	cache      *source.Cache
 }
 
 func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Dependencies, error) {
@@ -52,9 +55,9 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	if err != nil {
 		return hook.Dependencies{}, fmt.Errorf("build the registry: %w", err)
 	}
-	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest}
+	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest, cache: source.NewCache()}
 	return hook.Dependencies{
-		Home:   b.processHome(),
+		Home: b.processHome(), Begin: h.cache.Reset,
 		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Overlay: h.overlay,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
@@ -89,7 +92,7 @@ func hookDigest(agent agents.Agent) (string, error) {
 func (h hookBinding) enroll(ctx context.Context, dir, cwd string) (hook.Repository, error) {
 	var found source.Repo
 	discover := func(ctx context.Context, dir string) (policy.Discovery, error) {
-		repo, err := source.Discover(ctx, dir)
+		repo, err := h.cache.Discover(ctx, dir)
 		if err != nil {
 			return policy.Discovery{}, discoverFailed(dir, err)
 		}
@@ -141,21 +144,22 @@ func (h hookBinding) observe(root, cwd string) {
 // deletion of the file HEAD holds and a staged policy that weakens the one
 // in force are all denials naming the cause.
 func (h hookBinding) policy(ctx context.Context, repo hook.Repository) (*model.EffectivePolicy, error) {
-	l, err := h.loaded(ctx, repo.Root, h.now)
+	l, err := h.loadedBy(ctx, repo.Root, h.now, false, h.locate)
 	if err != nil {
 		return nil, err
 	}
 	if l.Record == nil {
 		return l.Policy, nil
 	}
-	if err := enrolledCheckout(l); err != nil {
-		return nil, err
+	if gone := enrolledCheckout(l); gone != nil {
+		return nil, gone
 	}
-	if err := stagedDeletion(ctx, l); err != nil {
-		return nil, err
-	}
-	if _, _, err := policy.Proposed(ctx, l, schemas()); err != nil {
+	proposal, err := policy.Propose(ctx, l, schemas())
+	if err != nil {
 		return nil, fmt.Errorf("staged %s: %w", policy.FileName, err)
+	}
+	if deleted := stagedDeletion(l, proposal.Staged); deleted != nil {
+		return nil, deleted
 	}
 	return l.Policy, nil
 }
@@ -165,22 +169,35 @@ func (h hookBinding) policy(ctx context.Context, repo hook.Repository) (*model.E
 // deletes the policy in force. On an unborn branch the bootstrap record
 // governs and the untracked file init --apply wrote is the expected state,
 // so only a policy in force from HEAD is checked.
-func stagedDeletion(ctx context.Context, l *policy.Loaded) error {
-	if l.Origin != policy.OriginHead {
+func stagedDeletion(l *policy.Loaded, staged bool) error {
+	if l.Origin != policy.OriginHead || staged {
 		return nil
 	}
-	_, staged, err := policy.ReadIndex(ctx, l.Root)
-	if err != nil {
-		return fmt.Errorf("staged %s: %w", policy.FileName, err)
-	}
-	if !staged {
-		return fmt.Errorf("%w: the deletion of %s is staged in %s (%s)", model.ErrEnrollment, policy.FileName, l.Root, model.EnrollmentMissing)
-	}
-	return nil
+	return fmt.Errorf("%w: the deletion of %s is staged in %s (%s)", model.ErrEnrollment, policy.FileName, l.Root, model.EnrollmentMissing)
 }
 
+// locate is the discovery the policy load uses, through the cache, so the
+// load asks git nothing the enrollment already asked.
+func (h hookBinding) locate(ctx context.Context, dir string) (policy.Discovery, error) {
+	repo, err := h.cache.Discover(ctx, dir)
+	if err != nil {
+		return policy.Discovery{}, discoverFailed(dir, err)
+	}
+	return policy.Discovery{Root: repo.Root, Head: repo.Head}, nil
+}
+
+// snapshot is the worktree of the repository through the cache: listed
+// once, and read again from disk by every later snapshot of the process.
 func (h hookBinding) snapshot(ctx context.Context, repo hook.Repository) (model.Snapshot, error) {
-	return h.binding.snapshot(ctx, repo.Root)
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	w, err := h.cache.Worktree(ctx, found)
+	if err != nil {
+		return nil, fmt.Errorf("freeze the worktree of %s: %w", found.Root, err)
+	}
+	return w, nil
 }
 
 // overlay folds the candidates of a write event, with the bytes the adapter

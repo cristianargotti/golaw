@@ -3,6 +3,7 @@ package source
 import (
 	"bytes"
 	"fmt"
+	"slices"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -40,7 +41,8 @@ type Overlay struct {
 	content map[string][]byte
 	moved   map[string]string // a destination without bytes to its base source
 	removed map[string]bool
-	order   []string
+	all     []model.File
+	listed  bool
 }
 
 // NewOverlay folds the mutations into base, in order, and returns the
@@ -68,22 +70,33 @@ func NewOverlay(base model.Snapshot, muts []Mutation) (*Overlay, []model.Candida
 		}
 		candidates = append(candidates, c)
 	}
-	o.order = o.paths()
 	return o, candidates, nil
 }
 
 // Files lists the base universe with the candidates folded in, in path
-// order.
+// order; the slice is a copy.
 func (o *Overlay) Files() []model.File {
-	out := make([]model.File, 0, len(o.order))
-	for _, rel := range o.order {
-		if f, ok := o.files[rel]; ok {
-			out = append(out, f)
-			continue
-		}
-		out = append(out, model.File{Path: rel, Class: o.base.Class(rel), Size: o.baseSize(rel)})
+	if !o.listed {
+		o.all, o.listed = o.fold(o.base.Files(), func(string) bool { return true }), true
 	}
-	return out
+	return slices.Clone(o.all)
+}
+
+// Select lists the files whose paths match with the candidates folded in,
+// in path order, asking the base for the matching paths only.
+func (o *Overlay) Select(match func(path string) bool) []model.File {
+	return o.fold(model.Select(o.base, match), match)
+}
+
+// Any reports whether a path of the overlay universe matches, without
+// reading a file.
+func (o *Overlay) Any(match func(path string) bool) bool {
+	for rel := range o.files {
+		if match(rel) {
+			return true
+		}
+	}
+	return model.Any(o.base, func(rel string) bool { return match(rel) && !o.removed[rel] })
 }
 
 // Read answers the candidate bytes for a candidate path, the base bytes

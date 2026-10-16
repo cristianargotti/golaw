@@ -11,7 +11,7 @@ import (
 
 func (run execution) input(ctx context.Context, dependencies Dependencies) (model.Input, string, error) {
 	event := run.request.Event
-	snapshot := run.base
+	var snapshot model.Snapshot = run.base
 	var paths []string
 	var unmeasured string
 	var err error
@@ -104,12 +104,20 @@ func candidatePaths(candidates []model.Candidate) []string {
 	return slices.Compact(paths)
 }
 
+// selectFiles asks the snapshot for the files of the paths only, none
+// when no path is named, so an event without targets lists no worktree.
 func selectFiles(snapshot model.Snapshot, paths []string) []model.File {
-	var selected []model.File
-	for _, file := range snapshot.Files() {
-		if slices.Contains(paths, file.Path) {
-			selected = append(selected, file)
-		}
+	if len(paths) == 0 {
+		return nil
 	}
-	return selected
+	return model.Select(snapshot, among(paths))
+}
+
+// among matches the paths of a list.
+func among(paths []string) func(string) bool {
+	set := make(map[string]bool, len(paths))
+	for _, path := range paths {
+		set[path] = true
+	}
+	return func(path string) bool { return set[path] }
 }

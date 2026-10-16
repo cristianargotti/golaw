@@ -98,6 +98,21 @@ func inspect(root string, e entry, dirs map[string]int) (model.File, []byte, boo
 	return file, nil, false
 }
 
+// present reports whether a listed path is in the universe without
+// reading it, by the rules inspect follows: a path that is gone, or under
+// a directory that is gone, is not; anything else, an unreadable path
+// included, is.
+func present(root string, e entry, dirs map[string]int) bool {
+	if e.dir {
+		return true
+	}
+	if parentDirs(root, e.path, dirs) == dirsGone {
+		return false
+	}
+	_, err := os.Lstat(OSPath(root, e.path))
+	return !errors.Is(err, fs.ErrNotExist)
+}
+
 // parentDirs answers the state of the directories above a listed path: a
 // symbolic link or a directory that cannot be inspected, because Lstat and
 // a read follow every component but the last, so a tracked path whose

@@ -29,9 +29,10 @@ func StateKey(repository string, event model.Event) (string, error) {
 	}))), nil
 }
 
-// Identities detects modifications even when a file was already dirty.
+// Identities detects modifications even when a file was already dirty;
+// given paths, only those are asked for.
 func Identities(ctx context.Context, snapshot model.Snapshot, paths []string) (map[string]string, error) {
-	sizes, listed := fileSizes(snapshot)
+	sizes, listed := fileSizes(snapshot, paths)
 	if paths == nil {
 		paths = listed
 	}
@@ -57,17 +58,23 @@ func Identities(ctx context.Context, snapshot model.Snapshot, paths []string) (m
 	return out, nil
 }
 
-// fileSizes keeps what the listing knows of every path before any read,
-// because a link or a submodule is identified from it alone.
-func fileSizes(snapshot model.Snapshot) (map[string]int64, []string) {
-	files := snapshot.Files()
+// fileSizes keeps what the listing knows of the paths, every path when
+// none is named, before any read, because a link or a submodule is
+// identified from it alone.
+func fileSizes(snapshot model.Snapshot, paths []string) (map[string]int64, []string) {
+	var files []model.File
+	if paths == nil {
+		files = snapshot.Files()
+	} else {
+		files = model.Select(snapshot, among(paths))
+	}
 	sizes := make(map[string]int64, len(files))
-	paths := make([]string, 0, len(files))
+	listed := make([]string, 0, len(files))
 	for _, file := range files {
 		sizes[file.Path] = file.Size
-		paths = append(paths, file.Path)
+		listed = append(listed, file.Path)
 	}
-	return sizes, paths
+	return sizes, listed
 }
 
 func pathIdentity(snapshot model.Snapshot, sizes map[string]int64, path string) (string, int, error) {

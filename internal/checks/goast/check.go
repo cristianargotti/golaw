@@ -89,15 +89,12 @@ func (s *state) first(key string) bool {
 }
 
 // siblings reads the snapshot and not the targets, so a directory rule
-// sees every Go file of the package even when only one file is judged.
+// sees every Go file of the package even when only one file is judged;
+// only that directory is asked for, so a hook reads no other.
 func (s *state) siblings(dir string) []model.File {
-	var out []model.File
-	for _, f := range s.in.Snapshot.Files() {
-		if path.Dir(f.Path) == dir && strings.HasSuffix(f.Path, goSuffix) {
-			out = append(out, f)
-		}
-	}
-	return out
+	return model.Select(s.in.Snapshot, func(p string) bool {
+		return path.Dir(p) == dir && strings.HasSuffix(p, goSuffix)
+	})
 }
 
 // judge inspects one target; an error means the target could not be
@@ -210,13 +207,12 @@ func requireFile(name string) gate {
 }
 
 // requireDir looks for a file below the directory, because a snapshot
-// lists files and never directories.
+// lists files and never directories; the presence of a path is all it
+// asks, so no file is read.
 func requireDir(dir string) gate {
 	return func(in model.Input) (model.Status, bool) {
-		for _, f := range in.Snapshot.Files() {
-			if strings.HasPrefix(f.Path, dir+"/") {
-				return model.Status{}, true
-			}
+		if model.Any(in.Snapshot, func(p string) bool { return strings.HasPrefix(p, dir+"/") }) {
+			return model.Status{}, true
 		}
 		return model.NotApplicable(dir + " is absent"), false
 	}

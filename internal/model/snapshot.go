@@ -98,3 +98,43 @@ type Snapshot interface {
 	Read(path string) ([]byte, error)
 	Class(path string) FileClass
 }
+
+// Selector is a snapshot that answers part of its universe without
+// classifying the rest, so a rule that reads one directory never makes a
+// hook read the whole tree.
+type Selector interface {
+	// Select answers the files whose paths match, in path order.
+	Select(match func(path string) bool) []File
+	// Any reports whether a path of the universe matches, without
+	// reading a file.
+	Any(match func(path string) bool) bool
+}
+
+// Select answers the files of a snapshot whose paths match, in path order,
+// through the snapshot's own Select when it has one.
+func Select(s Snapshot, match func(path string) bool) []File {
+	if selector, ok := s.(Selector); ok {
+		return selector.Select(match)
+	}
+	var out []File
+	for _, file := range s.Files() {
+		if match(file.Path) {
+			out = append(out, file)
+		}
+	}
+	return out
+}
+
+// Any reports whether a path of a snapshot matches, through the
+// snapshot's own Any when it has one.
+func Any(s Snapshot, match func(path string) bool) bool {
+	if selector, ok := s.(Selector); ok {
+		return selector.Any(match)
+	}
+	for _, file := range s.Files() {
+		if match(file.Path) {
+			return true
+		}
+	}
+	return false
+}

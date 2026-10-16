@@ -22,9 +22,12 @@ type Repository struct {
 // apart, as the evidence of where the agent runs the hook. Home is the
 // home directory of the hook process, which it shares with the host that
 // runs it, empty when it has none: the host expands a leading tilde of a
-// tool's path to it before it opens the file.
+// tool's path to it before it opens the file. Begin, when set, is called
+// once before each event is evaluated, so a binding that keeps what git
+// answered forgets what an earlier event of the same dependencies learned.
 type Dependencies struct {
 	Home     string
+	Begin    func()
 	Enroll   func(ctx context.Context, dir, cwd string) (Repository, error)
 	Policy   func(context.Context, Repository) (*model.EffectivePolicy, error)
 	Snapshot func(context.Context, Repository) (model.Snapshot, error)
@@ -37,7 +40,7 @@ type Dependencies struct {
 type execution struct {
 	repository  Repository
 	policy      *model.EffectivePolicy
-	base        model.Snapshot
+	base        *deferredSnapshot
 	request     Request
 	stateReason string
 }

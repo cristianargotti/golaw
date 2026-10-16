@@ -106,11 +106,17 @@ func (b binding) loaded(ctx context.Context, dir string, now time.Time) (*policy
 // committed tightening the record does not hold yet loads with the
 // mismatch state instead of refusing (A3).
 func (b binding) loadedFor(ctx context.Context, dir string, now time.Time, reenroll bool) (*policy.Loaded, error) {
+	return b.loadedBy(ctx, dir, now, reenroll, locate)
+}
+
+// loadedBy is loadedFor through a discoverer of the caller's own, such as
+// the cache of a hook process.
+func (b binding) loadedBy(ctx context.Context, dir string, now time.Time, reenroll bool, discover policy.Discoverer) (*policy.Loaded, error) {
 	dirs, err := b.dirs()
 	if err != nil {
 		return nil, err
 	}
-	in := policy.Input{Dir: dir, Dirs: dirs, Version: b.pin(), Now: now, Schemas: schemas(), Discover: locate, Reenroll: reenroll}
+	in := policy.Input{Dir: dir, Dirs: dirs, Version: b.pin(), Now: now, Schemas: schemas(), Discover: discover, Reenroll: reenroll}
 	l, err := policy.Load(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("load the policy of %s: %w", dir, err)

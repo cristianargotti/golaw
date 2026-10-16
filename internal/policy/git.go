@@ -60,19 +60,24 @@ func readListed(ctx context.Context, root string, listing []byte, field int) ([]
 	if len(fields) <= field {
 		return nil, false, fmt.Errorf("%w: unexpected listing %q", model.ErrPolicy, line)
 	}
-	content, err := plumbing(ctx, root, "cat-file", "blob", fields[field])
+	content, err := plumbing(ctx, root, catFile, blobType, fields[field])
 	if err != nil {
 		return nil, false, err
 	}
 	return content, true, nil
 }
 
-// plumbing runs one git command under root and answers its stdout; any
-// failure is an ErrPolicy naming the command, because without it the
-// policy in force cannot be established.
+// plumbing runs one git command under root and answers its stdout.
 func plumbing(ctx context.Context, root string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "git", args...) //nolint:gosec // the arguments are the kit's own plumbing
 	cmd.Dir = root
+	return output(cmd, args)
+}
+
+// output runs a plumbing command and answers its stdout; any failure is an
+// ErrPolicy naming the command, because without it the policy in force
+// cannot be established.
+func output(cmd *exec.Cmd, args []string) ([]byte, error) {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()

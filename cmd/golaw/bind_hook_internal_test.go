@@ -31,7 +31,7 @@ func hookBindingFor(t *testing.T, b binding) hookBinding {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return hookBinding{binding: b, dirs: dirs, state: state, now: now(), agent: agentUnderTest().ID, hookDigest: "definition"}
+	return hookBinding{binding: b, dirs: dirs, state: state, now: now(), agent: agentUnderTest().ID, hookDigest: "definition", cache: source.NewCache()}
 }
 
 func TestHookEnrollAllowsAPositivelyUnenrolledLocation(t *testing.T) {
@@ -85,6 +85,7 @@ func TestHookEnrollPolicyAndSnapshotOfAnEnrolledRepository(t *testing.T) {
 	if err = os.RemoveAll(filepath.Join(root, ".git")); err != nil {
 		t.Fatal(err)
 	}
+	h.cache.Reset() // a later event begins with an empty cache
 	if _, err = h.enroll(t.Context(), root, root); !errors.Is(err, model.ErrEnrollment) {
 		t.Fatalf("an enrolled repository without git was not a denial: %v", err)
 	}
@@ -159,7 +160,7 @@ func TestHookPolicyDeniesAStagedDeletionOfThePolicyAtHead(t *testing.T) {
 		t.Fatalf("a staged deletion was accepted: %v", err)
 	}
 	unreadable := &policy.Loaded{Origin: policy.OriginHead, Root: filepath.Join(root, "absent")}
-	if err = stagedDeletion(t.Context(), unreadable); err == nil || errors.Is(err, model.ErrEnrollment) {
+	if _, err = policy.Propose(t.Context(), unreadable, schemas()); err == nil || errors.Is(err, model.ErrEnrollment) {
 		t.Fatalf("an unreadable index = %v", err)
 	}
 }
@@ -205,7 +206,7 @@ func TestHookDependenciesBindTheCatalogAndTheState(t *testing.T) {
 	if !strings.HasSuffix(deps.State.Dir, hookStateDir) || deps.State.Now != now() || deps.Budget != 0 {
 		t.Fatalf("state = %+v, budget = %v", deps.State, deps.Budget)
 	}
-	if deps.Enroll == nil || deps.Policy == nil || deps.Snapshot == nil || deps.Overlay == nil {
+	if deps.Begin == nil || deps.Enroll == nil || deps.Policy == nil || deps.Snapshot == nil || deps.Overlay == nil {
 		t.Fatal("a callback is nil")
 	}
 }

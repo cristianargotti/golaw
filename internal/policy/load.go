@@ -60,6 +60,7 @@ type Loaded struct {
 	Record  *Record
 	Stamp   *Stamp
 	Schemas Schemas // the option schemas of the catalog, whose defaults explain lists
+	git     *reads  // the answers git gave about golaw.yml, each asked once
 }
 
 // Load establishes the policy in force for a directory: the enrollment
@@ -108,13 +109,13 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 // the core defaults for an unenrolled repository without the file.
 func (l *Loaded) inForce(ctx context.Context) ([]byte, error) {
 	if l.Head != "" {
-		data, found, err := ReadHead(ctx, l.Root)
-		if err != nil {
-			return nil, err
+		head := l.reads().atHead(ctx)
+		if head.err != nil {
+			return nil, head.err
 		}
-		if found {
+		if head.found {
 			l.Origin = OriginHead
-			return data, nil
+			return head.data, nil
 		}
 	}
 	if l.Record != nil && l.Head == "" && l.Record.Bootstrap != "" {
@@ -177,24 +178,50 @@ func (l *Loaded) enroll(reenroll bool, schemas Schemas) error {
 // file is validated before its digest is compared, so a file that hashes
 // like the policy in force is still refused when it breaks the schema.
 func Proposed(ctx context.Context, inForce *Loaded, schemas Schemas) (File, bool, error) {
-	data, found, err := ReadIndex(ctx, inForce.Root)
-	if err != nil || !found {
-		return File{}, false, err
+	proposal, err := Propose(ctx, inForce, schemas)
+	return proposal.File, proposal.Found, err
+}
+
+// Proposal is what the index holds against the policy in force: the next
+// policy when it differs, and whether the index holds golaw.yml at all.
+type Proposal struct {
+	File   File
+	Found  bool
+	Staged bool
+}
+
+// Propose is Proposed that also answers whether the index holds golaw.yml,
+// from one listing of the index, so a caller that refuses a staged deletion
+// asks git nothing more; a staged blob that is the one at HEAD is not read
+// again.
+func Propose(ctx context.Context, inForce *Loaded, schemas Schemas) (Proposal, error) {
+	staged := inForce.reads().staged(ctx)
+	if staged.err != nil || !staged.found {
+		return Proposal{}, staged.err
 	}
-	next, err := Decode(data)
+	next, err := Decode(staged.data)
 	if err != nil {
-		return File{}, false, err
+		return Proposal{Staged: true}, err
 	}
 	if err := next.Validate(schemas); err != nil {
-		return File{}, false, err
+		return Proposal{Staged: true}, err
 	}
 	if Digest(next) == inForce.Policy.Digest {
-		return File{}, false, nil
+		return Proposal{Staged: true}, nil
 	}
 	if inForce.Origin != OriginCore {
 		if err := CheckTightening(inForce.File, next, schemas); err != nil {
-			return File{}, false, err
+			return Proposal{Staged: true}, err
 		}
 	}
-	return next, true, nil
+	return Proposal{File: next, Found: true, Staged: true}, nil
+}
+
+// reads is the memo of the git answers about golaw.yml under the root,
+// made on first use for a Loaded built without Load.
+func (l *Loaded) reads() *reads {
+	if l.git == nil || l.git.root != l.Root {
+		l.git = &reads{root: l.Root}
+	}
+	return l.git
 }

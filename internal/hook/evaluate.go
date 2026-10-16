@@ -11,6 +11,9 @@ import (
 
 // Evaluate establishes authority before reading or reconstructing targets.
 func Evaluate(ctx context.Context, agent string, data []byte, adapter Adapter, dependencies Dependencies) (model.Event, Result) {
+	if dependencies.Begin != nil {
+		dependencies.Begin()
+	}
 	event, err := adapter.Header(data)
 	if err != nil {
 		return event, failure(event, err)
@@ -70,11 +73,11 @@ func loadExecution(ctx context.Context, repository Repository, data []byte, adap
 	if sweepErr := sweepState(ctx, dependencies.State); sweepErr != nil && !errors.Is(sweepErr, model.ErrDeadline) {
 		run.stateReason = sweepErr.Error()
 	}
-	snapshot, err := dependencies.Snapshot(ctx, repository)
-	if err != nil {
-		return run, fmt.Errorf("%w: snapshot: %w", model.ErrCannotJudge, err)
-	}
+	snapshot := deferSnapshot(func() (model.Snapshot, error) { return dependencies.Snapshot(ctx, repository) })
 	request, err := adapter.Decode(data, Base{Root: repository.Root, Home: dependencies.Home}, snapshot)
+	if failed := snapshot.failure(); failed != nil {
+		return run, failed
+	}
 	if err != nil {
 		return run, fmt.Errorf("normalize hook input: %w", err)
 	}
@@ -113,6 +116,9 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 		return failureLanguage(run.request.Event, err, run.language())
 	}
 	dispatched, err := engine.Dispatch(ctx, dependencies.Registry, input)
+	if err == nil {
+		err = run.base.failure()
+	}
 	if err != nil {
 		return failureLanguage(run.request.Event, err, run.language())
 	}
@@ -126,8 +132,12 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 	}
 	switch run.request.Event.Shape {
 	case model.ShapeWrite:
-		if err := run.checkWriteFresh(ctx, dependencies); err != nil {
-			return failureLanguage(run.request.Event, err, run.language())
+		fresh := run.checkWriteFresh(ctx, dependencies)
+		if failed := run.base.failure(); failed != nil {
+			fresh = failed
+		}
+		if fresh != nil {
+			return failureLanguage(run.request.Event, fresh, run.language())
 		}
 	case model.ShapeShell:
 		run.saveBefore(ctx, data, dependencies)

@@ -48,3 +48,36 @@ func TestChangeOpNames(t *testing.T) {
 		t.Errorf("MaxReadBytes = %d", model.MaxReadBytes)
 	}
 }
+
+// plain is a snapshot that only lists, the shape every check could read
+// before Selector existed.
+type plain []model.File
+
+func (p plain) Files() []model.File        { return p }
+func (plain) Read(string) ([]byte, error)  { return nil, model.ErrNotInSnapshot }
+func (plain) Class(string) model.FileClass { return model.ClassUnknown }
+
+// selecting answers Select and Any itself and lists nothing.
+type selecting struct{ files []model.File }
+
+func (selecting) Files() []model.File                     { return nil }
+func (selecting) Read(string) ([]byte, error)             { return nil, model.ErrNotInSnapshot }
+func (selecting) Class(string) model.FileClass            { return model.ClassUnknown }
+func (s selecting) Select(func(string) bool) []model.File { return s.files }
+func (s selecting) Any(func(string) bool) bool            { return len(s.files) > 0 }
+
+func TestSelectAndAnyAskTheSnapshotsOwnSelector(t *testing.T) {
+	t.Parallel()
+	listed := plain{{Path: "a/x.go"}, {Path: "b/y.go"}}
+	under := func(p string) bool { return p == "b/y.go" }
+	if got := model.Select(listed, under); len(got) != 1 || got[0].Path != "b/y.go" {
+		t.Errorf("Select over a plain snapshot = %+v", got)
+	}
+	if !model.Any(listed, under) || model.Any(listed, func(string) bool { return false }) {
+		t.Error("Any over a plain snapshot must filter its listing")
+	}
+	own := selecting{files: []model.File{{Path: "own"}}}
+	if got := model.Select(own, under); len(got) != 1 || got[0].Path != "own" || !model.Any(own, under) {
+		t.Errorf("Select through the snapshot's own selector = %+v", got)
+	}
+}

@@ -85,30 +85,32 @@ func (o *Overlay) drop(rel string) {
 
 // baseSize answers the size the base knows for a path, 0 when absent.
 func (o *Overlay) baseSize(rel string) int64 {
-	for _, f := range o.base.Files() {
-		if f.Path == rel {
-			return f.Size
-		}
+	for _, f := range model.Select(o.base, func(path string) bool { return path == rel }) {
+		return f.Size
 	}
 	return 0
 }
 
-// paths lists the universe of the overlay in order.
-func (o *Overlay) paths() []string {
-	seen := make(map[string]bool)
-	var out []string
-	for _, f := range o.base.Files() {
-		if !o.removed[f.Path] {
-			seen[f.Path] = true
-			out = append(out, f.Path)
+// fold lays the candidates over files of the base, the ones that match:
+// a removed path leaves, a folded path takes the place of its base entry
+// and a new path joins, all in path order.
+func (o *Overlay) fold(base []model.File, match func(string) bool) []model.File {
+	out := make([]model.File, 0, len(base)+len(o.files))
+	inBase := make(map[string]bool, len(base))
+	for _, f := range base {
+		inBase[f.Path] = true
+		if folded, ok := o.files[f.Path]; ok {
+			out = append(out, folded)
+		} else if !o.removed[f.Path] {
+			out = append(out, f)
 		}
 	}
-	for rel := range o.files {
-		if !seen[rel] {
-			out = append(out, rel)
+	for rel, f := range o.files {
+		if !inBase[rel] && match(rel) {
+			out = append(out, f)
 		}
 	}
-	slices.Sort(out)
+	slices.SortFunc(out, func(a, b model.File) int { return strings.Compare(a.Path, b.Path) })
 	return out
 }
 

@@ -34,20 +34,25 @@ type Repo struct {
 // the real root path in slash form.
 func (r Repo) Identity() string { return filepath.ToSlash(r.Root) }
 
-// Discover finds the repository that holds dir through git rev-parse. A
-// directory git does not recognize, with no .git entry in it or above it,
-// is ErrNotRepository; git missing or failing otherwise, a repository git
-// cannot read included, is ErrGit; the two outcomes of A14 stay distinct.
+// Discover finds the repository that holds dir with two plumbing
+// questions: one rev-parse for the top level, the git directory and HEAD,
+// whose verification of HEAD alone exits 1 on an unborn branch, and the
+// core.ignorecase setting. A directory git does not recognize, with no
+// .git entry in it or above it, is ErrNotRepository; git missing or
+// failing otherwise, a repository git cannot read included, is ErrGit; the
+// two outcomes of A14 stay distinct.
 func Discover(ctx context.Context, dir string) (Repo, error) {
-	out, err := git(ctx, dir, "rev-parse", "--show-toplevel", "--absolute-git-dir")
-	if failure, fatal := errors.AsType[*gitError](err); fatal && failure.status == gitFatal && outsideCheckout(dir) {
+	out, err := git(ctx, dir, "rev-parse", "--show-toplevel", "--absolute-git-dir", "--verify", "-q", "HEAD")
+	failure, failed := errors.AsType[*gitError](err)
+	if failed && failure.status == gitFatal && outsideCheckout(dir) {
 		return Repo{}, fmt.Errorf("%w: %s: %s", ErrNotRepository, dir, failure.reason)
 	}
-	if err != nil {
+	unborn := failed && failure.status == gitAbsent
+	if err != nil && !unborn {
 		return Repo{}, err
 	}
 	lines := strings.Split(strings.TrimRight(string(out), "\n"), "\n")
-	if len(lines) != 2 || lines[0] == "" {
+	if len(lines) != 3 && (!unborn || len(lines) != 2) || lines[0] == "" {
 		return Repo{}, fmt.Errorf("%w: rev-parse printed %q", ErrGit, string(out))
 	}
 	root, err := filepath.EvalSymlinks(filepath.FromSlash(lines[0]))
@@ -55,15 +60,14 @@ func Discover(ctx context.Context, dir string) (Repo, error) {
 		return Repo{}, fmt.Errorf("%w: resolve %s: %w", ErrGit, lines[0], err)
 	}
 	repo := Repo{Root: root, GitDir: filepath.FromSlash(lines[1])}
-	head, err := query(ctx, root, "rev-parse", "--verify", "-q", "HEAD")
-	if err != nil {
-		return Repo{}, err
+	if !unborn {
+		repo.Head = lines[2]
 	}
 	flag, err := query(ctx, root, "config", "--bool", "core.ignorecase")
 	if err != nil {
 		return Repo{}, err
 	}
-	repo.Head, repo.IgnoreCase = head, flag == "true"
+	repo.IgnoreCase = flag == "true"
 	return repo, nil
 }
 
@@ -119,9 +123,10 @@ func (e *gitError) Error() string {
 // Unwrap makes every plumbing failure match ErrGit.
 func (e *gitError) Unwrap() error { return ErrGit }
 
-// git runs one plumbing command under dir and returns its stdout. The
-// kit's own plumbing is the only thing ever executed: never repository
-// code, never intercepted text.
+// git runs one plumbing command under dir and returns its stdout, also
+// beside the error of a command that failed, whose answer a caller may
+// still read. The kit's own plumbing is the only thing ever executed:
+// never repository code, never intercepted text.
 func git(ctx context.Context, dir string, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "git", args...) //nolint:gosec // the arguments are the kit's own plumbing
 	cmd.Dir = dir
@@ -141,5 +146,5 @@ func git(ctx context.Context, dir string, args ...string) ([]byte, error) {
 	if line, _, found := strings.Cut(failure.reason, "\n"); found {
 		failure.reason = line
 	}
-	return nil, failure
+	return out, failure
 }

@@ -64,6 +64,10 @@ func TestNewWorktreeClasses(t *testing.T) {
 	}
 }
 
+// TestWorktreeReadIsFrozen holds a path to the bytes of its first read: a
+// change on disk afterwards never reaches the snapshot, a snapshot of the
+// same listing refreshed reads the change, and the listing stays the one
+// taken at construction.
 func TestWorktreeReadIsFrozen(t *testing.T) {
 	t.Parallel()
 	root, repo := classes(t)
@@ -71,10 +75,17 @@ func TestWorktreeReadIsFrozen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if first := mustRead(t, w, "a.go"); first != "package a\n" {
+		t.Errorf("first Read = %q", first)
+	}
 	write(t, root, "a.go", "package changed\n")
+	write(t, root, "late.txt", "late\n")
 	data, err := w.Read("a.go")
 	if err != nil || string(data) != "package a\n" {
 		t.Errorf("Read after a change on disk = %q, %v", data, err)
+	}
+	if fresh := w.Refreshed(); mustRead(t, fresh, "a.go") != "package changed\n" || fresh.Class("late.txt") != model.ClassUnknown {
+		t.Error("a refreshed snapshot must read the change and keep the listing")
 	}
 	data[0] = 'X'
 	if mustRead(t, w, "a.go") != "package a\n" {

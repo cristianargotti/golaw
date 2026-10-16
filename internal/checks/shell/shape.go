@@ -125,26 +125,23 @@ func addPaths(args []string) []string {
 
 // expand lists what a named path stands for: the untracked files under a
 // directory, or the named file itself with the class the snapshot gives it.
+// Only the files under the named path are asked for.
 func expand(named string, snap model.Snapshot) []model.File {
 	prefix := named + "/"
 	if named == "." {
 		prefix = ""
 	}
+	under := model.Select(snap, func(p string) bool { return strings.HasPrefix(p, prefix) })
+	if named != "." && len(under) == 0 {
+		return []model.File{{Path: named, Class: snap.Class(named)}}
+	}
 	var out []model.File
-	directory := named == "."
-	for _, f := range snap.Files() {
-		if !strings.HasPrefix(f.Path, prefix) {
-			continue
-		}
-		directory = true
+	for _, f := range under {
 		if f.Class == model.ClassUntracked {
 			out = append(out, f)
 		}
 	}
-	if directory {
-		return out
-	}
-	return []model.File{{Path: named, Class: snap.Class(named)}}
+	return out
 }
 
 // lineCount counts the lines of a file the way wc does, plus one for an

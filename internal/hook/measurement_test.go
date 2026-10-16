@@ -145,20 +145,37 @@ func TestWriteSavesNoUnusedStateAndLanguageIsThePolicys(t *testing.T) {
 	if got.Human != "golaw blocked the operation: text.probe: invalid text (a.go)." {
 		t.Fatal(got)
 	}
-	failing := dependencies
-	failing.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
-		return nil, model.ErrUnreadable
-	}
-	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, failing)
-	if got.Human != "The operation was blocked by check golaw at path not given." {
-		t.Fatal(got)
-	}
 	dependencies.Policy = func(context.Context, hook.Repository) (*model.EffectivePolicy, error) {
 		return nil, model.ErrEnrollment
 	}
 	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 	if got.CannotJudge || got.Outcome != hook.Deny ||
 		got.Reason != "load hook policy: enrollment mismatch" {
+		t.Fatal(got)
+	}
+}
+
+// TestAFailedListingSpeaksThePolicyLanguage names a worktree listing that
+// failed under the decoder of a write, which reads the base, in the
+// language of the policy in force.
+func TestAFailedListingSpeaksThePolicyLanguage(t *testing.T) {
+	t.Parallel()
+	adapter, dependencies := harness(t, request("bad"))
+	policy := proof.Policy()
+	policy.Language = "en-US"
+	dependencies.Policy = func(context.Context, hook.Repository) (*model.EffectivePolicy, error) {
+		return policy, nil
+	}
+	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
+		return nil, model.ErrUnreadable
+	}
+	decode := adapter.Decode
+	adapter.Decode = func(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
+		snapshot.Class("a.go")
+		return decode(data, base, snapshot)
+	}
+	_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
+	if got.Human != "The operation was blocked by check golaw at path not given." || !got.CannotJudge {
 		t.Fatal(got)
 	}
 }
