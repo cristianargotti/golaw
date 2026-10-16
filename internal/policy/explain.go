@@ -179,7 +179,6 @@ func (e *explainer) records(f File) {
 	}
 }
 
-// list renders a string list for a line.
 func list(items []string) string {
 	if len(items) == 0 {
 		return "[]"
@@ -187,7 +186,6 @@ func list(items []string) string {
 	return "[" + strings.Join(items, ", ") + "]"
 }
 
-// value renders an option value for a line.
 func value(v model.OptionValue) string {
 	switch v.Kind {
 	case model.OptionInt:

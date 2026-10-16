@@ -64,7 +64,9 @@ func (o *Overlay) bind(rel, bound string) (string, error) {
 	return hash, nil
 }
 
-// put folds new content for a path.
+// put lifts a deletion or a move of the path first, so a candidate that
+// writes a path an earlier candidate removed brings it back with the class
+// of its new bytes.
 func (o *Overlay) put(rel string, content []byte, tracked bool) {
 	delete(o.removed, rel)
 	delete(o.moved, rel)
@@ -72,7 +74,8 @@ func (o *Overlay) put(rel string, content []byte, tracked bool) {
 	o.files[rel] = model.File{Path: rel, Class: Classify(rel, content, tracked), Size: int64(len(content))}
 }
 
-// drop removes a path from the universe.
+// drop marks the path removed rather than only forgetting its candidate,
+// because the base still holds the path and would show through.
 func (o *Overlay) drop(rel string) {
 	delete(o.files, rel)
 	delete(o.content, rel)
