@@ -70,6 +70,52 @@ func TestSecretTokensReadDirectoriesAndPackagePatterns(t *testing.T) {
 	})
 }
 
+// TestSecretTokensSkipOnlyPackageOperands leaves a pattern ending in /...
+// alone only where the go tool or a linter reads it as packages: after the
+// flags of a package subcommand, with the value of a flag skipped, as the
+// one package of go run and as the list of -coverpkg; a redirection and its
+// file, the value of a flag, what go run and go test pass on to the
+// program and the words of a subcommand that reads files are judged.
+func TestSecretTokensSkipOnlyPackageOperands(t *testing.T) {
+	t.Parallel()
+	denies(t, shell.SecretTokens(), "secret-token", map[string]bool{
+		"go run ./cat.go ./deploy/secrets/...":                                    true,
+		"go run ./x.go < ./deploy/secrets/...":                                    true,
+		"go run ./x.go <./deploy/secrets/...":                                     true,
+		"go build ./... 2>./deploy/secrets/...":                                   true,
+		"go vet ./... > ./deploy/secrets/...":                                     true,
+		"go test ./x -args ./deploy/secrets/...":                                  true,
+		"go test ./x -run X ./deploy/secrets/...":                                 true,
+		"go test -mine v ./deploy/secrets/...":                                    true,
+		"go test -- ./deploy/secrets/...":                                         true,
+		"go tool asm ./deploy/secrets/...":                                        true,
+		"go mod edit ./deploy/secrets/...":                                        true,
+		"go -C":                                                                   false,
+		"go build -overlay ./deploy/secrets/... ./...":                            true,
+		"go test -coverpkg=./x/...,./deploy/secrets/token ./...":                  true,
+		"golangci-lint run -c ./deploy/secrets/... ./...":                         true,
+		"golangci-lint linters ./deploy/secrets/...":                              true,
+		"go vet ./deploy/secrets/...":                                             false,
+		"go test -race ./internal/secrets/...":                                    false,
+		"go test -count 1 ./internal/secrets/...":                                 false,
+		"go test -run TestX ./internal/secrets/... -v":                            false,
+		"go test -test.v ./internal/secrets/...":                                  false,
+		"go -C sub test ./internal/secrets/...":                                   false,
+		"go run ./internal/secrets/...":                                           false,
+		"go test -coverpkg=./internal/secrets/... ./internal/secrets/...":         false,
+		"go test -coverpkg ./internal/secrets/...,./internal/x/... ./...":         false,
+		"GOFLAGS=-mod=mod go test ./internal/secrets/...":                         false,
+		"golangci-lint run --fix ./internal/secrets/...":                          false,
+		"golangci-lint run --new-from-rev HEAD ./internal/secrets/...":            false,
+		"staticcheck -tests ./internal/secrets/...":                               false,
+		"go vet -printf.funcs=wrapf ./internal/secrets/...":                       false,
+		"go test ./internal/secrets/... -coverpkg=./internal/secrets/...":         false,
+		"go test ./internal/secrets/... > out.txt":                                false,
+		"go test ./internal/secrets/vault":                                        true,
+		"go build ./internal/secrets/... && go run ./x.go < ./deploy/secrets/...": true,
+	})
+}
+
 // nameLiterals returns the string literals of the secretNames function and
 // of the sourceFile and exampleFile patterns of a family's secret.go, the
 // data the two families must carry alike.

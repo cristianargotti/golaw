@@ -82,18 +82,6 @@ func secretToken(token string) bool {
 	return privateKey.MatchString(token)
 }
 
-// goTool reports whether a program reads a Go package pattern
-// (./internal/secrets/...) as packages to build or analyze, never as files
-// to print: the go tool and the linters that take package patterns.
-func goTool(program string) bool {
-	switch base(program) {
-	case "go", "golangci-lint", "staticcheck", "govulncheck", "gosec", "revive", "errcheck":
-		return true
-	default:
-		return false
-	}
-}
-
 func judgeSecretTokens(_ model.Input, segs []segment) ([]model.Finding, error) {
 	for _, seg := range segs {
 		if token, found := secretIn(seg); found {
@@ -105,22 +93,34 @@ func judgeSecretTokens(_ model.Input, segs []segment) ([]model.Finding, error) {
 }
 
 // secretIn answers the first token of a segment that names secret
-// material. A Go package pattern names packages, not files, for the go
-// tool and its linters only, so it is skipped for them alone.
+// material. A Go package pattern ending in /... names packages, not files,
+// only in a word the go tool or a linter reads as packages (packageWords),
+// so it is skipped there alone.
 func secretIn(seg segment) (string, bool) {
-	program := unwrap(seg)
-	packages := len(program) > 0 && goTool(program[0])
-	for _, word := range seg {
+	packages := packageWords(seg)
+	for i, word := range seg {
 		for token := range strings.SplitSeq(word, "=") {
 			// A backslash in a word is a Windows separator: PowerShell
 			// and cmd keep it, and a POSIX shell keeps only an escaped one.
 			token = strings.ReplaceAll(strings.TrimLeft(token, "<>"), `\`, "/")
-			if packages && strings.HasSuffix(token, "/...") {
-				continue
+			if found, ok := secretPiece(token, packages[i]); ok {
+				return found, true
 			}
-			if secretToken(token) {
-				return token, true
-			}
+		}
+	}
+	return "", false
+}
+
+// secretPiece judges a token; in a word read as packages, the patterns of
+// its comma list that end in /... are skipped and any other piece is
+// judged.
+func secretPiece(token string, packages bool) (string, bool) {
+	if !packages {
+		return token, secretToken(token)
+	}
+	for piece := range strings.SplitSeq(token, ",") {
+		if !strings.HasSuffix(piece, "/...") && secretToken(piece) {
+			return piece, true
 		}
 	}
 	return "", false
