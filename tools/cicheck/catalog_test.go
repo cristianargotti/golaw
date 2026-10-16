@@ -4,5 +4,5 @@ import "testing"
 
 func auditRules(t *testing.T) []auditRule {
 	t.Helper()
-	return []auditRule{publicTextRule()}
+	return []auditRule{publicTextRule(), skillRule()}
 }

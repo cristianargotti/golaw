@@ -97,7 +97,7 @@ func kitTree(t *testing.T) *proof.Tree {
 	return proof.NewTree(files)
 }
 
-func requireText(t *testing.T, path string, fragments ...string) { //nolint:unused // This helper is reserved for document content assertions.
+func requireText(t *testing.T, path string, fragments ...string) {
 	t.Helper()
 	text := string(kitBytes(t, path))
 	for _, fragment := range fragments {

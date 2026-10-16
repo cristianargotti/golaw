@@ -42,7 +42,7 @@ func newPublicTextInspector(digests []string) func(string, []byte) string {
 	}
 }
 
-func inspectPublicText(path string, data []byte) string { //nolint:unused // This entry point is reserved for documentation assertions.
+func inspectPublicText(path string, data []byte) string {
 	return publicTextRule().inspect(path, data)
 }
 
