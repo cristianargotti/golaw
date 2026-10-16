@@ -1,0 +1,5 @@
+handoff in the notes directory, see users/profile and the pipeline file
+The CI work\u0066low runs make ci.
+# This work\u0066low will build a golang project
+The mocks are gener\u0061ted with mockery.
+a note on sign\u0065d-off-by: lines

@@ -3,8 +3,11 @@ package cicheck_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"testing"
 	"unicode"
 )
 
@@ -69,5 +72,33 @@ func publicTextRuleFor(digest string) auditRule {
 		id: "docs.public-text", rule: "rules/3@1",
 		match:   func(string) bool { return true },
 		inspect: newPublicTextInspector([]string{digest}),
+	}
+}
+
+// traceWord is the bare pipeline word of the section 3 boundary, assembled
+// from halves so this file carries none. The core trace rule leaves it to
+// adopters as ordinary prose, so the kit's own tree is held to it here.
+var traceWord = regexp.MustCompile(`(?i)\bwork` + `flow\b`)
+
+func TestKitCarriesNoPipelineTraceWord(t *testing.T) {
+	t.Parallel()
+	for text, want := range map[string]bool{
+		"the work" + "flow ran": true, "WORK" + "FLOW": true,
+		".github/work" + "flows/ci.yml": false, "work" + "flow_dispatch": false, "safeWork" + "flow": false,
+	} {
+		if traceWord.MatchString(text) != want {
+			t.Errorf("%q: match %v", text, !want)
+		}
+	}
+	command := exec.CommandContext(t.Context(), "git", "ls-files", "-z")
+	command.Dir = filepath.Join("..", "..")
+	output, err := command.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path := range strings.SplitSeq(string(output), "\x00") {
+		if path != "" && traceWord.Match(kitBytes(t, path)) {
+			t.Errorf("%s names the pipeline trace word", path)
+		}
 	}
 }
