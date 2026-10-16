@@ -68,11 +68,12 @@ func ticked(runes []rune, from int) int {
 
 // enclosed answers the index of the parenthesis that closes a command
 // substitution whose script starts at from, found the way the shell finds
-// it: a scanner reads the script, so a parenthesis inside quotes, after an
-// escape, in the body of a here-document or at the end of a case pattern
-// closes nothing; the end of the text when none closes it.
+// it: a scanner that starts after the $( reads the script, so a
+// parenthesis inside quotes, after an escape, in a comment, in the body of
+// a here-document or at the end of a case pattern closes nothing; the end
+// of the text when none closes it.
 func enclosed(runes []rune, from int, d dialect) int {
-	s := &scanner{escapeRune: rune(d)}
+	s := &scanner{escapeRune: rune(d), line: []rune("$(")}
 	for i := from; i < len(runes); i++ {
 		s.step(runes[i])
 		if s.closed {

@@ -36,3 +36,32 @@ func TestHeredocBodiesAreTheirCommandsInput(t *testing.T) {
 		{"Bash", "cat <<'EOF'\nnotes\nEOF\ncat .env", "secret-token"},
 	})
 }
+
+// TestHereDocumentsOpenWhereTheShellOpensThem opens a here-document only
+// where the shell does: inside an arithmetic expansion or command, $(( ))
+// and (( )), a << is a shift and a < or > a comparison, so the lines after
+// it stay commands; and a body the line never ends, which a << the reader
+// takes for an operator where the shell sees none may open, as in $[ ] or
+// ${ }, is read as commands as well as a body.
+func TestHereDocumentsOpenWhereTheShellOpensThem(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "echo $((1<<2))\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "(( y = 1 << 3 ))\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "echo $(( (1<<2) > 3 ))\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "echo \"$((1<<2))\"\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "echo \"$((1<<2\n))\"\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "echo $[1<<2]\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "echo ${x:-a<<b}\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "cat <<'EOF'\ngit commit --no-verify -m x", "no-verify"},
+		{"Bash", "cat <<A <<B\nx\nA\ngit commit --no-verify -m y", "no-verify"},
+		{"Bash", "echo $(( $(git commit --no-verify -m x | wc -l) + 1 ))", "no-verify"},
+		{"Bash", "cat > run.sh <<'EOF'\ngit commit --no-verify -m x\nEOF", ""},
+		{"Bash", "n=$((1+2))\ngit commit -m x", ""},
+	})
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", "x=$(( 1 << 2 ))\ncat .env", "secret-token"},
+		{"Bash", "echo $(( 2 > 1 )) > out.txt", ""},
+		{"Bash", "cat <<A <<B\nthe .env file\nA\nnotes", ""},
+	})
+}

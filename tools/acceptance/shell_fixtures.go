@@ -117,6 +117,8 @@ func posixCommands() []shellFixture {
 		{"heredoc-message", "git commit -m \"$(cat <<'EOF'\nfix: read the .env example\nEOF\n)\"", wantAllow},
 		{"heredoc-substitution", "cat <<EOF\n$(git commit --no-verify -m x)\nEOF", wantDeny},
 		{"heredoc-quoted-substitution", "cat > notes.md <<'EOF'\nthe \"$(git commit --no-verify -m x)\" form\nEOF", wantAllow},
+		{"arithmetic-shift-bypass", "echo $((1<<2))\ngit commit --no-verify -m x", wantDeny},
+		{"arithmetic-shift-control", "echo $((1<<2))\ngit commit -m x", wantAllow},
 	}
 }
 

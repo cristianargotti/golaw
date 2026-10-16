@@ -42,6 +42,8 @@ type scanner struct {
 	ticks      bool      // a backquote inside double quotes opened a substitution
 	comment    comment   // the comment being read, none outside one
 	hash       bool      // the last rune of a block comment was a hash
+	arith      int       // the parentheses open where an arithmetic expression began, 0 outside one
+	cmdParen   bool      // the last parenthesis opened started a command
 }
 
 func (s *scanner) step(r rune) {
@@ -57,7 +59,7 @@ func (s *scanner) step(r rune) {
 		s.escape, s.open, s.literal = true, true, true
 	case r == '\'' || r == '"':
 		s.quote, s.open, s.literal = r, true, true
-	case r == '<' || r == '>' || len(s.op) > 0:
+	case (r == '<' || r == '>') && s.arith == 0 || len(s.op) > 0:
 		s.redirect(r)
 	case r == '&':
 		s.amp = true
@@ -111,7 +113,7 @@ func (s *scanner) quoted(r rune) {
 		s.ticks = true
 		s.word = append(s.word, r)
 	case r == '(' && dollar && s.level < maxDepth:
-		s.inner = &scanner{escapeRune: s.escapeRune, level: s.level + 1}
+		s.inner = &scanner{escapeRune: s.escapeRune, level: s.level + 1, line: []rune("$(")}
 		s.word = append(s.word, r)
 	default:
 		s.dollar = r == '$'
@@ -166,18 +168,37 @@ func (s *scanner) keyword(word string) {
 }
 
 // paren reads a parenthesis outside quotes, which ends a segment: an
-// opening one nests, and a closing one ends a case pattern at the depth
-// where its case began, closes the one it matches or, with none open,
-// marks the end of the substitution the scanner reads (enclosed).
+// opening one nests, a second one right after a $( or after one that
+// starts a command opening an arithmetic expression, whose < and > are
+// text; a closing one ends a case pattern at the depth where its case
+// began, closes the one it matches, and the arithmetic expression that one
+// opened, or, with none open, marks the end of the substitution the
+// scanner reads (enclosed).
 func (s *scanner) paren(r rune) {
+	start := len(s.cur) == 0 && !s.open
 	s.endSegment()
 	switch {
 	case r == '(':
+		if s.arith == 0 && s.doubled() {
+			s.arith = s.parens + 1
+		}
 		s.parens++
+		s.cmdParen = start
 	case len(s.cases) > 0 && s.cases[len(s.cases)-1] == s.parens:
 	case s.parens == 0:
 		s.closed = true
 	default:
 		s.parens--
+		if s.parens < s.arith {
+			s.arith = 0
+		}
 	}
+}
+
+// doubled reports whether the parenthesis just read follows one that opens
+// an arithmetic expression with it: $(( after a dollar, or (( at the start
+// of a command.
+func (s *scanner) doubled() bool {
+	n := len(s.line)
+	return n > 1 && s.line[n-2] == '(' && (s.cmdParen || n > 2 && s.line[n-3] == '$')
 }

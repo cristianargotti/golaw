@@ -28,6 +28,16 @@ func TestSecurityContract(t *testing.T) {
 		"the link of the file or of a directory above it, is refused as one that repository cannot place",
 		"judged both by the name it asks for and by the file its links lead to",
 		"keeps every element below the repository boundary, a directory link back to the root included",
+		"These rules cannot express an exception",
+		"a negation rule for the templates would also lift the person's own deny rules for them",
+	)
+}
+
+// TestSecurityShellReading pins how docs/security.md says the hook reads a
+// shell command line and where that reading stops.
+func TestSecurityShellReading(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/security.md",
 		"splits its arguments by the Microsoft runtime rules",
 		"past the condition of an if, the clause of a for up to its do and an else",
 		"the items of a for set, the root of a for /r and the file of an if exist, stay judged",
@@ -40,8 +50,7 @@ func TestSecurityContract(t *testing.T) {
 		"in the body of a here-document whose end word is unquoted, never in the body of one whose end word is quoted",
 		"bash 3.2, the /bin/bash of macOS, ends it at the first parenthesis left open",
 		"A comment, from a hash that starts a word to the end of its line or a PowerShell block comment, is text no rule reads",
-		"These rules cannot express an exception",
-		"a negation rule for the templates would also lift the person's own deny rules for them",
+		"the lines after a here-document the line never ends are read as commands as well as its body",
 	)
 }
 

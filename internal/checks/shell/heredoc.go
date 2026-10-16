@@ -26,6 +26,7 @@ type documents struct {
 	first   int       // the index in out of the first segment of the line
 	line    []rune    // the body line being read
 	body    []rune    // the body read so far of the first document open
+	rest    []rune    // every rune read as a body since a document last closed
 }
 
 // heredocOperator reports whether a redirection operator opens a
@@ -60,6 +61,7 @@ func (s *scanner) newLine() {
 
 // bodyRune reads a rune of the bodies, a line at a time.
 func (s *scanner) bodyRune(r rune) {
+	s.docs.rest = append(s.docs.rest, r)
 	if r != '\n' {
 		s.docs.line = append(s.docs.line, r)
 		return
@@ -93,6 +95,7 @@ func (s *scanner) closeDocument() {
 	if !s.docs.open[0].quoted {
 		s.bodies = append(s.bodies, string(s.docs.body))
 	}
+	s.docs.rest = s.docs.rest[:0]
 	s.docs.body, s.docs.open = s.docs.body[:0], s.docs.open[1:]
 	if len(s.docs.open) == 0 {
 		s.docs.reading, s.docs.first = false, len(s.out)
@@ -100,13 +103,24 @@ func (s *scanner) closeDocument() {
 }
 
 // endInput ends the command line: a body line without its newline is
-// read, and a body the line never ended stands as it is.
+// read, and the bodies the line never ended stand as they are and are read
+// as commands too, because a << the reader takes for an operator may open
+// no here-document in the shell, as in $[ ] or ${ }, and the lines it
+// would hide must not pass unread.
 func (s *scanner) endInput() {
 	if s.docs.reading && len(s.docs.line) > 0 {
 		s.bodyLine()
 	}
+	unended, reading := slices.Clone(s.docs.rest), s.docs.reading
 	for s.docs.reading {
 		s.closeDocument()
 	}
-	s.endSegment()
+	if !reading {
+		s.endSegment()
+		return
+	}
+	for _, r := range unended {
+		s.step(r)
+	}
+	s.endInput()
 }
