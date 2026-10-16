@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 )
 
@@ -80,6 +82,39 @@ func TestMatrixPayloadErrors(t *testing.T) {
 	}
 }
 
+// TestMatrixStopsAtAFailedPreEvent lets the repository setup run and fails
+// only the hook, so the shell post fixture reaches its pre event, fails
+// there, and never sends the post event it would judge next.
+func TestMatrixStopsAtAFailedPreEvent(t *testing.T) {
+	t.Parallel()
+	s := testSuite(t)
+	base := s.execute
+	var events []string
+	s.execute = func(ctx context.Context, c command) result {
+		if len(c.args) == 0 || c.args[0] != commandHook {
+			return base(ctx, c)
+		}
+		var envelope struct {
+			Event string `json:"hook_event_name"`
+		}
+		if err := json.Unmarshal([]byte(c.input), &envelope); err != nil {
+			t.Fatal(err)
+		}
+		events = append(events, envelope.Event)
+		return result{code: 2, stderr: "failed"}
+	}
+	f := fixture{
+		name: "failed-pre", mode: modeShellPost, event: eventPost, tool: toolBash,
+		input: map[string]any{keyCommand: "true"}, want: wantPost,
+	}
+	if got := s.runFixture(t.Context(), f); got.status != statusFail || !strings.Contains(got.detail, `unexpected exit 2 or stderr "failed"`) {
+		t.Fatalf("failed pre event = %+v", got)
+	}
+	if !slices.Equal(events, []string{eventPre}) {
+		t.Fatalf("hook events = %v, want the pre event only", events)
+	}
+}
+
 func TestMatrixSetupErrors(t *testing.T) {
 	t.Parallel()
 	s := testSuite(t)
@@ -101,15 +136,6 @@ func TestMatrixSetupErrors(t *testing.T) {
 	s.execute = func(context.Context, command) result { return result{err: ErrAcceptance} }
 	if s.runFixture(t.Context(), f).status != statusFail {
 		t.Fatal("failed setup passed")
-	}
-	s = testSuite(t)
-	s.execute = func(context.Context, command) result { return result{code: 2, stderr: "failed"} }
-	f = fixture{
-		name: "failed-pre", mode: modeShellPost, event: eventPost, tool: toolBash,
-		input: map[string]any{keyCommand: "true"}, want: wantPost,
-	}
-	if s.runFixture(t.Context(), f).status != statusFail {
-		t.Fatal("failed pre event passed")
 	}
 	s = testSuite(t)
 	item := aliasRow(t.Context(), s)
