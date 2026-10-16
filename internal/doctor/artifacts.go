@@ -13,7 +13,7 @@ func artifactLines(snapshot Snapshot) []Line {
 		switch {
 		case !present:
 			line.State, line.Code = stateRed, "artifact-missing"
-		case install.Digest([]byte(content)) != artifact.SHA256:
+		case drifted(snapshot.Receipt, artifact, content):
 			line.State, line.Code = stateRed, "artifact-drift"
 		}
 		lines = append(lines, line)
@@ -25,6 +25,16 @@ func artifactLines(snapshot Snapshot) []Line {
 		})
 	}
 	return lines
+}
+
+// drifted judges the settings file by the entries the receipt owns, because
+// the person's own edits elsewhere in that file are not drift of the
+// installation; every other artifact is owned whole, byte for byte.
+func drifted(receipt install.Receipt, artifact install.Artifact, content string) bool {
+	if artifact.Path == receipt.SettingsPath {
+		return install.VerifySettings([]byte(content), receipt.Ownership) != nil
+	}
+	return install.Digest([]byte(content)) != artifact.SHA256
 }
 
 func binaryLines(snapshot Snapshot) []Line {

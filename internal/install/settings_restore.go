@@ -2,6 +2,8 @@ package install
 
 import (
 	"encoding/json"
+	"fmt"
+	"maps"
 	"slices"
 )
 
@@ -30,6 +32,34 @@ func RestoreSettings(data []byte, owned Ownership) ([]byte, error) {
 		return nil, nil
 	}
 	return encodeSettings(root)
+}
+
+// VerifySettings judges a settings file by the entries this installation
+// owns, because every other entry belongs to the person and may change.
+func VerifySettings(data []byte, owned Ownership) error {
+	root, err := settingsObject(data)
+	if err != nil {
+		return err
+	}
+	for _, key := range slices.Sorted(maps.Keys(owned.Installed)) {
+		current, fieldErr := field(root, key)
+		if fieldErr != nil {
+			return fieldErr
+		}
+		if !equalJSON(current, owned.Installed[key]) {
+			return fmt.Errorf("owned setting %s: %w", key, ErrChanged)
+		}
+	}
+	deny, _, err := denyValues(root)
+	if err != nil {
+		return err
+	}
+	for _, rule := range owned.Deny {
+		if !slices.Contains(deny, rule) {
+			return fmt.Errorf("owned deny rule %s: %w", rule, ErrChanged)
+		}
+	}
+	return nil
 }
 
 func restorePointers(root map[string]json.RawMessage, owned Ownership) error {
