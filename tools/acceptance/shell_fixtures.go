@@ -39,6 +39,7 @@ func shellCommands() []shellFixture {
 		{"eval-control", `eval "git commit -m 'fix: safe'"`, wantAllow},
 		{"git-dir-bypass", "git --git-dir .git commit --no-verify -m 'fix: safe'", wantDeny},
 		{"wrapper-option-bypass", "env -i git commit --no-verify -m 'fix: safe'", wantDeny},
+		{"invoke-expression-bypass", `Invoke-Expression "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"sh", `sh -c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"pwsh-control", `pwsh -Command "git status"`, wantAllow},

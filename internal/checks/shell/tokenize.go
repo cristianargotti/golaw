@@ -200,10 +200,10 @@ func isShell(name string) bool {
 
 // shellScript returns the script a shell segment runs, the words after -c,
 // -lc, -Command or /c, with the dialect that shell reads it in, and the
-// words of an eval joined by spaces, which the POSIX shell reads again.
+// script an eval or an Invoke-Expression reads again (evalScript).
 func shellScript(seg segment) (string, dialect, bool) {
-	if len(seg) > 1 && seg[0] == "eval" {
-		return strings.Join(seg[1:], " "), posix, true
+	if script, d, ok := evalScript(seg); ok {
+		return script, d, true
 	}
 	if len(seg) < 2 || !isShell(seg[0]) {
 		return "", posix, false
@@ -215,6 +215,33 @@ func shellScript(seg segment) (string, dialect, bool) {
 		}
 	}
 	return "", posix, false
+}
+
+// evalScript returns the words of an eval joined by spaces, which the
+// POSIX shell reads again, and the string Invoke-Expression or its alias
+// iex runs as PowerShell, after its -Command parameter or an abbreviation
+// of it.
+func evalScript(seg segment) (string, dialect, bool) {
+	switch {
+	case len(seg) < 2:
+		return "", posix, false
+	case seg[0] == "eval":
+		return strings.Join(seg[1:], " "), posix, true
+	case strings.EqualFold(seg[0], "Invoke-Expression") || strings.EqualFold(seg[0], "iex"):
+		args := seg[1:]
+		if len(args) > 1 && abbreviates(args[0], "-command") {
+			args = args[1:]
+		}
+		return strings.Join(args, " "), powerShell, true
+	default:
+		return "", posix, false
+	}
+}
+
+// abbreviates reports whether a word names a PowerShell parameter by a
+// prefix of its name, which PowerShell accepts.
+func abbreviates(word, parameter string) bool {
+	return len(word) > 1 && strings.HasPrefix(parameter, strings.ToLower(word))
 }
 
 // dialectOf is the dialect of a shell program.

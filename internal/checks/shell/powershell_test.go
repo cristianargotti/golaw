@@ -56,6 +56,24 @@ func TestPowerShellKeepsItsBackslashes(t *testing.T) {
 	}
 }
 
+// TestNoVerifyReadsTheScriptOfInvokeExpression reads the string
+// Invoke-Expression runs, by its name or its alias iex in any case and
+// after its -Command parameter or an abbreviation of it, as PowerShell
+// reads it again; an echo of the same words runs nothing.
+func TestNoVerifyReadsTheScriptOfInvokeExpression(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"PowerShell", "Invoke-Expression 'git commit --no-verify -m x'", "no-verify"},
+		{"PowerShell", `iex "git commit --no-verify -m x"`, "no-verify"},
+		{"PowerShell", "Invoke-Expression -Command 'git commit --no-verify -m x'", "no-verify"},
+		{"PowerShell", "IEX -c 'git commit --no-verify -m x'", "no-verify"},
+		{"Bash", `pwsh -Command "iex 'git commit --no-verify -m x'"`, "no-verify"},
+		{"PowerShell", "Invoke-Expression 'git commit -m x'", ""},
+		{"PowerShell", "echo Invoke-Expression git commit --no-verify", ""},
+		{"PowerShell", "iex", ""},
+	})
+}
+
 // TestNoVerifySeesGitBehindReservedWords reads a command behind the
 // reserved words a shell puts before it, if, then, elif, else, while,
 // until, do, an exclamation mark and an opening brace, and the try and
