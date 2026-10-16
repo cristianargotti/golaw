@@ -2,6 +2,7 @@ package install
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"os"
@@ -63,5 +64,30 @@ func TestUninstallPreservesChangedArtifact(t *testing.T) {
 	must(t, err)
 	if string(data) != "user edit\n" {
 		t.Fatal("changed artifact was removed")
+	}
+}
+
+func TestUninstallRefusesArtifactsOutsideTheBundle(t *testing.T) {
+	t.Parallel()
+	base := t.TempDir()
+	bundle, outside := filepath.Join(base, "bundle"), filepath.Join(base, "outside")
+	must(t, os.MkdirAll(bundle, 0o700))
+	must(t, os.WriteFile(outside, []byte("owned elsewhere\n"), 0o600))
+	artifacts := []Artifact{{Path: outside, SHA256: Digest([]byte("owned elsewhere\n"))}}
+	for _, receipt := range []Receipt{
+		{Schema: 1, ProjectID: "project", Bundle: bundle, Artifacts: artifacts},
+		{Schema: 1, ProjectID: "project", Bundle: outside, Artifacts: artifacts},
+	} {
+		path := filepath.Join(t.TempDir(), "receipt.json")
+		data, err := json.Marshal(receipt)
+		must(t, err)
+		must(t, os.WriteFile(path, data, 0o600))
+		if _, err := PlanUninstall(path); !errors.Is(err, ErrPath) {
+			t.Errorf("artifact %s of bundle %s planned for removal: %v", outside, receipt.Bundle, err)
+		}
+	}
+	data, err := os.ReadFile(outside)
+	if err != nil || string(data) != "owned elsewhere\n" {
+		t.Fatalf("a file outside the bundle changed: %q, %v", data, err)
 	}
 }
