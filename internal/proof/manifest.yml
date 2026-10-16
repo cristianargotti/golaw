@@ -46,6 +46,74 @@ checks:
     code: secret-material
     red: testdata/paths.secret-material/red
     near: testdata/paths.secret-material/near
+  - id: goast.file-length
+    code: file-length
+    red: testdata/goast.file-length/red
+    near: testdata/goast.file-length/near
+  - id: goast.function-length
+    code: function-length
+    red: testdata/goast.function-length/red
+    near: testdata/goast.function-length/near
+  - id: goast.env-read
+    code: env-read
+    red: testdata/goast.env-read/red
+    near: testdata/goast.env-read/near
+  - id: goast.bare-context
+    code: bare-context
+    red: testdata/goast.bare-context/red
+    near: testdata/goast.bare-context/near
+  - id: goast.wall-clock
+    code: wall-clock
+    red: testdata/goast.wall-clock/red
+    near: testdata/goast.wall-clock/near
+  - id: goast.clock-utc
+    code: local-clock
+    red: testdata/goast.clock-utc/red
+    near: testdata/goast.clock-utc/near
+  - id: goast.sql-from-strings
+    code: sql-from-strings
+    red: testdata/goast.sql-from-strings/red
+    near: testdata/goast.sql-from-strings/near
+  - id: goast.raw-error-response
+    code: raw-error-response
+    red: testdata/goast.raw-error-response/red
+    near: testdata/goast.raw-error-response/near
+  - id: goast.error-text-as-data
+    code: error-text-as-data
+    red: testdata/goast.error-text-as-data/red
+    near: testdata/goast.error-text-as-data/near
+  - id: goast.init-if-err-nil
+    code: init-if-err-nil
+    red: testdata/goast.init-if-err-nil/red
+    near: testdata/goast.init-if-err-nil/near
+  - id: goast.sentinel-decl
+    code: sentinel-decl
+    red: testdata/goast.sentinel-decl/red
+    near: testdata/goast.sentinel-decl/near
+  - id: goast.secret-fields
+    code: secret-field
+    red: testdata/goast.secret-fields/red
+    near: testdata/goast.secret-fields/near
+  - id: goast.goleak
+    code: goleak
+    red: testdata/goast.goleak/red
+    near: testdata/goast.goleak/near
+  - id: goast.adapter-package-size
+    code: adapter-package-size
+    red: testdata/goast.adapter-package-size/red
+    near: testdata/goast.adapter-package-size/near
+  - id: goast.sonar-empty-body
+    code: empty-body
+    red: testdata/goast.sonar-empty-body/red
+    near: testdata/goast.sonar-empty-body/near
+  - id: goast.sonar-literal-repeat
+    code: literal-repeat
+    red: testdata/goast.sonar-literal-repeat/red
+    near: testdata/goast.sonar-literal-repeat/near
+  - id: goast.sonar-identical-functions
+    code: identical-functions
+    red: testdata/goast.sonar-identical-functions/red
+    near: testdata/goast.sonar-identical-functions/near
   - id: shell.no-verify
     code: no-verify
     red: testdata/shell.no-verify/red

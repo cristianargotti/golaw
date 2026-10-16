@@ -1,0 +1,24 @@
+# The configuration that produced expected.txt: funlen alone, at the floors
+# of the kit, with comments ignored. Regenerate the golden file with:
+#   golangci-lint run --config internal/checks/goast/testdata/parity/golangci.yml \
+#     ./internal/checks/goast/testdata/parity/ > internal/checks/goast/testdata/parity/expected.txt
+version: "2"
+run:
+  relative-path-mode: cfg
+linters:
+  default: none
+  enable:
+    - funlen
+  settings:
+    funlen:
+      lines: 40
+      statements: 40
+      ignore-comments: true
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: false
+      colors: false
+  show-stats: false
