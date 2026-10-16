@@ -32,6 +32,8 @@ func shellCommands() []shellFixture {
 		{"cmd-escaped-quote-control", `cmd /c 'git commit -m "fix: \" --no-verify"'`, wantAllow},
 		{"cmd-control-block", `cmd /c 'if exist marker (git commit --no-verify -m "fix: x")'`, wantDeny},
 		{"cmd-control-block-control", `cmd /c 'if exist marker (git commit -m "fix: x")'`, wantAllow},
+		{"reserved-word-bypass", "if true; then git commit --no-verify -m 'fix: safe'; fi", wantDeny},
+		{"reserved-word-control", "if true; then git commit -m 'fix: safe'; fi", wantAllow},
 		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"sh", `sh -c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"pwsh-control", `pwsh -Command "git status"`, wantAllow},

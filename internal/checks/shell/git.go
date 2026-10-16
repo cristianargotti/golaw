@@ -55,10 +55,11 @@ func gitCommand(seg segment) (gitCall, bool) {
 	return gitCall{sub: args[0], args: args[1:], words: words}, true
 }
 
-// unwrap drops the leading variable assignments and the wrappers that run
-// their argument as the command (env, sudo, command, exec, nohup, time,
+// unwrap drops the leading variable assignments, the reserved words a
+// shell puts before the command it runs (reserved), and the wrappers that
+// run their argument as the command (env, sudo, command, exec, nohup, time,
 // nice, timeout with its duration), so a rule sees the program; a wrapper
-// with nothing after it is the program itself.
+// or a reserved word with nothing after it is the program itself.
 func unwrap(seg segment) []string {
 	words := []string(seg)
 	for len(words) > 0 {
@@ -67,13 +68,26 @@ func unwrap(seg segment) []string {
 			words = words[1:]
 		case base(words[0]) == "timeout" && len(words) > 1:
 			words = words[2:]
-		case isWrapper(words[0]) && len(words) > 1:
+		case (isWrapper(words[0]) || reserved(words[0])) && len(words) > 1:
 			words = words[1:]
 		default:
 			return words
 		}
 	}
 	return words
+}
+
+// reserved reports whether a word is one a shell reads before the command
+// it runs: the if, then, elif, else, while, until and do of a POSIX shell,
+// its negation and its opening brace, and the try and finally that open a
+// block in PowerShell, whose keywords take any case.
+func reserved(word string) bool {
+	switch strings.ToLower(word) {
+	case "if", "then", "elif", "else", "while", "until", "do", "!", "{", "try", "finally":
+		return true
+	default:
+		return false
+	}
 }
 
 // isWrapper reports whether a program runs its arguments as the command.

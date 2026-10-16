@@ -55,3 +55,37 @@ func TestPowerShellKeepsItsBackslashes(t *testing.T) {
 		}
 	}
 }
+
+// TestNoVerifySeesGitBehindReservedWords reads a command behind the
+// reserved words a shell puts before it, if, then, elif, else, while,
+// until, do, an exclamation mark and an opening brace, and the try and
+// finally of PowerShell, the way the shell runs it; the same words as
+// arguments of another program and a plain commit behind them pass.
+func TestNoVerifySeesGitBehindReservedWords(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		tool, command string
+		want          string
+	}{
+		{"Bash", "if true; then git commit --no-verify -m x; fi", "no-verify"},
+		{"Bash", "if git commit --no-verify -m x; then :; fi", "no-verify"},
+		{"Bash", "if a; then :; elif b; then :; else git commit -n -m x; fi", "no-verify"},
+		{"Bash", "while true; do git commit --no-verify -m x; break; done", "no-verify"},
+		{"Bash", "until false; do git commit --no-verify -m x; done", "no-verify"},
+		{"Bash", "{ git commit --no-verify -m x; }", "no-verify"},
+		{"Bash", "! git commit --no-verify -m x", "no-verify"},
+		{"Bash", "if true; then FOO=1 git commit --no-verify -m x; fi", "no-verify"},
+		{"PowerShell", "if ($true) { git commit --no-verify -m x }", "no-verify"},
+		{"PowerShell", "foreach ($i in 1) { git commit --no-verify -m x }", "no-verify"},
+		{"PowerShell", "try { git commit --no-verify -m x } finally { }", "no-verify"},
+		{"Bash", "if true; then git commit -m x; fi", ""},
+		{"Bash", "echo then git commit --no-verify", ""},
+		{"Bash", "{ git status; }", ""},
+		{"Bash", "then", ""},
+	} {
+		got := judgeTool(t, shell.NoVerify(), tc.tool, tc.command)
+		if tc.want == "" && len(got) != 0 || tc.want != "" && (len(got) != 1 || got[0] != tc.want) {
+			t.Errorf("%s %q: codes %v, want %q", tc.tool, tc.command, got, tc.want)
+		}
+	}
+}
