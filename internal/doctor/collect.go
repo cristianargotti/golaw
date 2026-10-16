@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/install"
 )
@@ -39,7 +40,7 @@ func (NativeRunner) Version(ctx context.Context, environment AgentEnvironment) (
 	if err != nil {
 		return "", fmt.Errorf("read agent version: %w", err)
 	}
-	return string(output), nil
+	return strings.TrimSpace(string(output)), nil
 }
 
 // Collect retains independent evidence even when another observation fails.

@@ -22,8 +22,11 @@ func WriteText(writer io.Writer, report Report) error {
 		return fmt.Errorf("write doctor heading: %w", err)
 	}
 	for _, line := range report.Lines {
-		if _, err := fmt.Fprintf(writer, "%s %s: %s [%s]\n",
-			line.ID, line.Key, line.State, line.Code); err != nil {
+		text := fmt.Sprintf("%s %s: %s [%s]", line.ID, line.Key, line.State, line.Code)
+		if line.Detail != "" {
+			text += " " + line.Detail
+		}
+		if _, err := fmt.Fprintln(writer, text); err != nil {
 			return fmt.Errorf("write doctor line: %w", err)
 		}
 	}

@@ -48,7 +48,7 @@ func TestNativeRunnerReadsTheVersionThroughTheObservedPath(t *testing.T) {
 	dir := doubleOnPath(t)
 	environment := AgentEnvironment{Source: sourceAgent, Path: dir, PathExt: ".EXE"}
 	version, err := NativeRunner{}.Version(t.Context(), environment)
-	if err != nil || !strings.Contains(version, "2.1.299") {
+	if err != nil || version != "2.1.299 (test double)" {
 		t.Fatalf("version = %q, %v", version, err)
 	}
 	if _, err := (NativeRunner{}).Version(t.Context(), AgentEnvironment{Source: sourceAgent, Path: t.TempDir()}); err == nil {

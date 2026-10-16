@@ -34,6 +34,11 @@ func TestJSONOutputAndHumanOutput(t *testing.T) {
 	if !bytes.HasPrefix(first.Bytes(), []byte("doctor\n")) {
 		t.Fatal("doctor output lacks its English heading")
 	}
+	for _, detail := range []string{"version=v0.1.0 sum=h1:fixture revision=revision", "installed=0.1.0 pinned=0.1.0"} {
+		if !bytes.Contains(first.Bytes(), []byte(detail)) {
+			t.Fatalf("text output lacks %q:\n%s", detail, first.String())
+		}
+	}
 	if err := WriteJSON(closedWriter{}, report); err == nil {
 		t.Fatal("JSON write failure ignored")
 	}
