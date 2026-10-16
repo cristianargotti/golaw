@@ -30,7 +30,9 @@ type Repository struct {
 // only those, and a path clean at both ends is unchanged. Without it the
 // identity reads every file of the snapshot. Blobs answers the blob a
 // commit holds at each path, for a path whose status alone may have moved
-// while HEAD moved too.
+// while HEAD moved too. Hashes answers the blob git would store for the
+// bytes each path holds now, through the conversions git applies on the
+// way in, for a path whose bytes are not the blob it held.
 type Dependencies struct {
 	Home     string
 	Begin    func()
@@ -39,6 +41,7 @@ type Dependencies struct {
 	Snapshot func(context.Context, Repository) (model.Snapshot, error)
 	Changes  func(ctx context.Context, repository Repository, also []string) (Changes, error)
 	Blobs    func(ctx context.Context, repository Repository, commit string, paths []string) (map[string]string, error)
+	Hashes   func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
 	Overlay  func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
 	Registry *engine.Registry
 	State    Store
@@ -48,13 +51,15 @@ type Dependencies struct {
 // Changes is what git status reported changed in a repository: a snapshot
 // of those paths and of the paths asked for beside them, the paths it
 // named, a deleted one included, the HEAD commit it compared with, empty
-// on an unborn branch, and the blob that commit holds at each tracked path
-// it named.
+// on an unborn branch, the blob that commit holds at each tracked path it
+// named, and the paths whose only change git found is an edit of their
+// bytes under their own mode.
 type Changes struct {
 	Snapshot model.Snapshot
 	Paths    []string
 	Head     string
 	Blobs    map[string]string
+	Edited   map[string]bool
 }
 
 type execution struct {

@@ -95,7 +95,39 @@ func TestContentChangedKeepsWhatItCannotCompare(t *testing.T) {
 	if got := run.contentChanged(t.Context(), Dependencies{}, unborn, after, Changes{Snapshot: snapshot, Blobs: blobs}); !slices.Equal(got, all) {
 		t.Fatalf("an unborn branch before the command = %v, want %v", got, all)
 	}
-	if sameBlob(Changes{Snapshot: proof.NewTree(nil)}, "mode.go", helloSHA1) || sameBlob(Changes{Snapshot: snapshot}, "mode.go", "") {
+	held := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: proof.NewTree(nil)}, []string{"mode.go"}, blobs)
+	if bare := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: snapshot}, []string{"mode.go"}, nil); held["mode.go"] || bare["mode.go"] {
 		t.Fatal("a path the snapshot does not hold, or without a blob, has the same blob")
+	}
+}
+
+// TestContentChangedAsksGitWhatItConverts asks git, once, for the blob the
+// bytes of a path would be stored as when they are not the blob the HEAD of
+// the pre event held and git may convert them on their way in: a path whose
+// status moved some other way than an edit of its bytes, and an edited one
+// whose bytes hold a carriage return. An edit without one is changed with
+// no question, and a binding that cannot answer keeps every path changed.
+func TestContentChangedAsksGitWhatItConverts(t *testing.T) {
+	t.Parallel()
+	snapshot := proof.NewTree(map[string][]byte{"crlf.md": []byte("hello\r\n"), "edited.md": []byte("changed\n"), "edited-cr.md": []byte("x\r\n")})
+	after := map[string]string{"crlf.md": "c", "edited.md": "e", "edited-cr.md": "r"}
+	blobs := map[string]string{"crlf.md": helloSHA1, "edited.md": helloSHA1, "edited-cr.md": helloSHA1}
+	changes := Changes{Snapshot: snapshot, Head: "c1", Blobs: blobs, Edited: map[string]bool{"edited.md": true, "edited-cr.md": true}}
+	before := Baseline{Files: map[string]string{}, Head: "c1"}
+	var asked [][]string
+	deps := Dependencies{Hashes: func(_ context.Context, _ Repository, paths []string) (map[string]string, error) {
+		asked = append(asked, paths)
+		return map[string]string{"crlf.md": helloSHA1, "edited-cr.md": "other"}, nil
+	}}
+	run := execution{}
+	if got := run.contentChanged(t.Context(), deps, before, after, changes); !slices.Equal(got, []string{"edited-cr.md", "edited.md"}) ||
+		len(asked) != 1 || !slices.Equal(asked[0], []string{"crlf.md", "edited-cr.md"}) {
+		t.Fatalf("changed %v after asking %v", got, asked)
+	}
+	deps.Hashes = func(context.Context, Repository, []string) (map[string]string, error) {
+		return nil, model.ErrUnreadable
+	}
+	if got := run.contentChanged(t.Context(), deps, before, after, changes); len(got) != 3 {
+		t.Fatalf("a binding that cannot answer = %v", got)
 	}
 }

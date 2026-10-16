@@ -141,5 +141,6 @@ func TestAgentContractDetection(t *testing.T) {
 		"leaves to the notice only the verdict that file could change",
 		"a file the index marks assume-unchanged, by git update-index or core.ignorestat, or skip-worktree reads clean whatever its bytes",
 		"so one git status names before and after the command is named in the notice whatever the command did",
+		"asked of git hash-object once for every such path and writing no object, so a file git converts on its way in is left alone when only its status changed",
 	)
 }

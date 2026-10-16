@@ -26,6 +26,7 @@ type entry struct {
 	tracked bool   // git tracks it; otherwise it would add it
 	dir     bool   // git listed a directory: a nested repository
 	head    string // the blob HEAD holds at the path, when git status named it
+	edited  bool   // git status found its bytes edited in the worktree under its own mode
 }
 
 // listUniverse runs git ls-files -z -t -c -o --exclude-standard under the

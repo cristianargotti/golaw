@@ -58,7 +58,7 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest, cache: source.NewCache()}
 	return hook.Dependencies{
 		Home: b.processHome(), Begin: h.cache.Reset,
-		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Blobs: h.blobs, Overlay: h.overlay,
+		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Blobs: h.blobs, Hashes: h.hashes, Overlay: h.overlay,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
 }
@@ -216,7 +216,7 @@ func (h hookBinding) changes(ctx context.Context, repo hook.Repository, also []s
 	if err != nil {
 		return hook.Changes{}, fmt.Errorf("list the changes of %s: %w", found.Root, err)
 	}
-	return hook.Changes{Snapshot: st.Worktree, Paths: st.Paths, Head: found.Head, Blobs: st.Heads}, nil
+	return hook.Changes{Snapshot: st.Worktree, Paths: st.Paths, Head: found.Head, Blobs: st.Heads, Edited: st.Edited}, nil
 }
 
 // blobs is the blob a commit holds at each path, in one question to git.
@@ -230,6 +230,20 @@ func (h hookBinding) blobs(ctx context.Context, repo hook.Repository, commit str
 		return nil, fmt.Errorf("read the blobs of %s at %s: %w", found.Root, commit, err)
 	}
 	return blobs, nil
+}
+
+// hashes is the blob git would store for the bytes of each path now,
+// through the conversions of the path, in one question to git.
+func (h hookBinding) hashes(ctx context.Context, repo hook.Repository, paths []string) (map[string]string, error) {
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	hashes, err := source.HashObjects(ctx, found, paths)
+	if err != nil {
+		return nil, fmt.Errorf("name the bytes of %s as git stores them: %w", found.Root, err)
+	}
+	return hashes, nil
 }
 
 // overlay folds the candidates of a write event, with the bytes the adapter

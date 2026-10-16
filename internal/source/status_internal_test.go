@@ -66,3 +66,28 @@ func TestParseStatusKeepsTheBlobHeadHolds(t *testing.T) {
 		t.Fatalf("an added file with its untracked twin = %+v, %v", added, err)
 	}
 }
+
+// TestParseStatusNamesWhatGitFoundEdited names a path whose only change is
+// an edit of its bytes in the worktree under its own mode, which git found
+// by comparing them with the index, and no path whose mode, index entry or
+// presence moved instead.
+func TestParseStatusNamesWhatGitFoundEdited(t *testing.T) {
+	t.Parallel()
+	entries, err := parseStatus([]byte("1 .M N... 100644 100644 100644 a1 a2 edited.md\x00" +
+		"1 .M N... 100644 100644 100755 b1 b2 mode.md\x00" +
+		"1 M. N... 100644 100644 100644 c1 c2 staged.md\x00" +
+		"1 MM N... 100644 100644 100644 d1 d2 both.md\x00" +
+		"1 D. N... 100644 000000 000000 e1 0000 removed.md\x00? removed.md\x00"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var edited []string
+	for _, e := range entries {
+		if e.edited {
+			edited = append(edited, e.path)
+		}
+	}
+	if !slices.Equal(edited, []string{"edited.md"}) {
+		t.Fatalf("edited = %v", edited)
+	}
+}

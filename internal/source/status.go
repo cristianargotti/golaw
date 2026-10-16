@@ -11,23 +11,30 @@ import (
 
 // The fields of a porcelain v2 status record before its path: an ordinary
 // change, a rename or copy, whose original path is the next record, and
-// an unmerged path; and the field of an ordinary or renamed record that
-// names the object HEAD holds.
+// an unmerged path; and the fields of an ordinary or renamed record that
+// name the mode of the index and of the worktree and the object HEAD
+// holds.
 const (
 	ordinaryFields = 9
 	renamedFields  = 10
 	unmergedFields = 11
+	indexModeField = 4
+	treeModeField  = 5
 	headField      = 6
 )
 
 // Status is what one git status reported: a snapshot of the paths it
 // named and of the paths asked for beside them, the paths it named, a
-// deleted one included, and the blob HEAD holds at each tracked path it
-// named, so a path whose status changed can be compared by its bytes.
+// deleted one included, the blob HEAD holds at each tracked path it named,
+// so a path whose status changed can be compared by its bytes, and the
+// paths whose only change git found is an edit of their bytes in the
+// worktree under the mode the index records, which git compared through
+// the conversions of the path, so their bytes are not the blob.
 type Status struct {
 	Worktree *Worktree
 	Paths    []string
 	Heads    map[string]string
+	Edited   map[string]bool
 }
 
 // Changes asks git status for the paths that differ from HEAD in the
@@ -47,11 +54,14 @@ func Changes(ctx context.Context, repo Repo, also []string) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	st := Status{Paths: make([]string, 0, len(entries)), Heads: map[string]string{}}
+	st := Status{Paths: make([]string, 0, len(entries)), Heads: map[string]string{}, Edited: map[string]bool{}}
 	for _, e := range entries {
 		st.Paths = append(st.Paths, e.path)
 		if e.head != "" {
 			st.Heads[e.path] = e.head
+		}
+		if e.edited {
+			st.Edited[e.path] = true
 		}
 	}
 	for _, path := range also {
@@ -109,6 +119,7 @@ func sortedEntries(entries []entry) []entry {
 			last.tracked = last.tracked || e.tracked
 			last.dir = last.dir || e.dir
 			last.head = cmp.Or(last.head, e.head)
+			last.edited = last.edited || e.edited
 			continue
 		}
 		out = append(out, e)
@@ -137,6 +148,7 @@ func changed(record, kind string) ([]entry, string, error) {
 	found := entry{path: parts[fields-1], tracked: true}
 	if kind == "1" {
 		found.head = head
+		found.edited = letters == ".M" && parts[indexModeField] == parts[treeModeField]
 	}
 	return []entry{found}, head, nil
 }
