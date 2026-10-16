@@ -19,7 +19,8 @@ type module struct {
 	Replace *module    `json:"Replace"`
 }
 
-// decode reads every module object of the stream.
+// decode reads the stream object by object, because go list -m -json
+// prints one JSON object per module and no enclosing array.
 func decode(stream []byte) ([]module, error) {
 	decoder := json.NewDecoder(bytes.NewReader(stream))
 	var modules []module

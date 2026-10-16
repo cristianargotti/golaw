@@ -145,7 +145,6 @@ func (t Table) Refuse() error {
 	return fmt.Errorf("%w: %s", ErrOwnedElsewhere, strings.Join(owned, ", "))
 }
 
-// ownedByGate reports whether any row of the family belongs to the gate.
 func (t Table) ownedByGate(family string) bool {
 	for _, row := range t.Rows {
 		if row.Family == family && row.Owner == OwnerGate {

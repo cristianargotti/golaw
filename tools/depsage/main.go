@@ -82,7 +82,8 @@ func execute(ctx context.Context, args []string, stdout, stderr io.Writer, list 
 	return exitClean
 }
 
-// fail prints the failure and returns its exit code.
+// fail reports a failure of the tool; the exit code is 2 even when stderr
+// refuses the message, since no channel is left to report that on.
 func fail(stderr io.Writer, err error) int {
 	if _, writeErr := fmt.Fprintln(stderr, "deps-age:", err); writeErr != nil {
 		return exitFailure

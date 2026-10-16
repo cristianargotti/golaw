@@ -124,7 +124,6 @@ func matchedTools(matcherText string) ([]string, bool) {
 	return tools, true
 }
 
-// pick chooses the post or the pre event.
 func pick(post bool, postEvent, preEvent string) string {
 	if post {
 		return postEvent

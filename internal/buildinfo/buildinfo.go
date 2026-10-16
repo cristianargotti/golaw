@@ -31,7 +31,9 @@ type Info struct {
 	Stamped  bool   // the binary carries build information at all
 }
 
-// Current reads the metadata of the running binary.
+// Current reads the stamp of the running binary. It is the seam newApp
+// binds in production: a test cannot choose the stamp of its own binary,
+// so the tests call Read with a stamp of their own.
 func Current() Info {
 	return Read(debug.ReadBuildInfo())
 }

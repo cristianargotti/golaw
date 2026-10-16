@@ -45,7 +45,6 @@ func (t tally) percent() float64 {
 	return float64(t.covered) * 100 / float64(t.stmts)
 }
 
-// totals sums the statements and the covered statements of the file.
 func (fc *fileCoverage) totals() tally {
 	var t tally
 	for _, b := range fc.blocks {
