@@ -28,7 +28,7 @@ No shell parses that invocation. doctor checks that executable resolution identi
 | Event | Matcher | Contract |
 | --- | --- | --- |
 | PreToolUse | Write, Edit, NotebookEdit | Write supplies file_path and content. Edit supplies old_string, new_string, replace_all, and edits when present. Reconstruct the candidate in memory. Deny NotebookEdit with a compatibility reason until decoded. |
-| PreToolUse | Read | Judge tool_input.file_path against secret-material rules. |
+| PreToolUse | Read | Judge tool_input.file_path against secret-material rules, both by the name it asks for and by the file its links lead to. |
 | PreToolUse | Bash, PowerShell | Judge command text, cwd, and tool name without executing the command. |
 | PostToolUse | Write, Edit, NotebookEdit | Measure resulting content when prospective measurement was unavailable. |
 | PostToolUse | Bash, PowerShell | Detect changed content from bashEditDiff when present or the tool_use_id snapshot. |

@@ -176,25 +176,49 @@ func Hash(content []byte) string {
 // working directory or through a link outside the repository lands where
 // the write lands.
 func Relative(root, cwd, name string) (string, error) {
-	return within(root, cwd, name, resolvePath)
+	if err := validLocation(root, cwd, name); err != nil {
+		return "", err
+	}
+	return local(filepath.Rel(resolvePath(root), resolvePath(absolute(cwd, name))))
 }
 
-// Requested is the entry a name opens, named from the root: the links of
-// its directories are followed and its last element is kept, so a link
-// named like secret material keeps its name for the name rule.
+// Requested is the name a read asks for, from the root: the path below the
+// deepest directory above it that is the root, whatever links lead there,
+// spelled as given, so a link between the root and the name, a directory or
+// the entry itself, changes no element the name rule reads.
 func Requested(root, cwd, name string) (string, error) {
-	return within(root, cwd, name, entryLocation)
+	if err := validLocation(root, cwd, name); err != nil {
+		return "", err
+	}
+	rootInfo, err := os.Stat(root)
+	if err != nil {
+		return "", fmt.Errorf("%w: repository root: %w", model.ErrCannotJudge, err)
+	}
+	path := absolute(cwd, name)
+	for dir := filepath.Dir(path); ; dir = filepath.Dir(dir) {
+		if info, statErr := os.Stat(dir); statErr == nil && os.SameFile(info, rootInfo) {
+			return local(filepath.Rel(dir, path))
+		}
+		if filepath.Dir(dir) == dir {
+			return "", fmt.Errorf("%w: candidate is outside the repository", model.ErrCannotJudge)
+		}
+	}
 }
 
 // Resolve is the file a name leads to through every link, as an absolute
 // path, for a read that leads out of the repository.
 func Resolve(cwd, name string) string { return resolvePath(absolute(cwd, name)) }
 
-func within(root, cwd, name string, locate func(string) string) (string, error) {
+func validLocation(root, cwd, name string) error {
 	if name == "" || !filepath.IsAbs(root) || !filepath.IsAbs(cwd) {
-		return "", fmt.Errorf("%w: invalid candidate location", model.ErrCannotJudge)
+		return fmt.Errorf("%w: invalid candidate location", model.ErrCannotJudge)
 	}
-	relative, err := filepath.Rel(resolvePath(root), locate(absolute(cwd, name)))
+	return nil
+}
+
+// local turns a relative path into the slash separated name of a file of
+// the repository, refusing the root itself and a path that leaves it.
+func local(relative string, err error) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: relative path: %w", model.ErrCannotJudge, err)
 	}

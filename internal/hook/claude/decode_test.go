@@ -143,6 +143,70 @@ func TestDecodeRejectsUnknownShapes(t *testing.T) {
 	}
 }
 
+// realDir is a temporary directory by its real path, the form a root has.
+func realDir(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+// plant writes the files of a test and makes its symbolic links, each a
+// target and a name, or skips the test where the system has none.
+func plant(t *testing.T, files map[string]string, links [][2]string) {
+	t.Helper()
+	for path, content := range files {
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, pair := range links {
+		if err := os.Symlink(pair[0], pair[1]); err != nil {
+			t.Skipf("symbolic links are not available: %v", err)
+		}
+	}
+}
+
+// TestDecodeReadNamesTheEntryAndTheTarget names a read twice when a link
+// stands between the name and the file: Path is the entry the name opens,
+// from the root when the repository holds it, and Real the file its links
+// lead to, named the same way, or by its absolute path outside.
+func TestDecodeReadNamesTheEntryAndTheTarget(t *testing.T) {
+	t.Parallel()
+	root, outside := realDir(t), realDir(t)
+	store := filepath.Join(outside, ".aws", "credentials")
+	plant(t, map[string]string{
+		filepath.Join(root, "payload.txt"): "plain\n", filepath.Join(root, ".env.local"): "K=v\n", store: "[default]\n",
+		filepath.Join(root, "plain", "x.txt"): "plain\n",
+	}, [][2]string{
+		{"payload.txt", filepath.Join(root, ".env")},
+		{".env.local", filepath.Join(root, "notes.txt")},
+		{store, filepath.Join(root, "config.txt")},
+		{filepath.Join(root, ".env.local"), filepath.Join(outside, "alias.txt")},
+		{"plain", filepath.Join(root, "secrets")},
+		{root, filepath.Join(outside, "proj")},
+	})
+	for _, tc := range []struct{ cwd, name, path, real string }{
+		{root, filepath.Join(root, ".env"), ".env", "payload.txt"},
+		{root, filepath.Join(root, "secrets", "x.txt"), "secrets/x.txt", "plain/x.txt"},
+		{outside, filepath.Join(outside, "proj", ".env"), ".env", "payload.txt"},
+		{root, filepath.Join(root, "notes.txt"), "notes.txt", ".env.local"},
+		{root, filepath.Join(root, "config.txt"), "config.txt", filepath.ToSlash(store)},
+		{outside, filepath.Join(outside, "alias.txt"), filepath.ToSlash(filepath.Join(outside, "alias.txt")), ".env.local"},
+		{root, filepath.Join(root, "payload.txt"), "payload.txt", ""},
+	} {
+		got, err := claude.Decode(frame(t, "PreToolUse", "Read", tc.cwd, map[string]any{"file_path": tc.name}), root, nil)
+		if err != nil || got.Event.Read.Path != tc.path || got.Event.Read.Real != tc.real {
+			t.Errorf("%s: %+v, %v", tc.name, got.Event.Read, err)
+		}
+	}
+}
+
 // TestDecodeReadIsRelativeToTheRoot names a read inside the repository by
 // its path from the root, so the directories the clone sits under never
 // reach the name rule, while a path outside keeps the name it was given.

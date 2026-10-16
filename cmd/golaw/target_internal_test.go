@@ -90,11 +90,67 @@ func TestHookJudgesTheRepositoryThatHoldsTheTarget(t *testing.T) {
 	}
 }
 
-// links makes the symbolic links of a test, each a target and a name, or
-// skips the test where the system has none.
-func links(t *testing.T, pairs ...[2]string) {
+// TestHookJudgesBothNamesOfARead drives the real binding with reads
+// through links: a link named like secret material, a link to secret
+// material of the repository, a link to the credential store of the home,
+// a link outside to secret material of the repository and a secret name of
+// the repository that leads outside, both read from outside, are denied,
+// while plain names through links in either direction stay readable.
+func TestHookJudgesBothNamesOfARead(t *testing.T) {
+	t.Parallel()
+	e := enrolledHook(t)
+	root, outside := e.root, t.TempDir()
+	store := filepath.Join(e.home, ".aws", "credentials")
+	plant(t, map[string]string{
+		filepath.Join(root, "payload.txt"): "plain\n", filepath.Join(root, ".env.local"): "K=v\n",
+		store: "[default]\n", filepath.Join(outside, "plain.txt"): "plain\n", filepath.Join(root, "plain", "x.txt"): "plain\n",
+	}, [][2]string{
+		{"plain", filepath.Join(root, "secrets")},
+		{"payload.txt", filepath.Join(root, ".env")},
+		{".env.local", filepath.Join(root, "notes.txt")},
+		{store, filepath.Join(root, "config.txt")},
+		{filepath.Join(root, ".env.local"), filepath.Join(outside, "alias.txt")},
+		{filepath.Join(outside, "plain.txt"), filepath.Join(root, ".env.prod")},
+		{filepath.Join(root, "payload.txt"), filepath.Join(outside, "plain-alias.txt")},
+		{filepath.Join(outside, "plain.txt"), filepath.Join(root, "out.txt")},
+	})
+	for _, tc := range []struct {
+		name, cwd, target string
+		denied            bool
+	}{
+		{"a link named like secret material", root, filepath.Join(root, ".env"), true},
+		{"a directory link named like secret material", root, filepath.Join(root, "secrets", "x.txt"), true},
+		{"a link to secret material of the repository", root, filepath.Join(root, "notes.txt"), true},
+		{"a link to the credential store of the home", root, filepath.Join(root, "config.txt"), true},
+		{"a link outside to secret material of the repository", outside, filepath.Join(outside, "alias.txt"), true},
+		{"a secret name of the repository that leads outside", outside, filepath.Join(root, ".env.prod"), true},
+		{"a plain file", root, filepath.Join(root, "payload.txt"), false},
+		{"a link outside to a plain file of the repository", outside, filepath.Join(outside, "plain-alias.txt"), false},
+		{"a link of the repository to a plain file outside", root, filepath.Join(root, "out.txt"), false},
+	} {
+		agent := agentUnderTest()
+		event := eventAt(t, "Read", tc.cwd, map[string]any{"file_path": tc.target})
+		reply := hook.Run(t.Context(), agent.ID, strings.NewReader(event), agent.Adapter, e.deps)
+		denied := strings.Contains(string(reply.Stdout), `"permissionDecision":"deny"`)
+		if reply.ExitCode != 0 || denied != tc.denied || reply.Stderr != "" {
+			t.Fatalf("%s: exit %d, stdout %q, stderr %q", tc.name, reply.ExitCode, reply.Stdout, reply.Stderr)
+		}
+	}
+}
+
+// plant writes the files of a test and makes its symbolic links, each a
+// target and a name, or skips the test where the system has none.
+func plant(t *testing.T, files map[string]string, links [][2]string) {
 	t.Helper()
-	for _, pair := range pairs {
+	for path, content := range files {
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, pair := range links {
 		if err := os.Symlink(pair[0], pair[1]); err != nil {
 			t.Skipf("symbolic links are not available: %v", err)
 		}
@@ -113,11 +169,10 @@ func TestHookFollowsEveryLinkOfTheTarget(t *testing.T) {
 	e := enrolledHook(t)
 	root, outside := e.root, t.TempDir()
 	plain := filepath.Join(outside, "plain.md")
-	if err := os.WriteFile(plain, []byte("plain\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	alias, dangling, out := filepath.Join(outside, "alias"), filepath.Join(outside, "dangling.md"), filepath.Join(root, "out.md")
-	links(t, [2]string{filepath.Join(root, "golaw.yml"), alias}, [2]string{filepath.Join(root, "fresh.md"), dangling}, [2]string{plain, out})
+	plant(t, map[string]string{plain: "plain\n"}, [][2]string{
+		{filepath.Join(root, "golaw.yml"), alias}, {filepath.Join(root, "fresh.md"), dangling}, {plain, out},
+	})
 	write := func(target, content string) map[string]any {
 		return map[string]any{"file_path": target, "content": content}
 	}

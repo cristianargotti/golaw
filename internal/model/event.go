@@ -112,9 +112,13 @@ type Candidate struct {
 	BaseHash      string      `json:"base_hash,omitempty"` // sha256 of the on-disk content an edit was applied to
 }
 
-// ReadRequest is a read event: the rule judges the name, never the bytes.
+// ReadRequest is a read event: the rule judges the names, never the bytes.
+// A link between the name and the file gives the read two names, and each
+// one is judged, so a link moves a read out of the name rule in neither
+// direction.
 type ReadRequest struct {
-	Path string `json:"path"` // from the repository root when inside it, as the agent gave it otherwise, in slashes
+	Path string `json:"path"`           // the entry the name opens: from the repository root when inside it, as the agent gave it otherwise, in slashes
+	Real string `json:"real,omitempty"` // the file its links lead to when that is another, named the same way, by its absolute path outside
 }
 
 // ShellCommand is a shell event.

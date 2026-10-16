@@ -55,6 +55,35 @@ func TestSecretMaterial(t *testing.T) {
 	}
 }
 
+// TestSecretMaterialJudgesBothNamesOfARead denies a read when either the
+// name it asks for or the file its links lead to names secret material, so
+// a link moves a read out of the name rule in neither direction.
+func TestSecretMaterialJudgesBothNamesOfARead(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		path, real string
+		denied     bool
+		message    string
+	}{
+		{".env", "payload.txt", true, "the read names secret material (.env); secrets never enter the context"},
+		{"notes.txt", ".env.local", true, "the read leads through a link to secret material (.env.local); secrets never enter the context"},
+		{"config.txt", "/h/u/.aws/credentials", true, "the read leads through a link to secret material (/h/u/.aws/credentials); secrets never enter the context"},
+		{"/work/alias.txt", "deploy/secrets/db.yaml", true, "the read leads through a link to secret material (deploy/secrets/db.yaml); secrets never enter the context"},
+		{"notes.txt", "payload.txt", false, ""},
+		{"notes.txt", "", false, ""},
+	} {
+		event := &model.Event{Shape: model.ShapeRead, Agent: "tester", Tool: "Read", Read: &model.ReadRequest{Path: tc.path, Real: tc.real}}
+		in := model.Input{Mode: model.ModeHook, Policy: proof.Policy(), Snapshot: proof.NewTree(nil), Event: event}
+		res, err := paths.SecretMaterial().Run(t.Context(), in)
+		if err != nil || res.Status.Kind != model.StatusMeasured || (len(res.Findings) == 1) != tc.denied {
+			t.Fatalf("%s through %s: %+v, %v", tc.path, tc.real, res, err)
+		}
+		if tc.denied && res.Findings[0].Message != tc.message {
+			t.Errorf("%s through %s: message %q", tc.path, tc.real, res.Findings[0].Message)
+		}
+	}
+}
+
 func TestSecretMaterialJudgesReadsOnly(t *testing.T) {
 	t.Parallel()
 	event := &model.Event{Shape: model.ShapeShell, Agent: "tester", Tool: "Bash", Shell: &model.ShellCommand{Command: "cat deploy.pem", Cwd: "/work", Tool: "Bash"}}

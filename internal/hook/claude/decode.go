@@ -35,9 +35,11 @@ func Decode(data []byte, root string, snapshot model.Snapshot) (hook.Request, er
 }
 
 // readRequest names a read inside the repository by its path from the
-// root, so the directories a clone sits under (a secrets folder in the
-// home) never reach the name rule; a path outside the repository, a
-// credential store of the home, keeps the name it was given.
+// root, so the directories a clone sits under never reach the name rule; a
+// path outside the repository, a credential store of the home, keeps the
+// name it was given. A link between the name and the file gives the read
+// a second name, the file the link leads to, named the same way or by its
+// absolute path outside, and the rule judges both.
 func readRequest(w wire, event model.Event, root string) (hook.Request, error) {
 	var input struct {
 		Path string `json:"file_path"`
@@ -48,13 +50,23 @@ func readRequest(w wire, event model.Event, root string) (hook.Request, error) {
 	if input.Path == "" {
 		return hook.Request{}, fmt.Errorf("%w: Read path is absent", model.ErrCannotJudge)
 	}
-	path := strings.ReplaceAll(input.Path, `\`, "/")
-	if relative, err := hook.Relative(root, w.Cwd, input.Path); err == nil { // fallback: a path outside the repository keeps its own name
-		path = relative
+	read := model.ReadRequest{Path: readName(hook.Requested, root, w.Cwd, input.Path, input.Path)}
+	if target := readName(hook.Relative, root, w.Cwd, input.Path, hook.Resolve(w.Cwd, input.Path)); target != read.Path {
+		read.Real = target
 	}
 	event.Shape = model.ShapeRead
-	event.Read = &model.ReadRequest{Path: path}
+	event.Read = &read
 	return hook.Request{Event: event}, nil
+}
+
+// readName is a name of a read from the root when the repository holds it,
+// else the given path, in slashes; a fallback, never an error, because a
+// read outside the repository is still judged by its name.
+func readName(inside func(string, string, string) (string, error), root, cwd, name, outside string) string {
+	if relative, err := inside(root, cwd, name); err == nil { // fallback: a name outside the repository keeps its own spelling
+		return relative
+	}
+	return strings.ReplaceAll(outside, `\`, "/")
 }
 
 func shellRequest(w wire, event model.Event) (hook.Request, error) {
