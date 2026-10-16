@@ -8,6 +8,11 @@ const unknownName = "unknown"
 // multi-megabyte blob inside a hook deadline.
 const MaxReadBytes = 8 << 20
 
+// MaxPolicyBytes bounds the golaw.yml read from a checkout before its first
+// commit, by the agent hooks and by init alike, so init never enrolls a
+// policy the hooks cannot read.
+const MaxPolicyBytes = 1 << 20
+
 // FileClass is the one class a snapshot assigns to a path. When several
 // descriptions fit, the highest constant wins: a generated test file is
 // Generated, an unreadable symlink is Unreadable.

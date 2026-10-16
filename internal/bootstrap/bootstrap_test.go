@@ -1,6 +1,7 @@
 package bootstrap_test
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/bootstrap"
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // repo creates a git checkout root under a temporary directory and returns
@@ -149,5 +151,26 @@ func TestCurrentAndWriteReportWhatTheyCannotDo(t *testing.T) {
 	}
 	if _, err := bootstrap.Current(fileAsRoot); err == nil || !strings.Contains(err.Error(), "inspect golaw.yml") {
 		t.Fatalf("current under a file = %v", err)
+	}
+}
+
+// TestCurrentRefusesAPolicyOverTheHookBound reads a golaw.yml up to the
+// bound the agent hooks read one before its first commit, and refuses a
+// longer one, so init never enrolls a file the hooks cannot read.
+func TestCurrentRefusesAPolicyOverTheHookBound(t *testing.T) {
+	t.Parallel()
+	root := repo(t)
+	at := append([]byte("golaw: 1\n"), bytes.Repeat([]byte("#"), model.MaxPolicyBytes-len("golaw: 1\n"))...)
+	if err := bootstrap.Write(root, at); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := bootstrap.Current(root); err != nil || len(got) != model.MaxPolicyBytes {
+		t.Fatalf("a policy at the bound = %d bytes, %v", len(got), err)
+	}
+	if err := bootstrap.Write(root, append(at, '#')); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bootstrap.Current(root); !errors.Is(err, bootstrap.ErrTooLarge) {
+		t.Fatalf("a policy over the bound = %v", err)
 	}
 }

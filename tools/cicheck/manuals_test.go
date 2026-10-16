@@ -139,6 +139,16 @@ func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 	)
 }
 
+// TestSecurityStatesThePolicyBound pins the bound init and the hooks share
+// for the golaw.yml of a checkout before its first commit.
+func TestSecurityStatesThePolicyBound(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/security.md",
+		"The golaw.yml of the checkout is read up to 1 MiB, the bound init reads it with too: init refuses to enroll a longer one",
+		"one grown past it after init is that denial until git holds it, staged or committed",
+	)
+}
+
 // TestAgentContractDetection pins what docs/agent-contracts.md says change
 // detection after a shell command sees and where it trusts git status.
 func TestAgentContractDetection(t *testing.T) {

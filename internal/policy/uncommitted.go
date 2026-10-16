@@ -10,9 +10,6 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// maxPolicyBytes bounds the golaw.yml of a checkout the hook reads.
-const maxPolicyBytes = 1 << 20
-
 // uncommitted is the policy in force of an enrolled repository whose HEAD
 // holds no golaw.yml yet: the golaw.yml the index holds, or the one the
 // checkout holds when nothing is staged, only when its bytes mean the
@@ -53,8 +50,8 @@ func checkoutPolicy(root string) ([]byte, bool) {
 		return nil, false
 	}
 	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, maxPolicyBytes+1))
-	return data, err == nil && len(data) <= maxPolicyBytes
+	data, err := io.ReadAll(io.LimitReader(file, model.MaxPolicyBytes+1))
+	return data, err == nil && len(data) <= model.MaxPolicyBytes
 }
 
 // commitFirst is the refusal of every other state before the first commit,

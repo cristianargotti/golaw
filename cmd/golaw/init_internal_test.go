@@ -264,3 +264,23 @@ func TestInitEndsWithTheCommitLine(t *testing.T) {
 		}
 	}
 }
+
+// TestInitRefusesAPolicyOverTheHookBound refuses to enroll a golaw.yml the
+// checkout holds that is longer than the agent hooks read before its first
+// commit, naming the bound, and leaves it as it is.
+func TestInitRefusesAPolicyOverTheHookBound(t *testing.T) {
+	t.Parallel()
+	ta, record := initApp(t)
+	root := checkout(t)
+	padded := "golaw: 1\nkit: { version: 9.9.9 }\n" + strings.Repeat("# padding\n", model.MaxPolicyBytes/10+1)
+	file := filepath.Join(root, bootstrap.PolicyFile)
+	if err := os.WriteFile(file, []byte(padded), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := ta.run(t.Context(), []string{"init", "--apply", root}); got != exitFailure || !strings.Contains(ta.stderr.String(), "1 MiB") {
+		t.Fatalf("exit = %d, stderr = %q", got, ta.stderr.String())
+	}
+	if data, err := os.ReadFile(file); err != nil || string(data) != padded || record.calls != 0 {
+		t.Fatalf("the file or the enrollment changed: %d bytes, %v, enrollment = %+v", len(data), err, record)
+	}
+}

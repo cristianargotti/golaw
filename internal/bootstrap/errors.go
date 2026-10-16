@@ -10,4 +10,6 @@ var (
 	ErrDecisions = errors.New("both docs/adr and docs/decisions exist, keep one")
 	// ErrSymlink marks a symbolic link where init expects a regular file.
 	ErrSymlink = errors.New("symbolic link refused")
+	// ErrTooLarge marks a policy file longer than the agent hooks read.
+	ErrTooLarge = errors.New("over the 1 MiB the agent hooks read before its first commit")
 )

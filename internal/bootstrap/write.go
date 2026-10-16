@@ -3,25 +3,38 @@ package bootstrap
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // Current reads the policy file at the root: nil when it does not exist,
 // ErrSymlink when it is a link, because init would otherwise write through
-// the link to a path outside the repository.
+// the link to a path outside the repository, and ErrTooLarge when it is
+// longer than the agent hooks read one before its first commit, so init
+// never enrolls a policy they cannot read.
 func Current(root string) ([]byte, error) {
 	target := filepath.Join(root, PolicyFile)
 	if err := refuseSymlink(target); err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(target) //nolint:gosec // the path is the policy file of the root init resolved
+	file, err := os.Open(target) //nolint:gosec // the path is the policy file of the root init resolved
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("bootstrap: read %s: %w", PolicyFile, err)
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, model.MaxPolicyBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("bootstrap: read %s: %w", PolicyFile, err)
+	}
+	if len(data) > model.MaxPolicyBytes {
+		return nil, fmt.Errorf("bootstrap: %s of %s is %w, so init neither replaces nor enrolls it", PolicyFile, root, ErrTooLarge)
 	}
 	return data, nil
 }
