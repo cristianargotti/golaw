@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook/agents"
@@ -32,6 +33,34 @@ func TestInstallOptionsNeedThePolicyInForce(t *testing.T) {
 	gitRun(t, bare, "init", "-q")
 	if _, err := b.installOptions(t.Context(), agentUnderTest(), bare, scopeUser, now()); !errors.Is(err, model.ErrUsage) {
 		t.Fatalf("a repository without a policy was accepted: %v", err)
+	}
+}
+
+func TestInstallOptionsAskToCommitThePolicyOfAnExistingRepository(t *testing.T) {
+	t.Parallel()
+	b, _ := testBinding(t)
+	root := repository(t, false)
+	gitRun(t, root, "add", "go.mod")
+	gitRun(t, root, "commit", "-q", "-m", "build: start the module")
+	data := renderedPolicy(t)
+	p, err := b.compile(data, now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = b.enroll(root, data, p, now()); err != nil {
+		t.Fatal(err)
+	}
+	_, err = b.installOptions(t.Context(), agentUnderTest(), root, scopeUser, now())
+	if !errors.Is(err, model.ErrEnrollment) || !strings.Contains(err.Error(), "commit the reviewed golaw.yml, then run agent install again") {
+		t.Fatalf("an uncommitted policy on a branch with commits = %v", err)
+	}
+	gitRun(t, root, "add", "golaw.yml")
+	gitRun(t, root, "commit", "-q", "-m", "build: adopt the policy")
+	if options, err := b.installOptions(t.Context(), agentUnderTest(), root, scopeUser, now()); err != nil || options.PolicyDigest != p.Digest {
+		t.Fatalf("the committed policy = %+v, %v", options, err)
+	}
+	if _, err := b.installOptions(t.Context(), agentUnderTest(), t.TempDir(), scopeUser, now()); err == nil || strings.Contains(err.Error(), "commit the reviewed") {
+		t.Fatalf("a directory outside git = %v", err)
 	}
 }
 

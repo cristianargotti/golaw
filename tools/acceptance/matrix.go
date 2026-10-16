@@ -94,7 +94,7 @@ func (s *suite) configureFixture(ctx context.Context, repo string, f fixture) er
 // file from the index and keeps it in the checkout, the deletion the next
 // commit would carry.
 func (s *suite) commitPolicy(ctx context.Context, repo string, unstage bool) error {
-	steps := [][]string{{"add", "--", policyFile}, commitArgs("build: adopt the policy")}
+	steps := [][]string{{gitAdd, "--", policyFile}, commitArgs("build: adopt the policy")}
 	if unstage {
 		steps = append(steps, []string{"rm", "-q", "--cached", "--", policyFile})
 	}
@@ -135,7 +135,7 @@ func (s *suite) weakenPolicy(ctx context.Context, repo string) error {
 		return err
 	}
 	return success(s.execute(ctx, command{
-		program: s.git, args: []string{"add", "--", policyFile}, dir: repo, env: s.env,
+		program: s.git, args: []string{gitAdd, "--", policyFile}, dir: repo, env: s.env,
 	}))
 }
 

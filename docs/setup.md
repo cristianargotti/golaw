@@ -12,12 +12,16 @@ Run the pinned M1 sequence:
 go install github.com/cristianargotti/golaw/cmd/golaw@v0.1.0
 golaw init
 golaw init --apply
+git add golaw.yml
+git commit -m "build: adopt the golaw policy"
 golaw agent install --agent claude
 golaw doctor
 golaw scan .
 ```
 
 init without --apply prints the complete deterministic diff and writes nothing. M1 init --apply writes golaw.yml and the external enrollment record, with no templates. A repeated apply produces no diff. init never arms git hooks.
+
+Commit the reviewed golaw.yml before agent install. On a branch that already has a commit, the policy in force is the golaw.yml at HEAD, so until a commit holds the file agent install refuses the enrolled repository and names this step, and scan exits 2. On a new repository without a commit, the enrollment record carries the policy until the first commit.
 
 The default policy is core only. The default human language is pt-BR. Findings, documentation, comments, and commits remain English. Repository identity never selects a profile implicitly.
 

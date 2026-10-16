@@ -74,7 +74,7 @@ func (s *suite) recoveryRow(ctx context.Context, repo string, original []byte) r
 			fmt.Errorf("the installed hook answered without its binary: %w", ErrAcceptance))
 	}
 	reinstall := command{
-		program: s.binary, args: []string{"agent", "install", "--agent", agentClaude},
+		program: s.binary, args: installArgs(),
 		dir: filepath.Join(s.base, dirRepos, repoInstallation), env: s.env,
 	}
 	if err := success(s.execute(ctx, reinstall)); err != nil {

@@ -23,6 +23,9 @@ const (
 	dirAcceptance = "acceptance"
 	dirRepos      = "repositories"
 	goBuild       = "build"
+	commandInit   = "init"
+	gitAdd        = "add"
+	moduleFile    = "go.mod"
 )
 
 type suite struct {
@@ -87,17 +90,17 @@ func (s *suite) repository(ctx context.Context, name string, enrolled bool) (str
 		return repo, nil
 	}
 	got := s.execute(ctx, command{
-		program: s.git, args: []string{"init", "--quiet"}, dir: repo, env: s.env,
+		program: s.git, args: []string{commandInit, "--quiet"}, dir: repo, env: s.env,
 	})
 	if err := success(got); err != nil {
 		return "", err
 	}
-	if err := writeFile(filepath.Join(repo, "go.mod"),
+	if err := writeFile(filepath.Join(repo, moduleFile),
 		[]byte("module example.invalid/fixture\n\ngo 1.27\n"), fileMode); err != nil {
 		return "", err
 	}
 	got = s.execute(ctx, command{
-		program: s.binary, args: []string{"init", "--apply"}, dir: repo, env: s.env,
+		program: s.binary, args: []string{commandInit, "--apply"}, dir: repo, env: s.env,
 	})
 	if err := success(got); err != nil {
 		return "", err
@@ -128,10 +131,7 @@ func (s *suite) install(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	c := command{
-		program: s.binary, args: []string{"agent", "install", "--agent", agentClaude},
-		dir: repo, env: s.env,
-	}
+	c := command{program: s.binary, args: installArgs(), dir: repo, env: s.env}
 	if installErr := success(s.execute(ctx, c)); installErr != nil {
 		return installErr
 	}
@@ -147,6 +147,12 @@ func (s *suite) install(ctx context.Context) error {
 	}
 	s.hookFile, s.hooks, err = discoverHooks(s.home)
 	return err
+}
+
+// installArgs is the agent install of the adoption sequence, the one every
+// row that installs runs.
+func installArgs() []string {
+	return []string{"agent", "install", "--agent", agentClaude}
 }
 
 func (s *suite) reinstall(ctx context.Context, c command, first map[string]string) error {

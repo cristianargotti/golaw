@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 func (b binding) installOptions(ctx context.Context, agent agents.Agent, root, scope string, now time.Time) (install.Options, error) {
 	l, err := b.loaded(ctx, root, now)
 	if err != nil {
-		return install.Options{}, err
+		return install.Options{}, commitFirst(err)
 	}
 	if l.Origin == policy.OriginCore {
 		return install.Options{}, fmt.Errorf("%w: %s has no %s in force: run init --apply first", model.ErrUsage, root, policy.FileName)
@@ -42,6 +43,18 @@ func (b binding) installOptions(ctx context.Context, agent agents.Agent, root, s
 		Version: b.info.Version, PolicyDigest: l.Policy.Digest, ProfileDigest: profileDigest(l.File),
 		ReadRules: rules,
 	}, nil
+}
+
+// commitFirst names the step an enrolled repository with commits still
+// needs: its policy in force is the golaw.yml HEAD holds (A2), so the file
+// init --apply wrote governs nothing until a commit holds it, and the
+// refusal says so instead of leaving the person at a missing policy.
+func commitFirst(err error) error {
+	if !errors.Is(err, model.ErrEnrollment) {
+		return err
+	}
+	return fmt.Errorf("%w: on a branch with commits the policy in force is the %s HEAD holds: commit the reviewed %s, then run agent install again",
+		err, policy.FileName, policy.FileName)
 }
 
 // receiptPath is the receiptPath seam: where the receipt of an agent lives

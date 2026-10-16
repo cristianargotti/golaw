@@ -13,6 +13,8 @@ func TestM1SetupSequence(t *testing.T) {
 		"go install github.com/cristianargotti/golaw/cmd/golaw@v0.1.0",
 		"golaw init\n",
 		"golaw init --apply",
+		"git add golaw.yml",
+		"git commit",
 		"golaw agent install --agent " + agent,
 		"golaw doctor",
 		"golaw scan .",
@@ -30,6 +32,8 @@ func TestM1SetupSequence(t *testing.T) {
 	}
 	requireText(t, "docs/setup.md",
 		"no templates",
+		"Commit the reviewed golaw.yml before agent install",
+		"the policy in force is the golaw.yml at HEAD",
 		"never arms git hooks",
 		"source build, executable not verifiable",
 		"automatic release verification in doctor arrives in M5",
