@@ -114,7 +114,7 @@ type Candidate struct {
 
 // ReadRequest is a read event: the rule judges the name, never the bytes.
 type ReadRequest struct {
-	Path string `json:"path"` // as the agent gave it, normalized to slashes
+	Path string `json:"path"` // from the repository root when inside it, as the agent gave it otherwise, in slashes
 }
 
 // ShellCommand is a shell event.

@@ -26,7 +26,7 @@ func Decode(data []byte, root string, snapshot model.Snapshot) (hook.Request, er
 	case writeTool, editTool, notebookTool:
 		return Write(data, root, snapshot)
 	case readTool:
-		return readRequest(w, event)
+		return readRequest(w, event, root)
 	case bashTool, powerTool:
 		return shellRequest(w, event)
 	default:
@@ -34,7 +34,11 @@ func Decode(data []byte, root string, snapshot model.Snapshot) (hook.Request, er
 	}
 }
 
-func readRequest(w wire, event model.Event) (hook.Request, error) {
+// readRequest names a read inside the repository by its path from the
+// root, so the directories a clone sits under (a secrets folder in the
+// home) never reach the name rule; a path outside the repository, a
+// credential store of the home, keeps the name it was given.
+func readRequest(w wire, event model.Event, root string) (hook.Request, error) {
 	var input struct {
 		Path string `json:"file_path"`
 	}
@@ -44,8 +48,12 @@ func readRequest(w wire, event model.Event) (hook.Request, error) {
 	if input.Path == "" {
 		return hook.Request{}, fmt.Errorf("%w: Read path is absent", model.ErrCannotJudge)
 	}
+	path := strings.ReplaceAll(input.Path, `\`, "/")
+	if relative, err := hook.Relative(root, w.Cwd, input.Path); err == nil { // fallback: a path outside the repository keeps its own name
+		path = relative
+	}
 	event.Shape = model.ShapeRead
-	event.Read = &model.ReadRequest{Path: strings.ReplaceAll(input.Path, `\`, "/")}
+	event.Read = &model.ReadRequest{Path: path}
 	return hook.Request{Event: event}, nil
 }
 

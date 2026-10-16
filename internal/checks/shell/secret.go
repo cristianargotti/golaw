@@ -14,8 +14,11 @@ import (
 // two equal and the proof fixtures keep their behavior aligned.
 var (
 	sourceFile    = regexp.MustCompile(`(?i)\.(?:go|ts|tsx|js|mjs|cjs|py|md|sql|proto|tmpl)$`)
-	exampleFile   = regexp.MustCompile(`(?i)\.(?:example|sample|template|dist)$`)
+	exampleFile   = regexp.MustCompile(`(?i)\.(?:example|sample|template|dist)(?:\.[a-z0-9]+)?$`)
 	secretPattern = regexp.MustCompile(`(?i)(?:^|/)(?:` + strings.Join(secretNames(), "|") + `)$`)
+	// secretsDir is the secrets directory entry of the name list, apart
+	// from the fixtures of a testdata directory below it.
+	secretsDir = regexp.MustCompile(`(?i)(?:^|/)secrets/(.+)$`)
 )
 
 // secretNames is the name list as data; every entry matches the end of a
@@ -23,9 +26,7 @@ var (
 func secretNames() []string {
 	return []string{
 		`\.env(?:\.[^/]+)?`, `[^/]+\.env`, `\.envrc`,
-		`secrets?/.+`,
 		`(?:credentials|keys)/[^/]+\.json`,
-		`[^/]*secrets?\.(?:json|ya?ml|env|txt|ini|cfg|conf|csv)`,
 		`kubeconfig(?:\.[^/]+)?`, `[^/]+\.kubeconfig`, `\.kube/.+`,
 		`\.docker/config\.json`, `\.vault-token`,
 		`[^/]+\.tfstate(?:\.backup)?`, `[^/]+\.tfvars(?:\.json)?`,
@@ -46,7 +47,11 @@ func secretName(token string) bool {
 	if sourceFile.MatchString(name) || exampleFile.MatchString(name) {
 		return false
 	}
-	return secretPattern.MatchString(token)
+	if secretPattern.MatchString(token) {
+		return true
+	}
+	under := secretsDir.FindStringSubmatch(token)
+	return len(under) == 2 && !strings.HasPrefix(under[1], "testdata/") && !strings.Contains(under[1], "/testdata/")
 }
 
 // hookRule is the rule reference of the hook denials, until docs/rules.md
@@ -73,8 +78,12 @@ var privateKey = regexp.MustCompile(`(?i)^id_(?:rsa|dsa|ecdsa|ed25519)$`)
 
 // secretToken reports whether a token of a command names secret material:
 // a path or a file name through the name list, a bare word only when it is
-// a private key name.
+// a private key name. A Go package pattern (./internal/secrets/...) and a
+// directory with its trailing slash name no file.
 func secretToken(token string) bool {
+	if strings.HasSuffix(token, "/...") || strings.HasSuffix(token, "/") {
+		return false
+	}
 	if strings.ContainsAny(token, "/.") {
 		return secretName(token)
 	}

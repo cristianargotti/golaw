@@ -3,6 +3,7 @@ package claude_test
 import (
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"slices"
 	"testing"
@@ -138,6 +139,31 @@ func TestDecodeRejectsUnknownShapes(t *testing.T) {
 	} {
 		if _, err := claude.Decode(data, root, nil); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatalf("%s: %v", data, err)
+		}
+	}
+}
+
+// TestDecodeReadIsRelativeToTheRoot names a read inside the repository by
+// its path from the root, so the directories the clone sits under never
+// reach the name rule, while a path outside keeps the name it was given.
+func TestDecodeReadIsRelativeToTheRoot(t *testing.T) {
+	t.Parallel()
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(base, "secrets", "repo")
+	if err := os.MkdirAll(filepath.Join(root, "config"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for target, want := range map[string]string{
+		filepath.Join(root, "config", "app.yaml"): "config/app.yaml",
+		filepath.Join("config", "app.yaml"):       "config/app.yaml",
+		filepath.Join(base, "secrets", "db.yaml"): filepath.ToSlash(filepath.Join(base, "secrets", "db.yaml")),
+	} {
+		got, err := claude.Decode(frame(t, "PreToolUse", "Read", root, map[string]any{"file_path": target}), root, nil)
+		if err != nil || got.Event.Read.Path != want {
+			t.Fatalf("%s: %+v, %v", target, got.Event.Read, err)
 		}
 	}
 }
