@@ -68,21 +68,23 @@ func gitValueOption(option string) bool {
 
 // unwrap drops the leading variable assignments, the reserved words a
 // shell puts before the command it runs (reserved), and the wrappers that
-// run their argument as the command (env, sudo, command, exec, nohup, time,
-// nice, timeout with its duration, xargs after its options), so a rule
-// sees the program; a wrapper or a reserved word with nothing after it is
-// the program itself.
+// run their arguments as the command (wrapperOf), each past its own
+// options, so a rule sees the program; a wrapper or a reserved word with
+// nothing after it is the program itself.
 func unwrap(seg segment) []string {
 	words := []string(seg)
 	for len(words) > 0 {
+		w, wraps := wrapperOf(words[0])
+		var command []string
+		if wraps {
+			command = w.command(words[1:])
+		}
 		switch {
 		case assignment.MatchString(words[0]):
 			words = words[1:]
-		case base(words[0]) == "timeout" && len(words) > 1:
-			words = words[2:]
-		case base(words[0]) == "xargs" && len(xargsCommand(words[1:])) > 0:
-			words = xargsCommand(words[1:])
-		case (isWrapper(words[0]) || reserved(words[0])) && len(words) > 1:
+		case len(command) > 0:
+			words = command
+		case reserved(words[0]) && len(words) > 1:
 			words = words[1:]
 		default:
 			return words
@@ -98,16 +100,6 @@ func unwrap(seg segment) []string {
 func reserved(word string) bool {
 	switch strings.ToLower(word) {
 	case "if", "then", "elif", "else", "while", "until", "do", "!", "{", "try", "finally":
-		return true
-	default:
-		return false
-	}
-}
-
-// isWrapper reports whether a program runs its arguments as the command.
-func isWrapper(name string) bool {
-	switch base(name) {
-	case "env", "sudo", "doas", "command", "exec", "nohup", "time", "nice", "builtin", "noglob":
 		return true
 	default:
 		return false

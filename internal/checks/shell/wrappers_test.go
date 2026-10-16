@@ -44,6 +44,47 @@ func TestEvalAndXargsCarryACommandLine(t *testing.T) {
 	})
 }
 
+// TestWrappersAreReadPastTheirOptions reads the command a wrapper runs
+// after its own options: the ones that take a value take it attached or
+// from the next word, -- ends them, timeout reads its duration after them,
+// and the string of env -S is the command line env splits; a wrapper with
+// no command after its options is the program itself.
+func TestWrappersAreReadPastTheirOptions(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "env -i git commit --no-verify -m x", "no-verify"},
+		{"Bash", "env -u HOME -C /tmp FOO=1 git commit --no-verify -m x", "no-verify"},
+		{"Bash", "env - git commit --no-verify -m x", "no-verify"},
+		{"Bash", "env --chdir /tmp --unset=HOME git commit --no-verify -m x", "no-verify"},
+		{"Bash", "env -S 'git commit --no-verify -m x'", "no-verify"},
+		{"Bash", "env --split-string='git commit -m x' --no-verify", "no-verify"},
+		{"Bash", "sudo -u me -E git commit --no-verify -m x", "no-verify"},
+		{"Bash", "sudo -uroot -- git commit --no-verify -m x", "no-verify"},
+		{"Bash", "doas -u me git commit --no-verify -m x", "no-verify"},
+		{"Bash", "nice -n 5 git commit --no-verify -m x", "no-verify"},
+		{"Bash", "nice -10 git commit --no-verify -m x", "no-verify"},
+		{"Bash", "nice --adjustment=5 git commit --no-verify -m x", "no-verify"},
+		{"Bash", "time -p git commit --no-verify -m x", "no-verify"},
+		{"Bash", "/usr/bin/time -o out.txt -f %e git commit --no-verify -m x", "no-verify"},
+		{"Bash", "command -p git commit --no-verify -m x", "no-verify"},
+		{"Bash", "exec -a name git commit --no-verify -m x", "no-verify"},
+		{"Bash", "timeout -s KILL -k 5 10 git commit --no-verify -m x", "no-verify"},
+		{"Bash", "timeout --preserve-status 10s git commit --no-verify -m x", "no-verify"},
+		{"Bash", "timeout 10 nohup git commit --no-verify -m x", "no-verify"},
+		{"Bash", "env -i git commit -m x", ""},
+		{"Bash", "sudo -u me git status", ""},
+		{"Bash", "echo env -i git commit --no-verify", ""},
+		{"Bash", "timeout 10", ""},
+		{"Bash", "env -S", ""},
+		{"Bash", "sudo -s", ""},
+	})
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", "env -i go test ./internal/secrets/...", ""},
+		{"Bash", "sudo -u me go vet ./internal/secrets/...", ""},
+		{"Bash", "env -i cat deploy/secrets/token.txt", "secret-token"},
+	})
+}
+
 // TestNoVerifyReadsTheGlobalOptionsOfGit reads the global options of git
 // the way git 2.44 does: -C, -c, --git-dir, --work-tree, --namespace,
 // --config-env, --attr-source and --shallow-file take the next word as

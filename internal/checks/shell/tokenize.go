@@ -48,12 +48,7 @@ func split(command string, d dialect, depth int) []segment {
 	if d == cmdShell {
 		segs = splitCmd(command)
 	} else {
-		s := &scanner{escapeRune: rune(d)}
-		for _, r := range command {
-			s.step(r)
-		}
-		s.endSegment()
-		segs = s.out
+		segs = scan(command, d)
 	}
 	var out []segment
 	for _, seg := range segs {
@@ -64,6 +59,17 @@ func split(command string, d dialect, depth int) []segment {
 		out = append(out, seg)
 	}
 	return out
+}
+
+// scan reads a command line of a POSIX shell or of PowerShell into its
+// segments, without reading the scripts they run.
+func scan(command string, d dialect) []segment {
+	s := &scanner{escapeRune: rune(d)}
+	for _, r := range command {
+		s.step(r)
+	}
+	s.endSegment()
+	return s.out
 }
 
 // scanner reads the command one rune at a time, because a quote, a

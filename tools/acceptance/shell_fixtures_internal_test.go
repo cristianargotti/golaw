@@ -15,7 +15,7 @@ func TestShellFixturePairs(t *testing.T) {
 	}
 	denied := []string{
 		"bypass", "short-bypass", "commit-dash", "body-101",
-		"secret-token", "secret-directory", "package-redirect", "package-terminator-test", "redirect-flag-value", "redirect-bypass", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "cmd-for-command", "cmd-call", "cmd-start", "reserved-word-bypass", "eval-bypass", "xargs-bypass", "git-dir-bypass", "bash", "sh",
+		"secret-token", "secret-directory", "package-redirect", "package-terminator-test", "redirect-flag-value", "redirect-bypass", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "cmd-for-command", "cmd-call", "cmd-start", "reserved-word-bypass", "eval-bypass", "xargs-bypass", "git-dir-bypass", "wrapper-option-bypass", "bash", "sh",
 	}
 	allowed := []string{
 		"commit-control", "push-default", "fetch", "body-100", "source-token", "package-pattern", "package-terminator", "redirect-control",
