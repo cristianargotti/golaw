@@ -10,9 +10,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cristianargotti/golaw/internal/buildinfo"
+	"github.com/cristianargotti/golaw/internal/doctor"
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/hook/agents"
+	"github.com/cristianargotti/golaw/internal/install"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
@@ -23,6 +25,13 @@ const (
 	exitFindings = 1
 	exitFailure  = 2
 )
+
+// enrollmentPort is the enrollment record of A3 as the installer writes it
+// and doctor reads it; the policy package owns the record, cmd binds it.
+type enrollmentPort interface {
+	install.EnrollmentWriter
+	doctor.EnrollmentReader
+}
 
 // app holds the outputs and the seams the commands run through, so a test
 // replaces each seam with a fake and reads the exit code without os.Exit.
@@ -40,7 +49,11 @@ type app struct {
 	enroll         func(root string, data []byte, policy *model.EffectivePolicy, now time.Time) error
 	explain        func(ctx context.Context, root string, now time.Time) (string, error)
 	render         func(w io.Writer, in model.Input, run *engine.Run, d engine.Decision, asJSON bool) error
+	discover       func(ctx context.Context, dir string) (string, error)
 	hookDeps       func(agent agents.Agent, now time.Time) (hook.Dependencies, error)
+	installOptions func(ctx context.Context, agent agents.Agent, root, scope string, now time.Time) (install.Options, error)
+	receiptPath    func(agent agents.Agent, root, scope string) (string, error)
+	enrollments    func(root string, now time.Time) (enrollmentPort, error)
 }
 
 // exitError carries an exit code that is a result, not a failure: findings
@@ -69,7 +82,7 @@ func (a *app) rootCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand(), a.hookCommand())
+	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand(), a.hookCommand(), a.agentCommand())
 	return root
 }
 
