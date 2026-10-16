@@ -2,6 +2,7 @@ package shell
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -35,11 +36,15 @@ func judgeShape(in model.Input, segs []segment) ([]model.Finding, error) {
 	if !ok || kind == "feat" {
 		return nil, nil
 	}
-	files, lines, err := staged(segs, in.Snapshot)
+	files, lines, unread, err := staged(segs, in.Snapshot)
 	if err != nil {
 		return nil, err
 	}
 	if files <= themeFiles && lines <= themeLines {
+		if len(unread) > 0 {
+			// The lines of a file over the read bound may break the theme.
+			return nil, &unreadError{paths: unread}
+		}
 		return nil, nil
 	}
 	if kind == "" {
@@ -67,28 +72,33 @@ func commitKind(segs []segment) (string, bool) {
 }
 
 // staged counts the files the command line stages and the new lines they
-// carry, each path once.
-func staged(segs []segment, snap model.Snapshot) (int, int, error) {
+// carry, each path once, with the files over the read bound whose lines
+// it could not count.
+func staged(segs []segment, snap model.Snapshot) (int, int, []string, error) {
 	seen, lines := map[string]bool{}, 0
+	var unread []string
 	for _, call := range gitCalls(segs) {
 		if call.sub != "add" {
 			continue
 		}
 		for _, named := range addPaths(call.args) {
-			added, err := newLines(expand(named, snap), snap, seen)
+			added, over, err := newLines(expand(named, snap), snap, seen)
 			if err != nil {
-				return 0, 0, err
+				return 0, 0, nil, err
 			}
 			lines += added
+			unread = append(unread, over...)
 		}
 	}
-	return len(seen), lines, nil
+	return len(seen), lines, unread, nil
 }
 
 // newLines records every file of the list as staged and counts the lines
-// of the untracked ones, each path once.
-func newLines(files []model.File, snap model.Snapshot, seen map[string]bool) (int, error) {
+// of the untracked ones, each path once; a file over the read bound counts
+// as staged and is answered aside, its lines uncounted.
+func newLines(files []model.File, snap model.Snapshot, seen map[string]bool) (int, []string, error) {
 	lines := 0
+	var unread []string
 	for _, f := range files {
 		if seen[f.Path] {
 			continue
@@ -98,13 +108,26 @@ func newLines(files []model.File, snap model.Snapshot, seen map[string]bool) (in
 			continue
 		}
 		content, err := snap.Read(f.Path)
+		if errors.Is(err, model.ErrTooLarge) {
+			unread = append(unread, f.Path)
+			continue
+		}
 		if err != nil {
-			return 0, fmt.Errorf("read %s: %w", f.Path, err)
+			return 0, nil, fmt.Errorf("read %s: %w", f.Path, err)
 		}
 		lines += lineCount(content)
 	}
-	return lines, nil
+	return lines, unread, nil
 }
+
+// unreadError is the answer of a rule that a file over the read bound left
+// open: the files it could not read, which the rule names as unread.
+type unreadError struct{ paths []string }
+
+func (e *unreadError) Error() string { return "over the read bound: " + strings.Join(e.paths, ", ") }
+
+// Unwrap makes the answer match the read bound it comes from.
+func (e *unreadError) Unwrap() error { return model.ErrTooLarge }
 
 // addPaths returns the paths a git add call names, cleaned; -A and --all
 // stand for the whole tree and the other options are skipped.

@@ -1,6 +1,7 @@
 package goast
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -45,11 +46,17 @@ func judgeSecretFields(t *target, s *state) ([]model.Finding, error) {
 	}
 	var out []model.Finding
 	for _, field := range credentialFields(file) {
-		redacted, err := s.redacting(t.dir())
+		known, err := s.redacting(t.dir())
 		if err != nil {
 			return nil, err
 		}
-		if redacted[field.owner] {
+		if known.types[field.owner] {
+			continue
+		}
+		if len(known.unread) > 0 {
+			// The LogValue may sit in a file over the read bound, so the
+			// field is left to the files the run could not read.
+			s.leave(known.unread...)
 			continue
 		}
 		message := fmt.Sprintf("credential in a bare string field %s.%s: give %s a LogValue that redacts it or type the field with a redacting type",
@@ -102,34 +109,51 @@ func isCredential(name string) bool {
 	return credentialName.MatchString(name) && !credentialReference.MatchString(name)
 }
 
+// redaction is what the files of a package say about its redacting types:
+// the types a LogValue redacts, and the files over the read bound that may
+// redact more.
+type redaction struct {
+	types  map[string]bool
+	unread []string
+}
+
 // redacting reads every non-test Go file of the directory once per run,
 // because the slog.LogValuer of a struct may sit in any file of its
-// package.
-func (s *state) redacting(dir string) (map[string]bool, error) {
-	if types, ok := s.redacted[dir]; ok {
-		return types, nil
+// package; a file over the read bound is kept aside as one that may.
+func (s *state) redacting(dir string) (redaction, error) {
+	if known, ok := s.redacted[dir]; ok {
+		return known, nil
 	}
-	types := map[string]bool{}
+	known := redaction{types: map[string]bool{}}
 	for _, f := range s.siblings(dir) {
 		if f.Class == model.ClassTest {
 			continue
 		}
 		src, err := s.in.Snapshot.Read(f.Path)
+		if errors.Is(err, model.ErrTooLarge) {
+			known.unread = append(known.unread, f.Path)
+			continue
+		}
 		if err != nil {
-			return nil, fmt.Errorf("read %s: %w", f.Path, err)
+			return redaction{}, fmt.Errorf("read %s: %w", f.Path, err)
 		}
 		file, err := parseSource(f.Path, src)
 		if err != nil {
-			return nil, err
+			return redaction{}, err
 		}
-		for _, decl := range file.Decls {
-			if fn, ok := decl.(*ast.FuncDecl); ok && isLogValuer(fn) {
-				types[typeName(fn.Recv.List[0].Type)] = true
-			}
+		addLogValuers(known.types, file)
+	}
+	s.redacted[dir] = known
+	return known, nil
+}
+
+// addLogValuers adds the types a file declares a LogValue for.
+func addLogValuers(types map[string]bool, file *ast.File) {
+	for _, decl := range file.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok && isLogValuer(fn) {
+			types[typeName(fn.Recv.List[0].Type)] = true
 		}
 	}
-	s.redacted[dir] = types
-	return types, nil
 }
 
 // isLogValuer reports a method with the signature of slog.LogValuer,

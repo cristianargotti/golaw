@@ -1,6 +1,7 @@
 package goast_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -45,11 +46,18 @@ func TestGoleak(t *testing.T) {
 	expectCodes(t, verified)
 }
 
+// TestGoleakReadsTheTests reads the tests of the package for the import: a
+// test over the read bound may hold it, so the package is left with that
+// test among the files the run left unread, and a test that does not parse
+// is unmeasured.
 func TestGoleakReadsTheTests(t *testing.T) {
 	t.Parallel()
 	big := strings.Repeat("x", model.MaxReadBytes+1)
 	res := scan(t, goast.Goleak(), map[string]string{"internal/jobs/worker.go": workerSource, "internal/jobs/zzz_test.go": big})
-	expectUnmeasured(t, res, "read internal/jobs/zzz_test.go")
+	expectCodes(t, res)
+	if !slices.Equal(res.Unread, []string{"internal/jobs/zzz_test.go"}) {
+		t.Fatalf("unread = %v", res.Unread)
+	}
 	res = scan(t, goast.Goleak(), map[string]string{"internal/jobs/worker.go": workerSource, "internal/jobs/zzz_test.go": "package jobs\n\nimport (\n"})
 	expectUnmeasured(t, res, "parse internal/jobs/zzz_test.go")
 }

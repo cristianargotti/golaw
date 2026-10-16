@@ -1,6 +1,7 @@
 package goast
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -33,9 +34,14 @@ func judgeGoleak(t *target, s *state) ([]model.Finding, error) {
 	if !start.IsValid() || !s.first("goleak:"+t.dir()) {
 		return nil, nil
 	}
-	verified, err := s.verifiesGoleak(t.dir())
+	verified, unread, err := s.verifiesGoleak(t.dir())
 	if err != nil || verified {
 		return nil, err
+	}
+	if len(unread) > 0 {
+		// The import may sit in a test over the read bound.
+		s.leave(unread...)
+		return nil, nil
 	}
 	message := "package " + t.dir() + " starts goroutines and no test of the package verifies with goleak"
 	return []model.Finding{t.finding(codeGoleak, start, message)}, nil
@@ -63,25 +69,31 @@ func goroutineStart(file *ast.File) token.Pos {
 }
 
 // verifiesGoleak parses the imports only, because importing goleak in a
-// test of the package is all the rule asks.
-func (s *state) verifiesGoleak(dir string) (bool, error) {
+// test of the package is all the rule asks; a test over the read bound is
+// answered aside, as one that may import it.
+func (s *state) verifiesGoleak(dir string) (bool, []string, error) {
+	var unread []string
 	for _, f := range s.siblings(dir) {
 		if f.Class != model.ClassTest {
 			continue
 		}
 		src, err := s.in.Snapshot.Read(f.Path)
+		if errors.Is(err, model.ErrTooLarge) {
+			unread = append(unread, f.Path)
+			continue
+		}
 		if err != nil {
-			return false, fmt.Errorf("read %s: %w", f.Path, err)
+			return false, nil, fmt.Errorf("read %s: %w", f.Path, err)
 		}
 		file, err := parser.ParseFile(token.NewFileSet(), f.Path, src, parser.ImportsOnly)
 		if err != nil {
-			return false, parseError(f.Path, err)
+			return false, nil, parseError(f.Path, err)
 		}
 		for _, imp := range file.Imports {
 			if p, err := strconv.Unquote(imp.Path.Value); err == nil && p == goleakModule {
-				return true, nil
+				return true, nil, nil
 			}
 		}
 	}
-	return false, nil
+	return false, unread, nil
 }

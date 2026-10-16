@@ -3,24 +3,22 @@ package hook
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // evaluateOversized answers an event whose input is over the bound from
-// the header the adapter reads in its prefix: an unenrolled location is an
-// allow, a post event and a write are allowed with a notice naming what
-// was not measured, a write of golaw.yml stays a denial, and any other
-// event, or one the adapter cannot read or place, is cannot judge.
-func evaluateOversized(ctx context.Context, agent string, prefix []byte, adapter Adapter, dependencies Dependencies) completed {
+// the header the adapter reads in the whole input: an unenrolled location
+// is an allow, a post event is judged from its header as any post event,
+// a write is judged by the name rules over its path and otherwise allowed
+// with a notice naming it, a write of golaw.yml stays a denial, and any
+// other event, or one the adapter cannot read or place, is cannot judge.
+func evaluateOversized(ctx context.Context, agent string, input io.Reader, adapter Adapter, dependencies Dependencies) completed {
 	if dependencies.Begin != nil {
 		dependencies.Begin()
 	}
-	var event model.Event
-	err := inputBound()
-	if adapter.Oversized != nil {
-		event, err = adapter.Oversized(prefix)
-	}
+	event, err := oversizedHeader(adapter, input)
 	if err != nil || !knownAgent(agent) || event.Agent != agent ||
 		event.Shape != model.ShapePost && (event.Shape != model.ShapeWrite || event.Target == "") {
 		return completed{event: event, result: failure(event, inputBound())}
@@ -32,14 +30,55 @@ func evaluateOversized(ctx context.Context, agent string, prefix []byte, adapter
 	if repository.Enrollment.State == model.EnrollmentNone {
 		return completed{event: event, result: Result{Outcome: Allow}}
 	}
-	return oversizedAnswer(ctx, event, repository, dependencies)
+	if event.Shape == model.ShapePost {
+		return oversizedPost(ctx, event, repository, dependencies)
+	}
+	return oversizedWrite(ctx, event, repository, dependencies)
 }
 
-// oversizedAnswer is the answer of an enrolled event over the bound once
-// its policy is in force: the denial of a write of golaw.yml, the name
-// rules over the path a write names, and otherwise the notice of that
-// path, or of the changes of a command.
-func oversizedAnswer(ctx context.Context, event model.Event, repository Repository, dependencies Dependencies) completed {
+// oversizedHeader reads the header of an input over the bound with the
+// adapter, then reads the rest and drops it, so the host that writes it
+// never meets a closed pipe; without a reader the input is the bound.
+func oversizedHeader(adapter Adapter, input io.Reader) (model.Event, error) {
+	event, err := model.Event{}, inputBound()
+	if adapter.Oversized != nil {
+		event, err = adapter.Oversized(input)
+	}
+	if _, drained := io.Copy(io.Discard, input); drained != nil && err == nil {
+		err = fmt.Errorf("%w: read input: %w", model.ErrCannotJudge, drained)
+	}
+	return event, err
+}
+
+// oversizedPost judges a post event over the bound from its header: the
+// detection of a command reads git and the baseline of its pre event,
+// never the event, so it runs as for any post event, and the path a write
+// names is its target.
+func oversizedPost(ctx context.Context, event model.Event, repository Repository, dependencies Dependencies) completed {
+	run, snapshot, err := prepare(ctx, repository, dependencies)
+	answer := completed{event: event, language: run.language()}
+	if err != nil {
+		answer.result = failureLanguage(event, err, answer.language)
+		return answer
+	}
+	request := Request{Event: event}
+	if event.Target != "" {
+		path, placeErr := Base{Root: repository.Root, Home: dependencies.Home}.Relative(event.Cwd, event.Target)
+		if placeErr != nil {
+			answer.result = failure(event, placeErr)
+			return answer
+		}
+		request.Hints = []string{path}
+	}
+	run.base, run.request = snapshot, request
+	answer.result = run.evaluate(ctx, nil, dependencies)
+	return answer
+}
+
+// oversizedWrite is the answer of an enrolled write over the bound once
+// its policy is in force: the denial of a write of golaw.yml, and the name
+// rules over the path it names.
+func oversizedWrite(ctx context.Context, event model.Event, repository Repository, dependencies Dependencies) completed {
 	answer := completed{event: event, language: model.DefaultLanguage}
 	policy, err := dependencies.Policy(ctx, repository)
 	if err == nil {
@@ -50,24 +89,16 @@ func oversizedAnswer(ctx context.Context, event model.Event, repository Reposito
 		answer.result = failureLanguage(event, fmt.Errorf("load hook policy: %w", err), answer.language)
 		return answer
 	}
-	gap := Gap{Cause: causeInput}
-	if event.Target != "" {
-		path, placeErr := Base{Root: repository.Root, Home: dependencies.Home}.Relative(event.Cwd, event.Target)
-		if placeErr != nil {
-			answer.result = failure(event, placeErr)
-			return answer
-		}
-		gap.Path = path
+	path, err := Base{Root: repository.Root, Home: dependencies.Home}.Relative(event.Cwd, event.Target)
+	if err != nil {
+		answer.result = failure(event, err)
+		return answer
 	}
-	if denial := protectPolicy(repository, []model.Candidate{{Path: gap.Path}}); event.Shape == model.ShapeWrite && denial != nil {
+	if denial := protectPolicy(repository, []model.Candidate{{Path: path}}); denial != nil {
 		answer.result = failureLanguage(event, denial, answer.language)
 		return answer
 	}
-	if event.Shape != model.ShapeWrite {
-		answer.result = noticed([]Gap{gap}, answer.language)
-		return answer
-	}
-	answer.result = judgeOversizedWrite(ctx, event, repository, policy, dependencies, gap)
+	answer.result = judgeOversizedWrite(ctx, event, repository, policy, dependencies, Gap{Path: path, Cause: causeInput})
 	return answer
 }
 

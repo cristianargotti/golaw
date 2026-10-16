@@ -7,6 +7,7 @@ package shell
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -45,6 +46,9 @@ func (r commandRule) Run(_ context.Context, in model.Input) (model.Result, error
 		return model.Result{Status: model.NotApplicable("the shell family judges shell events only")}, nil
 	}
 	findings, err := r.judge(in, segments(in.Event.Shell.Command, in.Event.Shell.Tool))
+	if unread, left := errors.AsType[*unreadError](err); left {
+		return model.Result{Status: model.Measured(), Scope: "1 command", Findings: findings, Unread: unread.paths}, nil
+	}
 	if err != nil {
 		return model.Result{Status: model.Unmeasured(err.Error())}, nil
 	}

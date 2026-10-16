@@ -48,11 +48,9 @@ func noticeOf(t *testing.T, reply hook.Reply) (string, string) {
 
 // TestHookJudgesAWriteUpToTheReadBound drives writes past the earlier
 // input bound through the real binding: a write whose event is past 1 MiB
-// is judged whole,
-// a write over 8 MiB is allowed with a notice naming the file it did not
-// measure, and the policy file stays protected at any size; a write over
-// the bound whose path comes after its content cannot be placed, the
-// limit docs/agent-contracts.md states.
+// is judged whole, a write over 8 MiB is allowed with a notice naming the
+// file it did not measure, whether its path comes before or after its
+// content, and the policy file stays protected at any size.
 func TestHookJudgesAWriteUpToTheReadBound(t *testing.T) {
 	t.Parallel()
 	e := enrolledHook(t)
@@ -80,7 +78,8 @@ func TestHookJudgesAWriteUpToTheReadBound(t *testing.T) {
 		t.Fatalf("the policy file over the bound: %+v", policy)
 	}
 	late := hostWrite(t, e.root, filepath.Join(e.root, "data.md"), strings.Repeat("a", hook.MaxInputBytes), true)
-	if reply := hook.Run(t.Context(), agent.ID, strings.NewReader(late), agent.Adapter, e.deps); reply.ExitCode != 2 || !strings.Contains(reply.Stderr, "8 MiB") {
+	reply := hook.Run(t.Context(), agent.ID, strings.NewReader(late), agent.Adapter, e.deps)
+	if agentText, _ := noticeOf(t, reply); reply.ExitCode != 0 || !strings.Contains(agentText, "data.md") {
 		t.Fatalf("a path after the content over the bound: %+v", reply)
 	}
 }

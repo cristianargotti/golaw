@@ -37,8 +37,11 @@ func (w worktree) Read(path string) ([]byte, error) {
 	if !ok {
 		return nil, model.ErrNotInSnapshot
 	}
-	if content == "unreadable" {
+	switch content {
+	case "unreadable":
 		return nil, model.ErrUnreadable
+	case "too large":
+		return nil, model.ErrTooLarge
 	}
 	return []byte(content), nil
 }
@@ -129,5 +132,22 @@ func TestShapeIsUnmeasuredWhenANewFileCannotBeRead(t *testing.T) {
 	res, err := shell.Shape().Run(t.Context(), input(`git add new.go && git commit -m "fix: x"`, proof.Policy(), tree))
 	if err != nil || res.Status.Kind != model.StatusUnmeasured || res.Status.Reason != "read new.go: path unreadable" {
 		t.Errorf("result = %+v, %v", res, err)
+	}
+}
+
+// TestShapeLeavesAFileOverTheBoundUnread counts a staged file over the read
+// bound and leaves its lines unread: under the limits the rule names the
+// file among the files it left unread instead of judging, and a command
+// whose files alone break the limits is still a finding.
+func TestShapeLeavesAFileOverTheBoundUnread(t *testing.T) {
+	t.Parallel()
+	tree := worktree{files: map[string]string{"data/big.txt": "too large", "data/a.go": "x\n"}, untracked: []string{"data/big.txt", "data/a.go"}}
+	res, err := shell.Shape().Run(t.Context(), input(`git add data && git commit -m "fix: data"`, proof.Policy(), tree))
+	if err != nil || res.Status.Kind != model.StatusMeasured || len(res.Findings) != 0 || !slices.Equal(res.Unread, []string{"data/big.txt"}) {
+		t.Fatalf("under the limits = %+v, %v", res, err)
+	}
+	res, err = shell.Shape().Run(t.Context(), input(adds(41)+` data && git commit -m "fix: data"`, proof.Policy(), tree))
+	if err != nil || len(res.Findings) != 1 || len(res.Unread) != 0 {
+		t.Fatalf("over the file limit = %+v, %v", res, err)
 	}
 }

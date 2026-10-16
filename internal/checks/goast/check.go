@@ -68,27 +68,38 @@ func (t *target) finding(code string, pos token.Pos, message string) model.Findi
 func (t *target) dir() string { return path.Dir(t.file.Path) }
 
 // state is what one run shares across its targets: the input, a memo so a
-// directory-level finding is reported once, the redacting types found per
-// directory and the files the run left unread.
+// directory-level finding is reported once, what the files of each
+// directory say about its redacting types and the files the run left
+// unread.
 type state struct {
 	in       model.Input
 	once     map[string]bool
-	redacted map[string]map[string]bool
+	redacted map[string]redaction
 	unread   []string
 }
 
 // read reads a file of the snapshot for the run; a file over the read bound
-// is named among the files the run left unread, once, so the run goes on.
+// is named among the files the run left unread, so the run goes on.
 func (s *state) read(name string) ([]byte, error) {
 	src, err := s.in.Snapshot.Read(name)
-	if errors.Is(err, model.ErrTooLarge) && !slices.Contains(s.unread, name) {
-		s.unread = append(s.unread, name)
+	if errors.Is(err, model.ErrTooLarge) {
+		s.leave(name)
 	}
 	return src, err //nolint:wrapcheck // the snapshot names the path in its error
 }
 
+// leave names files over the read bound a verdict of the run depends on
+// among the files it left unread, each once.
+func (s *state) leave(names ...string) {
+	for _, name := range names {
+		if !slices.Contains(s.unread, name) {
+			s.unread = append(s.unread, name)
+		}
+	}
+}
+
 func newState(in model.Input) *state {
-	return &state{in: in, once: map[string]bool{}, redacted: map[string]map[string]bool{}}
+	return &state{in: in, once: map[string]bool{}, redacted: map[string]redaction{}}
 }
 
 // first lets a directory-level rule report once per run, however many

@@ -37,6 +37,7 @@ func TestSecurityContract(t *testing.T) {
 		"any other state is a denial whose reason asks for golaw.yml to be committed",
 		"git status reads as clean because the index tells it not to look, or because its stat data still matches the index, is invisible to detection",
 		"The name rules still judge a file over the read bound",
+		"whose header the hook reads from the whole input in bounded memory",
 	)
 }
 
@@ -119,6 +120,8 @@ func TestAgentContractDetection(t *testing.T) {
 		"Git status trusts what the index records",
 		"The name rules judge every file, one over the read bound included",
 		"a write is judged by the name rules over the path it names",
+		"is read to its end in bounded memory for its header",
+		"leaves to the notice only the verdict that file could change",
 		"a file the index marks assume-unchanged, by git update-index or core.ignorestat, or skip-worktree reads clean whatever its bytes",
 	)
 }

@@ -1,6 +1,10 @@
 package hook
 
-import "github.com/cristianargotti/golaw/internal/model"
+import (
+	"io"
+
+	"github.com/cristianargotti/golaw/internal/model"
+)
 
 // Request keeps candidate bytes outside the normalized event. Gaps names
 // what a decoder could not reconstruct within the read bound: the hook
@@ -51,11 +55,11 @@ type Reply struct {
 // Adapter prevents vendor wire formats from entering the engine. Decode
 // names the files of an event against the root of its repository and the
 // home the host expands a tool's path from. Oversized, when set, reads the
-// header of an event from the prefix of an input over the bound, as far as
-// the prefix holds it.
+// header of an event from the whole of an input over the bound, in bounded
+// memory.
 type Adapter struct {
 	Header    func([]byte) (model.Event, error)
 	Decode    func([]byte, Base, model.Snapshot) (Request, error)
 	Encode    func(model.Event, Result) Reply
-	Oversized func([]byte) (model.Event, error)
+	Oversized func(io.Reader) (model.Event, error)
 }

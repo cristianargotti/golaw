@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -84,7 +85,7 @@ func evaluateSafely(ctx context.Context, agent string, input io.Reader, adapter 
 func evaluate(ctx context.Context, agent string, input io.Reader, adapter Adapter, dependencies Dependencies) completed {
 	data, err := ReadObject(input)
 	if errors.Is(err, model.ErrTooLarge) {
-		return evaluateOversized(ctx, agent, data, adapter, dependencies)
+		return evaluateOversized(ctx, agent, io.MultiReader(bytes.NewReader(data), input), adapter, dependencies)
 	}
 	if err != nil {
 		return completed{result: failure(model.Event{}, err)}

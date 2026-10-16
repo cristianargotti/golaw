@@ -2,6 +2,7 @@ package hook_test
 
 import (
 	"context"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -122,7 +123,9 @@ func TestAnInputOverTheBoundIsMeasuredWhereItCan(t *testing.T) {
 	input := `{"x":"` + strings.Repeat("a", model.MaxReadBytes) + `"}`
 	enrolled := model.EnrollmentEnrolled
 	for _, tc := range []boundCase{
-		{"a post event", "", "allow|", model.ShapePost, true, enrolled, nil, nil},
+		{"a post event judged from its header", "", "detected", model.ShapePost, true, enrolled, nil, nil},
+		{"a post event with a missing policy", "", "feedback|", model.ShapePost, true, enrolled, model.ErrEnrollment, nil},
+		{"a post event of a write out of its repository", "../outside.md", "", model.ShapePost, true, enrolled, nil, nil},
 		{"a write", "notes.md", "allow|", model.ShapeWrite, true, enrolled, nil, nil},
 		{"a write to a name the rules forbid", "forbidden/notes.md", "deny|", model.ShapeWrite, true, enrolled, nil, nil},
 		{"a write of the policy", "golaw.yml", "deny|", model.ShapeWrite, true, enrolled, nil, nil},
@@ -153,9 +156,10 @@ func boundHarness(t *testing.T, tc boundCase) (hook.Adapter, hook.Dependencies) 
 		dependencies.Policy = func(context.Context, hook.Repository) (*model.EffectivePolicy, error) { return nil, tc.policy }
 	}
 	if tc.header {
-		adapter.Oversized = func([]byte) (model.Event, error) {
+		adapter.Oversized = func(io.Reader) (model.Event, error) {
 			event := model.Event{Agent: "claude", Tool: "Write", Shape: tc.shape, Cwd: root, Target: tc.target}
 			if tc.shape == model.ShapePost {
+				event.Tool, event.SessionID, event.ToolUseID = "Bash", "session", "use"
 				event.Post = &model.PostResult{}
 			}
 			return event, nil
@@ -174,6 +178,8 @@ func answers(reply hook.Reply, want, target string) bool {
 		return reply.ExitCode == 2
 	case "plain":
 		return reply.ExitCode == 0 && said == "allow|"
+	case "detected":
+		return reply.ExitCode == 0 && strings.HasPrefix(said, "allow|") && strings.Contains(said, "no baseline") && !strings.Contains(said, "8 MiB")
 	case "allow|":
 		return reply.ExitCode == 0 && strings.HasPrefix(said, want) && strings.Contains(said, "8 MiB") && strings.Contains(said, target)
 	default:

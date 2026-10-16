@@ -91,19 +91,10 @@ func enroll(ctx context.Context, event model.Event, dependencies Dependencies) (
 }
 
 func loadExecution(ctx context.Context, repository Repository, data []byte, adapter Adapter, dependencies Dependencies) (execution, error) {
-	run := execution{repository: repository}
-	policy, err := dependencies.Policy(ctx, repository)
+	run, snapshot, err := prepare(ctx, repository, dependencies)
 	if err != nil {
-		return run, fmt.Errorf("load hook policy: %w", err)
+		return run, err
 	}
-	run.policy = policy
-	if enrollErr := enrolledPolicy(policy); enrollErr != nil {
-		return run, enrollErr
-	}
-	if sweepErr := sweepState(ctx, dependencies.State); sweepErr != nil && !errors.Is(sweepErr, model.ErrDeadline) {
-		run.stateReason = sweepErr.Error()
-	}
-	snapshot := deferSnapshot(func() (model.Snapshot, error) { return dependencies.Snapshot(ctx, repository) })
 	request, err := adapter.Decode(data, Base{Root: repository.Root, Home: dependencies.Home}, snapshot)
 	if failed := snapshot.failure(); failed != nil {
 		return run, failed
@@ -113,6 +104,25 @@ func loadExecution(ctx context.Context, repository Repository, data []byte, adap
 	}
 	run.base, run.request = snapshot, request
 	return run, nil
+}
+
+// prepare loads the policy in force of an event's repository, refuses one
+// whose policy is not enrolled, sweeps the state and defers the snapshot
+// the event's rules read.
+func prepare(ctx context.Context, repository Repository, dependencies Dependencies) (execution, *deferredSnapshot, error) {
+	run := execution{repository: repository}
+	policy, err := dependencies.Policy(ctx, repository)
+	if err != nil {
+		return run, nil, fmt.Errorf("load hook policy: %w", err)
+	}
+	run.policy = policy
+	if enrollErr := enrolledPolicy(policy); enrollErr != nil {
+		return run, nil, enrollErr
+	}
+	if sweepErr := sweepState(ctx, dependencies.State); sweepErr != nil && !errors.Is(sweepErr, model.ErrDeadline) {
+		run.stateReason = sweepErr.Error()
+	}
+	return run, deferSnapshot(func() (model.Snapshot, error) { return dependencies.Snapshot(ctx, repository) }), nil
 }
 
 func enrolledPolicy(policy *model.EffectivePolicy) error {

@@ -26,19 +26,16 @@ func inputBound() error {
 }
 
 // ReadObject requires EOF so another JSON value cannot hide after the event.
-// An input over the bound answers its first MaxInputBytes and one bytes,
-// for an adapter that reads the header from them, and ErrTooLarge; the
-// rest is read and dropped, so the host that writes it never meets a
-// closed pipe.
+// An input over the bound answers its first MaxInputBytes and one bytes
+// and ErrTooLarge, the rest left in the reader for the caller, which reads
+// the header from the whole input and drops the rest, so the host that
+// writes it never meets a closed pipe.
 func ReadObject(reader io.Reader) ([]byte, error) {
 	data, err := io.ReadAll(io.LimitReader(reader, MaxInputBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("%w: read input: %w", model.ErrCannotJudge, err)
 	}
 	if len(data) > MaxInputBytes {
-		if _, err := io.Copy(io.Discard, reader); err != nil {
-			return nil, fmt.Errorf("%w: read input: %w", model.ErrCannotJudge, err)
-		}
 		return data, inputBound()
 	}
 	var object map[string]json.RawMessage

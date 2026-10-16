@@ -1,6 +1,7 @@
 package goast_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -108,11 +109,22 @@ func TestSecretFieldsExemptOnlyASlogLogValuer(t *testing.T) {
 	expectLines(t, res, 6, 12, 18)
 }
 
+// TestSecretFieldsReadTheirSiblings reads every file of the package for a
+// redaction: a sibling over the read bound may hold one, so a field whose
+// struct no readable file redacts is left with that sibling among the files
+// the run left unread, and a sibling that does not parse is unmeasured.
 func TestSecretFieldsReadTheirSiblings(t *testing.T) {
 	t.Parallel()
 	big := strings.Repeat("x", model.MaxReadBytes+1)
 	res := scan(t, goast.SecretFields(), map[string]string{"internal/gw/client.go": clientSource, "internal/gw/zzz.go": big})
-	expectUnmeasured(t, res, "read internal/gw/zzz.go")
+	expectCodes(t, res)
+	if !slices.Equal(res.Unread, []string{"internal/gw/zzz.go"}) {
+		t.Fatalf("unread = %v", res.Unread)
+	}
+	res = scan(t, goast.SecretFields(), map[string]string{"internal/gw/valuer.go": valuerSource, "internal/gw/zzz.go": big})
+	if res.Status.Kind != model.StatusMeasured || len(res.Unread) != 1 {
+		t.Fatalf("a package whose readable files redact a struct and leave others unknown = %+v", res)
+	}
 	res = scan(t, goast.SecretFields(), map[string]string{"internal/gw/client.go": clientSource, "internal/gw/zzz.go": "package gateway\nfunc {"})
 	expectUnmeasured(t, res, "parse internal/gw/zzz.go")
 }
