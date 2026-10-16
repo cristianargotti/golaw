@@ -79,7 +79,10 @@ func pathIdentity(snapshot model.Snapshot, sizes map[string]int64, path string) 
 		return absentIdentity, 0, nil
 	}
 	// No check follows a link or enters a submodule, and the snapshot holds
-	// no bytes for either, so the entry itself is what can change.
+	// no bytes for either, so the entry itself is what can change; a link
+	// retargeted to a text of the same length and a submodule's new
+	// revision are what this misses, which docs/agent-contracts.md records
+	// as excluded.
 	if class == model.ClassSymlink || class == model.ClassGitlink {
 		return class.String() + ":" + strconv.FormatInt(sizes[path], 10), 0, nil
 	}

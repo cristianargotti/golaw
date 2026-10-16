@@ -59,6 +59,7 @@ func TestAgentContract(t *testing.T) {
 		"deepest existing directory above tool_input.file_path",
 		"every symbolic link in it is followed, the last one included, dangling or not",
 		"both by the name it asks for and by the file its links lead to",
+		"a submodule moved to another revision are excluded from detection",
 		"records the fault and proves no denial",
 		"A failed run closes with the rows that fail it",
 	)

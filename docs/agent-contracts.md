@@ -38,6 +38,8 @@ Accept one bounded JSON object and validate the envelope for the named adapter. 
 
 The location of a write or read is the deepest existing directory above tool_input.file_path, or notebook_path for NotebookEdit, after the name is trimmed and cleaned the way the host expands it and every symbolic link in it is followed, the last one included, dangling or not. When no enrolled repository holds that file, the directory of the link the name opens is tried next, so a link carries a write or a read neither into nor out of an enrolled repository unjudged. The repository that holds the target governs it whatever cwd the session reports. A read outside every enrolled repository falls back to the repository of cwd. A shell event is located at cwd.
 
+Change detection after a shell command identifies a symbolic link by its class and the length of its link text and a submodule by its class alone, because the snapshot holds the bytes of neither, the model contract carries neither a link text nor a submodule revision, and no check follows a link or enters a submodule: a link retargeted to a text of the same length and a submodule moved to another revision are excluded from detection. Neither carries a content rule, so the exclusion hides no finding.
+
 ## Exit and output contract
 
 | Situation | Exit | Output |
