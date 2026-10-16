@@ -33,7 +33,7 @@ func editCandidate(w wire, at hook.Base, snapshot model.Snapshot) (model.Candida
 	}
 	base, err := snapshot.Read(path)
 	if err != nil {
-		return model.Candidate{}, nil, fmt.Errorf("%w: Edit base: %w", model.ErrCannotJudge, err)
+		return model.Candidate{Path: path, Op: model.CandidateEdit}, nil, fmt.Errorf("%w: Edit base: %w", model.ErrCannotJudge, err)
 	}
 	edits, err := editSequence(input)
 	if err != nil {

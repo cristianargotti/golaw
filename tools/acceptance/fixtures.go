@@ -16,7 +16,7 @@ const (
 	overFileLimit  = 301
 	functionLimit  = 40
 	overFunction   = 41
-	payloadLimit   = 1 << 20
+	payloadLimit   = 8 << 20
 	modeRaw        = "raw"
 	modeShellPost  = "shell-post"
 	modeUnenrolled = "unenrolled"

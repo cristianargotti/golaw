@@ -3,6 +3,7 @@ package claude
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/cristianargotti/golaw/internal/hook"
@@ -33,25 +34,33 @@ func Write(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, 
 			Denial: "NotebookEdit is not supported by this adapter",
 		}, nil
 	}
-	var candidate model.Candidate
-	var content []byte
-	switch event.Tool {
-	case writeTool:
-		candidate, content, err = fullCandidate(w, base, snapshot)
-	case editTool:
-		candidate, content, err = editCandidate(w, base, snapshot)
-	default:
-		err = fmt.Errorf("%w: unsupported write tool", model.ErrCannotJudge)
+	candidate, content, err := candidateOf(w, base, snapshot)
+	event.Shape = model.ShapeWrite
+	event.Candidates = []model.Candidate{candidate}
+	if errors.Is(err, model.ErrTooLarge) && candidate.Path != "" {
+		// An edit of a file over the read bound cannot be reconstructed
+		// within it, so the edit is left to the pipeline with a notice.
+		return hook.Request{Event: event, Gaps: []hook.Gap{hook.OverReadBound(candidate.Path)}}, nil
 	}
 	if err != nil {
 		return hook.Request{}, err
 	}
-	event.Shape = model.ShapeWrite
-	event.Candidates = []model.Candidate{candidate}
 	return hook.Request{
 		Event:   event,
 		Content: map[string][]byte{candidate.Path: content},
 	}, nil
+}
+
+// candidateOf reconstructs the candidate of a write tool with its bytes.
+func candidateOf(w wire, base hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
+	switch w.Tool {
+	case writeTool:
+		return fullCandidate(w, base, snapshot)
+	case editTool:
+		return editCandidate(w, base, snapshot)
+	default:
+		return model.Candidate{}, nil, fmt.Errorf("%w: unsupported write tool", model.ErrCannotJudge)
+	}
 }
 
 func fullCandidate(w wire, base hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
@@ -68,12 +77,16 @@ func fullCandidate(w wire, base hook.Base, snapshot model.Snapshot) (model.Candi
 	}
 	candidate := model.Candidate{Path: path, Op: model.CandidateCreate, Reconstructed: true}
 	if snapshot.Class(path) != model.ClassUnknown {
+		candidate.Op = model.CandidateReplace
 		base, err := snapshot.Read(path)
-		if err != nil {
+		switch {
+		case err == nil:
+			candidate.BaseHash = hook.Hash(base)
+		case !errors.Is(err, model.ErrTooLarge):
 			return model.Candidate{}, nil, fmt.Errorf("%w: Write base: %w", model.ErrCannotJudge, err)
 		}
-		candidate.Op = model.CandidateReplace
-		candidate.BaseHash = hook.Hash(base)
+		// A base over the read bound binds no hash: the whole content is
+		// judged, and the freshness of the base is its size.
 	}
 	return candidate, []byte(*input.Content), nil
 }

@@ -55,14 +55,16 @@ func shellRequest() hook.Request {
 	return req
 }
 
+// TestShellCaptureFailureDoesNotDeny keeps a failed content capture of a
+// pre event out of every verdict: the pre event is allowed with the cause
+// saved, and the post event names what it could not measure in a notice
+// that blocks nothing, while a file the host reports changed is judged.
 func TestShellCaptureFailureDoesNotDeny(t *testing.T) {
 	t.Parallel()
 	req := shellRequest()
 	adapter, dependencies := harness(t, req)
-	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
-		return proof.NewTree(map[string][]byte{
-			"large": make([]byte, model.MaxReadBytes+1),
-		}), nil
+	dependencies.Changes = func(context.Context, hook.Repository) (model.Snapshot, []string, error) {
+		return nil, nil, model.ErrUnreadable
 	}
 	event, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 	if got.Outcome != hook.Allow || got.CannotJudge {
@@ -72,29 +74,32 @@ func TestShellCaptureFailureDoesNotDeny(t *testing.T) {
 		t.Fatal("the capture failure was not saved as the reason")
 	}
 	adapter = asPostEvent(&req, event.Cwd, false)
+	dependencies.Changes = nil
 	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
 		return proof.NewTree(map[string][]byte{"a.go": []byte("bad")}), nil
 	}
 	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
-	if got.Outcome != hook.Feedback || got.CannotJudge ||
-		!strings.HasPrefix(got.Reason, "detection not measured:") {
+	if got.Outcome != hook.Allow || got.CannotJudge || !strings.Contains(got.Notice, "the pipeline judges") {
 		t.Fatal(got)
 	}
 	req.Hints = []string{"a.go"}
 	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
-	if got.Outcome != hook.Feedback || got.Reason != "text.probe: invalid text (a.go)" {
+	if got.Outcome != hook.Feedback || !strings.HasPrefix(got.Reason, "text.probe: invalid text (a.go)") {
 		t.Fatal(got)
 	}
 	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
 		return proof.NewTree(map[string][]byte{"a.go": []byte("safe")}), nil
 	}
 	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
-	if got.Outcome != hook.Allow {
+	if got.Outcome != hook.Allow || got.Notice == "" {
 		t.Fatal(got)
 	}
 }
 
-func TestShellStateFailureAndMissingBaselineAreFeedback(t *testing.T) {
+// TestShellStateFailureAndMissingBaselineAreNotices answers a post event
+// whose pre event left no usable baseline with an allow and a notice that
+// names the cause and leaves the command to the pipeline.
+func TestShellStateFailureAndMissingBaselineAreNotices(t *testing.T) {
 	t.Parallel()
 	req := shellRequest()
 	adapter, dependencies := harness(t, req)
@@ -109,13 +114,12 @@ func TestShellStateFailureAndMissingBaselineAreFeedback(t *testing.T) {
 	}
 	adapter = asPostEvent(&req, event.Cwd, true)
 	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
-	if got.Outcome != hook.Feedback || got.CannotJudge ||
-		!strings.HasPrefix(got.Reason, "detection not measured:") {
+	if got.Outcome != hook.Allow || got.CannotJudge || !strings.Contains(got.Notice, "the pipeline judges") {
 		t.Fatal(got)
 	}
 	dependencies.State.Dir = t.TempDir()
 	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
-	if got.Outcome != hook.Feedback || !strings.Contains(got.Reason, "baseline absent") {
+	if got.Outcome != hook.Allow || !strings.Contains(got.Notice, "no baseline") || !strings.Contains(got.Human, "pipeline") {
 		t.Fatal(got)
 	}
 }

@@ -11,31 +11,51 @@ import (
 
 // Evaluate establishes authority before reading or reconstructing targets.
 func Evaluate(ctx context.Context, agent string, data []byte, adapter Adapter, dependencies Dependencies) (model.Event, Result) {
+	answer := evaluateEvent(ctx, agent, data, adapter, dependencies)
+	return answer.event, answer.result
+}
+
+func evaluateEvent(ctx context.Context, agent string, data []byte, adapter Adapter, dependencies Dependencies) completed {
 	if dependencies.Begin != nil {
 		dependencies.Begin()
 	}
 	event, err := adapter.Header(data)
 	if err != nil {
-		return event, failure(event, err)
+		return completed{event: event, result: failure(event, err)}
 	}
 	if !knownAgent(agent) || event.Agent != agent {
-		return event, failure(event, fmt.Errorf("%w: agent envelope mismatch", model.ErrCannotJudge))
+		return completed{event: event, result: failure(event, fmt.Errorf("%w: agent envelope mismatch", model.ErrCannotJudge))}
 	}
 	repository, err := enroll(ctx, event, dependencies)
 	if err != nil {
-		return event, failure(event, err)
+		return completed{event: event, result: failure(event, err)}
 	}
 	if repository.Enrollment.State == model.EnrollmentNone {
-		return event, Result{Outcome: Allow}
+		return completed{event: event, result: Result{Outcome: Allow}}
 	}
 	run, err := loadExecution(ctx, repository, data, adapter, dependencies)
-	if err != nil {
-		return event, failureLanguage(event, err, run.language())
+	answer := completed{event: event, language: run.language()}
+	switch {
+	case err != nil:
+		answer.result = failureLanguage(event, err, run.language())
+	case run.request.Denial != "":
+		answer.result = rejectionLanguage(event, run.request.Denial, false, run.language())
+	case len(run.request.Gaps) > 0:
+		answer.event, answer.result = run.request.Event, run.unmeasured()
+	default:
+		answer.event, answer.result = run.request.Event, run.evaluate(ctx, data, dependencies)
 	}
-	if run.request.Denial != "" {
-		return event, rejectionLanguage(event, run.request.Denial, false, run.language())
+	return answer
+}
+
+// unmeasured answers a write the decoder could not reconstruct within the
+// read bound: golaw.yml stays protected, anything else is allowed with the
+// notice of what was not measured.
+func (run execution) unmeasured() Result {
+	if denial := protectPolicy(run.repository, run.request.Event.Candidates); denial != nil {
+		return failureLanguage(run.request.Event, denial, run.language())
 	}
-	return run.request.Event, run.evaluate(ctx, data, dependencies)
+	return noticed(run.request.Gaps, run.language())
 }
 
 // enroll resolves the repository that governs an event (A3): the first
@@ -111,7 +131,7 @@ func unenrolled(policy *model.EffectivePolicy) error {
 }
 
 func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dependencies) Result {
-	input, unmeasured, err := run.input(ctx, dependencies)
+	input, gaps, err := run.input(ctx, dependencies)
 	if err != nil {
 		return failureLanguage(run.request.Event, err, run.language())
 	}
@@ -124,11 +144,7 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 	}
 	result := decisionResult(run.request.Event, engine.Decide(dispatched), run.language())
 	if result.Outcome != Allow {
-		return result
-	}
-	if unmeasured != "" {
-		return rejectionLanguage(run.request.Event,
-			"detection not measured: "+unmeasured, false, run.language())
+		return withGaps(result, gaps, run.language())
 	}
 	switch run.request.Event.Shape {
 	case model.ShapeWrite:
@@ -143,7 +159,7 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 		run.saveBefore(ctx, data, dependencies)
 	case model.ShapeRead, model.ShapePost:
 	}
-	return result
+	return withGaps(result, gaps, run.language())
 }
 
 func (run execution) language() string {

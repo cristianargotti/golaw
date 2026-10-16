@@ -34,7 +34,7 @@ No shell parses that invocation. doctor checks that executable resolution identi
 | PostToolUse | Bash, PowerShell | Detect changed content from bashEditDiff when present or the tool_use_id snapshot. |
 | PostToolUseFailure | Bash, PowerShell | Detect changes even when the command failed after writing. |
 
-Accept one bounded JSON object and validate the envelope for the named adapter. An envelope from another agent is denied. A positively unenrolled location receives a valid allow. Missing or weakened policy in an enrolled repository is denied.
+Accept one JSON object of at most 8 MiB, the read bound of a file, so a write the snapshot could hold is judged whole, and validate the envelope for the named adapter. An envelope from another agent is denied. A positively unenrolled location receives a valid allow. Missing or weakened policy in an enrolled repository is denied. An input over the bound is answered from the header its first 8 MiB hold, the host writing the tool input after the rest of the header: a post event and a write are allowed with a notice naming what was not measured, a write of golaw.yml stays denied, and any other event, or a write whose path comes after its content, is cannot judge.
 
 The location of a write or read is the deepest existing directory above tool_input.file_path, or notebook_path for NotebookEdit, after the name is expanded the way the host expands it, trimmed, a leading ~ or ~/ taken from the home the hook process shares with the host, on Windows a /c/ name read as that drive, and cleaned, and every symbolic link in it is followed, the last one included, dangling or not. Claude Code 2.1.299 already sends the hook the path it expanded; the hook expands it again, so a host that sends the name as the model wrote it is placed the same way. A name that starts from the home is cannot judge when the hook process has no home, and the Unicode normal form the host also applies is not mirrored. When no enrolled repository holds that file, the directory that holds the entry the name opens is tried next, then every directory that holds a link the name passes through, so a link, of the file or of a directory above it, carries a write or a read neither into nor out of an enrolled repository unjudged; a write it carries out of one is refused as cannot judge. The repository that holds the target governs it whatever cwd the session reports. A read outside every enrolled repository falls back to the repository of cwd. A shell event is located at cwd.
 
@@ -49,10 +49,13 @@ Change detection after a shell command asks git status, with the ignore rules of
 | Cannot judge | 2 | Nonempty English stderr reason |
 | Post detection | 0 | decision is block with a reason; execution has already happened |
 | Post failure detection | 0 | additionalContext describes the detected change |
+| Allowed with a gap | 0 | hookSpecificOutput.additionalContext of the event names what was not measured and that the pipeline judges it; systemMessage names the same path in the configured language |
 | Unexpected process failure | Not emitted intentionally | Host applies onFailure: block |
 | Host timeout or missing binary | No binary answer | Installed onFailure: block must stop the tool, established live |
 
-The internal deadline is shorter than the ten second host timeout. Reaching it produces a denial. Post feedback never claims rollback.
+The internal deadline is shorter than the ten second host timeout. Reaching it before a pre event is answered produces a denial; a post event it reaches is allowed with a notice, because its tool already ran. Post feedback never claims rollback.
+
+Post detection never blocks on what it could not measure: a file over the read bound, identified by its size so a command that leaves it alone leaves it unnamed, a change set over 65536 paths or 64 MiB, a pre event that left no baseline and the deadline each leave a notice the agent reads, naming the path when there is one, and the pipeline judges what they left; a file it could measure is still judged, and a finding still blocks. A Write over a file beyond the read bound is judged on its whole content, and an Edit of such a file, which cannot be reconstructed within the bound, is allowed with the same notice.
 
 ## Trust
 

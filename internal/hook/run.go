@@ -2,6 +2,7 @@ package hook
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -14,9 +15,12 @@ const (
 	hostBudget     = 10 * time.Second
 )
 
+// completed is the answer of an evaluation with the language of the
+// policy it reached, the default one before a policy is loaded.
 type completed struct {
-	event  model.Event
-	result Result
+	event    model.Event
+	result   Result
+	language string
 }
 
 // Run bounds the whole invocation with one deadline below the host timeout:
@@ -41,9 +45,24 @@ func Run(ctx context.Context, agent string, input io.Reader, adapter Adapter, de
 	defer cancel()
 	answer := evaluateSafely(bounded, agent, input, adapter, dependencies)
 	if bounded.Err() != nil {
-		return deadlineReply(adapter)
+		return lateReply(adapter, answer)
 	}
 	return adapter.Encode(answer.event, answer.result)
+}
+
+// lateReply answers an event the deadline overtook: a post event, whose
+// tool already ran, with an allow and a notice that leaves it to the
+// pipeline, and every other event with a denial, because a late answer
+// never allows what has not run yet.
+func lateReply(adapter Adapter, answer completed) Reply {
+	if answer.event.Shape == model.ShapePost {
+		language := answer.language
+		if language == "" {
+			language = model.DefaultLanguage
+		}
+		return adapter.Encode(answer.event, noticed([]Gap{{Cause: causeDeadline}}, language))
+	}
+	return deadlineReply(adapter)
 }
 
 // evaluateSafely reads the object and evaluates it; a panic becomes a
@@ -64,11 +83,13 @@ func evaluateSafely(ctx context.Context, agent string, input io.Reader, adapter 
 
 func evaluate(ctx context.Context, agent string, input io.Reader, adapter Adapter, dependencies Dependencies) completed {
 	data, err := ReadObject(input)
+	if errors.Is(err, model.ErrTooLarge) {
+		return evaluateOversized(ctx, agent, data, adapter, dependencies)
+	}
 	if err != nil {
 		return completed{result: failure(model.Event{}, err)}
 	}
-	event, result := Evaluate(ctx, agent, data, adapter, dependencies)
-	return completed{event: event, result: result}
+	return evaluateEvent(ctx, agent, data, adapter, dependencies)
 }
 
 func deadlineReply(adapter Adapter) Reply {

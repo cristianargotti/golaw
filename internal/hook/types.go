@@ -2,12 +2,22 @@ package hook
 
 import "github.com/cristianargotti/golaw/internal/model"
 
-// Request keeps candidate bytes outside the normalized event.
+// Request keeps candidate bytes outside the normalized event. Gaps names
+// what a decoder could not reconstruct within the read bound: the hook
+// measures nothing more of such an event and answers it with a notice.
 type Request struct {
 	Event   model.Event
 	Content map[string][]byte
 	Denial  string
 	Hints   []string
+	Gaps    []Gap
+}
+
+// Gap is what an event left unmeasured, for the agent: a path, or the
+// changes of the command when the path is empty, and why.
+type Gap struct {
+	Path  string
+	Cause string
 }
 
 // Outcome separates prevention from feedback after execution.
@@ -20,12 +30,15 @@ const (
 	Feedback Outcome = "feedback"
 )
 
-// Result keeps the agent reason separate from the human channel.
+// Result keeps the agent reason separate from the human channel. Notice
+// is what an allowed event left unmeasured, for the agent, with Human
+// naming it to the person.
 type Result struct {
 	Outcome     Outcome
 	Reason      string
 	Human       string
 	CannotJudge bool
+	Notice      string
 }
 
 // Reply keeps stdout and stderr separate through command integration.
@@ -37,9 +50,12 @@ type Reply struct {
 
 // Adapter prevents vendor wire formats from entering the engine. Decode
 // names the files of an event against the root of its repository and the
-// home the host expands a tool's path from.
+// home the host expands a tool's path from. Oversized, when set, reads the
+// header of an event from the prefix of an input over the bound, as far as
+// the prefix holds it.
 type Adapter struct {
-	Header func([]byte) (model.Event, error)
-	Decode func([]byte, Base, model.Snapshot) (Request, error)
-	Encode func(model.Event, Result) Reply
+	Header    func([]byte) (model.Event, error)
+	Decode    func([]byte, Base, model.Snapshot) (Request, error)
+	Encode    func(model.Event, Result) Reply
+	Oversized func([]byte) (model.Event, error)
 }

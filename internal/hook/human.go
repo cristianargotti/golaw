@@ -10,9 +10,11 @@ import (
 const policyFile = "golaw.yml"
 
 type sentences struct {
-	blocked string
-	post    string
-	unknown string
+	blocked    string
+	post       string
+	unknown    string
+	unmeasured string
+	changes    string
 }
 
 // sentencesFor is Portuguese for pt-BR and English for any other language,
@@ -21,15 +23,19 @@ type sentences struct {
 func sentencesFor(language string) sentences {
 	if language == model.DefaultLanguage {
 		return sentences{
-			blocked: "A operação foi bloqueada pela verificação %s no caminho %s.",
-			post:    "Corrija a verificação %s no caminho %s antes de continuar.",
-			unknown: "não informado",
+			blocked:    "A operação foi bloqueada pela verificação %s no caminho %s.",
+			post:       "Corrija a verificação %s no caminho %s antes de continuar.",
+			unknown:    "não informado",
+			unmeasured: "golaw não mediu %s, que o pipeline julga.",
+			changes:    "as mudanças deste comando",
 		}
 	}
 	return sentences{
-		blocked: "The operation was blocked by check %s at path %s.",
-		post:    "Fix check %s at path %s before continuing.",
-		unknown: "not given",
+		blocked:    "The operation was blocked by check %s at path %s.",
+		post:       "Fix check %s at path %s before continuing.",
+		unknown:    "not given",
+		unmeasured: "golaw did not measure %s, which the pipeline judges.",
+		changes:    "the changes of this command",
 	}
 }
 

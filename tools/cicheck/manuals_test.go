@@ -89,6 +89,9 @@ func TestAgentContract(t *testing.T) {
 		"both by the name it asks for and by the file its links lead to",
 		"a submodule moved to another revision are excluded from detection",
 		"a path clean against the index at both ends is unchanged and never read",
+		"Accept one JSON object of at most 8 MiB",
+		"a post event it reaches is allowed with a notice",
+		"Post detection never blocks on what it could not measure",
 		"records the fault and proves no denial",
 		"A failed run closes with the rows that fail it",
 	)

@@ -9,22 +9,25 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-func (run execution) input(ctx context.Context, dependencies Dependencies) (model.Input, string, error) {
+// input is what the engine judges: the candidates folded over the base for
+// a write, the files a command or a post event changed for a post event,
+// with the gaps of what could not be measured, and the event alone else.
+func (run execution) input(ctx context.Context, dependencies Dependencies) (model.Input, []Gap, error) {
 	event := run.request.Event
 	var snapshot model.Snapshot = run.base
 	var paths []string
-	var unmeasured string
+	var gaps []Gap
 	var err error
 	switch event.Shape {
 	case model.ShapeWrite:
 		if denial := protectPolicy(run.repository, event.Candidates); denial != nil {
-			return model.Input{}, "", denial
+			return model.Input{}, nil, denial
 		}
 		snapshot, err = dependencies.Overlay(ctx, snapshot, event.Candidates, run.request.Content)
 		paths = candidatePaths(event.Candidates)
 	case model.ShapeRead, model.ShapeShell:
 	case model.ShapePost:
-		paths, unmeasured = run.postPaths(ctx, dependencies)
+		paths, gaps = run.postPaths(ctx, dependencies)
 		if event.Post != nil {
 			post := *event.Post
 			post.Changed = paths
@@ -32,27 +35,29 @@ func (run execution) input(ctx context.Context, dependencies Dependencies) (mode
 		}
 	}
 	if err != nil {
-		return model.Input{}, "", fmt.Errorf("%w: prepare hook input: %w", model.ErrCannotJudge, err)
+		return model.Input{}, nil, fmt.Errorf("%w: prepare hook input: %w", model.ErrCannotJudge, err)
 	}
+	targets, over := measurable(selectFiles(snapshot, paths))
 	return model.Input{
-		Mode: model.ModeHook, Policy: run.policy, Snapshot: snapshot,
-		Targets: selectFiles(snapshot, paths), Event: &event,
-	}, unmeasured, nil
+		Mode: model.ModeHook, Policy: run.policy, Snapshot: snapshot, Targets: targets, Event: &event,
+	}, slices.Concat(gaps, over), nil
 }
 
-func (run execution) postPaths(ctx context.Context, dependencies Dependencies) ([]string, string) {
+// postPaths are the files a post event judges: those the host reports and
+// those the content identity of a command found changed, with the gap of a
+// detection that could not be measured, which never blocks.
+func (run execution) postPaths(ctx context.Context, dependencies Dependencies) ([]string, []Gap) {
 	paths := slices.Clone(run.request.Hints)
+	var gaps []Gap
 	if run.request.Event.Tool == "Bash" || run.request.Event.Tool == "PowerShell" {
 		changed, err := run.changedPaths(ctx, dependencies)
-		if err != nil && len(paths) == 0 {
-			return nil, err.Error()
+		if err != nil {
+			gaps = append(gaps, detectionGap(err))
 		}
-		if err == nil {
-			paths = append(paths, changed...)
-		}
+		paths = append(paths, changed...)
 	}
 	slices.Sort(paths)
-	return slices.Compact(paths), ""
+	return slices.Compact(paths), gaps
 }
 
 func (run execution) changedPaths(ctx context.Context, dependencies Dependencies) ([]string, error) {

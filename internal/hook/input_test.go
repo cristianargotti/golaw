@@ -15,7 +15,7 @@ func TestReadObject(t *testing.T) {
 	t.Parallel()
 	for _, input := range []string{
 		"", "{", "null", "[]", "{}{}", `{"x":1} false`,
-		strings.Repeat(" ", (1<<20)+1) + "{}",
+		strings.Repeat(" ", hook.MaxInputBytes+1) + "{}",
 	} {
 		if _, err := hook.ReadObject(strings.NewReader(input)); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatalf("%q: %v", input[:min(len(input), 20)], err)
@@ -25,6 +25,14 @@ func TestReadObject(t *testing.T) {
 	got, err := hook.ReadObject(strings.NewReader(input))
 	if err != nil || string(got) != input {
 		t.Fatalf("got %q, %v", got, err)
+	}
+	large := strings.Repeat(" ", (1<<20)+1) + "{}"
+	if got, err := hook.ReadObject(strings.NewReader(large)); err != nil || len(got) != len(large) {
+		t.Fatalf("an input past the earlier bound of 1 MiB: %d bytes, %v", len(got), err)
+	}
+	over := strings.Repeat(" ", hook.MaxInputBytes) + "{}"
+	if prefix, err := hook.ReadObject(strings.NewReader(over)); !errors.Is(err, model.ErrTooLarge) || len(prefix) != hook.MaxInputBytes+1 {
+		t.Fatalf("an input over the bound answers its prefix: %d bytes, %v", len(prefix), err)
 	}
 }
 

@@ -1,6 +1,7 @@
 package claude_test
 
 import (
+	"bytes"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -127,5 +128,26 @@ func TestWriteCannotJudgeAndNotebook(t *testing.T) {
 		hook.Base{Root: root}, proof.NewTree(nil))
 	if err != nil || got.Denial != "NotebookEdit is not supported by this adapter" {
 		t.Fatalf("%+v, %v", got, err)
+	}
+}
+
+// TestAWriteOverALargeBaseIsJudged judges a Write that replaces a file over
+// the read bound on its whole content, bound to no base hash, and leaves an
+// Edit of such a file, which cannot be reconstructed within the bound, to
+// the pipeline with a gap naming the file.
+func TestAWriteOverALargeBaseIsJudged(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	large := proof.NewTree(map[string][]byte{"big.sql": bytes.Repeat([]byte("a"), model.MaxReadBytes+1)})
+	path := filepath.Join(root, "big.sql")
+	got, err := claude.Write(frame(t, "PreToolUse", "Write", root, map[string]any{"file_path": path, "content": "small\n"}), hook.Base{Root: root}, large)
+	if err != nil || got.Event.Candidates[0].Op != model.CandidateReplace || got.Event.Candidates[0].BaseHash != "" ||
+		string(got.Content["big.sql"]) != "small\n" || len(got.Gaps) != 0 {
+		t.Fatalf("a write over a large base = %+v, %v", got, err)
+	}
+	edit := map[string]any{"file_path": path, "old_string": "a", "new_string": "b", "replace_all": true}
+	got, err = claude.Write(frame(t, "PreToolUse", "Edit", root, edit), hook.Base{Root: root}, large)
+	if err != nil || len(got.Gaps) != 1 || got.Gaps[0].Path != "big.sql" || got.Event.Candidates[0].Path != "big.sql" || got.Content != nil {
+		t.Fatalf("an edit of a large file = %+v, %v", got, err)
 	}
 }

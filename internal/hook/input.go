@@ -16,17 +16,30 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// MaxInputBytes bounds allocation before an envelope is trusted.
-const MaxInputBytes = 1 << 20
+// MaxInputBytes bounds allocation before an envelope is trusted: the read
+// bound of a file, so a write the snapshot could hold is judged whole.
+const MaxInputBytes = model.MaxReadBytes
+
+// inputBound is the cause of an input over the bound.
+func inputBound() error {
+	return fmt.Errorf("%w: %w: input exceeds 8 MiB", model.ErrCannotJudge, model.ErrTooLarge)
+}
 
 // ReadObject requires EOF so another JSON value cannot hide after the event.
+// An input over the bound answers its first MaxInputBytes and one bytes,
+// for an adapter that reads the header from them, and ErrTooLarge; the
+// rest is read and dropped, so the host that writes it never meets a
+// closed pipe.
 func ReadObject(reader io.Reader) ([]byte, error) {
 	data, err := io.ReadAll(io.LimitReader(reader, MaxInputBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("%w: read input: %w", model.ErrCannotJudge, err)
 	}
 	if len(data) > MaxInputBytes {
-		return nil, fmt.Errorf("%w: input exceeds 1 MiB", model.ErrCannotJudge)
+		if _, err := io.Copy(io.Discard, reader); err != nil {
+			return nil, fmt.Errorf("%w: read input: %w", model.ErrCannotJudge, err)
+		}
+		return data, inputBound()
 	}
 	var object map[string]json.RawMessage
 	if err := json.Unmarshal(data, &object); err != nil {

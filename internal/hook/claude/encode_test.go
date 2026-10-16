@@ -19,6 +19,7 @@ type goldenCase struct {
 	CannotJudge bool            `json:"cannot_judge"`
 	Reason      string          `json:"reason"`
 	Human       string          `json:"human"`
+	Notice      string          `json:"notice"`
 	Stdout      json.RawMessage `json:"stdout"`
 	Stderr      string          `json:"stderr"`
 	Exit        int             `json:"exit"`
@@ -45,7 +46,7 @@ func TestEncodeGolden(t *testing.T) {
 			event := goldenEvent(tc.Post, tc.Failed)
 			result := hook.Result{
 				Outcome: tc.Outcome, Reason: tc.Reason,
-				Human: tc.Human, CannotJudge: tc.CannotJudge,
+				Human: tc.Human, CannotJudge: tc.CannotJudge, Notice: tc.Notice,
 			}
 			reply := claude.Encode(event, result)
 			expected := expectedStdout(t, tc.Stdout)

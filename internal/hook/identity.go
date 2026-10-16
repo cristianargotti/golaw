@@ -2,6 +2,7 @@ package hook
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -16,6 +17,7 @@ const (
 	maxIdentityPaths = 65536
 	maxIdentityBytes = 64 << 20
 	absentIdentity   = "absent"
+	largeIdentity    = "large:"
 )
 
 // StateKey prevents one tool invocation from borrowing another's baseline.
@@ -94,11 +96,14 @@ func pathIdentity(snapshot model.Snapshot, sizes map[string]int64, path string) 
 		return class.String() + ":" + strconv.FormatInt(sizes[path], 10), 0, nil
 	}
 	content, err := snapshot.Read(path)
+	if errors.Is(err, model.ErrTooLarge) || err == nil && len(content) > model.MaxReadBytes {
+		// A file over the read bound is never read; its size stands for it,
+		// so a command that leaves it alone leaves its identity alone and a
+		// change of its size names it as not measured.
+		return largeIdentity + strconv.FormatInt(sizes[path], 10), 0, nil
+	}
 	if err != nil {
 		return "", 0, fmt.Errorf("%w: content identity: %w", model.ErrCannotJudge, err)
-	}
-	if len(content) > model.MaxReadBytes {
-		return "", 0, fmt.Errorf("%w: content identity: %w", model.ErrCannotJudge, model.ErrTooLarge)
 	}
 	return Hash(content), len(content), nil
 }

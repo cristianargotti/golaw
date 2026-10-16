@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook"
@@ -132,19 +133,24 @@ func TestIdentityByteBoundAndOversizedRead(t *testing.T) {
 	if _, err := hook.Identities(t.Context(), sizedSnapshot{count: 9, body: body}, nil); !errors.Is(err, model.ErrCannotJudge) {
 		t.Fatal(err)
 	}
-	oversized := sizedSnapshot{count: 1, body: make([]byte, model.MaxReadBytes+1)}
-	if _, err := hook.Identities(t.Context(), oversized, nil); !errors.Is(err, model.ErrTooLarge) {
-		t.Fatal(err)
+	oversized := sizedSnapshot{count: 9, body: make([]byte, model.MaxReadBytes+1)}
+	got, err := hook.Identities(t.Context(), oversized, nil)
+	if err != nil || len(got) != 9 || !strings.HasPrefix(got["file-0.go"], "large:") {
+		t.Fatalf("content over the read bound is identified by its size and never read: %v, %v", got, err)
 	}
 }
 
 func TestIdentityBoundsAndCancellation(t *testing.T) {
 	t.Parallel()
-	tree := proof.NewTree(map[string][]byte{
-		"large": make([]byte, model.MaxReadBytes+1),
-	})
-	if _, err := hook.Identities(t.Context(), tree, nil); err == nil {
-		t.Fatal("oversized content accepted")
+	identify := func(size int) string {
+		got, err := hook.Identities(t.Context(), proof.NewTree(map[string][]byte{"large": make([]byte, size)}), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got["large"]
+	}
+	if one, other := identify(model.MaxReadBytes+1), identify(model.MaxReadBytes+2); one == other || !strings.HasPrefix(one, "large:") {
+		t.Fatalf("a file over the read bound is identified by its size: %q, %q", one, other)
 	}
 	if _, err := hook.Identities(t.Context(), proof.NewTree(nil),
 		[]string{"../outside"}); err == nil {
