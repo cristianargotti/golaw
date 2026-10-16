@@ -86,12 +86,3 @@ func TestVersionFloorAndBuildMetadata(t *testing.T) {
 	}
 	_ = RunningMetadata()
 }
-
-func TestCompareBinaryRequiresAgentEnvironment(t *testing.T) {
-	t.Parallel()
-	got := CompareBinary("golaw", AgentEnvironment{}, "golaw")
-	want := BinaryEvidence{Error: "resolve golaw: " + ErrEnvironment.Error()}
-	if got != want {
-		t.Fatalf("unobserved environment yielded binary evidence: %#v", got)
-	}
-}

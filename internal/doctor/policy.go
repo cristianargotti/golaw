@@ -9,7 +9,7 @@ import (
 )
 
 // EnrollmentReader keeps policy authority outside diagnostics.
-type EnrollmentReader interface { //nolint:iface // This boundary is reserved for enrollment evidence collection.
+type EnrollmentReader interface {
 	ReadEnrollment(
 		ctx context.Context,
 		identity, policyDigest, profileDigest string,
