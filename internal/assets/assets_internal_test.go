@@ -28,7 +28,7 @@ func TestEmbeddedManifestAndSkill(t *testing.T) {
 	if len(skills) != 2 || !bytes.Equal(skills[0], skills[1]) {
 		t.Fatal("skill source and copy differ")
 	}
-	if len(skills[0]) > 10*1024 {
+	if len(skills[0]) > 10000 {
 		t.Fatal("skill exceeds byte budget")
 	}
 	if bytes.Count(bytes.TrimSuffix(skills[0], []byte("\n")), []byte("\n"))+1 > 100 {
