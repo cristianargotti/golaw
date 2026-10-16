@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "deny": ["Read(**/*.pem)", "Bash(git push:*)", "Read(notes/*)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {"matcher":"Read","hooks":[{"type":"command","command":"first-kit"}]},
+      {"matcher":"Read","hooks":[{"type":"command","command":"second-kit"}]}
+    ]
+  },
+  "enabledPlugins": {"other@other": true},
+  "model": "fixed"
+}

@@ -1,0 +1,1 @@
+{"settings":"{\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Read\",\"hooks\":[{\"type\":\"command\",\"command\":\"echo python3 gate.py\"}]}]}}"}

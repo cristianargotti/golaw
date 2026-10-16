@@ -1,0 +1,1 @@
+{"settings":"{\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Write|Edit|Read|Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"python3\",\"args\":[\"gate.py\"]}]}]}}"}

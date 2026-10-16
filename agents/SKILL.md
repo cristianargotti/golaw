@@ -1,41 +1,34 @@
 ---
 name: golaw
-description: Apply the repository's Go engineering standard while changing code.
+description: Use for Go implementation, tests, refactoring, review, dependencies, and commits in a repository enrolled in golaw.
 ---
 
-# Go engineering standard
+# Go engineering with golaw
 
-Read the policy and relevant code before choosing a design.
-Preserve existing contracts and make the smallest complete change.
+Read golaw.yml and docs/rules.md before changing the repository.
 
-## Reuse and design
+Reuse in this order: existing repository code, the standard library, an existing platform capability, an installed dependency, then the smallest implementation that meets the need. Preserve boundary validation, error handling, and security. Record every new direct dependency and its alternatives in the configured decisions directory.
 
-Reuse local code before extracting another abstraction.
-Prefer the standard library, then existing dependencies, then a new dependency.
-Record the reason for each new direct dependency in the decisions directory.
-Keep one use case per file and responsibilities explicit.
-Working code is the floor; clarity and careful verification define quality.
+Follow the strongest documented practice. Existing weak code is not a reason to repeat it.
 
-## Errors and time
+Keep one use case per file, named verb_object.go with its matching test file. Give it a constructor and an Execute method. Keep transport and persistence concerns outside it.
 
-Use failures.Prefix where the repository provides that convention.
-Wrap causes with %w and compare sentinels with errors.Is.
-Do not turn err.Error() into application data.
-Pass time through the application's Clock port.
-Keep metric definitions and recording at the boundary owning the operation.
+Declare package failure modes as sentinels in errors.go. Begin an operation with wrap := failures.Prefix("package: action") and wrap each error returned across the package boundary. When at least three functions share a prefix, keep the shared wrapper in errors.go. Do not repeat a layer in an error chain. Classify failures with errors.Is against sentinels, never by comparing error text.
 
-## Tests and migrations
+Keep a pull request within 400 changed lines and one topic. Combine topics only when the owner explicitly requests the bundle. Ask before pushing or opening a pull request.
 
-Follow the repository's integration test setup and cleanup conventions.
-Exercise the real boundary when a unit double cannot establish the contract.
-Keep applied migrations immutable and new migrations ordered.
-Review data preservation, compatibility and recovery before delivery.
+Explain why in English comments. Keep documentation and conventional commits in English, with no commit trailers. Use the configured language for strings addressed to people, pt-BR by default.
 
-## Delivery
+Pass time through a Clock port and compose a UTC clock at the entry point. A metric belongs to the package that emits it.
 
-Keep each pull request focused on one topic and small enough to review.
-Read docs/checklists.md when it exists.
-Ask before pushing or opening a pull request.
-Run golaw scan . before finishing.
-When staged scanning is available, run golaw scan --staged before you finish.
-Report the verification performed and the evidence still absent.
+Use the repository's integration test conventions and declared dependencies. Keep integration suites on demand. For queries over growing tables, inspect the execution plan with realistic data.
+
+Keep applied migrations immutable. Verify rollback and reapplication in an isolated database, including the empty starting state. Review data preservation and recovery before delivery.
+
+Write a failing test first, observe its failure, implement the smallest complete change, and observe it passing. Record the command and result for each verification claim. Report anything unmeasured explicitly.
+
+Run golaw scan . before finishing. When golaw scan --staged exists in your version, run it before finishing staged work. Local checks are optional aids. Remote CI or the platform pipeline is the only hard gate.
+
+Installed agent guards deny violations until a person uninstalls them. Do not weaken policy to bypass a finding.
+
+Read docs/rules.md for the prose mapping and docs/checklists.md when it exists.

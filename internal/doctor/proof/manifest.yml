@@ -1,0 +1,45 @@
+checks:
+  - id: doctor.artifacts
+    code: artifact-drift
+    red: testdata/artifacts/red
+    near: testdata/artifacts/near
+  - id: doctor.binary
+    code: binary-differs
+    red: testdata/binary/red
+    near: testdata/binary/near
+  - id: doctor.plugin
+    code: plugin-disabled
+    red: testdata/plugin/red
+    near: testdata/plugin/near
+  - id: doctor.read
+    code: read-deny-missing
+    red: testdata/read/red
+    near: testdata/read/near
+  - id: doctor.hooks
+    code: hook-fail-open
+    red: testdata/hooks/red
+    near: testdata/hooks/near
+  - id: doctor.trust
+    code: plugin-unavailable
+    red: testdata/trust/red
+    near: testdata/trust/near
+  - id: doctor.version
+    code: agent-version-below-floor
+    red: testdata/version/red
+    near: testdata/version/near
+  - id: doctor.pin
+    code: kit-version-differs
+    red: testdata/pin/red
+    near: testdata/pin/near
+  - id: doctor.build
+    code: build-metadata-unavailable
+    red: testdata/build/red
+    near: testdata/build/near
+  - id: doctor.enrollment
+    code: enrollment-invalid
+    red: testdata/enrollment/red
+    near: testdata/enrollment/near
+  - id: doctor.python
+    code: python-ownership-unresolved
+    red: testdata/python/red
+    near: testdata/python/near

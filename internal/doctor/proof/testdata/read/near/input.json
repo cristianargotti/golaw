@@ -1,0 +1,3 @@
+{
+  "settings": "{\"enabledPlugins\":{\"golaw@golaw\":true},\"permissions\":{\"allow\":[\"Bash(make test)\"],\"deny\":[\"Bash(git push:*)\",\"Read(notes/*)\",\"Read(**/*.key)\"]}}"
+}
