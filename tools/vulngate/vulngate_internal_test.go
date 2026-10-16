@@ -70,6 +70,16 @@ func executeCases() map[string]executeCase {
 			"vulngate: GO-2026-0003 reachable, fixed in no version yet",
 			"vulngate: waiver GO-2026-0002 expired on 2026-10-01, remove it",
 		}},
+		"last day": {waived, []string{"-today", "2026-12-31"}, exitClean, []string{
+			"vulngate: GO-2026-0002 waived until 2026-12-31 (docs/adr/0003-serve.md)",
+			"vulngate: GO-2026-0003 waived until 2027-01-31 (docs/adr/0004-dep.md)",
+		}},
+		"day after": {waived, []string{"-today", "2027-01-01"}, exitReachable, []string{
+			"vulngate: GO-2026-0002 reachable, fixed in v1.27.2",
+			"vulngate: GO-2026-0003 waived until 2027-01-31 (docs/adr/0004-dep.md)",
+			"vulngate: waiver GO-2026-0002 expired on 2026-12-31, remove it",
+		}},
+		"no id":      {"vulnerability_waivers:\n  - { until: 2026-12-31, record: r }\n", today, exitFailure, nil},
 		"no date":    {waived, nil, exitFailure, nil},
 		"bad waiver": {"vulnerability_waivers:\n  - { id: GO-1, until: soon, record: r }\n", today, exitFailure, nil},
 		"no record":  {"vulnerability_waivers:\n  - { id: GO-1, until: 2026-12-31 }\n", today, exitFailure, nil},
@@ -113,14 +123,16 @@ func TestExecuteWithoutReachableFindingsIsClean(t *testing.T) {
 	}
 }
 
-// A scanner that stops before its config line leaves the pipe empty, and a
-// stream without that line never came from a scan; neither may read as clean.
-func TestExecuteRefusesAStreamWithoutConfig(t *testing.T) {
+// A scanner that stops before its config line leaves the pipe empty, a
+// stream without that line never came from a scan, and one cut short lost
+// what came after the cut; none may read as clean.
+func TestExecuteRefusesAnIncompleteStream(t *testing.T) {
 	t.Parallel()
 	args := []string{"-waivers", waiversFile(t, ""), "-today", "2026-10-14"}
 	for name, input := range map[string]string{
 		"empty stream": "",
 		"no config":    `{"finding": {"osv": "GO-1", "trace": [{"module": "m"}]}}`,
+		"bad stream":   `{"config": {"scanner_name": "govulncheck"}}` + "\n{",
 	} {
 		var stdout, stderr bytes.Buffer
 		if got := execute(args, strings.NewReader(input), &stdout, &stderr); got != exitFailure || stdout.Len() != 0 {
