@@ -86,3 +86,35 @@ func TestVersionFloorAndBuildMetadata(t *testing.T) {
 	}
 	_ = RunningMetadata()
 }
+
+func TestBinaryIdentityIsTheFileNotItsName(t *testing.T) {
+	t.Parallel()
+	directory := t.TempDir()
+	name := "golaw"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	hook := filepath.Join(directory, name)
+	if err := os.WriteFile(hook, []byte("binary"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	environment := ObserveEnvironment([]string{"PATH=" + directory, "PATHEXT=.EXE"}, directory)
+	other := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(other, []byte("another binary"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	evidence := CompareBinary("golaw", environment, other)
+	line := binaryLines(Snapshot{Binary: evidence})[0]
+	if evidence.Error != "" || evidence.HookPath == evidence.RunningPath || line.Code != "binary-differs" {
+		t.Fatalf("another executable matched the hook: %#v %#v", evidence, line)
+	}
+	link := filepath.Join(t.TempDir(), name)
+	if err := os.Link(hook, link); err != nil {
+		t.Fatal(err)
+	}
+	evidence = CompareBinary("golaw", environment, link)
+	line = binaryLines(Snapshot{Binary: evidence})[0]
+	if evidence.Error != "" || evidence.HookPath != evidence.RunningPath || line.Code != "binary-matches" {
+		t.Fatalf("a hard link of the hook binary differed: %#v %#v", evidence, line)
+	}
+}
