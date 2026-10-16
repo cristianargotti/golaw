@@ -3,7 +3,10 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/cristianargotti/golaw/internal/doctor"
 )
 
 func TestDoctorReportCollectsTheEvidenceOfARepository(t *testing.T) {
@@ -75,6 +78,35 @@ func TestDoctorReportUsesTheObservationOfTheHook(t *testing.T) {
 	b.env = func(string) string { return "" }
 	if _, err = b.doctorReport(t.Context(), agentUnderTest(), root, scopeUser, now()); err == nil {
 		t.Fatal("an unresolvable state directory was reported")
+	}
+}
+
+func TestDoctorReportsAPolicyGoneFromTheCheckout(t *testing.T) {
+	t.Parallel()
+	b, home := testBinding(t)
+	root := observedRepository(t, b, home)
+	enrollment := func() doctor.Line {
+		t.Helper()
+		report, err := b.doctorReport(t.Context(), agentUnderTest(), root, scopeUser, now())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, line := range report.Lines {
+			if line.ID == "doctor.enrollment" {
+				return line
+			}
+		}
+		t.Fatalf("no enrollment line in %+v", report)
+		return doctor.Line{}
+	}
+	if line := enrollment(); line.State != "ok" || line.Code != "enrolled" {
+		t.Fatalf("the unchanged checkout = %+v", line)
+	}
+	if err := os.Remove(filepath.Join(root, "golaw.yml")); err != nil {
+		t.Fatal(err)
+	}
+	if line := enrollment(); line.State != "red" || !strings.Contains(line.Detail, "missing-policy") {
+		t.Fatalf("the checkout without the file = %+v", line)
 	}
 }
 

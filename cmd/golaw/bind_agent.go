@@ -102,7 +102,10 @@ func (r enrollmentRecord) WriteEnrollment(_ context.Context, identity, policyDig
 
 // ReadEnrollment answers the four states of A3 against the digests in
 // force: no record, a matching record, a record whose digests differ, and
-// a record for a repository whose policy file is gone.
+// a record for a repository whose policy file is gone. Gone means no
+// policy in force or no file in the checkout, the same file the hook and
+// scan refuse to run without, so doctor never reports enrolled where they
+// deny.
 func (r enrollmentRecord) ReadEnrollment(_ context.Context, identity, policyDigest, profileDigest string) (model.Enrollment, error) {
 	if err := r.verify(identity); err != nil {
 		return model.Enrollment{}, err
@@ -114,9 +117,13 @@ func (r enrollmentRecord) ReadEnrollment(_ context.Context, identity, policyDige
 	if !found {
 		return model.Enrollment{State: model.EnrollmentNone}, nil
 	}
+	present, err := inCheckout(r.root)
+	if err != nil {
+		return model.Enrollment{}, err
+	}
 	e := model.Enrollment{State: model.EnrollmentEnrolled, PolicyDigest: record.PolicyDigest, ProfileDigest: record.ProfileDigest}
 	switch {
-	case policyDigest == "":
+	case policyDigest == "" || !present:
 		e.State = model.EnrollmentMissing
 	case record.PolicyDigest != policyDigest || record.ProfileDigest != profileDigest:
 		e.State = model.EnrollmentMismatch

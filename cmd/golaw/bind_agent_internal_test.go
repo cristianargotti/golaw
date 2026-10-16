@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -75,20 +76,15 @@ func TestEnrollmentRecordAnswersTheFourStates(t *testing.T) {
 	if err != nil || written.State != model.EnrollmentEnrolled || written.PolicyDigest != "d1" {
 		t.Fatalf("written = %+v, %v", written, err)
 	}
-	cases := map[string]struct {
-		digest string
-		state  model.EnrollmentState
-	}{
-		"enrolled": {"d1", model.EnrollmentEnrolled},
-		"mismatch": {"d2", model.EnrollmentMismatch},
-		"missing":  {"", model.EnrollmentMissing},
+	readStates(t, port, identity, map[string]model.EnrollmentState{
+		"d1": model.EnrollmentEnrolled, "d2": model.EnrollmentMismatch, "": model.EnrollmentMissing,
+	})
+	if err := os.Remove(filepath.Join(root, "golaw.yml")); err != nil {
+		t.Fatal(err)
 	}
-	for name, tc := range cases {
-		got, readErr := port.ReadEnrollment(t.Context(), identity, tc.digest, "")
-		if readErr != nil || got.State != tc.state {
-			t.Errorf("%s = %+v, %v", name, got, readErr)
-		}
-	}
+	readStates(t, port, identity, map[string]model.EnrollmentState{
+		"d1": model.EnrollmentMissing, "d2": model.EnrollmentMissing,
+	})
 	if again, err := port.WriteEnrollment(t.Context(), identity, "d1", ""); err != nil || again != written {
 		t.Fatalf("a second write changed the enrollment: %+v, %v", again, err)
 	}
@@ -97,6 +93,18 @@ func TestEnrollmentRecordAnswersTheFourStates(t *testing.T) {
 	}
 	if _, err := port.ReadEnrollment(t.Context(), "other", "d1", ""); !errors.Is(err, model.ErrEnrollment) {
 		t.Fatalf("a foreign identity was read: %v", err)
+	}
+}
+
+// readStates reads the enrollment under each digest in force, the empty
+// one meaning no policy in force, and expects the state it names.
+func readStates(t *testing.T, port enrollmentPort, identity string, want map[string]model.EnrollmentState) {
+	t.Helper()
+	for digest, state := range want {
+		got, err := port.ReadEnrollment(t.Context(), identity, digest, "")
+		if err != nil || got.State != state {
+			t.Errorf("digest %q = %+v, %v, want %s", digest, got, err, state)
+		}
 	}
 }
 
