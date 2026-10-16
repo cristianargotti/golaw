@@ -1,0 +1,4 @@
+package a
+
+func f() (*int, error) { return nil, nil //nol\u0069nt:nilnil // legacy
+}

@@ -1,0 +1,1 @@
+{"shape":"shell","agent":"tester","tool":"Bash","shell":{"command":"git commit -m \"fix: a \u2014 b\"","cwd":"/work","tool":"Bash"}}

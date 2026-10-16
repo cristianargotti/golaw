@@ -1,0 +1,1 @@
+{"shape":"shell","agent":"tester","tool":"Bash","shell":{"command":"gh pr view 1","cwd":"/work","tool":"Bash"}}

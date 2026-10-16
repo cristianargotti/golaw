@@ -1,4 +1,84 @@
 # One entry per registered check: the id, the finding code its red fixture
 # must yield, and the two fixture directories relative to this file. The
 # proof test walks this list, so a registration and its entry go together.
-checks: []
+checks:
+  - id: text.dashes
+    code: em-dash
+    red: testdata/text.dashes/red
+    near: testdata/text.dashes/near
+  - id: text.trace-terms
+    code: trace-term
+    red: testdata/text.trace-terms/red
+    near: testdata/text.trace-terms/near
+  - id: text.tool-terms
+    code: tool-term
+    red: testdata/text.tool-terms/red
+    near: testdata/text.tool-terms/near
+  - id: text.comment-language
+    code: comment-language
+    red: testdata/text.comment-language/red
+    near: testdata/text.comment-language/near
+  - id: text.todo
+    code: todo-marker
+    red: testdata/text.todo/red
+    near: testdata/text.todo/near
+  - id: text.bare-nolint
+    code: bare-nolint
+    red: testdata/text.bare-nolint/red
+    near: testdata/text.bare-nolint/near
+  - id: text.nolint-nilnil
+    code: nolint-nilnil
+    red: testdata/text.nolint-nilnil/red
+    near: testdata/text.nolint-nilnil/near
+  - id: text.debug-print
+    code: debug-print
+    red: testdata/text.debug-print/red
+    near: testdata/text.debug-print/near
+  - id: paths.forbidden
+    code: binary-document
+    red: testdata/paths.forbidden/red
+    near: testdata/paths.forbidden/near
+  - id: paths.generated-tracked
+    code: generated-ignored
+    red: testdata/paths.generated-tracked/red
+    near: testdata/paths.generated-tracked/near
+  - id: paths.secret-material
+    code: secret-material
+    red: testdata/paths.secret-material/red
+    near: testdata/paths.secret-material/near
+  - id: shell.no-verify
+    code: no-verify
+    red: testdata/shell.no-verify/red
+    near: testdata/shell.no-verify/near
+  - id: shell.trailers
+    code: trailer
+    red: testdata/shell.trailers/red
+    near: testdata/shell.trailers/near
+  - id: shell.dashes
+    code: em-dash
+    red: testdata/shell.dashes/red
+    near: testdata/shell.dashes/near
+  - id: shell.body-width
+    code: body-width
+    red: testdata/shell.body-width/red
+    near: testdata/shell.body-width/near
+  - id: shell.shape
+    code: commit-shape
+    red: testdata/shell.shape/red
+    near: testdata/shell.shape/near
+  - id: shell.secret-tokens
+    code: secret-token
+    red: testdata/shell.secret-tokens/red
+    near: testdata/shell.secret-tokens/near
+  - id: shell.credential-print
+    code: credential-print
+    red: testdata/shell.credential-print/red
+    near: testdata/shell.credential-print/near
+  - id: shell.push
+    code: push
+    red: testdata/shell.push/red
+    near: testdata/shell.push/near
+  - id: shell.pr
+    code: pr
+    red: testdata/shell.pr/red
+    near: testdata/shell.pr/near

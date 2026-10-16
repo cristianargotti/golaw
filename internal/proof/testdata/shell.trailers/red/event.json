@@ -1,0 +1,1 @@
+{"shape":"shell","agent":"tester","tool":"Bash","shell":{"command":"git commit -m \"fix: x\" -m \"Co-\u0061uthored-by: Someone <someone@example.com>\"","cwd":"/work","tool":"Bash"}}
