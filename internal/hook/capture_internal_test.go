@@ -50,21 +50,48 @@ func (panickedCapture) Read(string) ([]byte, error) {
 	return []byte{}, nil
 }
 
+// captureOf captures the identities of an execution over a base snapshot
+// with the changes a binding may answer.
+func captureOf(ctx context.Context, base model.Snapshot, changes func(context.Context, Repository) (model.Snapshot, []string, error)) (map[string]string, error) {
+	run := execution{base: deferSnapshot(func() (model.Snapshot, error) { return base, nil })}
+	return run.captureIdentities(ctx, Dependencies{Changes: changes})
+}
+
 func TestCaptureFailureAndDeadline(t *testing.T) {
 	t.Parallel()
-	files, err := captureIdentities(t.Context(),
-		proof.NewTree(map[string][]byte{"a.go": []byte("safe")}))
+	files, err := captureOf(t.Context(), proof.NewTree(map[string][]byte{"a.go": []byte("safe")}), nil)
 	if err != nil || files["a.go"] != Hash([]byte("safe")) {
 		t.Fatalf("%v, %v", files, err)
 	}
-	if _, panicked := captureIdentities(t.Context(), panickedCapture{}); !errors.Is(panicked, model.ErrCannotJudge) || !strings.Contains(panicked.Error(), "panicked") {
+	if _, panicked := captureOf(t.Context(), panickedCapture{}, nil); !errors.Is(panicked, model.ErrCannotJudge) || !strings.Contains(panicked.Error(), "panicked") {
 		t.Fatal(panicked)
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), captureReserve+200*time.Millisecond)
 	defer cancel()
-	_, late := captureIdentities(ctx, slowCapture{delay: 20 * time.Millisecond})
+	_, late := captureOf(ctx, slowCapture{delay: 20 * time.Millisecond}, nil)
 	if !errors.Is(late, model.ErrDeadline) || ctx.Err() != nil {
 		t.Fatalf("capture consumed the answer reserve: %v, %v", late, ctx.Err())
+	}
+}
+
+// TestCaptureReadsOnlyTheChanges identifies what the binding reports
+// changed, a deleted path as absent, and never reads the rest of the
+// base; a change listing that fails is the capture's failure.
+func TestCaptureReadsOnlyTheChanges(t *testing.T) {
+	t.Parallel()
+	changed := proof.NewTree(map[string][]byte{"dirty.go": []byte("dirty")})
+	changes := func(context.Context, Repository) (model.Snapshot, []string, error) {
+		return changed, []string{"deleted.go", "dirty.go"}, nil
+	}
+	files, err := captureOf(t.Context(), panickedCapture{}, changes)
+	if err != nil || len(files) != 2 || files["dirty.go"] != Hash([]byte("dirty")) || files["deleted.go"] != absentIdentity {
+		t.Fatalf("%v, %v", files, err)
+	}
+	failing := func(context.Context, Repository) (model.Snapshot, []string, error) {
+		return nil, nil, model.ErrUnreadable
+	}
+	if _, err := captureOf(t.Context(), panickedCapture{}, failing); !errors.Is(err, model.ErrUnreadable) {
+		t.Fatal(err)
 	}
 }
 

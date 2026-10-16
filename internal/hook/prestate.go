@@ -19,7 +19,7 @@ func (run execution) persistBefore(ctx context.Context, data []byte, dependencie
 	if err != nil {
 		return
 	}
-	before, reason := run.beforeCapture(ctx)
+	before, reason := run.beforeCapture(ctx, dependencies)
 	inputHash := Hash([]byte(joinParts([]string{
 		run.policy.Digest, Hash(data), MapHash(before), reason,
 	})))
@@ -30,11 +30,11 @@ func (run execution) persistBefore(ctx context.Context, data []byte, dependencie
 	}
 }
 
-func (run execution) beforeCapture(ctx context.Context) (map[string]string, string) {
+func (run execution) beforeCapture(ctx context.Context, dependencies Dependencies) (map[string]string, string) {
 	if run.stateReason != "" {
 		return nil, run.stateReason
 	}
-	before, err := captureIdentities(ctx, run.base)
+	before, err := run.captureIdentities(ctx, dependencies)
 	if err != nil {
 		return nil, err.Error()
 	}

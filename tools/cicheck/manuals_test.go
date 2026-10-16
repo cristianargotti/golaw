@@ -88,6 +88,7 @@ func TestAgentContract(t *testing.T) {
 		"then every directory that holds a link the name passes through",
 		"both by the name it asks for and by the file its links lead to",
 		"a submodule moved to another revision are excluded from detection",
+		"a path clean against the index at both ends is unchanged and never read",
 		"records the fault and proves no denial",
 		"A failed run closes with the rows that fail it",
 	)

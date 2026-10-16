@@ -25,12 +25,18 @@ type Repository struct {
 // tool's path to it before it opens the file. Begin, when set, is called
 // once before each event is evaluated, so a binding that keeps what git
 // answered forgets what an earlier event of the same dependencies learned.
+// Changes, when set, answers the paths that differ from HEAD or the index
+// or are untracked, a deleted one included, and a snapshot that reads
+// them: the content identity of a shell command reads only those, and a
+// path clean at both ends is unchanged. Without it the identity reads
+// every file of the snapshot.
 type Dependencies struct {
 	Home     string
 	Begin    func()
 	Enroll   func(ctx context.Context, dir, cwd string) (Repository, error)
 	Policy   func(context.Context, Repository) (*model.EffectivePolicy, error)
 	Snapshot func(context.Context, Repository) (model.Snapshot, error)
+	Changes  func(context.Context, Repository) (model.Snapshot, []string, error)
 	Overlay  func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
 	Registry *engine.Registry
 	State    Store

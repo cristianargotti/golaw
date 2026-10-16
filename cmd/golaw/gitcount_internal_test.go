@@ -50,9 +50,11 @@ func gitCommandsOf(t *testing.T, trace string) []string {
 // TestHookAsksGitEachFactOnce counts the git commands one event of each
 // kind starts through the real binding, from the trace git writes for every
 // command it runs: no event asks git the same question twice, a Read lists
-// no worktree, and the counts reached are the ceiling. The test is serial
-// because the trace and the isolated git configuration live in the
-// environment the git processes inherit.
+// no worktree, a shell event that changes nothing identifies the changes
+// through git status instead of listing the worktree, and the counts
+// reached are the ceiling. The test is serial because the trace and the
+// isolated git configuration live in the environment the git processes
+// inherit.
 func TestHookAsksGitEachFactOnce(t *testing.T) {
 	trace := filepath.Join(t.TempDir(), "git.trace")
 	t.Setenv("GIT_TRACE", trace)
@@ -66,8 +68,8 @@ func TestHookAsksGitEachFactOnce(t *testing.T) {
 	}{
 		{"read", eventAt(t, "Read", e.root, map[string]any{"file_path": filepath.Join(e.root, "go.mod")}), "ls-files -z -t", 4},
 		{"write", eventAt(t, "Write", e.root, map[string]any{"file_path": filepath.Join(e.root, "notes.md"), "content": "one-two\n"}), "", 5},
-		{"bash pre", shellEventAt(t, "PreToolUse", e.root, "go vet ./..."), "", 5},
-		{"bash post", shellEventAt(t, "PostToolUse", e.root, "go vet ./..."), "", 5},
+		{"bash pre", shellEventAt(t, "PreToolUse", e.root, "go vet ./..."), "ls-files -z -t", 5},
+		{"bash post", shellEventAt(t, "PostToolUse", e.root, "go vet ./..."), "ls-files -z -t", 5},
 	} {
 		if err := os.WriteFile(trace, nil, 0o600); err != nil {
 			t.Fatal(err)

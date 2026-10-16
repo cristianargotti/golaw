@@ -70,7 +70,7 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 	if reason != "" {
 		return nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, reason)
 	}
-	after, err := captureIdentities(ctx, run.base)
+	after, err := run.captureIdentities(ctx, dependencies)
 	if err != nil {
 		return nil, err
 	}

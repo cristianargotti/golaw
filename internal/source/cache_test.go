@@ -113,3 +113,38 @@ func TestWorktreeSelectsOnlyWhatItIsAskedFor(t *testing.T) {
 		t.Fatal("an inspected file stays present")
 	}
 }
+
+// TestChangesNamesWhatDiffersFromTheIndex lists what git status reports
+// against HEAD and the index, a deleted file included, as a snapshot that
+// reads those paths only, and leaves a clean file and an ignored one out.
+func TestChangesNamesWhatDiffersFromTheIndex(t *testing.T) {
+	t.Parallel()
+	root := initRepo(t)
+	write(t, root, ".gitignore", "*.log\n")
+	for _, name := range []string{"a.txt", "c.txt", "clean.txt", "d.txt"} {
+		write(t, root, name, "one\n")
+	}
+	commitAll(t, root, "one")
+	write(t, root, "a.txt", "two\n")
+	write(t, root, "b.txt", "new\n")
+	write(t, root, "skip.log", "ignored\n")
+	write(t, root, "d.txt", "staged\n")
+	gitRun(t, root, "add", "d.txt")
+	if err := os.Remove(filepath.Join(root, "c.txt")); err != nil {
+		t.Fatal(err)
+	}
+	repo, err := source.Discover(t.Context(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, paths, err := source.Changes(t.Context(), repo)
+	if err != nil || !slices.Equal(paths, []string{"a.txt", "b.txt", "c.txt", "d.txt"}) {
+		t.Fatalf("Changes = %v, %v", paths, err)
+	}
+	if mustRead(t, snapshot, "a.txt") != "two\n" || snapshot.Class("c.txt") != model.ClassUnknown || snapshot.Class("clean.txt") != model.ClassUnknown {
+		t.Fatal("the snapshot of the changes reads the changed paths only")
+	}
+	if _, _, err := source.Changes(t.Context(), source.Repo{Root: t.TempDir()}); err == nil {
+		t.Fatal("a directory outside git was listed")
+	}
+}

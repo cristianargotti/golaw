@@ -15,6 +15,11 @@ func Applicability(spec model.Spec, in model.Input) (model.Status, bool) {
 	if !scopeApplies(spec.Scope, in) {
 		return model.NotApplicable(fmt.Sprintf("scope %s does not run in %s", spec.Scope, describe(in))), false
 	}
+	if in.Mode == model.ModeHook && spec.Scope == model.ScopeFile && len(in.Targets) == 0 {
+		// A file check judges the targets of an event; with none it has
+		// nothing to judge, and a gate of its own would read the tree.
+		return model.NotApplicable("no file to judge in " + describe(in)), false
+	}
 	if spec.Owner != model.OwnerCore && spec.Owner != in.Policy.Profile {
 		return model.NotApplicable(fmt.Sprintf("profile %s is not enrolled", spec.Owner)), false
 	}

@@ -30,12 +30,14 @@ func hookInput(shape model.EventShape) model.Input {
 	switch shape {
 	case model.ShapeWrite:
 		e.Candidates = []model.Candidate{{Path: "a.go", Op: model.CandidateCreate, Reconstructed: true}}
+		in.Targets = []model.File{{Path: "a.go", Class: model.ClassUntracked}}
 	case model.ShapeRead:
 		e.Read = &model.ReadRequest{Path: "a.go"}
 	case model.ShapeShell:
 		e.Shell = &model.ShellCommand{Command: "git status"}
 	case model.ShapePost:
-		e.Post = &model.PostResult{Response: "ok"}
+		e.Post = &model.PostResult{Response: "ok", Changed: []string{"a.go"}}
+		in.Targets = []model.File{{Path: "a.go", Class: model.ClassUntracked}}
 	default:
 	}
 	in.Event = e
@@ -70,6 +72,22 @@ func TestApplicabilityByScope(t *testing.T) {
 				t.Errorf("%s in %s: status %+v", scope, name, status)
 			}
 		}
+	}
+}
+
+// TestAFileCheckJudgesTheTargetsOfAnEvent leaves a file check out of a
+// hook event that names no file, such as a post event of a command that
+// changed nothing, so its gate never reads the tree.
+func TestAFileCheckJudgesTheTargetsOfAnEvent(t *testing.T) {
+	t.Parallel()
+	in := hookInput(model.ShapePost)
+	in.Targets, in.Event.Post.Changed = nil, nil
+	status, ok := engine.Applicability(spec("x.y", model.ScopeFile), in)
+	if ok || status.Kind != model.StatusNotApplicable || !strings.Contains(status.Reason, "no file to judge") {
+		t.Fatalf("a file check in a post event without targets: %v, %+v", ok, status)
+	}
+	if _, ok := engine.Applicability(spec("x.y", model.ScopeEvent), in); !ok {
+		t.Fatal("an event check still judges the event")
 	}
 }
 

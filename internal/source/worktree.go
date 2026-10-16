@@ -47,11 +47,17 @@ func NewWorktree(ctx context.Context, repo Repo) (*Worktree, error) {
 	if err != nil {
 		return nil, err
 	}
+	return newWorktree(repo.Root, entries), nil
+}
+
+// newWorktree is the snapshot of the listed entries under a root, nothing
+// inspected yet.
+func newWorktree(root string, entries []entry) *Worktree {
 	index := make(map[string]int, len(entries))
 	for i, e := range entries {
 		index[e.path] = i
 	}
-	return &Worktree{root: repo.Root, entries: entries, index: index, seen: map[string]inspection{}, dirs: map[string]int{}}, nil
+	return &Worktree{root: root, entries: entries, index: index, seen: map[string]inspection{}, dirs: map[string]int{}}
 }
 
 // Refreshed answers a snapshot of the same listing that has inspected

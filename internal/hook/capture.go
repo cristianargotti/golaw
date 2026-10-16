@@ -13,10 +13,11 @@ const (
 	captureReserve = time.Second
 )
 
-// captureIdentities hashes every file of the snapshot inside the capture
-// budget; the snapshot is read in memory and checks the context between
-// files, so the reserve for the answer is never consumed.
-func captureIdentities(ctx context.Context, snapshot model.Snapshot) (map[string]string, error) {
+// captureIdentities hashes what the changes of the repository name, or
+// every file of the snapshot without them, inside the capture budget; the
+// files are read in memory and the context is checked between files, so
+// the reserve for the answer is never consumed.
+func (run execution) captureIdentities(ctx context.Context, dependencies Dependencies) (map[string]string, error) {
 	bounded, cancel := captureContext(ctx)
 	defer cancel()
 	var files map[string]string
@@ -27,7 +28,14 @@ func captureIdentities(ctx context.Context, snapshot model.Snapshot) (map[string
 				err = fmt.Errorf("%w: content capture panicked", model.ErrCannotJudge)
 			}
 		}()
-		files, err = Identities(bounded, snapshot, nil)
+		var snapshot model.Snapshot = run.base
+		var paths []string
+		if dependencies.Changes != nil {
+			snapshot, paths, err = dependencies.Changes(bounded, run.repository)
+		}
+		if err == nil {
+			files, err = Identities(bounded, snapshot, paths)
+		}
 	}()
 	if err != nil {
 		return nil, fmt.Errorf("optional content capture: %w", err)
