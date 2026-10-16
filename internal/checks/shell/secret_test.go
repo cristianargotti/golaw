@@ -26,6 +26,16 @@ func TestSecretTokens(t *testing.T) {
 		"cat docs/secrets.md":                             false,
 		"bash -c 'cat secrets/db.yaml'":                   true,
 		"go build ./...":                                  false,
+		"cat id_rsa":                                      true,
+		"ssh -i id_ed25519 host":                          true,
+		"scp ID_ECDSA backup:keys":                        true,
+		"cp id_dsa --target-directory=out":                true,
+		"cat id_rsa.pub":                                  false,
+		"grep -rn credentials .":                          false,
+		"rg kubeconfig docs":                              false,
+		"git checkout -b fix-credentials":                 false,
+		"git commit -m 'fix: rotate the credentials'":     false,
+		"git commit -m 'docs: say where id_rsa lives'":    false,
 	})
 	res := judge(t, shell.SecretTokens(), "cat /work/app/.env")
 	if res.Findings[0].Message != "the command names secret material (/work/app/.env); secrets never enter the context" {

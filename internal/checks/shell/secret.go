@@ -65,12 +65,28 @@ func SecretTokens() model.Check {
 	return commandRule{spec: hookSpec("shell.secret-tokens"), judge: judgeSecretTokens}
 }
 
+// privateKey matches the private key names a command may carry as a bare
+// word. Every other name of the list needs a slash or a dot to be judged,
+// because a bare credentials or kubeconfig is as often a search term, a
+// branch or a word of a message as a file, while no such word is id_rsa.
+var privateKey = regexp.MustCompile(`(?i)^id_(?:rsa|dsa|ecdsa|ed25519)$`)
+
+// secretToken reports whether a token of a command names secret material:
+// a path or a file name through the name list, a bare word only when it is
+// a private key name.
+func secretToken(token string) bool {
+	if strings.ContainsAny(token, "/.") {
+		return secretName(token)
+	}
+	return privateKey.MatchString(token)
+}
+
 func judgeSecretTokens(_ model.Input, segs []segment) ([]model.Finding, error) {
 	for _, seg := range segs {
 		for _, word := range seg {
 			for token := range strings.SplitSeq(word, "=") {
 				token = strings.TrimLeft(token, "<>")
-				if strings.ContainsAny(token, "/.") && secretName(token) {
+				if secretToken(token) {
 					message := fmt.Sprintf("the command names secret material (%s); secrets never enter the context", token)
 					return []model.Finding{deny("secret-token", message)}, nil
 				}
