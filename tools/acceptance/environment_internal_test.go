@@ -25,6 +25,9 @@ func TestEnvironment(t *testing.T) {
 	if !strings.HasPrefix(environmentValue(env, "PATH"), bin+string(os.PathListSeparator)) {
 		t.Fatal(env)
 	}
+	if got := environmentValue(env, "GOFLAGS"); got != "-mod=readonly -modcacherw" {
+		t.Fatalf("GOFLAGS = %q, want a module cache the home can drop", got)
+	}
 	changed := prependPath(env, "first")
 	if environmentValue(changed, "PATH") == environmentValue(env, "PATH") ||
 		environmentValue(prependPath(nil, "only"), "PATH") != "only" {
