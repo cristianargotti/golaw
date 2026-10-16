@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"slices"
@@ -66,12 +67,45 @@ func simulatedProgram(t *testing.T, root string, c command) result {
 			return result{err: err}
 		}
 		home := environmentValue(c.env, "HOME")
-		checkedWrite(t, filepath.Join(home, ".claude", "plugins", binaryName, "hooks", hooksFileName), string(body))
-		checkedWrite(t, filepath.Join(home, "state", "receipt.json"), `{"installed":true}`)
+		checkedWrite(t, simulatedArtifacts(home)[0], string(body))
+		checkedWrite(t, filepath.Join(home, "state", "receipt.json"), simulatedReceipt(t, home, body))
 	case "--version":
 		return result{stdout: "2.1.299 (Claude Code)\n"}
 	}
 	return result{}
+}
+
+// simulatedArtifacts are the artifacts the simulated installer lists in its
+// receipt: the plugin hook file it writes and the settings file.
+func simulatedArtifacts(home string) []string {
+	return []string{
+		filepath.Join(home, ".claude", "plugins", binaryName, "hooks", hooksFileName),
+		filepath.Join(home, ".claude", "settings.json"),
+	}
+}
+
+// simulatedReceipt is the receipt of the simulated installation, shaped
+// like the one the installer writes: its artifacts and the hook definition
+// the plugin ships.
+func simulatedReceipt(t *testing.T, home string, definition []byte) string {
+	t.Helper()
+	type artifact struct {
+		Path   string `json:"path"`
+		SHA256 string `json:"sha256"`
+	}
+	artifacts := make([]artifact, 0, len(simulatedArtifacts(home)))
+	for _, path := range simulatedArtifacts(home) {
+		artifacts = append(artifacts, artifact{Path: path, SHA256: "simulated"})
+	}
+	body, err := json.Marshal(struct {
+		Schema         int             `json:"schema"`
+		Artifacts      []artifact      `json:"artifacts"`
+		HookDefinition json.RawMessage `json:"hook_definition"`
+	}{1, artifacts, definition})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(body)
 }
 
 func testSuite(t *testing.T) *suite {

@@ -5,7 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/cristianargotti/golaw/internal/doctor"
 )
@@ -18,12 +21,14 @@ const (
 	lineBinary           = "doctor.binary"
 	lineHooks            = "doctor.hooks"
 	lineBuild            = "doctor.build"
+	receiptFile          = "receipt.json"
 )
 
 // doctorRow replays item 2 of section 10.3: once an installed hook ran in
-// the installed repository, doctor --json decodes, every artifact matches
-// its receipt, the hook names the built binary, every hook blocks on
-// failure and a source build is metadata, never verified (section 11 M1).
+// the installed repository, doctor --json decodes, every artifact the
+// receipt lists matches, every hook of its definition blocks on failure,
+// the hook names the binary this run built and a source build is
+// metadata, never verified (section 11 M1).
 func (s *suite) doctorRow(ctx context.Context) row {
 	repo := filepath.Join(s.base, dirRepos, repoInstallation)
 	input, err := payload(s.root, repo, writeFixture(caseDoctor, pathNote, textSafe, wantAllow))
@@ -45,31 +50,168 @@ func (s *suite) doctorRow(ctx context.Context) row {
 	if err := decoder.Decode(&report); err != nil {
 		return measured(categoryInstallation, caseDoctor, fmt.Errorf("decode doctor --json: %w", err))
 	}
-	return measured(categoryInstallation, caseDoctor, judgeDoctor(report))
+	owed, readErr := receiptKeys(s.home)
+	if readErr != nil {
+		return measured(categoryInstallation, caseDoctor, readErr)
+	}
+	return measured(categoryInstallation, caseDoctor, judgeDoctor(report, owed, s.binary))
 }
 
-// judgeDoctor holds every line item 2 of section 10.3 names to its code
-// and requires each of them at least once.
-func judgeDoctor(report doctor.Report) error {
-	want := map[string]string{
-		lineArtifacts: "artifact-matches",
-		lineBinary:    "binary-matches",
-		lineHooks:     "hook-failure-blocked",
-		lineBuild:     "source-build-unverifiable",
+// owedLines are the keys of the lines doctor owes the receipt the
+// installer wrote: one per artifact it lists and one per event and matcher
+// of the hook definition it recorded.
+type owedLines struct {
+	artifacts []string
+	hooks     []string
+}
+
+// receiptKeys reads the one receipt under the isolated home, so the row
+// holds doctor to what the installer recorded rather than to what doctor
+// chose to print.
+func receiptKeys(home string) (owedLines, error) {
+	path, err := findReceipt(home)
+	if err != nil {
+		return owedLines{}, err
 	}
-	seen := make(map[string]bool, len(want))
-	for _, line := range report.Lines {
-		code, judged := want[line.ID]
+	body, err := readFile(path)
+	if err != nil {
+		return owedLines{}, err
+	}
+	var receipt struct {
+		Artifacts []struct {
+			Path string `json:"path"`
+		} `json:"artifacts"`
+		HookDefinition struct {
+			Hooks map[string][]hookGroup `json:"hooks"`
+		} `json:"hook_definition"`
+	}
+	if err := json.Unmarshal(body, &receipt); err != nil {
+		return owedLines{}, fmt.Errorf("decode the receipt: %w", err)
+	}
+	var owed owedLines
+	for _, artifact := range receipt.Artifacts {
+		owed.artifacts = append(owed.artifacts, artifact.Path)
+	}
+	for event, groups := range receipt.HookDefinition.Hooks {
+		for _, group := range groups {
+			owed.hooks = append(owed.hooks, event+"/"+group.Matcher)
+		}
+	}
+	if len(owed.artifacts) == 0 || len(owed.hooks) == 0 {
+		return owedLines{}, fmt.Errorf("the receipt lists no artifact or no hook: %w", ErrAcceptance)
+	}
+	return owed, nil
+}
+
+// findReceipt answers the only receipt under home: a second one means the
+// row cannot tell which installation doctor reported.
+func findReceipt(home string) (string, error) {
+	var found []string
+	err := filepath.WalkDir(home, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr == nil && !entry.IsDir() && entry.Name() == receiptFile {
+			found = append(found, path)
+		}
+		return walkErr
+	})
+	if err != nil {
+		return "", fmt.Errorf("find the receipt: %w", err)
+	}
+	if len(found) != 1 {
+		return "", fmt.Errorf("found %d receipts under the isolated home: %w", len(found), ErrAcceptance)
+	}
+	return found[0], nil
+}
+
+// judgedLine is the code and the state a judged line must carry together:
+// a code under another state is a contradiction, not evidence.
+type judgedLine struct{ code, state string }
+
+func judgedLines() map[string]judgedLine {
+	return map[string]judgedLine{
+		lineArtifacts: {"artifact-matches", "ok"},
+		lineBinary:    {"binary-matches", "ok"},
+		lineHooks:     {"hook-failure-blocked", "ok"},
+		lineBuild:     {"source-build-unverifiable", "source-build"},
+	}
+}
+
+// judgeDoctor holds doctor --json to item 2 of section 10.3: schema 1,
+// every judged line at its code and state, one line for every artifact and
+// hook of the receipt and none beyond them, one build line, and one binary
+// line naming the binary this run built.
+func judgeDoctor(report doctor.Report, owed owedLines, built string) error {
+	if report.Schema != 1 {
+		return fmt.Errorf("doctor --json schema is %d: %w", report.Schema, ErrAcceptance)
+	}
+	lines, err := judgeLines(report.Lines)
+	if err != nil {
+		return err
+	}
+	for id := range judgedLines() {
+		if len(lines[id]) == 0 {
+			return fmt.Errorf("doctor --json lacks a line of section 10.3 (%s): %w", id, ErrAcceptance)
+		}
+	}
+	if len(lines[lineBinary]) != 1 || len(lines[lineBuild]) != 1 {
+		return fmt.Errorf("doctor --json repeats the binary or the build line: %w", ErrAcceptance)
+	}
+	if err := sameKeys(lineArtifacts, lines[lineArtifacts], owed.artifacts); err != nil {
+		return err
+	}
+	if err := sameKeys(lineHooks, lines[lineHooks], owed.hooks); err != nil {
+		return err
+	}
+	return judgeBinary(lines[lineBinary][0], built)
+}
+
+// judgeLines groups the judged lines by id once each carries its code and
+// its state.
+func judgeLines(all []doctor.Line) (map[string][]doctor.Line, error) {
+	wants := judgedLines()
+	out := make(map[string][]doctor.Line, len(wants))
+	for _, line := range all {
+		want, judged := wants[line.ID]
 		if !judged {
 			continue
 		}
-		if line.Code != code {
-			return fmt.Errorf("doctor %s %s is %s (%s): %w", line.ID, line.Key, line.Code, line.Detail, ErrAcceptance)
+		if line.Code != want.code || line.State != want.state {
+			return nil, fmt.Errorf("doctor %s %s is %s %s (%s): %w",
+				line.ID, line.Key, line.State, line.Code, line.Detail, ErrAcceptance)
 		}
-		seen[line.ID] = true
+		out[line.ID] = append(out[line.ID], line)
 	}
-	if len(seen) != len(want) {
-		return fmt.Errorf("doctor --json lacks a line of section 10.3: %w", ErrAcceptance)
+	return out, nil
+}
+
+// sameKeys compares the keys of the lines of an id with the keys the
+// receipt owes, as sets that also count repetitions.
+func sameKeys(id string, lines []doctor.Line, owed []string) error {
+	got := make([]string, 0, len(lines))
+	for _, line := range lines {
+		got = append(got, line.Key)
+	}
+	slices.Sort(got)
+	want := slices.Sorted(slices.Values(owed))
+	if !slices.Equal(got, want) {
+		return fmt.Errorf("doctor %s lines %v, the receipt lists %v: %w", id, got, want, ErrAcceptance)
+	}
+	return nil
+}
+
+// judgeBinary requires the binary line to name the binary this run built,
+// compared as files because the agent resolves it through its own search
+// path, where a linked temporary directory spells it another way.
+func judgeBinary(line doctor.Line, built string) error {
+	named, err := os.Stat(line.Detail)
+	if err != nil {
+		return fmt.Errorf("doctor binary line names %q: %w", line.Detail, err)
+	}
+	ours, err := os.Stat(built)
+	if err != nil {
+		return fmt.Errorf("inspect the built binary: %w", err)
+	}
+	if !os.SameFile(named, ours) {
+		return fmt.Errorf("doctor binary line names %s, not the built %s: %w", line.Detail, built, ErrAcceptance)
 	}
 	return nil
 }

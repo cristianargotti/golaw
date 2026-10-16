@@ -38,7 +38,7 @@ func completeExecutor(t *testing.T) executor {
 			want = wantAllow
 		}
 		return simulatedAnswer(want)
-	}), healthyDoctor(t), 0), refusalBeforeCommit(), result{})
+	}), reportAnswer(t, nil)), refusalBeforeCommit(), result{})
 }
 
 func TestRunInProcess(t *testing.T) {
