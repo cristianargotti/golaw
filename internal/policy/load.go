@@ -47,13 +47,14 @@ type Input struct {
 
 // Loaded is the policy in force with everything config explain reports.
 type Loaded struct {
-	Policy *model.EffectivePolicy
-	File   File // zero when the origin is core
-	Root   string
-	Head   string
-	Origin Origin
-	Record *Record
-	Stamp  *Stamp
+	Policy  *model.EffectivePolicy
+	File    File // zero when the origin is core
+	Root    string
+	Head    string
+	Origin  Origin
+	Record  *Record
+	Stamp   *Stamp
+	Schemas Schemas // the option schemas of the catalog, whose defaults explain lists
 }
 
 // Load establishes the policy in force for a directory: the enrollment
@@ -68,7 +69,7 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 	if err != nil {
 		return nil, err
 	}
-	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record}
+	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas}
 	data, err := l.inForce(ctx)
 	if err != nil {
 		return nil, err

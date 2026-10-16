@@ -83,6 +83,55 @@ func TestExplainCore(t *testing.T) {
 	}
 }
 
+// optionDefaults are the option lines of a policy that sets no option,
+// each at its core default.
+func optionDefaults() map[string]string {
+	return map[string]string{
+		"checks.coverage.floors.total":              "80",
+		"checks.coverage.floors.package":            "80",
+		"checks.coverage.floors.file":               "80",
+		"checks.coverage.floors.min_statements":     "20",
+		"checks.coverage.floors.file_exemptions":    "[]",
+		"checks.policy.golangci.allowed_exclusions": "[]",
+		"checks.text.tool-terms.limit":              "5",
+		"checks.text.tool-terms.names":              "[]",
+		"checks.text.tool-terms.strict":             "false",
+	}
+}
+
+func TestExplainListsEveryOptionAtItsDefault(t *testing.T) {
+	t.Parallel()
+	cases := map[string]struct {
+		text string
+		set  map[string]string // the option lines the file sets, with their value
+	}{
+		"minimal": {minimalPolicy, map[string]string{}},
+		"partial": {minimalPolicy + "checks: {coverage: {total: 90}, text.tool-terms: {limit: 3}}\n", map[string]string{
+			"checks.coverage.floors.total": "90", "checks.text.tool-terms.limit": "3",
+		}},
+	}
+	for name, c := range cases {
+		root, d := enrolled(t, c.text)
+		l, err := policy.Load(t.Context(), input(root, d))
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := lines(policy.Explain(l))
+		for key, value := range optionDefaults() {
+			want := policy.Line{Key: key, Value: value, Source: policy.SourceCore}
+			if set, ok := c.set[key]; ok {
+				want = policy.Line{Key: key, Value: set, Source: "HEAD:golaw.yml"}
+			}
+			if got[key] != want {
+				t.Errorf("%s: %s = %+v, want %+v", name, key, got[key], want)
+			}
+		}
+		if len(got) != 26 {
+			t.Errorf("%s: Explain printed %d lines", name, len(got))
+		}
+	}
+}
+
 type failingWriter struct{}
 
 func (failingWriter) Write([]byte) (int, error) { return 0, errors.ErrUnsupported }

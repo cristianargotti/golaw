@@ -33,7 +33,7 @@ func Explain(l *Loaded) []Line {
 	e.add("golaw", strconv.Itoa(Schema), SourceCore)
 	e.head(l)
 	e.floors(l.Policy, l.File)
-	e.options(l.Policy)
+	e.options(l.Policy, l.Schemas)
 	e.records(l.File)
 	e.add("enrollment.state", l.Policy.Enrollment.State.String(), SourceEnrollment)
 	e.add("enrollment.policy_digest", l.Policy.Enrollment.PolicyDigest, SourceEnrollment)
@@ -111,13 +111,48 @@ func (e *explainer) floors(p *model.EffectivePolicy, f File) {
 	e.set("checks.shell.deny_pr", strconv.FormatBool(p.Shell.DenyPR), sh != nil && sh.DenyPR != nil)
 }
 
-// options explains every option the file set, per check id.
-func (e *explainer) options(p *model.EffectivePolicy) {
-	for _, id := range slices.Sorted(maps.Keys(p.Options)) {
-		for _, name := range slices.Sorted(maps.Keys(p.Options[id])) {
-			e.add("checks."+id+"."+name, value(p.Options[id][name]), e.origin)
+// options explains the coverage and lint blocks and every option the
+// schemas declare, per check id: a value the file sets under the origin of
+// the file and every other at its core default, so what a file leaves out
+// is listed too.
+func (e *explainer) options(p *model.EffectivePolicy, schemas Schemas) {
+	defaults := floorDefaults()
+	for id, schema := range schemas {
+		defaults[id] = schema.Defaults()
+	}
+	for _, id := range union(defaults, p.Options) {
+		set := p.Options[id]
+		for _, name := range union(defaults[id], set) {
+			key := "checks." + id + "." + name
+			if v, ok := set[name]; ok {
+				e.add(key, value(v), e.origin)
+			} else {
+				e.add(key, value(defaults[id][name]), SourceCore)
+			}
 		}
 	}
+}
+
+// floorDefaults compiles the coverage and lint blocks at their core
+// defaults the way a file's blocks compile, because no schema of the
+// catalog declares them and explain must name the same keys either way.
+func floorDefaults() map[string]model.Options {
+	percent, statements := DefaultCoverage, DefaultMinStatements
+	coverage := &Coverage{Total: &percent, Package: &percent, File: &percent, MinStatements: &statements, FileExemptions: []string{}}
+	return Checks{Coverage: coverage, Lint: &Lint{}}.options(nil)
+}
+
+// union answers the keys of two maps once each and sorted, so the lines
+// keep one fixed order whichever map holds a key.
+func union[V any](a, b map[string]V) []string {
+	keys := slices.Collect(maps.Keys(a))
+	for k := range b {
+		if _, ok := a[k]; !ok {
+			keys = append(keys, k)
+		}
+	}
+	slices.Sort(keys)
+	return keys
 }
 
 // records explains the waivers, the exceptions, the ladder and the
