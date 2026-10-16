@@ -16,13 +16,23 @@ type EnrollmentReader interface {
 	) (model.Enrollment, error)
 }
 
+// codeVersionUnavailable keeps a version that was never read apart from a
+// failed floor: evidence that was not measured cannot fail a requirement.
+const codeVersionUnavailable = "agent-version-unavailable"
+
 func versionLines(snapshot Snapshot) []Line {
 	line := Line{
 		ID: "doctor.version", State: stateOK, Code: "agent-version-supported",
 		Detail: snapshot.ClaudeVersion,
 	}
 	allowed, err := VersionAtLeast(snapshot.ClaudeVersion, "2.1.295")
-	if err != nil || !allowed {
+	switch {
+	case snapshot.ClaudeVersionError != "":
+		line.State, line.Code, line.Detail = stateUnknown, codeVersionUnavailable, snapshot.ClaudeVersionError
+	case err != nil:
+		line.State, line.Code = stateUnknown, codeVersionUnavailable
+		line.Detail = fmt.Sprintf("%q: %v", snapshot.ClaudeVersion, err)
+	case !allowed:
 		line.State, line.Code = stateRed, "agent-version-below-floor"
 	}
 	return []Line{line}

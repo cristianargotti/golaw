@@ -61,7 +61,7 @@ func TestCollectReportsMissingEvidence(t *testing.T) {
 	receipt := filepath.Join(t.TempDir(), "none.json")
 	input := Input{Root: filepath.Join(t.TempDir(), "absent"), ReceiptPath: receipt}
 	snapshot := Collect(t.Context(), input, nil, &versionDouble{err: ErrVersion})
-	if snapshot.EnrollmentError == "" || snapshot.ClaudeVersion != ErrVersion.Error() {
+	if snapshot.EnrollmentError == "" || snapshot.ClaudeVersion != "" || snapshot.ClaudeVersionError != ErrVersion.Error() {
 		t.Fatalf("missing root = %#v", snapshot)
 	}
 	input.Root = t.TempDir()
@@ -71,5 +71,30 @@ func TestCollectReportsMissingEvidence(t *testing.T) {
 	store := &enrollmentStore{identity: "other"}
 	if got := Collect(t.Context(), input, store, nil); got.EnrollmentError == "" {
 		t.Fatalf("a foreign enrollment was accepted: %#v", got)
+	}
+}
+
+func TestAgentVersionStaysUnknownUntilItIsRead(t *testing.T) {
+	t.Parallel()
+	input := Input{Root: t.TempDir(), ReceiptPath: filepath.Join(t.TempDir(), "none.json")}
+	for _, tc := range []struct {
+		name, state, code, detail string
+		runner                    VersionRunner
+	}{
+		{"unobserved environment", stateUnknown, "agent-version-unavailable", ErrEnvironment.Error(), NativeRunner{}},
+		{"no runner", stateUnknown, "agent-version-unavailable", "empty version", nil},
+		{"unparsed output", stateUnknown, "agent-version-unavailable", "Claude Code", &versionDouble{output: "Claude Code"}},
+		{"below the floor", stateRed, "agent-version-below-floor", "2.1.294", &versionDouble{output: "2.1.294 (Claude Code)"}},
+		{"at the floor", stateOK, "agent-version-supported", "2.1.295", &versionDouble{output: "2.1.295 (Claude Code)"}},
+	} {
+		var line Line
+		for _, candidate := range Assess(Collect(t.Context(), input, nil, tc.runner)).Lines {
+			if candidate.ID == "doctor.version" {
+				line = candidate
+			}
+		}
+		if line.State != tc.state || line.Code != tc.code || !strings.Contains(line.Detail, tc.detail) {
+			t.Errorf("%s: %#v", tc.name, line)
+		}
 	}
 }

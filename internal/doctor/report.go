@@ -22,18 +22,19 @@ type Report struct {
 
 // Snapshot retains collected inputs so each diagnosis can be reproduced.
 type Snapshot struct {
-	Receipt         install.Receipt   `json:"receipt"`
-	Files           map[string]string `json:"files"`
-	Settings        string            `json:"settings"`
-	Hooks           string            `json:"hooks"`
-	Plugin          string            `json:"plugin"`
-	RequiredRead    []string          `json:"required_read"`
-	Binary          BinaryEvidence    `json:"binary"`
-	ClaudeVersion   string            `json:"claude_version"`
-	PinnedVersion   string            `json:"pinned_version"`
-	Build           BuildMetadata     `json:"build"`
-	Enrollment      model.Enrollment  `json:"enrollment"`
-	EnrollmentError string            `json:"enrollment_error"`
+	Receipt            install.Receipt   `json:"receipt"`
+	Files              map[string]string `json:"files"`
+	Settings           string            `json:"settings"`
+	Hooks              string            `json:"hooks"`
+	Plugin             string            `json:"plugin"`
+	RequiredRead       []string          `json:"required_read"`
+	Binary             BinaryEvidence    `json:"binary"`
+	ClaudeVersion      string            `json:"claude_version"`
+	ClaudeVersionError string            `json:"claude_version_error"`
+	PinnedVersion      string            `json:"pinned_version"`
+	Build              BuildMetadata     `json:"build"`
+	Enrollment         model.Enrollment  `json:"enrollment"`
+	EnrollmentError    string            `json:"enrollment_error"`
 }
 
 type assessment struct {

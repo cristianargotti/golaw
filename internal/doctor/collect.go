@@ -53,7 +53,7 @@ func Collect(ctx context.Context, input Input, enrollment EnrollmentReader, runn
 		version, err := runner.Version(ctx, input.Environment)
 		snapshot.ClaudeVersion = version
 		if err != nil {
-			snapshot.ClaudeVersion = err.Error()
+			snapshot.ClaudeVersion, snapshot.ClaudeVersionError = "", err.Error()
 		}
 	}
 	_, identity, err := install.ProjectIdentity(input.Root)
