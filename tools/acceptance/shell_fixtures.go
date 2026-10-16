@@ -36,17 +36,40 @@ func shellCommands() []shellFixture {
 	}
 }
 
+// nativeCommands are the PowerShell commands that name Windows paths the
+// way PowerShell reads them, with the backslash as the separator: a git
+// called by its full path, through the call operator too, and secret
+// material named by an absolute or a relative native path, each with its
+// control.
+func nativeCommands() []shellFixture {
+	return []shellFixture{
+		{"native-bypass", `C:\Git\cmd\git.exe commit --no-verify -m 'fix: safe'`, wantDeny},
+		{"native-call-bypass", `& "C:\Program Files\Git\cmd\git.exe" commit -n -m 'fix: safe'`, wantDeny},
+		{"native-commit-control", `& "C:\Program Files\Git\cmd\git.exe" commit -m 'fix: safe'`, wantAllow},
+		{"native-secret", `Get-Content C:\work\secrets\db.yaml`, wantDeny},
+		{"native-relative-secret", `Get-Content .\deploy\kubeconfig`, wantDeny},
+		{"native-source", `Get-Content .\internal\secrets\vault.go`, wantAllow},
+	}
+}
+
 func shellFixtures() []fixture {
-	commands := shellCommands()
-	out := make([]fixture, 0, 2*len(commands))
+	commands, native := shellCommands(), nativeCommands()
+	out := make([]fixture, 0, 2*len(commands)+len(native))
 	for _, tool := range []string{toolBash, toolPowerShell} {
 		for _, item := range commands {
-			out = append(out, fixture{
-				name: item.name + "-" + tool, category: "shell",
-				event: eventPre, tool: tool, want: item.want,
-				input: map[string]any{keyCommand: item.text},
-			})
+			out = append(out, shellFixtureOf(item, tool))
 		}
 	}
+	for _, item := range native {
+		out = append(out, shellFixtureOf(item, toolPowerShell))
+	}
 	return out
+}
+
+func shellFixtureOf(item shellFixture, tool string) fixture {
+	return fixture{
+		name: item.name + "-" + tool, category: "shell",
+		event: eventPre, tool: tool, want: item.want,
+		input: map[string]any{keyCommand: item.text},
+	}
 }

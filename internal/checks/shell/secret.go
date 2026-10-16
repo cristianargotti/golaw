@@ -94,7 +94,9 @@ func judgeSecretTokens(_ model.Input, segs []segment) ([]model.Finding, error) {
 	for _, seg := range segs {
 		for _, word := range seg {
 			for token := range strings.SplitSeq(word, "=") {
-				token = strings.TrimLeft(token, "<>")
+				// A backslash in a word is a Windows separator: PowerShell
+				// and cmd keep it, and a POSIX shell keeps only an escaped one.
+				token = strings.ReplaceAll(strings.TrimLeft(token, "<>"), `\`, "/")
 				if secretToken(token) {
 					message := fmt.Sprintf("the command names secret material (%s); secrets never enter the context", token)
 					return []model.Finding{deny("secret-token", message)}, nil

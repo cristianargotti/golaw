@@ -18,12 +18,17 @@ func TestShellFixturePairs(t *testing.T) {
 		"secret-token", "pwsh", "powershell", "cmd", "bash", "sh",
 	}
 	allowed := []string{
-		"commit-control", "push-default", "fetch", "body-100", "source-token",
+		"commit-control", "push-default", "fetch", "body-100", "source-token", "package-pattern",
 		"pwsh-control", "powershell-control", "cmd-control", "bash-control", "sh-control",
 	}
 	for _, tool := range []string{toolBash, toolPowerShell} {
 		expectShell(t, seen, denied, tool, wantDeny)
 		expectShell(t, seen, allowed, tool, wantAllow)
+	}
+	expectShell(t, seen, []string{"native-bypass", "native-call-bypass", "native-secret", "native-relative-secret"}, toolPowerShell, wantDeny)
+	expectShell(t, seen, []string{"native-commit-control", "native-source"}, toolPowerShell, wantAllow)
+	if _, found := seen["native-bypass-"+toolBash]; found {
+		t.Fatal("a native PowerShell row runs through Bash")
 	}
 }
 

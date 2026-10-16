@@ -44,7 +44,7 @@ func (r commandRule) Run(_ context.Context, in model.Input) (model.Result, error
 	if in.Event.Shape != model.ShapeShell {
 		return model.Result{Status: model.NotApplicable("the shell family judges shell events only")}, nil
 	}
-	findings, err := r.judge(in, segments(in.Event.Shell.Command))
+	findings, err := r.judge(in, segments(in.Event.Shell.Command, in.Event.Shell.Tool))
 	if err != nil {
 		return model.Result{Status: model.Unmeasured(err.Error())}, nil
 	}

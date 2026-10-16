@@ -11,26 +11,43 @@ const maxDepth = 8
 // separators end a segment: command lists, pipelines, subshells and lines.
 const separators = ";&|()\n\r"
 
-// segments splits a command line into simple commands: quotes and backslash
-// escapes are resolved, the separators end a segment, and a shell that runs
-// a script argument (sh -c, bash -lc, pwsh -Command, cmd /c) contributes the
-// segments of that script in its place, behind the same assignments and
-// wrappers a git call is seen through (env bash -lc, FOO=1 sh -c).
-// Expansions stay verbatim: the rules match words, they never run the shell.
-func segments(command string) []segment {
-	return split(command, 0)
+// dialect is how a shell reads its command line, named by the rune that
+// escapes the next one outside quotes and inside double quotes.
+type dialect rune
+
+// The dialects of the tools and the wrappers: a POSIX shell escapes with a
+// backslash, PowerShell with a backtick, where the backslash is the path
+// separator, and cmd has no escape a path could lose its separators to.
+const (
+	posix      dialect = '\\'
+	powerShell dialect = '`'
+	cmdShell   dialect = 0
+)
+
+// segments splits a command line into simple commands the way the tool's
+// shell reads it: quotes and escapes are resolved, the separators end a
+// segment, and a shell that runs a script argument (sh -c, bash -lc, pwsh
+// -Command, cmd /c) contributes the segments of that script, read in its
+// own dialect, in its place, behind the same assignments and wrappers a
+// git call is seen through (env bash -lc, FOO=1 sh -c). Expansions stay
+// verbatim: the rules match words, they never run the shell.
+func segments(command, tool string) []segment {
+	if strings.EqualFold(tool, "PowerShell") {
+		return split(command, powerShell, 0)
+	}
+	return split(command, posix, 0)
 }
 
-func split(command string, depth int) []segment {
-	s := &scanner{}
+func split(command string, d dialect, depth int) []segment {
+	s := &scanner{escapeRune: rune(d)}
 	for _, r := range command {
 		s.step(r)
 	}
 	s.endSegment()
 	var out []segment
 	for _, seg := range s.out {
-		if script, ok := shellScript(segment(unwrap(seg))); ok && depth < maxDepth {
-			out = append(out, split(script, depth+1)...)
+		if script, inner, ok := shellScript(segment(unwrap(seg))); ok && depth < maxDepth {
+			out = append(out, split(script, inner, depth+1)...)
 			continue
 		}
 		out = append(out, seg)
@@ -42,12 +59,13 @@ func split(command string, depth int) []segment {
 // backslash or a separator changes what the next rune means and a split on
 // blanks would cut a quoted message at its spaces.
 type scanner struct {
-	out    []segment
-	cur    segment
-	word   []rune
-	open   bool // a word is being built; an empty quoted string counts
-	quote  rune // the active quote, 0 outside quotes
-	escape bool // the next rune is taken literally
+	out        []segment
+	cur        segment
+	word       []rune
+	open       bool // a word is being built; an empty quoted string counts
+	quote      rune // the active quote, 0 outside quotes
+	escape     bool // the next rune is taken literally
+	escapeRune rune // the escape of the dialect, 0 for none
 }
 
 func (s *scanner) step(r rune) {
@@ -56,7 +74,7 @@ func (s *scanner) step(r rune) {
 		s.escaped(r)
 	case s.quote != 0:
 		s.quoted(r)
-	case r == '\\':
+	case s.escapeRune != 0 && r == s.escapeRune:
 		s.escape, s.open = true, true
 	case r == '\'' || r == '"':
 		s.quote, s.open = r, true
@@ -70,22 +88,27 @@ func (s *scanner) step(r rune) {
 	}
 }
 
-// escaped takes the rune after a backslash literally; a backslash before a
-// newline joins two lines and adds nothing.
+// escaped takes the rune after an escape literally; an escape before a
+// newline joins two lines and adds nothing. Inside double quotes a POSIX
+// backslash escapes only $, the backquote, the double quote, itself and the
+// newline, and stays before any other rune, as the shell leaves it there.
 func (s *scanner) escaped(r rune) {
 	s.escape = false
+	if s.quote == '"' && s.escapeRune == '\\' && !strings.ContainsRune("$`\"\\\n", r) {
+		s.word = append(s.word, '\\')
+	}
 	if r != '\n' {
 		s.word = append(s.word, r)
 	}
 }
 
-// quoted consumes a rune inside quotes: the closing quote ends them and a
-// backslash inside double quotes escapes the next rune.
+// quoted consumes a rune inside quotes: the closing quote ends them and the
+// escape of the dialect inside double quotes escapes the next rune.
 func (s *scanner) quoted(r rune) {
 	switch {
 	case r == s.quote:
 		s.quote = 0
-	case r == '\\' && s.quote == '"':
+	case s.escapeRune != 0 && r == s.escapeRune && s.quote == '"':
 		s.escape = true
 	default:
 		s.word = append(s.word, r)
@@ -107,11 +130,12 @@ func (s *scanner) endSegment() {
 	s.cur = nil
 }
 
-// base is the program name of a word: its last path element, lower case,
-// without the .exe suffix, so git.exe on Windows is the same program as git
-// for every rule that compares the name.
+// base is the program name of a word: its last path element after a slash
+// or a backslash, lower case, without the .exe suffix, so C:\Git\cmd\git.exe
+// on Windows is the same program as git for every rule that compares the
+// name.
 func base(word string) string {
-	return strings.TrimSuffix(strings.ToLower(word[strings.LastIndex(word, "/")+1:]), ".exe")
+	return strings.TrimSuffix(strings.ToLower(word[strings.LastIndexAny(word, `/\`)+1:]), ".exe")
 }
 
 // isShell reports whether a program runs a script given as an argument.
@@ -124,17 +148,29 @@ func isShell(name string) bool {
 	}
 }
 
-// shellScript returns the script a shell segment runs: the words after -c,
-// -lc, -Command or /c.
-func shellScript(seg segment) (string, bool) {
+// shellScript returns the script a shell segment runs, the words after -c,
+// -lc, -Command or /c, with the dialect that shell reads it in.
+func shellScript(seg segment) (string, dialect, bool) {
 	if len(seg) < 2 || !isShell(seg[0]) {
-		return "", false
+		return "", posix, false
 	}
 	for i := 1; i+1 < len(seg); i++ {
 		switch strings.ToLower(seg[i]) {
 		case "-c", "-lc", "-ec", "-command", "/c":
-			return strings.Join(seg[i+1:], " "), true
+			return strings.Join(seg[i+1:], " "), dialectOf(seg[0]), true
 		}
 	}
-	return "", false
+	return "", posix, false
+}
+
+// dialectOf is the dialect of a shell program.
+func dialectOf(program string) dialect {
+	switch base(program) {
+	case "pwsh", "powershell":
+		return powerShell
+	case "cmd":
+		return cmdShell
+	default:
+		return posix
+	}
 }
