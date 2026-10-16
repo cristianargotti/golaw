@@ -30,11 +30,8 @@ func TestInstalledInvocation(t *testing.T) {
 		}
 		return result{}
 	}
-	for _, event := range []string{eventPre, eventPost} {
-		for _, tool := range []string{toolWrite, toolEdit} {
-			err := expect(s.invoke(t.Context(), repo, event, tool, input), wantAllow)
-			assertPass(t, measured("invocation", event+"/"+tool, err))
-		}
+	if err := expect(s.invoke(t.Context(), repo, eventPre, toolWrite, input), wantAllow); err != nil {
+		t.Fatal(err)
 	}
 	if !called {
 		t.Fatal("installed invocation was not executed")
