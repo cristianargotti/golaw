@@ -11,7 +11,7 @@ import (
 // gateCommand runs the gate the way its installer registers it, and
 // foreignCommand is the hook of another tool.
 const (
-	gateCommand    = "python3 /opt/gate/scripts/pcc_gate.py"
+	gateCommand    = "python3 /opt/gate/scripts/standards_gate.py"
 	foreignCommand = "python3 /opt/hooks/classify.py"
 )
 
@@ -82,12 +82,12 @@ func TestTheGateIsTheScriptACommandRuns(t *testing.T) {
 		hook string
 		gate bool
 	}{
-		"interpreter":  {`{"command": "python3 /opt/gate/scripts/pcc_gate.py"}`, true},
-		"exec form":    {`{"command": "python3", "args": ["/opt/gate/scripts/pcc_gate.py"]}`, true},
-		"wrapped":      {`{"command": "bash -c 'python3 \"/opt/my gate/pcc_gate.py\"; true'"}`, true},
-		"similar name": {`{"command": "python3 /opt/gate/scripts/not_pcc_gate.py"}`, false},
-		"echo":         {`{"command": "echo pcc_gate.py"}`, false},
-		"echoed text":  {`{"command": "echo 'the pcc_gate.py gate is retired'"}`, false},
+		"interpreter":  {`{"command": "python3 /opt/gate/scripts/standards_gate.py"}`, true},
+		"exec form":    {`{"command": "python3", "args": ["/opt/gate/scripts/standards_gate.py"]}`, true},
+		"wrapped":      {`{"command": "bash -c 'python3 \"/opt/my gate/standards_gate.py\"; true'"}`, true},
+		"similar name": {`{"command": "python3 /opt/gate/scripts/not_standards_gate.py"}`, false},
+		"echo":         {`{"command": "echo standards_gate.py"}`, false},
+		"echoed text":  {`{"command": "echo 'the standards_gate.py gate is retired'"}`, false},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

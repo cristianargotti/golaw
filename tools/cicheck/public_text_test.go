@@ -131,3 +131,42 @@ func TestKitCarriesNoHomePath(t *testing.T) {
 		}
 	}
 }
+
+// privateTool is the name of the private tool whose file names the
+// coexistence check once spelled, assembled from halves so this file
+// carries none. The kit is global, so its tree names no private tool.
+var privateTool = regexp.MustCompile(`(?i)p` + `cc`)
+
+func TestKitNamesNoPrivateTool(t *testing.T) {
+	t.Parallel()
+	for text, want := range map[string]bool{
+		"p" + "cc_gate.py": true, "P" + "CC-standards.json": true, "standards_gate.py": false, "standards-gate.json": false,
+	} {
+		if privateTool.MatchString(text) != want {
+			t.Errorf("%q: match %v", text, !want)
+		}
+	}
+	for _, path := range trackedPaths(t) {
+		if privateTool.Match(kitBytes(t, path)) {
+			t.Errorf("%s names the private tool", path)
+		}
+	}
+}
+
+// trackedPaths lists the files git tracks in the kit's tree.
+func trackedPaths(t *testing.T) []string {
+	t.Helper()
+	command := exec.CommandContext(t.Context(), "git", "ls-files", "-z")
+	command.Dir = filepath.Join("..", "..")
+	output, err := command.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var paths []string
+	for path := range strings.SplitSeq(string(output), "\x00") {
+		if path != "" {
+			paths = append(paths, path)
+		}
+	}
+	return paths
+}

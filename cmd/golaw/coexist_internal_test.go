@@ -32,7 +32,7 @@ func writeGate(t *testing.T, config, repo string) {
 	if err := os.MkdirAll(config, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	settings := `{"hooks": {"PreToolUse": [{"matcher": "Write|Edit", "hooks": [{"command": "python3 pcc_gate.py"}]}]}}`
+	settings := `{"hooks": {"PreToolUse": [{"matcher": "Write|Edit", "hooks": [{"command": "python3 standards_gate.py"}]}]}}`
 	registry := `{"repos": ["` + filepath.ToSlash(repo) + `"]}`
 	for path, content := range map[string]string{coexist.SettingsPath(config): settings, coexist.RegistryPath(config): registry} {
 		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {

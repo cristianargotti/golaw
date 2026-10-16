@@ -16,8 +16,8 @@ import (
 // repositories it governs and the flags of its families.
 const (
 	settingsFile = "settings.json"
-	registryFile = "pcc-standards.json"
-	gateScript   = "pcc_gate.py"
+	registryFile = "standards-gate.json"
+	gateScript   = "standards_gate.py"
 )
 
 // Detection is what the machine and the repository say about the gate.

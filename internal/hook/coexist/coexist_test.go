@@ -16,16 +16,16 @@ const gateSettings = `{
   "hooks": {
     "PreToolUse": [
       {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/hooks/classify.py"}]},
-      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py", "timeout": 20}]},
-      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]},
-      {"matcher": "Read", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]}
+      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/standards_gate.py", "timeout": 20}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/standards_gate.py"}]},
+      {"matcher": "Read", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/standards_gate.py"}]}
     ],
     "PostToolUse": [
-      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]},
-      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]}
+      {"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/standards_gate.py"}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/standards_gate.py"}]}
     ],
     "SessionStart": [
-      {"matcher": "startup", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/pcc_gate.py"}]}
+      {"matcher": "startup", "hooks": [{"type": "command", "command": "python3 /opt/gate/scripts/standards_gate.py"}]}
     ]
   }
 }`
@@ -38,7 +38,7 @@ func home(t *testing.T, settings, registry string) string {
 	if err := os.Mkdir(filepath.Join(dir, ".claude"), 0o750); err != nil {
 		t.Fatal(err)
 	}
-	for name, content := range map[string]string{"settings.json": settings, "pcc-standards.json": registry} {
+	for name, content := range map[string]string{"settings.json": settings, "standards-gate.json": registry} {
 		if content == "" {
 			continue
 		}
@@ -153,7 +153,7 @@ func TestBuildAssignsOwnersAndRefuseNamesTheFlags(t *testing.T) {
 func TestGateWithoutTheEventDoesNotOwnTheFamily(t *testing.T) {
 	t.Parallel()
 	repo := t.TempDir()
-	readOnly := `{"hooks": {"PreToolUse": [{"matcher": "Read", "hooks": [{"command": "python3 pcc_gate.py"}]}]}}`
+	readOnly := `{"hooks": {"PreToolUse": [{"matcher": "Read", "hooks": [{"command": "python3 standards_gate.py"}]}]}}`
 	d, err := detect(home(t, readOnly, registryFor(repo, "")), repo)
 	if err != nil {
 		t.Fatal(err)
@@ -211,7 +211,7 @@ func TestDetectReadsTheConfigDirectoryOfTheAgent(t *testing.T) {
 	if err := os.Mkdir(config, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"settings.json", "pcc-standards.json"} {
+	for _, name := range []string{"settings.json", "standards-gate.json"} {
 		data, err := os.ReadFile(filepath.Join(h, ".claude", name))
 		if err != nil {
 			t.Fatal(err)
