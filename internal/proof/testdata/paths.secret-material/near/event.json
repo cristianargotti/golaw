@@ -1,1 +1,1 @@
-{"shape":"read","agent":"tester","tool":"Read","read":{"path":"/work/app/internal/credentials.go"}}
+{"shape":"read","agent":"tester","tool":"Read","read":{"path":"/work/app/dev.example.tfvars"}}

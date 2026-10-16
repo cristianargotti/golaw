@@ -1,20 +1,22 @@
 package paths
 
-// SecretGlobs are the narrow Read deny rules of section 8.2 in the glob
-// form an agent's read permission takes: private key files, Terraform
-// variable files, the SSH keys and the cloud credential stores of the
-// person. They close the reference gap, a file named in a prompt that the
-// host reads without a hook, and they land in the user settings, which the
-// host applies to every project, enrolled or not, before any hook runs; so
-// they name only files no source tree needs to read, and the broad name
-// list of section 8.4 stays with the hook, which judges every read in its
-// repository and leaves a source file named like a credential readable.
+// SecretGlobs are the Read deny rules agent install writes for the
+// reference gap, a file named in a prompt that the host reads without a
+// hook: private keys and keystores, the SSH keys and the cloud credential
+// stores of the person, which no source tree needs to read. The host
+// applies these user settings to every project before any hook runs, and a
+// rule cannot exempt a template without lifting the person's own denies, so
+// the two families that have templates are named narrowly: the variable
+// files Terraform loads by itself and the names that end in
+// service-account.json or service_account.json. A template of either stays
+// readable in every project, and every other secret name stays with the
+// hook, which judges each read by the whole name list of section 8.4.
 func SecretGlobs() []string {
 	return []string{
 		"**/*.pem", "**/*.key", "**/*.p12", "**/*.pfx", "**/*.jks", "**/*.kdbx",
-		"**/*.tfvars", "**/*.tfvars.json",
+		"**/terraform.tfvars", "**/terraform.tfvars.json", "**/*.auto.tfvars", "**/*.auto.tfvars.json",
 		"~/.ssh/id_rsa", "~/.ssh/id_dsa", "~/.ssh/id_ecdsa", "~/.ssh/id_ed25519",
 		"~/.aws/credentials", "~/.config/gcloud/*.json", "~/.azure/**",
-		"**/*service-account*.json", "**/*service_account*.json",
+		"**/*service-account.json", "**/*service_account.json",
 	}
 }

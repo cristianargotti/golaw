@@ -30,6 +30,7 @@ func TestSecretMaterial(t *testing.T) {
 		"kubeconfig", "cluster.kubeconfig", ".kube/config",
 		".docker/config.json", ".vault-token",
 		"terraform.tfstate", "terraform.tfstate.backup", "prod.tfvars", "prod.tfvars.json",
+		"infra/staging.tfvars.json", "service-account-prod.json",
 		"deploy.pem", "server.key", "store.p12", "cert.pfx", "trust.jks", "vault.kdbx",
 		".ssh/id_rsa", "id_ed25519",
 		".aws/credentials", "service-account.json", "sa_service_account.json", ".config/gcloud/adc.json", ".azure/accessTokens.json",
@@ -48,6 +49,8 @@ func TestSecretMaterial(t *testing.T) {
 		"deploy/external-secret.yaml", "charts/app/templates/secret.yaml", "config/secrets.json", "secrets.yml",
 		"config/credentials.example.json", "config/app.sample.yaml", "deploy/secret/token.txt",
 		"internal/secrets/testdata/fixture.go", "internal/secrets/vault.go",
+		"dev.example.tfvars", "terraform.tfvars.example", "infra/prod.sample.tfvars",
+		"service-account.example.json", "config/service_account.sample.json",
 	}
 	for _, path := range allowed {
 		if res := read(t, path); len(res.Findings) != 0 || res.Status.Kind != model.StatusMeasured {

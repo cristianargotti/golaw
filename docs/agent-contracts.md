@@ -4,7 +4,7 @@ M1 targets Claude Code. The validated host version is 2.1.299. The minimum suppo
 
 ## Installation and exec form
 
-The plugin owns hooks/hooks.json and its verbatim skill copy. Hooks do not live in settings.json. The installer adds narrow permissions.deny Read rules for private keys, Terraform variable files, SSH keys, and cloud credentials.
+The plugin owns hooks/hooks.json and its verbatim skill copy. Hooks do not live in settings.json. The installer adds narrow permissions.deny Read rules for private key and keystore files, the Terraform variable files Terraform loads by itself (terraform.tfvars and *.auto.tfvars, and their JSON form), the service account files whose name ends in service-account.json or service_account.json, SSH keys, and cloud credential files.
 
 Each handler uses exec form:
 

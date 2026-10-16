@@ -50,12 +50,11 @@ func TestSecretGlobsAgreeWithTheNameList(t *testing.T) {
 
 // secretPaths are the paths the deny rules must cover, held apart from the
 // globs so that a list that loses an entry, or every entry, turns red: the
-// four families of section 8.2 the rules close the reference gap for,
-// private keys, Terraform variable files, SSH keys and cloud credentials.
+// families of section 8.2 the rules close the reference gap for.
 func secretPaths() []string {
 	return []string{
 		"deploy.pem", "server.key", "store.p12", "cert.pfx", "trust.jks", "vault.kdbx",
-		"prod.tfvars", "infra/prod.tfvars.json",
+		"terraform.tfvars", "infra/terraform.tfvars.json", "prod.auto.tfvars", "infra/prod.auto.tfvars.json",
 		"home/.ssh/id_rsa", "home/.ssh/id_dsa", "home/.ssh/id_ecdsa", "home/.ssh/id_ed25519",
 		"home/.aws/credentials", "home/.config/gcloud/adc.json", "home/.azure/accessTokens.json",
 		"service-account.json", "deploy/sa_service_account.json",
@@ -68,7 +67,7 @@ func secretPaths() []string {
 // name list stays with the hook, which judges each read in its repository.
 func TestSecretGlobsStayNarrow(t *testing.T) {
 	t.Parallel()
-	narrow := regexp.MustCompile(`^(?:\*\*/\*\.(?:pem|key|p12|pfx|jks|kdbx|tfvars|tfvars\.json)|~/\.ssh/id_(?:rsa|dsa|ecdsa|ed25519)|~/\.aws/credentials|~/\.config/gcloud/\*\.json|~/\.azure/\*\*|\*\*/\*service[-_]account\*\.json)$`)
+	narrow := regexp.MustCompile(`^(?:\*\*/\*\.(?:pem|key|p12|pfx|jks|kdbx)|\*\*/(?:terraform|\*\.auto)\.tfvars(?:\.json)?|~/\.ssh/id_(?:rsa|dsa|ecdsa|ed25519)|~/\.aws/credentials|~/\.config/gcloud/\*\.json|~/\.azure/\*\*|\*\*/\*service[-_]account\.json)$`)
 	for _, glob := range SecretGlobs() {
 		if !narrow.MatchString(glob) {
 			t.Errorf("glob %q is broader than the families of section 8.2", glob)
@@ -89,18 +88,30 @@ func TestSecretGlobsCoverTheSecretPaths(t *testing.T) {
 	}
 }
 
-// TestSecretGlobsOverBlockTheTemplatesOfTheirFamilies pins the over-block
-// docs/security.md states: a deny rule has no exception, so a template
-// named like a file of a family the rules cover is denied to Read while the
-// check, which judges a template by its marker, allows it.
-func TestSecretGlobsOverBlockTheTemplatesOfTheirFamilies(t *testing.T) {
+func TestSecretGlobsLeaveTemplatesReadable(t *testing.T) {
 	t.Parallel()
-	for _, template := range []string{"dev.example.tfvars", "infra/prod.sample.tfvars", "service-account.example.json"} {
+	templates := []string{
+		"dev.example.tfvars", "terraform.tfvars.example", "infra/prod.sample.tfvars",
+		"service-account.example.json", "config/service_account.sample.json",
+	}
+	for _, template := range templates {
 		if secretName(template) {
-			t.Errorf("%s is a template the check allows", template)
+			t.Errorf("the check denies the template %s", template)
 		}
-		if !slices.ContainsFunc(SecretGlobs(), func(glob string) bool { return globMatch(glob, template) }) {
-			t.Errorf("no glob denies the template %s; narrow docs/security.md with the rules", template)
+		if slices.ContainsFunc(SecretGlobs(), func(glob string) bool { return globMatch(glob, template) }) {
+			t.Errorf("a glob denies the template %s", template)
+		}
+	}
+}
+
+func TestSecretGlobsLeaveOtherSecretNamesToTheHook(t *testing.T) {
+	t.Parallel()
+	for _, path := range []string{"prod.tfvars", "infra/staging.tfvars.json", "service-account-prod.json"} {
+		if !secretName(path) {
+			t.Errorf("the check allows the secret material %s", path)
+		}
+		if slices.ContainsFunc(SecretGlobs(), func(glob string) bool { return globMatch(glob, path) }) {
+			t.Errorf("a glob denies %s instead of leaving it to the hook", path)
 		}
 	}
 }
