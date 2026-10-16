@@ -26,8 +26,6 @@ type documents struct {
 	first   int       // the index in out of the first segment of the line
 	line    []rune    // the body line being read
 	body    []rune    // the body read so far of the first document open
-	rest    []rune    // every rune read as a body since a document last closed
-	off     bool      // the lines of an unended body are read again, opening no document
 }
 
 // heredocOperator reports whether a redirection operator opens a
@@ -84,7 +82,6 @@ func sourcesInput(seg segment) bool {
 
 // bodyRune reads a rune of the bodies, a line at a time.
 func (s *scanner) bodyRune(r rune) {
-	s.docs.rest = append(s.docs.rest, r)
 	if r != '\n' {
 		s.docs.line = append(s.docs.line, r)
 		return
@@ -118,32 +115,21 @@ func (s *scanner) closeDocument() {
 	if !s.docs.open[0].quoted {
 		s.bodies = append(s.bodies, string(s.docs.body))
 	}
-	s.docs.rest = s.docs.rest[:0]
 	s.docs.body, s.docs.open = s.docs.body[:0], s.docs.open[1:]
 	if len(s.docs.open) == 0 {
 		s.docs.reading, s.docs.first = false, len(s.out)
 	}
 }
 
-// endInput ends the command line: a body line without its newline is
-// read, and the bodies the line never ended stand as they are and are read
-// as commands too, because a << the reader takes for an operator may open
-// no here-document in the shell, as in $[ ] or ${ }, and the lines it
-// would hide must not pass unread; that second reading opens no document,
-// so each line is read once more at most.
+// endInput keeps a final body line without its newline and closes each
+// document as input of its command, because EOF ends the body even when
+// its end word never appears.
 func (s *scanner) endInput() {
 	if s.docs.reading && len(s.docs.line) > 0 {
 		s.bodyLine()
 	}
-	unended, reading := slices.Clone(s.docs.rest), s.docs.reading
 	for s.docs.reading {
 		s.closeDocument()
-	}
-	if reading {
-		s.docs.off = true
-		for _, r := range unended {
-			s.step(r)
-		}
 	}
 	s.endSegment()
 }

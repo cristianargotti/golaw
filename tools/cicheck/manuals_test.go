@@ -55,7 +55,8 @@ func TestSecurityShellReading(t *testing.T) {
 		"in the body of a here-document whose end word is unquoted, never in the body of one whose end word is quoted",
 		"bash 3.2, the /bin/bash of macOS, ends it at the first parenthesis left open",
 		"A comment, from a hash that starts a word to the end of its line or a PowerShell block comment, is text no rule reads",
-		"the lines after a here-document the line never ends are read as commands as well as its body",
+		"A here-document the line never ends takes the rest of the command line as its body, as bash does, and is data unless a shell reads it",
+		"A $[ ] or ${ } that holds a blank, a newline, a parenthesis or another separator of commands, where the scanner ends the word, is beyond this reading",
 		"a here-document a shell reads or its line sources from the standard input",
 		"a body eval runs through the output of cat, one xargs or a read loop turns into arguments and the script of another interpreter",
 	)

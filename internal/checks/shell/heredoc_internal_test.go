@@ -6,12 +6,9 @@ import (
 	"testing"
 )
 
-// TestUnendedBodiesAreReadAgainOnce bounds the reading of a line whose
-// here-documents never end: the lines after the first one that opens are
-// read again as commands once each, opening no document of their own, so
-// the bodies the reader keeps stay within the line instead of growing with
-// the square of its lines, and every line is still a command.
-func TestUnendedBodiesAreReadAgainOnce(t *testing.T) {
+// TestUnendedBodiesAreReadOnce keeps data out of the command stream and
+// prevents repeated body storage from growing with the square of its lines.
+func TestUnendedBodiesAreReadOnce(t *testing.T) {
 	t.Parallel()
 	const lines = 400
 	command := strings.Repeat("cat <<a\n", lines)
@@ -29,7 +26,13 @@ func TestUnendedBodiesAreReadAgainOnce(t *testing.T) {
 			cats++
 		}
 	}
-	if cats != lines {
-		t.Errorf("%d lines read as commands, want %d", cats, lines)
+	if cats != 1 {
+		t.Errorf("%d lines read as commands, want 1", cats)
+	}
+	if string(s.line) != "cat <<a\n" {
+		t.Errorf("body lines entered the command stream: %d runes", len(s.line))
+	}
+	if !slices.Equal(s.bodies, []string{strings.Repeat("cat <<a\n", lines-1)}) {
+		t.Errorf("the body was not kept exactly once: %q", s.bodies)
 	}
 }

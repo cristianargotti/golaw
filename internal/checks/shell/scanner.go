@@ -39,6 +39,8 @@ type scanner struct {
 	level      int       // the substitutions inside double quotes this scanner reads within
 	inner      *scanner  // the reader of the substitution inside double quotes being read
 	dollar     bool      // the last rune was a dollar inside double quotes
+	wordDollar bool      // the last rune was an unquoted, unescaped dollar
+	expansion  []rune    // brackets and braces open in a word's $[ ] or ${ }
 	ticks      bool      // a backquote inside double quotes opened a substitution
 	comment    comment   // the comment being read, none outside one
 	hash       bool      // the last rune of a block comment was a hash
@@ -50,6 +52,8 @@ func (s *scanner) step(r rune) {
 	if s.diverted(r) || s.operatorRune(r) {
 		return
 	}
+	dollar := s.wordDollar
+	s.wordDollar = false
 	switch {
 	case s.escape:
 		s.escaped(r)
@@ -59,7 +63,7 @@ func (s *scanner) step(r rune) {
 		s.escape, s.open, s.literal = true, true, true
 	case r == '\'' || r == '"':
 		s.quote, s.open, s.literal = r, true, true
-	case (r == '<' || r == '>') && s.arith == 0 || len(s.op) > 0:
+	case (r == '<' || r == '>') && s.arith == 0 && len(s.expansion) == 0 || len(s.op) > 0:
 		s.redirect(r)
 	case r == '&':
 		s.amp = true
@@ -76,9 +80,22 @@ func (s *scanner) step(r rune) {
 	case strings.ContainsRune(separators, r):
 		s.endSegment()
 	default:
-		s.open = true
-		s.word = append(s.word, r)
+		s.wordRune(r, dollar)
 	}
+}
+
+// wordRune keeps nested expansion delimiters within a word so their angle
+// brackets cannot open a redirection or hide the next command in a body.
+func (s *scanner) wordRune(r rune, dollar bool) {
+	n := len(s.expansion)
+	switch {
+	case (dollar || n > 0) && (r == '[' || r == '{'):
+		s.expansion = append(s.expansion, r)
+	case n > 0 && (r == ']' && s.expansion[n-1] == '[' || r == '}' && s.expansion[n-1] == '{'):
+		s.expansion = s.expansion[:n-1]
+	}
+	s.wordDollar, s.open = r == '$', true
+	s.word = append(s.word, r)
 }
 
 // escaped takes the rune after an escape literally; an escape before a
@@ -128,7 +145,7 @@ func (s *scanner) endWord() {
 	switch {
 	case s.open && s.pending != "":
 		s.redirects = append(s.redirects, segment{s.pending, string(s.word)})
-		if doc, strip := heredocOperator(s.pending); doc && s.escapeRune == rune(posix) && !s.docs.off {
+		if doc, strip := heredocOperator(s.pending); doc && s.escapeRune == rune(posix) {
 			s.docs.open = append(s.docs.open, heredoc{end: string(s.word), strip: strip, quoted: s.literal})
 		}
 		s.pending = ""
@@ -139,6 +156,7 @@ func (s *scanner) endWord() {
 		s.cur = append(s.cur, string(s.word))
 	}
 	s.word, s.open, s.literal = s.word[:0], false, false
+	s.expansion, s.wordDollar = s.expansion[:0], false
 }
 
 // endSegment ends the command being read, then its redirections, each a

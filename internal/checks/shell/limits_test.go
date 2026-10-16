@@ -58,3 +58,20 @@ func TestHereDocumentBodiesOtherProgramsReadAreData(t *testing.T) {
 		{"Bash", "bash <<'EOF'\ncat .env\nEOF", "secret-token"},
 	})
 }
+
+// TestExpansionsTheScannerEndsAreAStatedLimit pins the limit
+// docs/security.md states for a << inside a $[ ] or ${ }: the reader
+// follows one only within the word being built, so one that holds a blank,
+// a parenthesis or another separator of commands ends with the word there,
+// and a << after that point opens a here-document whose body hides the
+// next line, beside the counterpart the reader follows.
+func TestExpansionsTheScannerEndsAreAStatedLimit(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "echo ${x:-a b<<c}\ngit commit --no-verify -m x", ""},
+		{"Bash", "echo ${x:-$(true)<<b}\ngit commit --no-verify -m x", ""},
+		{"Bash", "echo ${x:-a;b<<c}\ngit commit --no-verify -m x", ""},
+		{"Bash", "echo $[1 <<2]\ngit commit --no-verify -m x", ""},
+		{"Bash", "echo ${x:-a<<b}\ngit commit --no-verify -m x", "no-verify"},
+	})
+}
