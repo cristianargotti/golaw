@@ -84,8 +84,11 @@ func scanFor(words []string) (operandScan, int, bool) {
 	switch base(words[0]) {
 	case "go":
 		at := 1
-		if words[1] == "-C" {
+		switch {
+		case words[1] == "-C":
 			at = 3
+		case strings.HasPrefix(words[1], "-C="):
+			at = 2
 		}
 		if at >= len(words) || !goPackageCommand(words[at]) {
 			return operandScan{}, 0, false

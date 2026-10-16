@@ -101,6 +101,7 @@ func TestSecretTokensSkipOnlyPackageOperands(t *testing.T) {
 		"go test -run TestX ./internal/secrets/... -v":                            false,
 		"go test -test.v ./internal/secrets/...":                                  false,
 		"go -C sub test ./internal/secrets/...":                                   false,
+		"go -C=sub test ./internal/secrets/...":                                   false,
 		"go run ./internal/secrets/...":                                           false,
 		"go test -coverpkg=./internal/secrets/... ./internal/secrets/...":         false,
 		"go test -coverpkg ./internal/secrets/...,./internal/x/... ./...":         false,
