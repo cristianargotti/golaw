@@ -158,29 +158,3 @@ func TestChangesNamesWhatDiffersFromTheIndex(t *testing.T) {
 		t.Fatal("a directory outside git was listed")
 	}
 }
-
-// TestBlobsAnswersWhatACommitHolds asks a commit for the blobs of its
-// files in one git command: a file it holds answers the blob, a file it
-// never held, a directory and a name a line cannot carry are absent, and
-// a commit git does not know is an error.
-func TestBlobsAnswersWhatACommitHolds(t *testing.T) {
-	t.Parallel()
-	root := initRepo(t)
-	write(t, root, "a.txt", "one\n")
-	write(t, root, "dir/b.txt", "two\n")
-	commitAll(t, root, "one")
-	repo, err := source.Discover(t.Context(), root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	blobs, err := source.Blobs(t.Context(), repo, repo.Head, []string{"a.txt", "dir", "never.txt", "line\nbreak", "dir/b.txt"})
-	if err != nil || len(blobs) != 2 || blobs["a.txt"] != strings.TrimSpace(gitRun(t, root, "rev-parse", "HEAD:a.txt")) || blobs["dir/b.txt"] == "" {
-		t.Fatalf("Blobs = %v, %v", blobs, err)
-	}
-	if none, err := source.Blobs(t.Context(), repo, "", []string{"a.txt"}); err != nil || len(none) != 0 {
-		t.Fatalf("an unborn commit = %v, %v", none, err)
-	}
-	if _, err := source.Blobs(t.Context(), source.Repo{Root: t.TempDir()}, repo.Head, []string{"a.txt"}); err == nil {
-		t.Fatal("a directory outside git answered blobs")
-	}
-}

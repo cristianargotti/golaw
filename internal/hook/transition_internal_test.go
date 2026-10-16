@@ -46,58 +46,99 @@ func transition() (Baseline, map[string]string, map[string]string, model.Snapsho
 // TestContentChangedLeavesWhatOnlyItsStatusMoved compares a path git
 // status named after the command and not before it with the blob the HEAD
 // of the pre event held: its own bytes leave it out, other bytes, no blob
-// and a deletion keep it, and the blobs of a HEAD that moved are asked for
-// once.
+// and a deletion keep it, and after a move of HEAD the blob the earlier
+// commit held is the one the move answers, the blob HEAD holds now where
+// the move changed nothing.
 func TestContentChangedLeavesWhatOnlyItsStatusMoved(t *testing.T) {
 	t.Parallel()
 	before, after, blobs, snapshot := transition()
 	run := execution{}
 	want := []string{"dirty.go", "edit.go", "gone.go", "new.go"}
 	same := Changes{Snapshot: snapshot, Head: "c1", Blobs: blobs}
-	if got := run.contentChanged(t.Context(), Dependencies{}, before, after, same); !slices.Equal(got, want) {
+	if got := run.contentChanged(t.Context(), Dependencies{}, before, after, same, moves{known: true}); !slices.Equal(got, want) {
 		t.Fatalf("HEAD unchanged = %v, want %v", got, want)
 	}
-	asked := 0
-	deps := Dependencies{Blobs: func(_ context.Context, _ Repository, commit string, paths []string) (map[string]string, error) {
-		asked++
-		if commit != "c1" || !slices.Equal(paths, []string{"edit.go", "gone.go", "mode.go", "new.go"}) {
-			t.Fatalf("asked %s for %v", commit, paths)
-		}
-		return blobs, nil
-	}}
-	if got := run.contentChanged(t.Context(), deps, before, after, Changes{Snapshot: snapshot, Head: "c2"}); !slices.Equal(got, want) || asked != 1 {
-		t.Fatalf("HEAD moved = %v after %d questions, want %v", got, asked, want)
+	named := []string{"dirty.go", "edit.go", "gone.go", "mode.go", "new.go"}
+	moved := moves{paths: map[string]string{"edit.go": helloSHA1, "gone.go": helloSHA1}, known: true}
+	now := Changes{Snapshot: snapshot, Head: "c2", Paths: named, Blobs: map[string]string{"mode.go": helloSHA1, "edit.go": "other"}}
+	if got := run.contentChanged(t.Context(), Dependencies{}, before, after, now, moved); !slices.Equal(got, want) {
+		t.Fatalf("HEAD moved = %v, want %v", got, want)
 	}
-	if got := run.contentChanged(t.Context(), Dependencies{}, before, map[string]string{"dirty.go": Hash([]byte("one"))}, same); len(got) != 0 {
+	if got := run.contentChanged(t.Context(), Dependencies{}, before, map[string]string{"dirty.go": Hash([]byte("one"))}, same, moves{known: true}); len(got) != 0 {
 		t.Fatalf("nothing changed = %v", got)
+	}
+}
+
+// TestContentChangedJudgesWhatAMoveOfHeadChanged keeps a path the move of
+// HEAD changed that git status reports clean after it, without asking git
+// how it stores the bytes, and leaves one whose bytes are still the blob
+// the earlier commit held.
+func TestContentChangedJudgesWhatAMoveOfHeadChanged(t *testing.T) {
+	t.Parallel()
+	snapshot := proof.NewTree(map[string][]byte{"committed.go": []byte("changed\n"), "back.go": []byte("hello\n")})
+	after := map[string]string{"committed.go": Hash([]byte("changed\n")), "back.go": Hash([]byte("hello\n"))}
+	moved := moves{paths: map[string]string{"committed.go": helloSHA1, "back.go": helloSHA1}, known: true}
+	asked := 0
+	deps := Dependencies{Hashes: func(context.Context, Repository, []string) (map[string]string, error) {
+		asked++
+		return nil, model.ErrUnreadable
+	}}
+	before, run := Baseline{Files: map[string]string{}, Head: "c1"}, execution{}
+	if got := run.contentChanged(t.Context(), deps, before, after, Changes{Snapshot: snapshot, Head: "c2"}, moved); !slices.Equal(got, []string{"committed.go"}) || asked != 0 {
+		t.Fatalf("changed %v after %d questions", got, asked)
 	}
 }
 
 // TestContentChangedKeepsWhatItCannotCompare keeps every path whose
 // status alone changed when the blob of the pre event cannot be known: a
-// binding without blobs or failing to answer them after HEAD moved, and
-// an unborn branch before the command.
+// move of HEAD no binding could read, and an unborn branch before the
+// command.
 func TestContentChangedKeepsWhatItCannotCompare(t *testing.T) {
 	t.Parallel()
 	before, after, blobs, snapshot := transition()
 	run := execution{}
 	all := []string{"dirty.go", "edit.go", "gone.go", "mode.go", "new.go"}
-	moved := Changes{Snapshot: snapshot, Head: "c2"}
-	failing := Dependencies{Blobs: func(context.Context, Repository, string, []string) (map[string]string, error) {
-		return nil, model.ErrUnreadable
-	}}
-	for name, d := range map[string]Dependencies{"a binding without blobs": {}, "a failing binding": failing} {
-		if got := run.contentChanged(t.Context(), d, before, after, moved); !slices.Equal(got, all) {
-			t.Fatalf("%s = %v, want %v", name, got, all)
-		}
+	if got := run.contentChanged(t.Context(), Dependencies{}, before, after, Changes{Snapshot: snapshot, Head: "c2", Blobs: blobs}, moves{}); !slices.Equal(got, all) {
+		t.Fatalf("an unknown move = %v, want %v", got, all)
 	}
 	unborn := Baseline{Files: before.Files}
-	if got := run.contentChanged(t.Context(), Dependencies{}, unborn, after, Changes{Snapshot: snapshot, Blobs: blobs}); !slices.Equal(got, all) {
+	if got := run.contentChanged(t.Context(), Dependencies{}, unborn, after, Changes{Snapshot: snapshot, Blobs: blobs}, moves{known: true}); !slices.Equal(got, all) {
 		t.Fatalf("an unborn branch before the command = %v, want %v", got, all)
 	}
-	held := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: proof.NewTree(nil)}, []string{"mode.go"}, blobs)
-	if bare := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: snapshot}, []string{"mode.go"}, nil); held["mode.go"] || bare["mode.go"] {
+	held := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: proof.NewTree(nil)}, []string{"mode.go"}, blobs, nil)
+	if bare := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: snapshot}, []string{"mode.go"}, nil, nil); held["mode.go"] || bare["mode.go"] {
 		t.Fatal("a path the snapshot does not hold, or without a blob, has the same blob")
+	}
+}
+
+// TestMovedSinceAsksOnlyWhenHeadMoved asks the binding for the move of HEAD
+// once, only when the HEAD of the post event is another commit than the
+// one of the pre event, and answers an unknown move from an unborn branch,
+// without a binding and when the binding fails.
+func TestMovedSinceAsksOnlyWhenHeadMoved(t *testing.T) {
+	t.Parallel()
+	asked := 0
+	deps := Dependencies{Moved: func(_ context.Context, _ Repository, from, to string) (map[string]string, error) {
+		asked++
+		if from == "c0" {
+			return nil, model.ErrUnreadable
+		}
+		return map[string]string{"a.go": from + to}, nil
+	}}
+	run := execution{repository: Repository{Head: "c2"}}
+	if got := run.movedSince(t.Context(), deps, "c2"); !got.known || got.paths != nil || asked != 0 {
+		t.Fatalf("HEAD in place = %+v after %d questions", got, asked)
+	}
+	if got := run.movedSince(t.Context(), deps, "c1"); !got.known || got.paths["a.go"] != "c1c2" || asked != 1 {
+		t.Fatalf("HEAD moved = %+v after %d questions", got, asked)
+	}
+	for name, since := range map[string]string{"an unborn branch": "", "a failing binding": "c0"} {
+		if got := run.movedSince(t.Context(), deps, since); got.known {
+			t.Fatalf("%s = %+v", name, got)
+		}
+	}
+	if got := run.movedSince(t.Context(), Dependencies{}, "c1"); got.known {
+		t.Fatalf("no binding = %+v", got)
 	}
 }
 
@@ -120,14 +161,14 @@ func TestContentChangedAsksGitWhatItConverts(t *testing.T) {
 		return map[string]string{"crlf.md": helloSHA1, "edited-cr.md": "other"}, nil
 	}}
 	run := execution{}
-	if got := run.contentChanged(t.Context(), deps, before, after, changes); !slices.Equal(got, []string{"edited-cr.md", "edited.md"}) ||
+	if got := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true}); !slices.Equal(got, []string{"edited-cr.md", "edited.md"}) ||
 		len(asked) != 1 || !slices.Equal(asked[0], []string{"crlf.md", "edited-cr.md"}) {
 		t.Fatalf("changed %v after asking %v", got, asked)
 	}
 	deps.Hashes = func(context.Context, Repository, []string) (map[string]string, error) {
 		return nil, model.ErrUnreadable
 	}
-	if got := run.contentChanged(t.Context(), deps, before, after, changes); len(got) != 3 {
+	if got := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true}); len(got) != 3 {
 		t.Fatalf("a binding that cannot answer = %v", got)
 	}
 }

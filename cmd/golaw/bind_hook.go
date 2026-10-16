@@ -58,7 +58,7 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest, cache: source.NewCache()}
 	return hook.Dependencies{
 		Home: b.processHome(), Begin: h.cache.Reset,
-		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Blobs: h.blobs, Hashes: h.hashes, Overlay: h.overlay,
+		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Moved: h.moved, Hashes: h.hashes, Overlay: h.overlay,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
 }
@@ -111,7 +111,7 @@ func (h hookBinding) enroll(ctx context.Context, dir, cwd string) (hook.Reposito
 	}
 	repo := hook.Repository{
 		Root: loc.Root, Identity: found.Identity(), CaseInsensitive: found.IgnoreCase,
-		Enrollment: model.Enrollment{State: model.EnrollmentNone},
+		Enrollment: model.Enrollment{State: model.EnrollmentNone}, Head: found.Head,
 	}
 	if loc.Record != nil {
 		repo.Enrollment = model.Enrollment{
@@ -219,17 +219,18 @@ func (h hookBinding) changes(ctx context.Context, repo hook.Repository, also []s
 	return hook.Changes{Snapshot: st.Worktree, Paths: st.Paths, Head: found.Head, Blobs: st.Heads, Edited: st.Edited}, nil
 }
 
-// blobs is the blob a commit holds at each path, in one question to git.
-func (h hookBinding) blobs(ctx context.Context, repo hook.Repository, commit string, paths []string) (map[string]string, error) {
+// moved is what differs between two commits, with the blob the earlier one
+// held at each path, in one question to git.
+func (h hookBinding) moved(ctx context.Context, repo hook.Repository, from, to string) (map[string]string, error) {
 	found, err := h.cache.Discover(ctx, repo.Root)
 	if err != nil {
 		return nil, discoverFailed(repo.Root, err)
 	}
-	blobs, err := source.Blobs(ctx, found, commit, paths)
+	moved, err := source.Moved(ctx, found, from, to)
 	if err != nil {
-		return nil, fmt.Errorf("read the blobs of %s at %s: %w", found.Root, commit, err)
+		return nil, fmt.Errorf("read the move of %s from %s: %w", found.Root, from, err)
 	}
-	return blobs, nil
+	return moved, nil
 }
 
 // hashes is the blob git would store for the bytes of each path now,

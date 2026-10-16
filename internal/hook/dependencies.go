@@ -8,12 +8,16 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// Repository carries discovery facts instead of inferring enrollment from a file.
+// Repository carries discovery facts instead of inferring enrollment from a
+// file: its root, its identity, whether its filesystem folds case, its
+// enrollment and the HEAD commit discovery found, empty on an unborn
+// branch.
 type Repository struct {
 	Root            string
 	Identity        string
 	CaseInsensitive bool
 	Enrollment      model.Enrollment
+	Head            string
 }
 
 // Dependencies keep policy authority and snapshot ownership in their packages.
@@ -28,9 +32,9 @@ type Repository struct {
 // Changes, when set, answers what git status reports changed, the paths
 // of also read beside them: the content identity of a shell command reads
 // only those, and a path clean at both ends is unchanged. Without it the
-// identity reads every file of the snapshot. Blobs answers the blob a
-// commit holds at each path, for a path whose status alone may have moved
-// while HEAD moved too. Hashes answers the blob git would store for the
+// identity reads every file of the snapshot. Moved answers the paths that
+// differ between two commits with the blob the earlier one held at each,
+// for a command that moved HEAD. Hashes answers the blob git would store for the
 // bytes each path holds now, through the conversions git applies on the
 // way in, for a path whose bytes are not the blob it held.
 type Dependencies struct {
@@ -40,7 +44,7 @@ type Dependencies struct {
 	Policy   func(context.Context, Repository) (*model.EffectivePolicy, error)
 	Snapshot func(context.Context, Repository) (model.Snapshot, error)
 	Changes  func(ctx context.Context, repository Repository, also []string) (Changes, error)
-	Blobs    func(ctx context.Context, repository Repository, commit string, paths []string) (map[string]string, error)
+	Moved    func(ctx context.Context, repository Repository, from, to string) (map[string]string, error)
 	Hashes   func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
 	Overlay  func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
 	Registry *engine.Registry

@@ -126,6 +126,19 @@ func TestContractsCheckAnInputOverTheBound(t *testing.T) {
 	)
 }
 
+// TestContractsJudgeWhatAMoveOfHeadChanged pins what both documents say a
+// command that moves HEAD has judged after it.
+func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/agent-contracts.md",
+		"unless the command moved HEAD: then git diff-tree names, once, the paths that differ between the HEAD of the pre event and the HEAD after the command",
+		"a file a command writes and commits as the first commit of its branch, whose earlier HEAD holds nothing to compare it with, is left to the pipeline",
+	)
+	requireText(t, "docs/security.md",
+		"a file a command writes and commits on a branch that has a commit is judged, the paths between the two HEADs being asked of git",
+	)
+}
+
 // TestAgentContractDetection pins what docs/agent-contracts.md says change
 // detection after a shell command sees and where it trusts git status.
 func TestAgentContractDetection(t *testing.T) {

@@ -6,38 +6,39 @@ import (
 	"strings"
 )
 
-// Blobs answers the blob a commit holds at each of the paths, asking git
-// cat-file --batch-check once for all of them. A path the commit holds as
-// no file, a tree or a submodule, and a name one line of input cannot
-// carry are left out, so a caller reads them as absent from the commit.
-func Blobs(ctx context.Context, repo Repo, commit string, paths []string) (map[string]string, error) {
-	var input []byte
-	asked := make([]string, 0, len(paths))
-	for _, path := range paths {
-		if commit == "" || strings.ContainsAny(path, "\n\r") {
-			continue
-		}
-		asked = append(asked, path)
-		input = append(input, commit+":"+path+"\n"...)
-	}
-	blobs := make(map[string]string, len(asked))
-	if len(asked) == 0 {
-		return blobs, nil
-	}
-	out, err := gitInput(ctx, repo.Root, input, "cat-file", "--batch-check")
+// gitlinkMode is the mode git gives a submodule.
+const gitlinkMode = "160000"
+
+// rawFields are the fields of a record of git diff-tree before its path:
+// the two modes, the two objects and the status.
+const rawFields = 5
+
+// Moved answers the paths that differ between two commits with the blob
+// the earlier one held at each, empty where it held none, asking git
+// diff-tree once; a submodule moved to another revision is left out, as
+// change detection excludes it.
+func Moved(ctx context.Context, repo Repo, from, to string) (map[string]string, error) {
+	out, err := git(ctx, repo.Root, "diff-tree", "-r", "-z", "--no-renames", from, to)
 	if err != nil {
 		return nil, err
 	}
-	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
-	for i, path := range asked {
-		if i >= len(lines) {
-			break
+	records := strings.Split(strings.TrimSuffix(string(out), "\x00"), "\x00")
+	moved := map[string]string{}
+	for i := 0; i+1 < len(records); i += 2 {
+		fields := strings.Fields(strings.TrimPrefix(records[i], ":"))
+		if len(fields) != rawFields {
+			return nil, fmt.Errorf("%w: git diff-tree printed %q", ErrGit, records[i])
 		}
-		if fields := strings.Fields(lines[i]); len(fields) == 3 && fields[1] == "blob" {
-			blobs[path] = fields[0]
+		if fields[0] == gitlinkMode && fields[1] == gitlinkMode {
+			continue
 		}
+		blob := fields[2]
+		if fields[0] == gitlinkMode || strings.Trim(blob, "0") == "" {
+			blob = ""
+		}
+		moved[records[i+1]] = blob
 	}
-	return blobs, nil
+	return moved, nil
 }
 
 // HashObjects answers the blob git would store for the bytes each path

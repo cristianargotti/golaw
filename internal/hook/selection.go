@@ -83,7 +83,9 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 	if before.Reason != "" {
 		return nil, nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, before.Reason)
 	}
-	after, changes, err := run.captureIdentities(ctx, dependencies, slices.Sorted(maps.Keys(before.Files)))
+	moved := run.movedSince(ctx, dependencies, before.Head)
+	also := append(slices.Sorted(maps.Keys(before.Files)), slices.Sorted(maps.Keys(moved.paths))...)
+	after, changes, err := run.captureIdentities(ctx, dependencies, also)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -91,7 +93,7 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 	if dependencies.Changes != nil {
 		sized = sizedAtBothEnds(before.Files, after)
 	}
-	return run.contentChanged(ctx, dependencies, before, after, changes), sized, nil
+	return run.contentChanged(ctx, dependencies, before, after, changes, moved), sized, nil
 }
 
 // sizedAtBothEnds are the paths git status named that a size identifies

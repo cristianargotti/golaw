@@ -15,8 +15,9 @@ import (
 // git status named after the command and not before it was clean then, so
 // its bytes were the blob the HEAD of the pre event held there, and it is
 // unchanged when its bytes are still that blob. A path named before the
-// command is compared by the identity its bytes have now.
-func (run execution) contentChanged(ctx context.Context, dependencies Dependencies, before Baseline, after map[string]string, changes Changes) []string {
+// command is compared by the identity its bytes have now, and a path the
+// move of HEAD changed that git status reports clean after it is changed.
+func (run execution) contentChanged(ctx context.Context, dependencies Dependencies, before Baseline, after map[string]string, changes Changes, moved moves) []string {
 	changed := Changed(before.Files, after)
 	var appeared []string
 	for _, path := range changed {
@@ -27,11 +28,11 @@ func (run execution) contentChanged(ctx context.Context, dependencies Dependenci
 	if len(appeared) == 0 || before.Head == "" {
 		return changed
 	}
-	blobs := changes.Blobs
+	blobs, settled := changes.Blobs, map[string]bool(nil)
 	if changes.Head != before.Head {
-		blobs = run.blobsAt(ctx, dependencies, before.Head, appeared)
+		blobs, settled = moved.blobs(changes)
 	}
-	same := run.sameBlobs(ctx, dependencies, changes, appeared, blobs)
+	same := run.sameBlobs(ctx, dependencies, changes, appeared, blobs, settled)
 	return slices.DeleteFunc(changed, func(path string) bool { return same[path] })
 }
 
@@ -41,10 +42,11 @@ func (run execution) contentChanged(ctx context.Context, dependencies Dependenci
 // for every such path. A path git status found edited under its own mode
 // was compared by git through its conversions, so unless its bytes hold a
 // carriage return, which an end of line rule may drop on a change of size
-// alone, it changed and git is not asked. A path without a blob, or whose
+// alone, it changed and git is not asked, and so did a path settled, one
+// git already found apart from its blob. A path without a blob, or whose
 // bytes the snapshot does not hold, a link or a file over the read bound
 // among them, is not the blob.
-func (run execution) sameBlobs(ctx context.Context, dependencies Dependencies, changes Changes, paths []string, blobs map[string]string) map[string]bool {
+func (run execution) sameBlobs(ctx context.Context, dependencies Dependencies, changes Changes, paths []string, blobs map[string]string, settled map[string]bool) map[string]bool {
 	same := map[string]bool{}
 	var converted []string
 	for _, path := range paths {
@@ -53,6 +55,7 @@ func (run execution) sameBlobs(ctx context.Context, dependencies Dependencies, c
 		case blob == "" || err != nil:
 		case blobName(content, len(blob)) == blob:
 			same[path] = true
+		case settled[path]:
 		case !changes.Edited[path] || bytes.IndexByte(content, '\r') >= 0:
 			converted = append(converted, path)
 		}
@@ -68,19 +71,6 @@ func (run execution) sameBlobs(ctx context.Context, dependencies Dependencies, c
 		same[path] = hashes[path] == blobs[path]
 	}
 	return same
-}
-
-// blobsAt asks for the blobs a commit holds at the paths, none when the
-// binding cannot answer, so such a path stays changed.
-func (run execution) blobsAt(ctx context.Context, dependencies Dependencies, commit string, paths []string) map[string]string {
-	if dependencies.Blobs == nil {
-		return nil
-	}
-	blobs, err := dependencies.Blobs(ctx, run.repository, commit, paths)
-	if err != nil {
-		return nil
-	}
-	return blobs
 }
 
 // blobName is the name git gives a blob of these bytes in the object
