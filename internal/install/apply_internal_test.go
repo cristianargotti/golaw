@@ -110,6 +110,30 @@ func TestApplyRejectsEnrollmentAndStalePlan(t *testing.T) {
 	}
 }
 
+func TestApplyRejectsOutputFailureAndCancellation(t *testing.T) {
+	t.Parallel()
+	plan, err := PlanClaude(testOptions(t))
+	must(t, err)
+	var output bytes.Buffer
+	writer := &enrollmentDouble{output: &output}
+	if err := Apply(t.Context(), plan, rejectWriter{}, writer); !errors.Is(err, io.ErrClosedPipe) {
+		t.Fatalf("diff output failure: %v", err)
+	}
+	if writer.calls != 0 {
+		t.Fatal("enrollment preceded a complete diff")
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := Apply(ctx, plan, &output, writer); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled application: %v", err)
+	}
+	for _, change := range plan.Changes {
+		if _, err := os.Stat(change.Path); !errors.Is(err, fs.ErrNotExist) {
+			t.Fatalf("artifact written after cancellation: %s: %v", change.Path, err)
+		}
+	}
+}
+
 func TestAtomicWriteAndDiffFailure(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "nested", "file")

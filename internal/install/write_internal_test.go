@@ -3,6 +3,7 @@ package install
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -38,5 +39,21 @@ func TestWriteAtomicFailuresLeaveNoTemporaryFile(t *testing.T) {
 	must(t, closed.Close())
 	if err := writeTemporary(closed, []byte("x")); err == nil {
 		t.Fatal("a closed file was written")
+	}
+}
+
+func TestWriteAtomicKeepsArtifactsPrivate(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		return
+	}
+	parent := filepath.Join(t.TempDir(), "created")
+	must(t, WriteAtomic(filepath.Join(parent, "artifact"), []byte("x")))
+	for path, want := range map[string]os.FileMode{parent: 0o700, filepath.Join(parent, "artifact"): 0o600} {
+		info, err := os.Stat(path)
+		must(t, err)
+		if info.Mode().Perm() != want {
+			t.Errorf("%s has mode %o, want %o", path, info.Mode().Perm(), want)
+		}
 	}
 }

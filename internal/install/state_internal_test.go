@@ -1,6 +1,7 @@
 package install
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,6 +21,11 @@ func TestProjectIdentity(t *testing.T) {
 	}
 	if _, _, missingErr := ProjectIdentity(filepath.Join(root, "absent")); missingErr == nil {
 		t.Fatal("missing root accepted")
+	}
+	file := filepath.Join(root, "file")
+	must(t, os.WriteFile(file, nil, 0o600))
+	if _, _, fileErr := ProjectIdentity(file); !errors.Is(fileErr, ErrPath) {
+		t.Fatalf("a file accepted as the repository root: %v", fileErr)
 	}
 	if runtime.GOOS == "windows" {
 		return
