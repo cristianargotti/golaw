@@ -29,25 +29,56 @@ func measured(category, name string, err error) row {
 	return got
 }
 
+// report prints one line per row, with whether the milestone requires it
+// (section 10.3 item 6), and closes a failed run with the rows that fail
+// it, so a release run stopped by a skipped required row names that row.
 func report(out io.Writer, rows []row, version, digest string) bool {
 	if _, err := fmt.Fprintln(out,
-		"CATEGORY\tAGENT\tOS\tVERSION\tBINARY\tSTATUS\tCASE\tDETAIL"); err != nil {
+		"CATEGORY\tAGENT\tOS\tVERSION\tBINARY\tSTATUS\tREQUIRED\tCASE\tDETAIL"); err != nil {
 		return false
 	}
-	passed := true
+	var failing []string
 	for _, item := range rows {
-		if item.status == statusFail || item.status == statusSkip && item.required {
-			passed = false
+		if blocks(item) {
+			failing = append(failing, failure(item))
 		}
-		if item.status != statusPass && item.status != statusFail && item.status != statusSkip {
-			passed = false
+		need := "optional"
+		if item.required {
+			need = "required"
 		}
 		detail := strings.Join(strings.Fields(item.detail), " ")
-		if _, err := fmt.Fprintf(out, "%s\tclaude\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		if _, err := fmt.Fprintf(out, "%s\tclaude\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			item.category, runtime.GOOS, version, digest,
-			item.status, item.name, detail); err != nil {
+			item.status, need, item.name, detail); err != nil {
 			return false
 		}
 	}
-	return passed
+	if len(failing) == 0 {
+		return true
+	}
+	_, _ = fmt.Fprintf(out, "rows that fail the run: %s\n", strings.Join(failing, ", ")) //nolint:errcheck // the run fails whatever the write answers
+	return false
+}
+
+// blocks reports whether a row fails the run: a FAIL, a SKIP of a
+// required row, or a status that is none of the three.
+func blocks(item row) bool {
+	switch item.status {
+	case statusPass:
+		return false
+	case statusSkip:
+		return item.required
+	default:
+		return true
+	}
+}
+
+// failure names a row that fails the run; a skipped one says it was
+// required, the reason it counts.
+func failure(item row) string {
+	name := item.category + "/" + item.name + " " + item.status
+	if item.status == statusSkip {
+		name += " required"
+	}
+	return name
 }

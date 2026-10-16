@@ -68,7 +68,7 @@ The empty output row, in the protocol-limit category, records the fault and prov
 
 The doctor-json row decodes doctor --json after an installed hook ran: every artifact matches its receipt, the hook names the built binary, every hook blocks on failure, and a source build is reported as metadata, never verified.
 
-Each result identifies category, agent, OS, agent version, binary digest, and PASS, FAIL, or SKIP. SKIP never counts as PASS.
+Each result identifies category, agent, OS, agent version, binary digest, PASS, FAIL, or SKIP, and whether the milestone requires the row. SKIP never counts as PASS. A failed run closes with the rows that fail it, so a release run stopped by a skipped required row names that row.
 
 claude plugin validate --strict is a required row. claude plugin test is the host's runner for hook modules written against its testing kit; the plugin ships command hooks and no module, so the host refuses the command and the row is recorded as not applicable, never as a pass. Neither proves installation or live dispatch. The kit also validates handler fields because the vendor validator accepted an unknown field during the initial investigation.
 

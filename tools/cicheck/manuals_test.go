@@ -53,5 +53,6 @@ func TestAgentContract(t *testing.T) {
 		"doctor-json",
 		"deepest existing directory above tool_input.file_path",
 		"records the fault and proves no denial",
+		"A failed run closes with the rows that fail it",
 	)
 }

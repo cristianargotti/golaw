@@ -43,3 +43,35 @@ func TestReport(t *testing.T) {
 		t.Fatal("failed writer passed")
 	}
 }
+
+// TestReportNamesTheRequiredRows marks every row required or optional and
+// closes a failed run with the required rows that did not pass, so a
+// release run that stops on a missing live record says which rows stopped
+// it (section 10.3 item 6).
+func TestReportNamesTheRequiredRows(t *testing.T) {
+	t.Parallel()
+	rows := []row{
+		measured("protocol", "allow", nil),
+		{"live", "host-timeout", statusSkip, "record absent", true},
+		{"vendor", "plugin-test", statusSkip, "not applicable", false},
+		measured("protocol", "deny", ErrAcceptance),
+	}
+	var out bytes.Buffer
+	if report(&out, rows, "2.1.299", "digest") {
+		t.Fatal(out.String())
+	}
+	text := out.String()
+	for _, want := range []string{
+		"\tSTATUS\tREQUIRED\tCASE\t",
+		"\tPASS\trequired\tallow\t", "\tSKIP\toptional\tplugin-test\t",
+		"rows that fail the run: live/host-timeout SKIP required, protocol/deny FAIL\n",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("missing %q in %q", want, text)
+		}
+	}
+	out.Reset()
+	if !report(&out, rows[:1], "2.1.299", "digest") || strings.Contains(out.String(), "fail the run") {
+		t.Fatal(out.String())
+	}
+}
