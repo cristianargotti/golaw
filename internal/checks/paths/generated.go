@@ -47,15 +47,18 @@ func (generatedTracked) Run(_ context.Context, in model.Input) (model.Result, er
 }
 
 // ignoredTrees reports every rule of an ignore file that hides a generated
-// tree; comments and negations are skipped.
+// tree; comments and negations are skipped. A rule is read from the folder
+// of its ignore file, as git reads it, so mocks/ in test/.gitignore hides
+// test/mocks.
 func ignoredTrees(path, content string) []model.Finding {
 	var out []model.Finding
+	folder := strings.TrimSuffix(path, ignoreFile)
 	for i, raw := range strings.Split(content, "\n") {
 		line := strings.TrimSpace(raw)
 		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "!") {
 			continue
 		}
-		if ignoredTree.MatchString(line) {
+		if ignoredTree.MatchString(folder + strings.TrimPrefix(line, "/")) {
 			message := fmt.Sprintf("ignore rule %q hides a generated tree; generated code is versioned and proven fresh", line)
 			out = append(out, deny(path, i+1, "generated-ignored", message))
 		}

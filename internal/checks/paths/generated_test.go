@@ -41,3 +41,17 @@ func TestGeneratedTracked(t *testing.T) {
 		t.Errorf("unreadable = %+v, %v", unread, err)
 	}
 }
+
+func TestGeneratedTrackedReadsARuleFromItsFolder(t *testing.T) {
+	t.Parallel()
+	res := scan(t, paths.GeneratedTracked(), map[string]string{
+		"test/.gitignore":     "mocks/\n",
+		"api/test/.gitignore": "/mocks/**\n",
+		"docs/.gitignore":     "mocks/\n",
+		"test/x/.gitignore":   "mocks/\n",
+	})
+	want := []string{"api/test/.gitignore generated-ignored", "test/.gitignore generated-ignored"}
+	if got := pathsOf(res); !slices.Equal(got, want) || res.Scope != "4 ignore files" {
+		t.Errorf("findings = %v, scope %q, want %v", got, res.Scope, want)
+	}
+}
