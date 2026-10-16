@@ -19,8 +19,8 @@ type floors struct {
 	allowPaths   []string
 	exclusions   []string
 	capabilities []string
-	waivers      []string
-	exceptions   []string
+	waivers      map[string]string // a waiver id to its latest expiry day
+	exceptions   map[string]string // "check at path" to its latest expiry day
 	profile      string
 	source       string
 }
@@ -35,8 +35,8 @@ func effective(f File) floors {
 		allowPaths:   f.Checks.Terms.policy().AllowPaths,
 		exclusions:   []string{},
 		capabilities: sortedUnique(f.Capabilities),
-		waivers:      make([]string, 0, len(f.Waivers)),
-		exceptions:   make([]string, 0, len(f.Exceptions)),
+		waivers:      make(map[string]string, len(f.Waivers)),
+		exceptions:   make(map[string]string, len(f.Exceptions)),
 	}
 	if c := f.Checks.Coverage; c != nil {
 		for i, v := range []*int{c.Total, c.Package, c.File, c.MinStatements} {
@@ -53,20 +53,30 @@ func effective(f File) floors {
 		out.profile, out.source = f.Profile.Name, f.Profile.Source
 	}
 	for _, w := range f.Waivers {
-		out.waivers = append(out.waivers, w.ID)
+		latest(out.waivers, w.ID, w.Until)
 	}
 	for _, e := range f.Exceptions {
-		out.exceptions = append(out.exceptions, e.Check+"\x00"+e.Path)
+		latest(out.exceptions, e.Check+" at "+e.Path, e.Until)
 	}
 	return out
+}
+
+// latest keeps the latest expiry day of an entry. The days are validated
+// in the fixed width layout 2006-01-02, so their text order is their date
+// order.
+func latest(days map[string]string, entry, until string) {
+	if until > days[entry] {
+		days[entry] = until
+	}
 }
 
 // CheckTightening refuses a proposed policy that weakens the one in force
 // (section 5.3, A2): lengths may only fall, percentages rise, the
 // statement minimum fall, the exemption, waiver, exception, allow-path and
-// exclusion sets shrink, the tool and capability sets grow, the profile
-// name and source stay, and a per-check option moves only in the direction
-// its schema declares. The kit pin, the profile version and digest, the
+// exclusion sets shrink, no waiver or exception expires later than in
+// force (A24), the tool and capability sets grow, the profile name and
+// source stay, and a per-check option moves only in the direction its
+// schema declares. The kit pin, the profile version and digest, the
 // language, the layout, the shell switches, the ladder and the managed
 // hashes are free.
 func CheckTightening(inForce, proposed File, schemas Schemas) error {
@@ -84,8 +94,8 @@ func CheckTightening(inForce, proposed File, schemas Schemas) error {
 		shrinking("checks.coverage.file_exemptions", was.exemptions, next.exemptions),
 		shrinking(keyAllowPaths, was.allowPaths, next.allowPaths),
 		shrinking("checks.lint.allowed_exclusions", was.exclusions, next.exclusions),
-		shrinking("vulnerability_waivers", was.waivers, next.waivers),
-		shrinking("exceptions", was.exceptions, next.exceptions),
+		expiring("vulnerability_waivers", was.waivers, next.waivers),
+		expiring("exceptions", was.exceptions, next.exceptions),
 		growing("checks.terms.tools", was.tools, next.tools),
 		growing(keyCapabilities, was.capabilities, next.capabilities),
 		samePin("profile.name", was.profile, next.profile),
@@ -126,6 +136,22 @@ func shrinking(key string, was, next []string) error {
 	for _, item := range next {
 		if !slices.Contains(was, item) {
 			return &weakening{key, fmt.Sprint(was), "an added " + item}
+		}
+	}
+	return nil
+}
+
+// expiring refuses an entry the proposed file adds and an entry whose
+// expiry it moves later: the debt set only shrinks, in scope and in time,
+// and a later day would bring an expired entry back into force.
+func expiring(key string, was, next map[string]string) error {
+	for _, entry := range slices.Sorted(maps.Keys(next)) {
+		until, kept := was[entry]
+		switch {
+		case !kept:
+			return &weakening{key, fmt.Sprint(slices.Sorted(maps.Keys(was))), "an added " + entry}
+		case next[entry] > until:
+			return &weakening{key + "[" + entry + "].until", until, next[entry]}
 		}
 	}
 	return nil

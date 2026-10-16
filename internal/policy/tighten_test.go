@@ -29,6 +29,8 @@ func TestCheckTighteningAccepts(t *testing.T) {
 		"option down":      strings.Replace(fullPolicy, "limit: 3", "limit: 2", 1),
 		"option grow":      strings.Replace(fullPolicy, "names: [a, b]", "names: [a, b, c]", 1),
 		"option switch":    strings.Replace(fullPolicy, "strict: true", "strict: false", 1),
+		"waiver sooner":    strings.Replace(fullPolicy, "until: 2026-11-01", "until: 2026-10-20", 1),
+		"exception sooner": strings.Replace(fullPolicy, "until: 2026-12-31", "until: 2026-11-30", 1),
 	}
 	for name, text := range accepted {
 		if err := policy.CheckTightening(inForce, decode(t, text), schemas()); err != nil {
@@ -52,6 +54,8 @@ func TestCheckTighteningRefuses(t *testing.T) {
 		"fewer caps":      {strings.Replace(fullPolicy, "capabilities: [go, cli]", "capabilities: [go]", 1), "capabilities"},
 		"new waiver":      {strings.Replace(fullPolicy, "id: GO-2026-6603", "id: GO-2026-9999", 1), "vulnerability_waivers"},
 		"new exception":   {strings.Replace(fullPolicy, "path: docs/old.md", "path: docs/new.md", 1), "exceptions"},
+		"waiver later":    {strings.Replace(fullPolicy, "until: 2026-11-01", "until: 2036-11-01", 1), "vulnerability_waivers[GO-2026-6603].until: 2026-11-01 to 2036-11-01"},
+		"exception later": {strings.Replace(fullPolicy, "until: 2020-01-01", "until: 2030-01-01", 1), "exceptions[text.dashes at docs/old.md].until: 2020-01-01 to 2030-01-01"},
 		"profile gone":    {strings.Replace(fullPolicy, "profile: {name: acme, source: https://example.com/acme.git, version: 0.3.0, digest: \"sha256:"+acmeDigest+"\"}\n", "", 1), "profile.name"},
 		"profile swapped": {strings.Replace(fullPolicy, "source: https://example.com/acme.git", "source: https://example.com/evil.git", 1), "profile.source"},
 		"option up":       {strings.Replace(fullPolicy, "limit: 3", "limit: 4", 1), "checks.text.tool-terms.limit"},
