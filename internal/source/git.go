@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -70,7 +71,8 @@ func Discover(ctx context.Context, dir string) (Repo, error) {
 // the filesystem holds a .git entry. Git exits 128 for every fatal error
 // and translates the reason it prints, so the entry git looks for is what
 // tells a directory outside every repository from a repository git failed
-// on, such as one with an unparsable configuration.
+// on, such as one with an unparsable configuration; an entry that cannot
+// be inspected counts as present, because outside is a claim to prove.
 func outsideCheckout(dir string) bool {
 	resolved, err := filepath.EvalSymlinks(dir)
 	if err != nil {
@@ -81,7 +83,7 @@ func outsideCheckout(dir string) bool {
 		return false
 	}
 	for current := abs; ; current = filepath.Dir(current) {
-		if _, err := os.Lstat(filepath.Join(current, ".git")); err == nil {
+		if _, err := os.Lstat(filepath.Join(current, ".git")); !errors.Is(err, fs.ErrNotExist) {
 			return false
 		}
 		if filepath.Dir(current) == current {
