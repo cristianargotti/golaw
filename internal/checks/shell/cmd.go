@@ -57,16 +57,20 @@ func cmdReadings(script string) []string {
 
 // cmdLine reads a script rune by rune the way cmd finds its commands.
 type cmdLine struct {
-	out     []string
-	cur     []rune   // the command being read, as its program receives it
-	word    []rune   // the word of that command being read, its quotes kept
-	words   []string // the words of that command read so far
-	quoted  bool     // inside cmd's double quotes, which a backslash never escapes
-	caret   bool     // the next rune is literal
-	blocks  int      // the parenthesized blocks open
-	sets    int      // the parentheses the set of a for holds open
-	set     []rune   // the text of that set, which a for /f may run
-	scripts []string // the commands the sets of a for /f run
+	out       []string
+	cur       []rune   // the command being read, as its program receives it
+	word      []rune   // the word of that command being read, its quotes kept
+	words     []string // the words of that command read so far
+	quoted    bool     // inside cmd's double quotes, which a backslash never escapes
+	caret     bool     // the next rune is literal
+	blocks    int      // the parenthesized blocks open
+	sets      int      // the parentheses the set of a for holds open
+	set       []rune   // the text of that set, which a for /f may run
+	scripts   []string // the commands the sets of a for /f run
+	op        []rune   // the redirection operator being read
+	file      []rune   // the file of that redirection
+	inFile    bool     // the operator is whole and its file is being read
+	redirects []string // the redirections of the command, each its operator and file
 }
 
 // cmdCommands splits a script into the commands cmd runs: outside its
@@ -104,6 +108,7 @@ func (l *cmdLine) step(r rune) {
 		l.add(r)
 	case r == '^':
 		l.caret = true
+	case l.redirection(r):
 	case r == '&' || r == '|' || r == '\n' || r == '\r':
 		l.end()
 	default:
@@ -184,7 +189,14 @@ func (l *cmdLine) open() {
 	}
 }
 
+// add takes a rune of the command, or of the file of the redirection
+// being read.
 func (l *cmdLine) add(r rune) {
+	if len(l.op) > 0 {
+		l.inFile = true
+		l.file = append(l.file, r)
+		return
+	}
 	if l.sets > 0 {
 		l.set = append(l.set, r)
 	}
@@ -192,8 +204,13 @@ func (l *cmdLine) add(r rune) {
 	l.word = append(l.word, r)
 }
 
+// end ends the command being read, then its redirections, each a command
+// of its own.
 func (l *cmdLine) end() {
+	l.flush()
 	l.out = append(l.out, string(l.cur))
+	l.out = append(l.out, l.redirects...)
+	l.redirects = l.redirects[:0]
 	l.restart()
 }
 

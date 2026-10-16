@@ -1,14 +1,6 @@
 package shell
 
-import (
-	"regexp"
-	"strings"
-)
-
-// redirection matches the redirection operator a word starts with, its
-// file descriptor or the PowerShell stream star included; the file it
-// names follows in the same word or, after a bare operator, in the next.
-var redirection = regexp.MustCompile(`^(?:\d+|\*)?[<>][<>&|]*`)
+import "strings"
 
 // The commands of the tools that the reading of their packages names.
 const (
@@ -59,10 +51,11 @@ type operandScan struct {
 
 // packageWords marks the words of a segment its program reads as Go
 // package patterns: the operands of a package command of the go tool and
-// of the linters that take patterns, never a redirection or its file, the
-// value of a flag, an argument go run or go test passes on to the program,
-// or a word of a command that reads files, such as go tool; the value of
-// -coverpkg is a list of patterns too.
+// of the linters that take patterns, never the value of a flag, an
+// argument go run or go test passes on to the program, or a word of a
+// command that reads files, such as go tool; the value of -coverpkg is a
+// list of patterns too. A redirection is a segment of its own, so its
+// file is never an operand.
 func packageWords(seg segment) []bool {
 	marks := make([]bool, len(seg))
 	program := unwrap(seg)
@@ -114,18 +107,13 @@ func goPackageCommand(command string) bool {
 	}
 }
 
-// scan marks the operands among the words from the given index: a
-// redirection and the file after a bare operator are skipped, a flag is
+// scan marks the operands among the words from the given index: a flag is
 // read by flagWord, and a word after the closed list of go test passes to
 // the test binary.
 func (s *operandScan) scan(words []string, from int) {
 	for i := from; i < len(words); i++ {
 		word := words[i]
-		switch op := redirection.FindString(word); {
-		case op != "":
-			if op == word {
-				i++
-			}
+		switch {
 		case len(word) > 1 && word[0] == '-':
 			next, stop := s.flagWord(words, i)
 			if stop {

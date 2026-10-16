@@ -2,7 +2,8 @@ package shell
 
 import "strings"
 
-// segment is one simple command: its words with quotes resolved.
+// segment is one simple command, its words with quotes resolved and its
+// redirections apart, or one redirection of a command (redirect.go).
 type segment []string
 
 // maxDepth bounds the unwrapping of shells that run a script argument.
@@ -72,22 +73,43 @@ type scanner struct {
 	out        []segment
 	cur        segment
 	word       []rune
-	open       bool // a word is being built; an empty quoted string counts
-	quote      rune // the active quote, 0 outside quotes
-	escape     bool // the next rune is taken literally
-	escapeRune rune // the escape of the dialect, 0 for none
+	open       bool      // a word is being built; an empty quoted string counts
+	literal    bool      // the word holds a quoted or escaped rune, so it names no stream
+	quote      rune      // the active quote, 0 outside quotes
+	escape     bool      // the next rune is taken literally
+	escapeRune rune      // the escape of the dialect, 0 for none
+	amp        bool      // an ampersand that starts the operator &> when one follows
+	op         []rune    // the redirection operator being read
+	pending    string    // a whole operator whose file is the next word
+	redirects  []segment // the redirections of the command, each its operator and file
 }
 
 func (s *scanner) step(r rune) {
+	if s.amp {
+		s.amp = false
+		if r == '>' {
+			s.closeWord()
+			s.op = append(s.op, '&', '>')
+			return
+		}
+		s.endSegment()
+	}
+	if len(s.op) > 0 && !continuesOperator(s.op, r) {
+		s.pending, s.op = string(s.op), s.op[:0]
+	}
 	switch {
 	case s.escape:
 		s.escaped(r)
 	case s.quote != 0:
 		s.quoted(r)
 	case s.escapeRune != 0 && r == s.escapeRune:
-		s.escape, s.open = true, true
+		s.escape, s.open, s.literal = true, true, true
 	case r == '\'' || r == '"':
-		s.quote, s.open = r, true
+		s.quote, s.open, s.literal = r, true, true
+	case r == '<' || r == '>' || len(s.op) > 0:
+		s.redirect(r)
+	case r == '&':
+		s.amp = true
 	case r == ' ' || r == '\t':
 		s.endWord()
 	case strings.ContainsRune(separators, r):
@@ -125,19 +147,31 @@ func (s *scanner) quoted(r rune) {
 	}
 }
 
+// endWord ends the word being built: the file of the operator waiting for
+// one, or a word of the command.
 func (s *scanner) endWord() {
-	if s.open {
+	switch {
+	case s.open && s.pending != "":
+		s.redirects = append(s.redirects, segment{s.pending, string(s.word)})
+		s.pending = ""
+	case s.open:
 		s.cur = append(s.cur, string(s.word))
 	}
-	s.word, s.open = s.word[:0], false
+	s.word, s.open, s.literal = s.word[:0], false, false
 }
 
+// endSegment ends the command being read, then its redirections, each a
+// segment of its own.
 func (s *scanner) endSegment() {
-	s.endWord()
+	if len(s.op) > 0 {
+		s.pending, s.op = string(s.op), s.op[:0]
+	}
+	s.closeWord()
 	if len(s.cur) > 0 {
 		s.out = append(s.out, s.cur)
 	}
-	s.cur = nil
+	s.out = append(s.out, s.redirects...)
+	s.cur, s.redirects, s.amp = nil, nil, false
 }
 
 // base is the program name of a word: its last path element after a slash

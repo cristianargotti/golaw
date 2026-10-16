@@ -11,7 +11,7 @@ type shellFixture struct {
 }
 
 func shellCommands() []shellFixture {
-	return []shellFixture{
+	return append([]shellFixture{
 		{"bypass", "git commit --no-verify -m 'fix: safe'", wantDeny},
 		{"short-bypass", "git commit -n -m 'fix: safe'", wantDeny},
 		{"commit-control", "git commit -m 'fix: safe'", wantAllow},
@@ -24,9 +24,27 @@ func shellCommands() []shellFixture {
 		{"source-token", "cat credentials.go", wantAllow},
 		{"package-pattern", "go test ./internal/secrets/...", wantAllow},
 		{"package-redirect", "go run ./x.go < ./deploy/secrets/...", wantDeny},
+		{"redirect-flag-value", "go run -tags < ./deploy/secrets/... example ./readstdin.go", wantDeny},
+		{"redirect-bypass", "git commit -m 'fix: safe' 2>&1 --no-verify", wantDeny},
+		{"redirect-control", "git commit -m 'fix: safe' > out.txt", wantAllow},
 		{"secret-directory", "grep -R . deploy/secrets/db/", wantDeny},
 		{"pwsh", `pwsh -Command "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"powershell", `powershell -NoProfile -Command "git commit --no-verify -m 'fix: safe'"`, wantDeny},
+		{"reserved-word-bypass", "if true; then git commit --no-verify -m 'fix: safe'; fi", wantDeny},
+		{"reserved-word-control", "if true; then git commit -m 'fix: safe'; fi", wantAllow},
+		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},
+		{"sh", `sh -c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
+		{"pwsh-control", `pwsh -Command "git status"`, wantAllow},
+		{"powershell-control", `powershell -NoProfile -Command "git status"`, wantAllow},
+		{"bash-control", `bash -lc "git status"`, wantAllow},
+		{"sh-control", `sh -c "git status"`, wantAllow},
+	}, cmdScripts()...)
+}
+
+// cmdScripts are the commands that run a script through cmd /c, each case
+// of the cmd reading with its control.
+func cmdScripts() []shellFixture {
+	return []shellFixture{
 		{"cmd", `cmd /c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"cmd-escaped-quote", `cmd /c 'git commit -m "fix: \"" --no-verify'`, wantDeny},
 		{"cmd-escaped-quote-control", `cmd /c 'git commit -m "fix: \" --no-verify"'`, wantAllow},
@@ -39,15 +57,7 @@ func shellCommands() []shellFixture {
 		{"cmd-call", `cmd /c 'call git commit --no-verify -m x'`, wantDeny},
 		{"cmd-start", `cmd /c 'start /b git commit --no-verify -m x'`, wantDeny},
 		{"cmd-call-control", `cmd /c 'call git commit -m x'`, wantAllow},
-		{"reserved-word-bypass", "if true; then git commit --no-verify -m 'fix: safe'; fi", wantDeny},
-		{"reserved-word-control", "if true; then git commit -m 'fix: safe'; fi", wantAllow},
-		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},
-		{"sh", `sh -c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
-		{"pwsh-control", `pwsh -Command "git status"`, wantAllow},
-		{"powershell-control", `powershell -NoProfile -Command "git status"`, wantAllow},
 		{"cmd-control", `cmd /c "git status"`, wantAllow},
-		{"bash-control", `bash -lc "git status"`, wantAllow},
-		{"sh-control", `sh -c "git status"`, wantAllow},
 	}
 }
 

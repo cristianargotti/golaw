@@ -33,6 +33,7 @@ func TestSecurityContract(t *testing.T) {
 		"the items of a for set, the root of a for /r and the file of an if exist, stay judged",
 		"the command the set of a for /f runs is read as the script of a child cmd /c",
 		"call and start are read as wrappers of the command after them",
+		"a redirection, wherever it stands and joined to a word or not, is no argument",
 		"These rules cannot express an exception",
 		"a negation rule for the templates would also lift the person's own deny rules for them",
 	)
