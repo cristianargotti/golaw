@@ -14,8 +14,9 @@ const separators = ";&|()\n\r"
 // segments splits a command line into simple commands: quotes and backslash
 // escapes are resolved, the separators end a segment, and a shell that runs
 // a script argument (sh -c, bash -lc, pwsh -Command, cmd /c) contributes the
-// segments of that script in its place. Expansions stay verbatim: the rules
-// match words, they never run the shell.
+// segments of that script in its place, behind the same assignments and
+// wrappers a git call is seen through (env bash -lc, FOO=1 sh -c).
+// Expansions stay verbatim: the rules match words, they never run the shell.
 func segments(command string) []segment {
 	return split(command, 0)
 }
@@ -28,7 +29,7 @@ func split(command string, depth int) []segment {
 	s.endSegment()
 	var out []segment
 	for _, seg := range s.out {
-		if script, ok := shellScript(seg); ok && depth < maxDepth {
+		if script, ok := shellScript(segment(unwrap(seg))); ok && depth < maxDepth {
 			out = append(out, split(script, depth+1)...)
 			continue
 		}

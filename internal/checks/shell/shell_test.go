@@ -89,6 +89,10 @@ func TestNoVerify(t *testing.T) {
 		"C:/Git/bin/git.exe commit -n -m x":             true,
 		"git.exe commit -m x":                           false,
 		"git.exe status":                                false,
+		"env bash -lc 'git commit --no-verify -m x'":    true,
+		"FOO=1 bash -c 'git commit --no-verify -m x'":   true,
+		"sudo FOO=1 sh -c 'git commit -n -m x'":         true,
+		"env bash -lc 'git status'":                     false,
 	})
 }
 
