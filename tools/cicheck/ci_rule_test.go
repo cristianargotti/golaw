@@ -39,13 +39,9 @@ func inspectCI(path string, data []byte) string {
 }
 
 func inspectJob(path, id string, job *yaml.Node) string {
-	for i, node := range children(at(job, "permissions")) {
-		if i%2 == 0 || node.Value != "write" {
-			continue
-		}
-		if path != ".github/workflows/release.yml" || id != "release" {
-			return "Write permission is restricted to publication."
-		}
+	if grantsWrite(at(job, "permissions")) &&
+		(path != ".github/workflows/release.yml" || id != "release") {
+		return "Write permission is restricted to publication."
 	}
 	steps := children(at(job, "steps"))
 	for index := range steps {
@@ -54,6 +50,20 @@ func inspectJob(path, id string, job *yaml.Node) string {
 		}
 	}
 	return ""
+}
+
+// grantsWrite reads any scalar but read-all as a write, because write-all
+// grants every scope without naming one.
+func grantsWrite(permissions *yaml.Node) bool {
+	if permissions != nil && permissions.Kind == yaml.ScalarNode {
+		return permissions.Value != "read-all"
+	}
+	for i, node := range children(permissions) {
+		if i%2 == 1 && node.Value == "write" {
+			return true
+		}
+	}
+	return false
 }
 
 func inspectStep(steps []*yaml.Node, index int) string {
