@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -24,7 +25,11 @@ func TestExecutableWrite(t *testing.T) {
 	if err := writeFile(path, []byte("simulated executable"), execMode); err != nil {
 		t.Fatal(err)
 	}
-	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+	info, err := os.Stat(path)
+	if err != nil || !info.Mode().IsRegular() {
 		t.Fatalf("%v, %v", info, err)
+	}
+	if runtime.GOOS != goosWindows && info.Mode().Perm()&0o100 == 0 {
+		t.Fatal("the executable was written without its execute bit:", info.Mode())
 	}
 }
