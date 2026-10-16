@@ -66,11 +66,16 @@ func Read(info *debug.BuildInfo, ok bool) Info {
 // pseudo-version of an untagged commit. The policy pin of A10 is checked
 // against a release only.
 func (i Info) Release() (string, bool) {
-	if !i.Stamped || !releasePattern.MatchString(i.Version) {
+	if !i.Stamped || !IsRelease(i.Version) {
 		return "", false
 	}
 	return i.Version, true
 }
+
+// IsRelease reports whether a version is the exact X.Y.Z of a release, the
+// rule the pin of A10 binds, so doctor judges a recorded version the way
+// scan and the hook judge the running one.
+func IsRelease(version string) bool { return releasePattern.MatchString(version) }
 
 // Lines renders the metadata one field per line for the version command:
 // the version first, then the module, the sum and the revision when known,

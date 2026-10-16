@@ -21,14 +21,16 @@ const (
 	lineBinary           = "doctor.binary"
 	lineHooks            = "doctor.hooks"
 	lineBuild            = "doctor.build"
+	lineDispatch         = "doctor.dispatch"
 	receiptFile          = "receipt.json"
 )
 
 // doctorRow replays item 2 of section 10.3: once an installed hook ran in
 // the installed repository, doctor --json decodes, every artifact the
 // receipt lists matches, every hook of its definition blocks on failure,
-// the hook names the binary this run built and a source build is
-// metadata, never verified (section 11 M1).
+// the hook names the binary this run built, a source build is metadata,
+// never verified (section 11 M1), and the hook process left the dispatch
+// evidence of section 5.6.
 func (s *suite) doctorRow(ctx context.Context) row {
 	repo := filepath.Join(s.base, dirRepos, repoInstallation)
 	input, err := payload(s.root, repo, writeFixture(caseDoctor, pathNote, textSafe, wantAllow))
@@ -133,6 +135,7 @@ func judgedLines() map[string]judgedLine {
 		lineBinary:    {"binary-matches", "ok"},
 		lineHooks:     {"hook-failure-blocked", "ok"},
 		lineBuild:     {"source-build-unverifiable", "source-build"},
+		lineDispatch:  {"dispatch-observed", "ok"},
 	}
 }
 

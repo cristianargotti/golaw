@@ -38,6 +38,7 @@ func healthyReport(c command) doctor.Report {
 	lines = append(lines,
 		doctor.Line{ID: lineBuild, State: "source-build", Code: "source-build-unverifiable"},
 		doctor.Line{ID: "doctor.trust", State: "unknown", Code: "plugin-hook-trust-unproven"},
+		doctor.Line{ID: lineDispatch, State: "ok", Code: "dispatch-observed"},
 	)
 	return doctor.Report{Schema: 1, Lines: lines}
 }
@@ -120,6 +121,9 @@ func badDoctorAnswers(t *testing.T, s *suite) map[string]struct {
 		"repeated build": {reportAnswer(t, func(r *doctor.Report) {
 			r.Lines = append(r.Lines, doctor.Line{ID: lineBuild, State: "source-build", Code: "source-build-unverifiable"})
 		}), "repeats the binary or the build line"},
+		"undispatched": {reportAnswer(t, editLine(lineDispatch, func(l *doctor.Line) {
+			l.State, l.Code = "unknown", "dispatch-unobserved"
+		})), "dispatch-unobserved"},
 	}
 }
 

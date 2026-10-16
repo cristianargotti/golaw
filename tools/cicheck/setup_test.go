@@ -43,5 +43,7 @@ func TestM1SetupSequence(t *testing.T) {
 		"init --apply never renders over a golaw.yml the checkout already holds",
 		"until agent install enrolls the policy in force",
 		"The record follows a tightening only",
+		"reports a newer host as unknown until it is validated",
+		"The final line gives the time and the OS of the last hook process",
 	)
 }

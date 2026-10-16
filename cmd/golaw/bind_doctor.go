@@ -67,7 +67,8 @@ func (b binding) policyFacts(ctx context.Context, root string, now time.Time) (s
 }
 
 // observed fills the environment a hook process of the agent recorded for
-// the repository, when one exists for the current hook definition.
+// the repository, when one exists for the current hook definition, and the
+// last dispatch evidence that process left.
 func (b binding) observed(agent agents.Agent, root string, input *doctor.Input) {
 	state, err := b.installState()
 	if err != nil {
@@ -81,7 +82,9 @@ func (b binding) observed(agent agents.Agent, root string, input *doctor.Input) 
 	if err != nil {
 		return
 	}
-	env, err := doctor.LoadObservation(agents.ObservationPath(state, agent.ID, identity), identity, digest)
+	path := agents.ObservationPath(state, agent.ID, identity)
+	input.Dispatch = doctor.ReadDispatch(path, identity, digest)
+	env, err := doctor.LoadObservation(path, identity, digest)
 	if err == nil {
 		input.Environment = env
 	}

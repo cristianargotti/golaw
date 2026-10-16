@@ -118,6 +118,7 @@ func (h hookBinding) observe(root, cwd string) {
 	observation := doctor.Observation{
 		Identity: identity, HookDigest: h.hookDigest,
 		Environment: doctor.ObserveEnvironment(h.environ(), cwd),
+		SeenAt:      h.now, OS: h.goos,
 	}
 	_ = doctor.SaveObservation(agents.ObservationPath(h.state, h.agent, identity), observation) //nolint:errcheck // evidence for doctor, never a verdict
 }

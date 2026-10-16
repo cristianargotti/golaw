@@ -35,6 +35,8 @@ The installer shows its changes, preserves unrelated settings in order, and reco
 
 doctor distinguishes artifact presence, matching hashes, executable resolution, enabled state, trust, validated agent version, and last dispatch evidence. Presence alone does not prove dispatch.
 
+The version line compares the host with the 2.1.295 floor and the validated 2.1.299, and reports a newer host as unknown until it is validated. A development build reports its pin as not enforced, as scan and the hook skip it. The final line gives the time and the OS of the last hook process the host ran for the repository, which proves dispatch but not trust.
+
 A go install build reports version, module sum, and revision as metadata, with state source build, executable not verifiable.
 
 Signed release assets are the primary distribution path with checksums, a Sigstore bundle, SBOMs, and attestations. M1 publishes those artifacts; automatic release verification in doctor arrives in M5.

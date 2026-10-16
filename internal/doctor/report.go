@@ -35,6 +35,7 @@ type Snapshot struct {
 	Build              BuildMetadata     `json:"build"`
 	Enrollment         model.Enrollment  `json:"enrollment"`
 	EnrollmentError    string            `json:"enrollment_error"`
+	Dispatch           Dispatch          `json:"dispatch"`
 }
 
 type assessment struct {
@@ -55,6 +56,7 @@ func assessments() []assessment {
 		{"doctor.enrollment", enrollmentLines},
 		{idPython, pythonLines},
 		{"doctor.trust", trustLines},
+		{"doctor.dispatch", dispatchLines},
 	}
 }
 

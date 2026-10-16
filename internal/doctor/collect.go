@@ -17,6 +17,7 @@ type Input struct {
 	PolicyDigest, ProfileDigest, PinnedVersion string
 	RequiredRead                               []string
 	Environment                                AgentEnvironment
+	Dispatch                                   Dispatch
 }
 
 // VersionRunner permits native process behavior to be replaced in unit tests.
@@ -49,6 +50,7 @@ func Collect(ctx context.Context, input Input, enrollment EnrollmentReader, runn
 	snapshot := collectFiles(input)
 	snapshot.RequiredRead = input.RequiredRead
 	snapshot.PinnedVersion = input.PinnedVersion
+	snapshot.Dispatch = input.Dispatch
 	snapshot.Build = RunningMetadata()
 	snapshot.Binary = CompareBinary("golaw", input.Environment, input.RunningBinary)
 	if runner != nil {

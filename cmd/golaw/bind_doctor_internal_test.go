@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/doctor"
 )
@@ -25,6 +26,9 @@ func TestDoctorReportCollectsTheEvidenceOfARepository(t *testing.T) {
 		if !ids[want] {
 			t.Errorf("line %s is missing from %v", want, ids)
 		}
+	}
+	if last := report.Lines[len(report.Lines)-1]; last.ID != "doctor.dispatch" || last.Code != "dispatch-unobserved" {
+		t.Errorf("a repository no hook process ran in = %+v", last)
 	}
 }
 
@@ -70,6 +74,10 @@ func TestDoctorReportUsesTheObservationOfTheHook(t *testing.T) {
 		if line.ID == "doctor.binary" && line.State == "unknown" {
 			t.Fatalf("the observation of the hook was not used: %+v", line)
 		}
+	}
+	last := report.Lines[len(report.Lines)-1]
+	if last.ID != "doctor.dispatch" || last.State != "ok" || !strings.Contains(last.Detail, now().Format(time.RFC3339)+" on linux") {
+		t.Fatalf("the dispatch of the hook = %+v", last)
 	}
 	b.exe = func() (string, error) { return "", errBoom }
 	if _, err = b.doctorReport(t.Context(), agentUnderTest(), root, scopeUser, now()); err == nil {

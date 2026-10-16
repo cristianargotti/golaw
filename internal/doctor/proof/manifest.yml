@@ -43,3 +43,7 @@ checks:
     code: python-ownership-unresolved
     red: testdata/python/red
     near: testdata/python/near
+  - id: doctor.dispatch
+    code: dispatch-unobserved
+    red: testdata/dispatch/red
+    near: testdata/dispatch/near
