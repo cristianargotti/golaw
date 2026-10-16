@@ -34,7 +34,7 @@ Post events detect changes after execution. They cannot undo writes. Shell post 
 
 Background writers, manual edits, hosted tools, and MCP tools outside supported event routes can bypass the guard. Claude Code @ references bypass hooks; narrow Read deny rules cover only their listed paths.
 
-A shell command is judged by the repository of the session's working directory, because its targets cannot be known before it runs. A command sent from an unenrolled directory into an enrolled repository, such as git -C, is not judged. A script run through cmd /c is read the way cmd separates its commands and the started program splits its arguments by the Microsoft runtime rules; a program that parses its command line another way, a cmd builtin included, may read the same text differently.
+A shell command is judged by the repository of the session's working directory, because its targets cannot be known before it runs. A command sent from an unenrolled directory into an enrolled repository, such as git -C, is not judged. A script run through cmd /c is read the way cmd separates its commands, past the condition of an if, the clause of a for up to its do and an else, and the started program splits its arguments by the Microsoft runtime rules; a program that parses its command line another way, a cmd builtin included, may read the same text differently.
 
 Codex CLI and Cursor enforcement are outside M1. Their later adapters have separate limits: Codex write_stdin into an existing interpreter, untrusted or failed hooks, and specialized tool routes; Cursor writes until its mutation payload is understood. M1 implies no enforcement by those adapters.
 

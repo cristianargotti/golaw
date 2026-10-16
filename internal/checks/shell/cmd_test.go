@@ -56,3 +56,51 @@ func TestCmdReadsItsScriptTheWayCmdAndTheRuntimeDo(t *testing.T) {
 		}
 	}
 }
+
+// TestCmdSeesTheCommandsOfItsControlBlocks judges the command an if, a for
+// or an else of cmd runs: the condition of an if (exist, defined,
+// errorlevel, cmdextversion, a comparison, with /i and not), the clause of
+// a for up to its do and an else after a closing parenthesis are no part
+// of the command, a parenthesis right after them opens a block, the set of
+// a for holds parentheses of its own, and the delimiters cmd skips before
+// a command are no part of its name; an else that follows no block and an
+// if that is an argument of another command run nothing.
+func TestCmdSeesTheCommandsOfItsControlBlocks(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		tool, command string
+		want          string
+	}{
+		{"Bash", `cmd /c 'if exist marker (git commit --no-verify -m "fix: x")'`, "no-verify"},
+		{"PowerShell", `cmd /c 'if exist marker (git commit --no-verify -m "fix: x")'`, "no-verify"},
+		{"Bash", `cmd /c 'if exist marker git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'if not exist marker (git commit --no-verify -m x)'`, "no-verify"},
+		{"Bash", `cmd /c 'if exist marker (echo y) else (git commit --no-verify -m x)'`, "no-verify"},
+		{"Bash", `cmd /c 'if exist marker (echo y) else(git commit --no-verify -m x)'`, "no-verify"},
+		{"Bash", `cmd /c 'for %i in (1) do (git commit --no-verify -m x)'`, "no-verify"},
+		{"Bash", `cmd /c 'for /l %i in (1,1,2) do(git commit --no-verify -m x)'`, "no-verify"},
+		{"Bash", `cmd /c '(for %i in (1) do git commit --no-verify -m x)'`, "no-verify"},
+		{"Bash", `cmd /c 'if "a b"=="a b" git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'if /i a equ A (git commit --no-verify -m x)'`, "no-verify"},
+		{"Bash", `cmd /c 'if a == a git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'if a== a git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'if a ==a git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'if errorlevel 1 if defined X @git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'if cmdextversion 2 git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c ';git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'echo a & ,=git commit --no-verify -m x'`, "no-verify"},
+		{"Bash", `cmd /c 'if exist marker (git commit -m "fix: x")'`, ""},
+		{"Bash", `cmd /c 'if exist marker git commit -m "--no-verify"'`, ""},
+		{"Bash", `cmd /c 'if exist marker (echo --no-verify)'`, ""},
+		{"Bash", `cmd /c 'if 1==1 echo a else git commit --no-verify'`, ""},
+		{"Bash", `cmd /c 'echo if exist x git commit --no-verify'`, ""},
+		{"Bash", `cmd /c 'for %i in (git commit --no-verify) do echo %i'`, ""},
+		{"Bash", `cmd /c 'if exist'`, ""},
+		{"Bash", `cmd /c 'if a b c git commit --no-verify -m x'`, ""},
+	} {
+		got := judgeTool(t, shell.NoVerify(), tc.tool, tc.command)
+		if tc.want == "" && len(got) != 0 || tc.want != "" && (len(got) != 1 || got[0] != tc.want) {
+			t.Errorf("%s %q: codes %v, want %q", tc.tool, tc.command, got, tc.want)
+		}
+	}
+}
