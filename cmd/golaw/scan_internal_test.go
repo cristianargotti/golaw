@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -186,5 +187,60 @@ func TestCodeOfTreatsDenyLikeFail(t *testing.T) {
 	t.Parallel()
 	if got := codeOf(engine.Decision{Verdict: engine.VerdictDeny}); got != exitFindings {
 		t.Fatalf("deny = %d", got)
+	}
+}
+
+// notesRepository is an enrolled repository whose commit holds a README.md
+// with a dash, an ignore file hiding a generated tree and a note the
+// checkout has deleted since.
+func notesRepository(t *testing.T, ta testApp) string {
+	t.Helper()
+	root := enrolledByInit(t, ta)
+	for name, content := range map[string]string{"README.md": "one \u2014 two\n", ".gitignore": "gen/\n", "gone.md": "gone\n"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	gitRun(t, root, "add", "-A")
+	gitRun(t, root, "commit", "-q", "-m", "docs: add the notes")
+	if err := os.Remove(filepath.Join(root, "gone.md")); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// TestScanLeavesAnUnreadableFileUnmeasured is the scan of section 5.2 over
+// the real classification of the source: a README.md holding a dash and an
+// ignore file hiding a generated tree, both unreadable, answer Unmeasured
+// with exit 2 instead of clean, while a tracked file deleted from the
+// checkout is a deletion the next commit carries, never unreadable.
+func TestScanLeavesAnUnreadableFileUnmeasured(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" || os.Getuid() == 0 {
+		t.Skip("permission bits do not refuse the owner here")
+	}
+	ta := boundApp(t)
+	root := notesRepository(t, ta)
+	for _, tc := range []struct{ name, want string }{
+		{"README.md", "text.dashes unmeasured read README.md: path unreadable"},
+		{".gitignore", "paths.generated-tracked unmeasured read .gitignore: path unreadable"},
+	} {
+		name, want := tc.name, tc.want
+		path := filepath.Join(root, name)
+		if err := os.Chmod(path, 0o000); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if err := os.Chmod(path, 0o600); err != nil {
+				t.Error(err)
+			}
+		})
+		ta.stdout.Reset()
+		if got := ta.run(t.Context(), []string{"scan", root}); got != exitFailure {
+			t.Fatalf("%s: exit = %d, stdout = %q, stderr = %q", name, got, ta.stdout.String(), ta.stderr.String())
+		}
+		if out := ta.stdout.String(); !strings.Contains(out, want) || strings.Contains(out, "gone.md") {
+			t.Errorf("%s: missing %q, or a deleted file judged, in %q", name, want, out)
+		}
 	}
 }

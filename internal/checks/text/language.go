@@ -19,9 +19,10 @@ var (
 	accentedRune = regexp.MustCompile(`[\x{e1}\x{e9}\x{ed}\x{f3}\x{fa}\x{e3}\x{f5}\x{e7}\x{f1}\x{c1}\x{c9}\x{cd}\x{d3}\x{da}]`)
 )
 
-// goFile keeps hand-written Go files; generated code has no author.
+// goFile keeps hand-written Go files, an unreadable one included (anyText);
+// generated code has no author.
 func goFile(f model.File) bool {
-	return f.Class.IsText() && f.Class != model.ClassGenerated && strings.HasSuffix(f.Path, ".go")
+	return anyText(f) && f.Class != model.ClassGenerated && strings.HasSuffix(f.Path, ".go")
 }
 
 type commentLanguage struct{}

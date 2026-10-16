@@ -26,12 +26,14 @@ func GeneratedTracked() model.Check { return generatedTracked{} }
 
 func (generatedTracked) Spec() model.Spec { return spec("paths.generated-tracked", model.ScopeFile) }
 
-// Run reads every ignore file among the targets.
+// Run reads every ignore file among the targets, an unreadable one
+// included: its failed read answers Unmeasured instead of clean.
 func (generatedTracked) Run(_ context.Context, in model.Input) (model.Result, error) {
 	var findings []model.Finding
 	files := 0
 	for _, f := range in.Targets {
-		if !f.Class.IsText() || (f.Path != ignoreFile && !strings.HasSuffix(f.Path, "/"+ignoreFile)) {
+		readable := f.Class.IsText() || f.Class == model.ClassUnreadable
+		if !readable || (f.Path != ignoreFile && !strings.HasSuffix(f.Path, "/"+ignoreFile)) {
 			continue
 		}
 		content, err := in.Snapshot.Read(f.Path)

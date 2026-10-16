@@ -29,8 +29,11 @@ func spec(id string) model.Spec {
 // keep decides whether a check reads a target.
 type keep func(model.File) bool
 
-// anyText keeps every file a check may read as text.
-func anyText(f model.File) bool { return f.Class.IsText() }
+// anyText keeps every file a check may read as text, and every file of
+// the unreadable class: that class hides what the bytes would be, so the
+// check reads the file through the snapshot, the read fails and the walk
+// answers Unmeasured naming the path instead of clean (section 5.2).
+func anyText(f model.File) bool { return f.Class.IsText() || f.Class == model.ClassUnreadable }
 
 // walk reads every target that accept keeps and hands each line to visit
 // with its 1-based number. It returns how many files it read; a failed read

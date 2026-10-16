@@ -3,6 +3,7 @@ package source
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -51,23 +52,38 @@ func listUniverse(ctx context.Context, root string) ([]entry, error) {
 	return slices.CompactFunc(entries, func(a, b entry) bool { return a.path == b.path }), nil
 }
 
+// The states of the directories above a listed path.
+const (
+	dirsPlain  = iota // every directory above the path is an ordinary one
+	dirsLinked        // one is a symbolic link or cannot be inspected
+	dirsGone          // one no longer exists
+)
+
 // inspect stats one listed path and reads it within the bound. A symbolic
 // link, a directory (a submodule or a nested repository) and anything that
 // is not a regular file get their class without a read, and so does a path
 // under a linked directory; the bytes come back with true only for a
-// regular file read whole.
-func inspect(root string, e entry, linked map[string]bool) (model.File, []byte, bool) {
+// regular file read whole. A tracked path gone from the working tree, or
+// under a directory that is gone, is a deletion the next commit carries,
+// not a file that cannot be read: it answers ClassUnknown and leaves the
+// universe.
+func inspect(root string, e entry, dirs map[string]int) (model.File, []byte, bool) {
 	file := model.File{Path: e.path}
 	if e.dir {
 		file.Class = model.ClassGitlink
 		return file, nil, false
 	}
-	if linkedParent(root, e.path, linked) {
+	switch parentDirs(root, e.path, dirs) {
+	case dirsGone:
+		return file, nil, false
+	case dirsLinked:
 		file.Class = model.ClassUnreadable
 		return file, nil, false
 	}
 	info, err := os.Lstat(OSPath(root, e.path))
 	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		file.Class = model.ClassUnknown
 	case err != nil:
 		file.Class = model.ClassUnreadable
 	case info.Mode()&fs.ModeSymlink != 0:
@@ -82,28 +98,36 @@ func inspect(root string, e entry, linked map[string]bool) (model.File, []byte, 
 	return file, nil, false
 }
 
-// linkedParent reports whether a directory above a listed path is a
-// symbolic link or cannot be inspected. Lstat and a read follow every
-// component but the last, so a tracked path whose directory became a link
-// would otherwise read bytes from wherever the link points. The answer per
-// directory is kept in linked, top-down, so each one is inspected once.
-func linkedParent(root, rel string, linked map[string]bool) bool {
+// parentDirs answers the state of the directories above a listed path: a
+// symbolic link or a directory that cannot be inspected, because Lstat and
+// a read follow every component but the last, so a tracked path whose
+// directory became a link would otherwise read bytes from wherever the
+// link points; and a directory that is gone. The state per directory is
+// kept in dirs, top-down, so each one is inspected once.
+func parentDirs(root, rel string, dirs map[string]int) int {
 	for i, c := range rel {
 		if c != '/' {
 			continue
 		}
 		dir := rel[:i]
-		link, known := linked[dir]
+		state, known := dirs[dir]
 		if !known {
 			info, err := os.Lstat(OSPath(root, dir))
-			link = err != nil || info.Mode()&fs.ModeSymlink != 0
-			linked[dir] = link
+			switch {
+			case errors.Is(err, fs.ErrNotExist):
+				state = dirsGone
+			case err != nil || info.Mode()&fs.ModeSymlink != 0:
+				state = dirsLinked
+			default:
+				state = dirsPlain
+			}
+			dirs[dir] = state
 		}
-		if link {
-			return true
+		if state != dirsPlain {
+			return state
 		}
 	}
-	return false
+	return dirsPlain
 }
 
 // readRegular reads a regular file within the bound; a file beyond it,

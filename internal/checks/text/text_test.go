@@ -1,7 +1,9 @@
 package text_test
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks/text"
@@ -94,5 +96,41 @@ func TestUnreadableTargetIsUnmeasured(t *testing.T) {
 	}
 	if res.Status.Reason != "read a.go: path unreadable" {
 		t.Errorf("reason = %q", res.Status.Reason)
+	}
+}
+
+// unreadable is a snapshot whose one file the source could not read, so
+// it carries the class source assigns instead of a fake readable one.
+type unreadable struct{ class model.FileClass }
+
+func (u unreadable) Files() []model.File {
+	return []model.File{{Path: "internal/a.go", Class: u.class}}
+}
+
+func (unreadable) Read(path string) ([]byte, error) {
+	return nil, fmt.Errorf("%w: %s is unreadable", model.ErrUnreadable, path)
+}
+
+func (u unreadable) Class(string) model.FileClass { return u.class }
+
+// TestTheUnreadableClassIsUnmeasured holds every check of the family to
+// section 5.2: a file the snapshot could not read is read through it, so
+// the check answers Unmeasured naming the path instead of clean; a link,
+// which holds no text, is still skipped.
+func TestTheUnreadableClassIsUnmeasured(t *testing.T) {
+	t.Parallel()
+	for _, c := range text.Checks() {
+		for class, want := range map[model.FileClass]model.StatusKind{
+			model.ClassUnreadable: model.StatusUnmeasured, model.ClassSymlink: model.StatusMeasured,
+		} {
+			tree := unreadable{class: class}
+			res, err := c.Run(t.Context(), model.Input{Mode: model.ModeScan, Policy: proof.Policy(), Snapshot: tree, Targets: tree.Files()})
+			if err != nil || res.Status.Kind != want {
+				t.Errorf("%s over a %s file: %+v, %v", c.Spec().ID, class, res, err)
+			}
+			if want == model.StatusUnmeasured && !strings.Contains(res.Status.Reason, "internal/a.go is unreadable") {
+				t.Errorf("%s: reason = %q", c.Spec().ID, res.Status.Reason)
+			}
+		}
 	}
 }

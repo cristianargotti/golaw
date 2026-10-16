@@ -55,3 +55,27 @@ func TestGeneratedTrackedReadsARuleFromItsFolder(t *testing.T) {
 		t.Errorf("findings = %v, scope %q, want %v", got, res.Scope, want)
 	}
 }
+
+// unreadableIgnore is an ignore file the source could not read, with the
+// class the source assigns to it.
+type unreadableIgnore struct{}
+
+func (unreadableIgnore) Files() []model.File {
+	return []model.File{{Path: "api/.gitignore", Class: model.ClassUnreadable}}
+}
+
+func (unreadableIgnore) Read(string) ([]byte, error) { return nil, model.ErrUnreadable }
+
+func (unreadableIgnore) Class(string) model.FileClass { return model.ClassUnreadable }
+
+// TestGeneratedTrackedLeavesTheUnreadableClassUnmeasured reads an ignore
+// file of the unreadable class through the snapshot, so the check answers
+// Unmeasured naming it instead of clean (section 5.2).
+func TestGeneratedTrackedLeavesTheUnreadableClassUnmeasured(t *testing.T) {
+	t.Parallel()
+	tree := unreadableIgnore{}
+	res, err := paths.GeneratedTracked().Run(t.Context(), model.Input{Mode: model.ModeScan, Policy: proof.Policy(), Snapshot: tree, Targets: tree.Files()})
+	if err != nil || res.Status.Kind != model.StatusUnmeasured || res.Status.Reason != "read api/.gitignore: path unreadable" {
+		t.Errorf("unreadable ignore file = %+v, %v", res, err)
+	}
+}

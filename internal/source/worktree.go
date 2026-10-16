@@ -37,9 +37,12 @@ func NewWorktree(ctx context.Context, repo Repo) (*Worktree, error) {
 		content: make(map[string][]byte),
 	}
 	var ledger []byte
-	linked := map[string]bool{}
+	dirs := map[string]int{}
 	for _, e := range entries {
-		file, content, read := inspect(repo.Root, e, linked)
+		file, content, read := inspect(repo.Root, e, dirs)
+		if file.Class == model.ClassUnknown {
+			continue
+		}
 		if read {
 			w.content[file.Path] = content
 		}
