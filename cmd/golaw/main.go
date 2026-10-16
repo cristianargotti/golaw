@@ -24,14 +24,16 @@ func main() {
 // run through; a test builds an app with fakes instead.
 func newApp(stdout, stderr io.Writer) *app {
 	b := binding{
-		goos: runtime.GOOS,
-		env:  os.Getenv,
-		home: os.UserHomeDir,
-		info: buildinfo.Current(),
+		goos:    runtime.GOOS,
+		env:     os.Getenv,
+		environ: os.Environ,
+		home:    os.UserHomeDir,
+		info:    buildinfo.Current(),
 	}
 	return &app{
 		stdout:    stdout,
 		stderr:    stderr,
+		stdin:     os.Stdin,
 		buildInfo: buildinfo.Current,
 		now:       time.Now,
 		home:      os.UserHomeDir,
@@ -42,5 +44,6 @@ func newApp(stdout, stderr io.Writer) *app {
 		enroll:    b.enroll,
 		explain:   b.explain,
 		render:    b.render,
+		hookDeps:  b.hookDependencies,
 	}
 }

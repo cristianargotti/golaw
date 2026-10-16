@@ -30,8 +30,9 @@ func newTestApp(t *testing.T) testApp {
 		buildInfo: func() buildinfo.Info {
 			return buildinfo.Info{Version: "9.9.9", Module: "example.test/kit", Stamped: true}
 		},
-		now:  func() time.Time { return time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC) },
-		home: func() (string, error) { return t.TempDir(), nil },
+		now:   func() time.Time { return time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC) },
+		home:  func() (string, error) { return t.TempDir(), nil },
+		stdin: strings.NewReader(""),
 	}
 	return testApp{app: a, stdout: stdout, stderr: stderr}
 }
@@ -81,8 +82,11 @@ func TestRunPrintsHelpOnStdout(t *testing.T) {
 func TestNewAppBindsEverySeam(t *testing.T) {
 	t.Parallel()
 	a := newApp(&bytes.Buffer{}, &bytes.Buffer{})
-	if a.buildInfo == nil || a.now == nil || a.home == nil {
+	if a.buildInfo == nil || a.now == nil || a.home == nil || a.stdin == nil {
 		t.Fatal("a production seam is nil")
+	}
+	if a.hookDeps == nil {
+		t.Fatal("an integration seam is nil")
 	}
 	if got := a.buildInfo(); !got.Stamped {
 		t.Fatalf("build info = %+v", got)

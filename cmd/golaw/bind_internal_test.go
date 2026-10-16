@@ -85,10 +85,11 @@ func testBinding(t *testing.T) (binding, string) {
 		"HOME": home, "XDG_STATE_HOME": filepath.Join(home, "state"), "XDG_CONFIG_HOME": filepath.Join(home, "config"),
 	}
 	b := binding{
-		goos: "linux",
-		env:  func(name string) string { return values[name] },
-		home: func() (string, error) { return home, nil },
-		info: buildinfo.Info{Version: testVersion, Module: "example.test/kit", Stamped: true},
+		goos:    "linux",
+		env:     func(name string) string { return values[name] },
+		environ: func() []string { return []string{"PATH=" + filepath.Join(home, "bin")} },
+		home:    func() (string, error) { return home, nil },
+		info:    buildinfo.Info{Version: testVersion, Module: "example.test/kit", Stamped: true},
 	}
 	return b, home
 }

@@ -11,6 +11,8 @@ import (
 
 	"github.com/cristianargotti/golaw/internal/buildinfo"
 	"github.com/cristianargotti/golaw/internal/engine"
+	"github.com/cristianargotti/golaw/internal/hook"
+	"github.com/cristianargotti/golaw/internal/hook/agents"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
@@ -27,6 +29,7 @@ const (
 // Every seam is bound once, in newApp.
 type app struct {
 	stdout, stderr io.Writer
+	stdin          io.Reader
 	buildInfo      func() buildinfo.Info
 	now            func() time.Time
 	home           func() (string, error)
@@ -37,6 +40,7 @@ type app struct {
 	enroll         func(root string, data []byte, policy *model.EffectivePolicy, now time.Time) error
 	explain        func(ctx context.Context, root string, now time.Time) (string, error)
 	render         func(w io.Writer, in model.Input, run *engine.Run, d engine.Decision, asJSON bool) error
+	hookDeps       func(agent agents.Agent, now time.Time) (hook.Dependencies, error)
 }
 
 // exitError carries an exit code that is a result, not a failure: findings
@@ -65,7 +69,7 @@ func (a *app) rootCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand())
+	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand(), a.hookCommand())
 	return root
 }
 

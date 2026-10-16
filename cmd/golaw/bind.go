@@ -21,10 +21,11 @@ import (
 // environment it was given and never reads the process environment
 // itself, so a test binds it to a temporary home.
 type binding struct {
-	goos string
-	env  func(string) string
-	home func() (string, error)
-	info buildinfo.Info
+	goos    string
+	env     func(string) string
+	environ func() []string
+	home    func() (string, error)
+	info    buildinfo.Info
 }
 
 // identified is what a snapshot of the source package answers beyond the
