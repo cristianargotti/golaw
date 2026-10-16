@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -134,8 +133,8 @@ func (h hookBinding) policy(ctx context.Context, repo hook.Repository) (*model.E
 	if l.Record == nil {
 		return l.Policy, nil
 	}
-	if _, err := os.Lstat(filepath.Join(repo.Root, policy.FileName)); err != nil {
-		return nil, fmt.Errorf("%w: %s is gone from the checkout of %s (%s)", model.ErrEnrollment, policy.FileName, repo.Root, model.EnrollmentMissing)
+	if err := enrolledCheckout(l); err != nil {
+		return nil, err
 	}
 	if _, _, err := policy.Proposed(ctx, l, schemas()); err != nil {
 		return nil, fmt.Errorf("staged %s: %w", policy.FileName, err)

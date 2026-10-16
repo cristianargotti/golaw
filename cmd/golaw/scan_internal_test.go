@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/cristianargotti/golaw/internal/buildinfo"
+	"github.com/cristianargotti/golaw/internal/checks"
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/proof"
@@ -132,6 +136,49 @@ func TestScanReportsEverySeamFailureAsExitTwo(t *testing.T) {
 				t.Fatalf("stderr = %q", got)
 			}
 		})
+	}
+}
+
+// boundApp runs init and scan over the production seams of a test binding,
+// so the policy, source and report packages meet a real repository under a
+// temporary home.
+func boundApp(t *testing.T) testApp {
+	t.Helper()
+	b, _ := testBinding(t)
+	ta := newTestApp(t)
+	ta.buildInfo = func() buildinfo.Info { return b.info }
+	ta.registry = func() (*engine.Registry, error) { return checks.Registry() }
+	ta.snapshot, ta.load, ta.render = b.snapshot, b.load, b.render
+	ta.compile, ta.enroll = b.compile, b.enroll
+	return ta
+}
+
+// enrolledByInit is an unborn repository that init --apply enrolled over
+// the seams of ta, with the output of init cleared.
+func enrolledByInit(t *testing.T, ta testApp) string {
+	t.Helper()
+	root := repository(t, false)
+	if got := ta.run(t.Context(), []string{"init", "--apply", root}); got != exitClean {
+		t.Fatalf("init exit = %d, stderr = %q", got, ta.stderr.String())
+	}
+	ta.stdout.Reset()
+	return root
+}
+
+func TestScanRefusesAnEnrolledCheckoutWithoutItsPolicy(t *testing.T) {
+	t.Parallel()
+	control := boundApp(t)
+	root := enrolledByInit(t, control)
+	if got := control.run(t.Context(), []string{"scan", root}); got != exitClean {
+		t.Fatalf("unchanged exit = %d, stdout = %q, stderr = %q", got, control.stdout.String(), control.stderr.String())
+	}
+	deleted := boundApp(t)
+	root = enrolledByInit(t, deleted)
+	if err := os.Remove(filepath.Join(root, "golaw.yml")); err != nil {
+		t.Fatal(err)
+	}
+	if got := deleted.run(t.Context(), []string{"scan", root}); got != exitFailure || !strings.Contains(deleted.stderr.String(), "golaw.yml is gone from the checkout") {
+		t.Fatalf("deleted exit = %d, stdout = %q, stderr = %q", got, deleted.stdout.String(), deleted.stderr.String())
 	}
 }
 

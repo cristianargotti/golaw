@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -109,13 +113,50 @@ func (b binding) loaded(ctx context.Context, dir string, now time.Time) (*policy
 	return l, nil
 }
 
-// load is the load seam: the effective policy in force.
+// load is the load seam: the effective policy in force, refused on an
+// enrolled checkout that no longer holds the file (A3).
 func (b binding) load(ctx context.Context, root string, now time.Time) (*model.EffectivePolicy, error) {
 	l, err := b.loaded(ctx, root, now)
 	if err != nil {
 		return nil, err
 	}
+	if err := enrolledCheckout(l); err != nil {
+		return nil, err
+	}
 	return l.Policy, nil
+}
+
+// enrolledCheckout refuses an enrolled repository whose checkout no longer
+// holds golaw.yml (A3). The policy in force comes from HEAD or from the
+// bootstrap record, so neither shows a deletion that only the checkout
+// holds; scan and the hook ask the checkout itself.
+func enrolledCheckout(l *policy.Loaded) error {
+	if l.Record == nil {
+		return nil
+	}
+	present, err := inCheckout(l.Root)
+	if err != nil {
+		return err
+	}
+	if !present {
+		return fmt.Errorf("%w: %s is gone from the checkout of %s (%s)", model.ErrEnrollment, policy.FileName, l.Root, model.EnrollmentMissing)
+	}
+	return nil
+}
+
+// inCheckout answers whether the checkout of root holds golaw.yml. Only an
+// absent file is an absence: any other failure to inspect it is an error,
+// so a denial never names the wrong cause.
+func inCheckout(root string) (bool, error) {
+	_, err := os.Lstat(filepath.Join(root, policy.FileName))
+	switch {
+	case err == nil:
+		return true, nil
+	case errors.Is(err, fs.ErrNotExist):
+		return false, nil
+	default:
+		return false, fmt.Errorf("inspect the %s of %s: %w", policy.FileName, root, err)
+	}
 }
 
 // snapshot is the snapshot seam: the frozen worktree universe of the

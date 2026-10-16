@@ -207,6 +207,26 @@ func TestBindingSnapshotAndRender(t *testing.T) {
 	}
 }
 
+func TestEnrolledCheckoutTellsAnAbsentPolicyFromAFailure(t *testing.T) {
+	t.Parallel()
+	root := repository(t, false)
+	enrolled := &policy.Loaded{Root: root, Record: &policy.Record{Root: root}}
+	if err := enrolledCheckout(enrolled); err != nil {
+		t.Fatalf("a checkout that holds the policy was refused: %v", err)
+	}
+	if err := enrolledCheckout(&policy.Loaded{Root: t.TempDir()}); err != nil {
+		t.Fatalf("an unenrolled checkout was refused: %v", err)
+	}
+	enrolled.Root = t.TempDir()
+	if err := enrolledCheckout(enrolled); !errors.Is(err, model.ErrEnrollment) || !strings.Contains(err.Error(), "missing-policy") {
+		t.Fatalf("an absent policy = %v", err)
+	}
+	enrolled.Root = "invalid\x00root"
+	if err := enrolledCheckout(enrolled); err == nil || errors.Is(err, model.ErrEnrollment) {
+		t.Fatalf("a failed inspection = %v", err)
+	}
+}
+
 func TestInstallStateIsTheStateDirectoryOfTheRecord(t *testing.T) {
 	t.Parallel()
 	b, home := testBinding(t)
