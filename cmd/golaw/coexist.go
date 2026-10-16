@@ -5,13 +5,16 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cristianargotti/golaw/internal/hook/agents"
 	"github.com/cristianargotti/golaw/internal/hook/coexist"
 )
 
 // coexistCommand prints the ownership table of A17 for a repository: which
 // gate owns the blocking verdict on each hook event and rule family. The
 // exit code is 1 while the other gate still owns a family the kit would
-// arm, so an installer that consults it never arms a second verdict.
+// arm, so an installer that consults it never arms a second verdict. The
+// gate registers in the settings of the agent this version ships, so its
+// configuration directory is where the registration is read.
 func (a *app) coexistCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "coexist [path]",
@@ -22,7 +25,8 @@ func (a *app) coexistCommand() *cobra.Command {
 			if err != nil {
 				return coexistFailed(err)
 			}
-			detection, err := coexist.Detect(home, rootArg(args))
+			agent := agents.All()[0]
+			detection, err := coexist.Detect(home, agent.ConfigDir(a.env, home), rootArg(args))
 			if err != nil {
 				return coexistFailed(err)
 			}

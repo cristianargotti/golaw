@@ -2,6 +2,7 @@ package coexist_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +56,7 @@ func registryFor(repo, extra string) string {
 
 func TestDetectWithoutRegistrationIsNoGate(t *testing.T) {
 	t.Parallel()
-	d, err := coexist.Detect(home(t, "", ""), t.TempDir())
+	d, err := detect(home(t, "", ""), t.TempDir())
 	if err != nil || d.Governs || len(d.Registered) != 0 || len(d.Released) != 0 {
 		t.Fatalf("detection = %+v, %v", d, err)
 	}
@@ -76,7 +77,7 @@ func TestDetectReadsEventsRepositoriesAndFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := home(t, gateSettings, registryFor(repo, `, "text_checks": false, "paths_checks": false, "shell_checks": true`))
-	d, err := coexist.Detect(h, deep)
+	d, err := detect(h, deep)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +94,7 @@ func TestDetectReadsEventsRepositoriesAndFlags(t *testing.T) {
 func TestDetectDoesNotGovernAnotherRepository(t *testing.T) {
 	t.Parallel()
 	h := home(t, gateSettings, registryFor(t.TempDir(), ""))
-	d, err := coexist.Detect(h, t.TempDir())
+	d, err := detect(h, t.TempDir())
 	if err != nil || d.Governs {
 		t.Fatalf("detection = %+v, %v", d, err)
 	}
@@ -107,7 +108,7 @@ func TestDetectRefusesAMalformedRegistration(t *testing.T) {
 	for name, files := range map[string][2]string{"settings": {"{", ""}, "registry": {gateSettings, "[]"}} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			if _, err := coexist.Detect(home(t, files[0], files[1]), t.TempDir()); !errors.Is(err, coexist.ErrDetect) {
+			if _, err := detect(home(t, files[0], files[1]), t.TempDir()); !errors.Is(err, coexist.ErrDetect) {
 				t.Fatalf("err = %v", err)
 			}
 		})
@@ -118,7 +119,7 @@ func TestBuildAssignsOwnersAndRefuseNamesTheFlags(t *testing.T) {
 	t.Parallel()
 	repo := t.TempDir()
 	h := home(t, gateSettings, registryFor(repo, `, "sizes_checks": false`))
-	d, err := coexist.Detect(h, repo)
+	d, err := detect(h, repo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +154,7 @@ func TestGateWithoutTheEventDoesNotOwnTheFamily(t *testing.T) {
 	t.Parallel()
 	repo := t.TempDir()
 	readOnly := `{"hooks": {"PreToolUse": [{"matcher": "Read", "hooks": [{"command": "python3 pcc_gate.py"}]}]}}`
-	d, err := coexist.Detect(home(t, readOnly, registryFor(repo, "")), repo)
+	d, err := detect(home(t, readOnly, registryFor(repo, "")), repo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,9 +193,50 @@ func TestDetectResolvesARelativeRootAndAHomeEntry(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if d, err := coexist.Detect(h, root); err != nil || d.Governs != tc.governs {
+			if d, err := detect(h, root); err != nil || d.Governs != tc.governs {
 				t.Fatalf("detection = %+v, %v", d, err)
 			}
 		})
 	}
+}
+
+// TestDetectReadsTheConfigDirectoryOfTheAgent finds the gate where the
+// host reads its settings, a directory the agent's override names, and
+// ignores a registration left in the default directory of the home.
+func TestDetectReadsTheConfigDirectoryOfTheAgent(t *testing.T) {
+	t.Parallel()
+	repo := t.TempDir()
+	h := home(t, gateSettings, registryFor(repo, ""))
+	config := filepath.Join(t.TempDir(), "agent config")
+	if err := os.Mkdir(config, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"settings.json", "pcc-standards.json"} {
+		data, err := os.ReadFile(filepath.Join(h, ".claude", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(config, name), data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if d, err := coexist.Detect(t.TempDir(), config, repo); err != nil || !d.Governs || len(d.Registered) == 0 {
+		t.Fatalf("the override = %+v, %v", d, err)
+	}
+	if d, err := coexist.Detect(h, filepath.Join(t.TempDir(), "empty"), repo); err != nil || d.Governs || len(d.Registered) != 0 {
+		t.Fatalf("the default directory read under an override = %+v, %v", d, err)
+	}
+	if got := coexist.SettingsPath(config); got != filepath.Join(config, "settings.json") {
+		t.Fatalf("settings path = %s", got)
+	}
+}
+
+// detect reads the registration from the default configuration directory
+// of the home, where the host keeps its settings without an override.
+func detect(home, root string) (coexist.Detection, error) {
+	d, err := coexist.Detect(home, filepath.Join(home, ".claude"), root)
+	if err != nil {
+		return d, fmt.Errorf("detect: %w", err)
+	}
+	return d, nil
 }

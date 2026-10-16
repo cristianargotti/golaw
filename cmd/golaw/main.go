@@ -38,6 +38,7 @@ func newApp(stdout, stderr io.Writer) *app {
 		buildInfo:      buildinfo.Current,
 		now:            time.Now,
 		home:           os.UserHomeDir,
+		env:            os.Getenv,
 		registry:       func() (*engine.Registry, error) { return checks.Registry() },
 		snapshot:       b.snapshot,
 		load:           b.load,

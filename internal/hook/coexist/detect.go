@@ -15,7 +15,6 @@ import (
 // user settings carry its hooks, the registry beside them lists the
 // repositories it governs and the flags of its families.
 const (
-	agentDir     = ".claude"
 	settingsFile = "settings.json"
 	registryFile = "pcc-standards.json"
 	gateScript   = "pcc_gate.py"
@@ -40,13 +39,15 @@ type registry struct {
 	Shell      *bool    `json:"shell_checks"`
 }
 
-// Detect reads the registration of the gate under home and answers whether
-// it governs the repository at root. A missing file means no gate; a file
-// that cannot be decoded is an error.
-func Detect(home, root string) (Detection, error) {
+// Detect reads the registration of the gate in the configuration directory
+// of the agent, where the host reads its user settings (the directory an
+// override names, or the default one under home), and answers whether it
+// governs the repository at root; home expands a ~ of the registry. A
+// missing file means no gate; a file that cannot be decoded is an error.
+func Detect(home, configDir, root string) (Detection, error) {
 	d := Detection{Registered: map[string]bool{}, Released: map[string]bool{}}
 	var s settings
-	if err := decode(SettingsPath(home), &s); err != nil {
+	if err := decode(SettingsPath(configDir), &s); err != nil {
 		return Detection{}, err
 	}
 	for event, groups := range s.Hooks {
@@ -60,7 +61,7 @@ func Detect(home, root string) (Detection, error) {
 		}
 	}
 	var r registry
-	if err := decode(RegistryPath(home), &r); err != nil {
+	if err := decode(RegistryPath(configDir), &r); err != nil {
 		return Detection{}, err
 	}
 	d.Governs = governs(home, r.Repos, root)
@@ -68,13 +69,13 @@ func Detect(home, root string) (Detection, error) {
 	return d, nil
 }
 
-// SettingsPath is the user settings file of the agent under a home, where
-// the gate registers its hooks.
-func SettingsPath(home string) string { return filepath.Join(home, agentDir, settingsFile) }
+// SettingsPath is the user settings file in the configuration directory of
+// the agent, where the gate registers its hooks.
+func SettingsPath(configDir string) string { return filepath.Join(configDir, settingsFile) }
 
 // RegistryPath is the registry of the gate beside the settings: the
 // repositories it governs and the switches of its families.
-func RegistryPath(home string) string { return filepath.Join(home, agentDir, registryFile) }
+func RegistryPath(configDir string) string { return filepath.Join(configDir, registryFile) }
 
 // decode reads a JSON file into v; a missing file leaves v untouched.
 func decode(path string, v any) error {

@@ -35,6 +35,7 @@ func newTestApp(t *testing.T) testApp {
 		},
 		now:      func() time.Time { return time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC) },
 		home:     func() (string, error) { return t.TempDir(), nil },
+		env:      func(string) string { return "" },
 		stdin:    strings.NewReader(""),
 		discover: func(_ context.Context, dir string) (string, error) { return dir, nil },
 	}

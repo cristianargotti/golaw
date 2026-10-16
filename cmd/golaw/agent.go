@@ -75,7 +75,7 @@ func (a *app) agentInstall(ctx context.Context, out io.Writer, path string, opts
 	if err != nil {
 		return installFailed(err)
 	}
-	if refusal := a.refuseOwnedFamilies(out, root); refusal != nil {
+	if refusal := a.refuseOwnedFamilies(out, agent, root); refusal != nil {
 		return refusal
 	}
 	options, err := a.installOptions(ctx, agent, root, opts.scope, a.now())
@@ -155,13 +155,15 @@ func (a *app) agentTarget(ctx context.Context, path string, opts agentOptions) (
 }
 
 // refuseOwnedFamilies prints the ownership table and refuses, with exit 1,
-// while the other gate still owns a family the kit would arm (A17).
-func (a *app) refuseOwnedFamilies(out io.Writer, root string) error {
+// while the other gate still owns a family the kit would arm (A17). The
+// gate is read from the settings the host reads, the configuration
+// directory of the agent, the one agent install writes.
+func (a *app) refuseOwnedFamilies(out io.Writer, agent agents.Agent, root string) error {
 	home, err := a.home()
 	if err != nil {
 		return installFailed(err)
 	}
-	detection, err := coexist.Detect(home, root)
+	detection, err := coexist.Detect(home, agent.ConfigDir(a.env, home), root)
 	if err != nil {
 		return installFailed(err)
 	}

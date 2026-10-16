@@ -46,7 +46,7 @@ func TestAMatcherOfEveryToolRegistersEveryEvent(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			repo := t.TempDir()
-			d, err := coexist.Detect(home(t, tc.settings, registryFor(repo, "")), repo)
+			d, err := detect(home(t, tc.settings, registryFor(repo, "")), repo)
 			if err != nil || len(d.Registered) != len(tc.events) {
 				t.Fatalf("detection = %+v, %v", d, err)
 			}
@@ -65,12 +65,12 @@ func TestAMatcherOfEveryToolRegistersEveryEvent(t *testing.T) {
 func TestARegularExpressionMatcherOfTheGateIsAnError(t *testing.T) {
 	t.Parallel()
 	for _, matcher := range []string{"Notebook.*", "^Write$", "Write|Edit.*"} {
-		_, err := coexist.Detect(home(t, toolEvents(matcher, gateCommand), ""), t.TempDir())
+		_, err := detect(home(t, toolEvents(matcher, gateCommand), ""), t.TempDir())
 		if !errors.Is(err, coexist.ErrDetect) || !strings.Contains(err.Error(), `"`+matcher+`"`) {
 			t.Fatalf("%s: err = %v", matcher, err)
 		}
 	}
-	d, err := coexist.Detect(home(t, toolEvents("Notebook.*", foreignCommand), ""), t.TempDir())
+	d, err := detect(home(t, toolEvents("Notebook.*", foreignCommand), ""), t.TempDir())
 	if err != nil || len(d.Registered) != 0 {
 		t.Fatalf("a foreign regular expression = %+v, %v", d, err)
 	}
@@ -93,7 +93,7 @@ func TestTheGateIsTheScriptACommandRuns(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			settings := `{"hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [` + tc.hook + `]}]}}`
-			d, err := coexist.Detect(home(t, settings, ""), t.TempDir())
+			d, err := detect(home(t, settings, ""), t.TempDir())
 			if err != nil || d.Registered["write"] != tc.gate {
 				t.Fatalf("detection = %+v, %v", d, err)
 			}

@@ -42,6 +42,7 @@ type app struct {
 	buildInfo      func() buildinfo.Info
 	now            func() time.Time
 	home           func() (string, error)
+	env            func(string) string // the environment the commands read, such as an agent's configuration override
 	registry       func() (*engine.Registry, error)
 	snapshot       func(ctx context.Context, root string) (model.Snapshot, error)
 	load           func(ctx context.Context, root string, now time.Time) (*model.EffectivePolicy, error)
