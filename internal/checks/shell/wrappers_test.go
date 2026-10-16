@@ -44,6 +44,25 @@ func TestEvalAndXargsCarryACommandLine(t *testing.T) {
 	})
 }
 
+// TestNoVerifyReadsTheGlobalOptionsOfGit reads the global options of git
+// the way git 2.44 does: -C, -c, --git-dir, --work-tree, --namespace,
+// --config-env, --attr-source and --shallow-file take the next word as
+// their value unless = joins it, so that word is never the subcommand.
+func TestNoVerifyReadsTheGlobalOptionsOfGit(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "git --git-dir .git commit --no-verify -m x", "no-verify"},
+		{"Bash", "git --work-tree . commit --no-verify -m x", "no-verify"},
+		{"Bash", "git --namespace x --attr-source HEAD commit --no-verify -m x", "no-verify"},
+		{"Bash", "git --config-env core.pager=HOME --shallow-file x commit -n -m x", "no-verify"},
+		{"PowerShell", "git --git-dir .git --work-tree . commit --no-verify -m x", "no-verify"},
+		{"Bash", "git --git-dir=.git commit --no-verify -m x", "no-verify"},
+		{"Bash", "git --config-env core.hooksPath=HOOKS commit -m x", "no-verify"},
+		{"Bash", "git --git-dir .git commit -m x", ""},
+		{"Bash", "git --work-tree . status", ""},
+	})
+}
+
 // TestEvalAndXargsKeepTheRolesOfTheirCommand judges the command eval and
 // xargs run by its own roles: a read of secret material eval runs is a
 // read, and a package pattern of the go tool behind xargs stays a package.

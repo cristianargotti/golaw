@@ -43,7 +43,7 @@ func gitCommand(seg segment) (gitCall, bool) {
 	}
 	args := words[1:]
 	for len(args) > 0 && strings.HasPrefix(args[0], "-") {
-		if (args[0] == "-C" || args[0] == "-c") && len(args) > 1 {
+		if gitValueOption(args[0]) && len(args) > 1 {
 			args = args[2:]
 			continue
 		}
@@ -53,6 +53,17 @@ func gitCommand(seg segment) (gitCall, bool) {
 		return gitCall{}, false
 	}
 	return gitCall{sub: args[0], args: args[1:], words: words}, true
+}
+
+// gitValueOption reports whether a global option of git takes the next
+// word as its value when = does not join one, as git 2.44 reads them.
+func gitValueOption(option string) bool {
+	switch option {
+	case "-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source", "--shallow-file":
+		return true
+	default:
+		return false
+	}
 }
 
 // unwrap drops the leading variable assignments, the reserved words a
