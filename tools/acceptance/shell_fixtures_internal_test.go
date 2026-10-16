@@ -31,6 +31,11 @@ func TestShellFixturePairs(t *testing.T) {
 	if _, found := seen["native-bypass-"+toolBash]; found {
 		t.Fatal("a native PowerShell row runs through Bash")
 	}
+	expectShell(t, seen, []string{"heredoc-script"}, toolBash, wantDeny)
+	expectShell(t, seen, []string{"heredoc-data"}, toolBash, wantAllow)
+	if _, found := seen["heredoc-data-"+toolPowerShell]; found {
+		t.Fatal("a POSIX row runs through PowerShell")
+	}
 }
 
 // expectShell asserts the expectation of every named shell fixture of a tool.

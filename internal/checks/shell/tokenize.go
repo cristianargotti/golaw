@@ -68,7 +68,7 @@ func scan(command string, d dialect) []segment {
 	for _, r := range command {
 		s.step(r)
 	}
-	s.endSegment()
+	s.endInput()
 	return s.out
 }
 
@@ -88,9 +88,14 @@ type scanner struct {
 	op         []rune    // the redirection operator being read
 	pending    string    // a whole operator whose file is the next word
 	redirects  []segment // the redirections of the command, each its operator and file
+	docs       documents // the here-documents of the line and their bodies
 }
 
 func (s *scanner) step(r rune) {
+	if s.docs.reading {
+		s.bodyRune(r)
+		return
+	}
 	if s.amp {
 		s.amp = false
 		if r == '>' {
@@ -118,6 +123,9 @@ func (s *scanner) step(r rune) {
 		s.amp = true
 	case r == ' ' || r == '\t':
 		s.endWord()
+	case r == '\n':
+		s.endSegment()
+		s.newLine()
 	case strings.ContainsRune(separators, r):
 		s.endSegment()
 	default:
@@ -154,11 +162,15 @@ func (s *scanner) quoted(r rune) {
 }
 
 // endWord ends the word being built: the file of the operator waiting for
-// one, or a word of the command.
+// one, or the end word of a here-document in a POSIX shell, or a word of
+// the command.
 func (s *scanner) endWord() {
 	switch {
 	case s.open && s.pending != "":
 		s.redirects = append(s.redirects, segment{s.pending, string(s.word)})
+		if doc, strip := heredocOperator(s.pending); doc && s.escapeRune == rune(posix) {
+			s.docs.open = append(s.docs.open, heredoc{end: string(s.word), strip: strip})
+		}
 		s.pending = ""
 	case s.open:
 		s.cur = append(s.cur, string(s.word))

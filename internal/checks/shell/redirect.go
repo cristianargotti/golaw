@@ -53,7 +53,7 @@ func (s *scanner) closeWord() {
 
 // continuesOperator reports whether a rune extends the operator read so
 // far: another angle bracket (>>, <<, <<<, <>), an ampersand after one
-// (>&, <&) or a pipe after a greater-than sign (>|).
+// (>&, <&), a pipe after a greater-than sign (>|) or the dash of <<-.
 func continuesOperator(op []rune, r rune) bool {
 	last := op[len(op)-1]
 	switch r {
@@ -63,6 +63,8 @@ func continuesOperator(op []rune, r rune) bool {
 		return last == '<' || last == '>'
 	case '|':
 		return last == '>'
+	case '-':
+		return strings.HasSuffix(string(op), "<<") && !strings.HasSuffix(string(op), "<<<")
 	default:
 		return false
 	}

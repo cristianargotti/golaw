@@ -85,9 +85,19 @@ func nativeCommands() []shellFixture {
 	}
 }
 
+// posixCommands are the Bash commands whose reading PowerShell does not
+// share: the body of a here-document is the stdin of its command, data,
+// unless a shell its line names reads it as a script.
+func posixCommands() []shellFixture {
+	return []shellFixture{
+		{"heredoc-data", "cat > notes.md <<'EOF'\nread the .env example\nEOF", wantAllow},
+		{"heredoc-script", "bash <<'EOF'\ngit commit --no-verify -m x\nEOF", wantDeny},
+	}
+}
+
 func shellFixtures() []fixture {
-	commands, native := shellCommands(), nativeCommands()
-	out := make([]fixture, 0, 2*len(commands)+len(native))
+	commands, native, posix := shellCommands(), nativeCommands(), posixCommands()
+	out := make([]fixture, 0, 2*len(commands)+len(native)+len(posix))
 	for _, tool := range []string{toolBash, toolPowerShell} {
 		for _, item := range commands {
 			out = append(out, shellFixtureOf(item, tool))
@@ -95,6 +105,9 @@ func shellFixtures() []fixture {
 	}
 	for _, item := range native {
 		out = append(out, shellFixtureOf(item, toolPowerShell))
+	}
+	for _, item := range posix {
+		out = append(out, shellFixtureOf(item, toolBash))
 	}
 	return out
 }
