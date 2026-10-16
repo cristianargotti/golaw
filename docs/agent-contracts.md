@@ -62,7 +62,9 @@ Keeping hooks in the plugin avoids the settings-file hook import used by Cursor.
 
 The M1 matrix runs on Linux, macOS, and Windows. It installs twice, checks unchanged receipts and foreign settings, and invokes the exact installed command with closed stdin in an isolated home without credentials.
 
-Required rows deny a dash write, a secret read, and a --no-verify commit; allow their controls; and deny malformed input, a crash, empty output, and the forced internal slow path.
+Required rows deny a dash write, a secret read, and a --no-verify commit; allow their controls; and deny malformed input, a crash, and the forced internal slow path.
+
+The empty output row, in the protocol-limit category, records the fault and proves no denial: the host treats exit 0 with no output as an allow, which is also the valid allow the adapter answers, so a binary that exits cleanly without an answer is a limit of the protocol that no hook closes.
 
 The doctor-json row decodes doctor --json after an installed hook ran: every artifact matches its receipt, the hook names the built binary, every hook blocks on failure, and a source build is reported as metadata, never verified.
 

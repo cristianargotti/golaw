@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -41,6 +42,20 @@ func TestFailureRows(t *testing.T) {
 	}
 	for _, item := range rows {
 		assertPass(t, item)
+	}
+	// Exit 0 with no output is the allow of the host protocol, so the empty
+	// row proves the injection and is kept apart from the denial rows.
+	for _, item := range rows[:4] {
+		want := categoryTransport
+		if item.name == faultEmpty {
+			want = categoryProtocolLimit
+		}
+		if item.category != want {
+			t.Errorf("%s is in %s, want %s", item.name, item.category, want)
+		}
+	}
+	if !strings.Contains(rows[2].detail, "an allow to the host") || strings.Contains(rows[2].detail, "onFailure") {
+		t.Errorf("empty row detail = %q", rows[2].detail)
 	}
 	body, err := readFile(s.binary)
 	if err != nil || string(body) != "simulated executable" {

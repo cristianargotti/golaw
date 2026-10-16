@@ -19,9 +19,13 @@ const (
 	hostTimeout       = 10 * time.Second
 	slowTimeout       = 9 * time.Second
 	categoryTransport = "failure-transport"
-	categoryRecovery  = "recovery"
-	caseDeadline      = "internal-deadline"
-	caseRecovery      = "recovery-control"
+	// categoryProtocolLimit holds the empty output fault: exit 0 with no
+	// output is the allow of the host protocol, so the row proves that the
+	// fault was injected and observed, never a denial.
+	categoryProtocolLimit = "protocol-limit"
+	categoryRecovery      = "recovery"
+	caseDeadline          = "internal-deadline"
+	caseRecovery          = "recovery-control"
 )
 
 func (s *suite) failureRows(ctx context.Context) []row {
@@ -119,6 +123,13 @@ func (s *suite) faultRow(ctx context.Context, mode, repo string, input, original
 		removeErr = nil
 	}
 	err = errors.Join(err, restoreErr, removeErr, faultResult(mode, got))
+	if mode == faultEmpty {
+		item := measured(categoryProtocolLimit, mode, err)
+		if item.status == statusPass {
+			item.detail = "fault observed; exit 0 with no output is an allow to the host, so the row records the fault and proves no denial"
+		}
+		return item
+	}
 	item := measured(categoryTransport, mode, err)
 	if item.status == statusPass {
 		item.detail = "fault observed; installed onFailure is block; live dispatch not inferred"

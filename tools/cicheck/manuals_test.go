@@ -52,5 +52,6 @@ func TestAgentContract(t *testing.T) {
 		"waits for the Windows live record",
 		"doctor-json",
 		"deepest existing directory above tool_input.file_path",
+		"records the fault and proves no denial",
 	)
 }
