@@ -59,6 +59,11 @@ func TestSecurityShellReading(t *testing.T) {
 		"A $[ ] or ${ } that holds a blank, a newline, a parenthesis or another separator of commands, where the scanner ends the word, is beyond this reading",
 		"a here-document a shell reads or its line sources from the standard input",
 		"a body eval runs through the output of cat, one xargs or a read loop turns into arguments and the script of another interpreter",
+		"none of which a well-meaning agent writes, are read otherwise than the shell reads them; they are stated limits, not reasons to widen the reading",
+		"begins a comment for this reading, while the shell keeps it in the word, so the commands after it on its line pass and a quote after it opens nothing",
+		"which the shell hands the script as its positional parameters, are read as words of the script, so a comment that ends the script hides them",
+		"The string of env -S is split as a POSIX shell splits words, so an escape env reads its own way is read as the character it escapes",
+		"is read as bash 4 and later read it, typed at the tool's shell or fed to bash through a here-document",
 	)
 }
 

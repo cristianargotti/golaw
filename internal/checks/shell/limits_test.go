@@ -75,3 +75,76 @@ func TestExpansionsTheScannerEndsAreAStatedLimit(t *testing.T) {
 		{"Bash", "echo ${x:-a<<b}\ngit commit --no-verify -m x", "no-verify"},
 	})
 }
+
+// TestCommentAfterASubstitutionIsAStatedLimit pins the first of the four
+// shapes docs/security.md states a well-meaning agent does not write: a
+// hash right after the parenthesis that closes a substitution, an
+// arithmetic expansion or a process substitution inside a word begins a
+// comment for this reading, while the shell keeps it in the word, so the
+// commands after it on its line pass and a quote after it opens nothing,
+// beside the counterparts the reader follows: a substitution inside double
+// quotes keeps the word open, and a blank before the hash makes it a
+// comment for the shell too.
+func TestCommentAfterASubstitutionIsAStatedLimit(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "x=$(true)#; git commit --no-verify -m x", ""},
+		{"Bash", "echo $((1))#; git commit --no-verify -m x", ""},
+		{"Bash", "cat <(true)#; git commit --no-verify -m x", ""},
+		{"Bash", "x=$(true)#'\ngit commit --no-verify -m x\n'", "no-verify"},
+		{"Bash", "echo \"$(true)\"#; git commit --no-verify -m x", "no-verify"},
+		{"Bash", "x=$(true) #; git commit --no-verify -m x", ""},
+	})
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", "x=$(true)#; cat .env", ""},
+		{"Bash", "x=$(true); cat .env", "secret-token"},
+	})
+}
+
+// TestWordsAfterTheScriptOfAShellAreAStatedLimit pins the second stated
+// shape: the words after the script of sh -c or bash -c, which the shell
+// hands the script as its positional parameters, are read as words of the
+// script, so a comment that ends the script hides them, while without the
+// comment they are judged.
+func TestWordsAfterTheScriptOfAShellAreAStatedLimit(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "bash -c 'git commit \"$@\" #' sh --no-verify -m x", ""},
+		{"Bash", "bash -c 'git commit \"$@\"' sh --no-verify -m x", "no-verify"},
+	})
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", "bash -c 'cat \"$1\" # read' sh .env", ""},
+		{"Bash", "sh -c 'cat \"$1\" #' sh .env", ""},
+		{"Bash", "bash -c 'cat \"$1\"' sh .env", "secret-token"},
+	})
+}
+
+// TestEscapesOfEnvSAreAStatedLimit pins the third stated shape: the string
+// of env -S is split as a POSIX shell splits words, so an escape env reads
+// its own way is read as the character it escapes: \_, a blank to env,
+// joins two words into one name, here a source file or a name the list
+// does not hold, and \c, the end of the string to env, is read as a c, so
+// the name after it is still judged.
+func TestEscapesOfEnvSAreAStatedLimit(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.SecretTokens(), []toolCase{
+		{"Bash", `env -S 'cat ./secrets/foo\_bar.go harmless.txt'`, ""},
+		{"Bash", `env -S 'cat .env\_x.go'`, ""},
+		{"Bash", `env -S 'cat \c .env'`, "secret-token"},
+		{"Bash", `env -S 'cat .env x.go'`, "secret-token"},
+	})
+}
+
+// TestBash32LineFedToBashIsAStatedLimit pins the fourth stated shape: a
+// line crafted for bash 3.2, which ends a substitution inside double quotes
+// at the first parenthesis left open, is read as bash 4 and later read it,
+// typed at the tool's shell (TestNoVerifyReadsTheLineAsWritten) or, as
+// here, fed to bash through a here-document, beside the counterpart whose
+// git call the newer shells run too.
+func TestBash32LineFedToBashIsAStatedLimit(t *testing.T) {
+	t.Parallel()
+	expectCodes(t, shell.NoVerify(), []toolCase{
+		{"Bash", "bash <<'X'\necho \"$(cat <<'EOF'\n) \" ; git commit --no-verify -m y ; echo \" (\nEOF\n)\"\nX", ""},
+		{"Bash", "bash <<'X'\necho \"$(cat <<'EOF'\n)\nEOF\ngit commit --no-verify -m x)\"\nX", "no-verify"},
+	})
+}
