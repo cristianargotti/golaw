@@ -42,7 +42,6 @@ func (a *app) coexistCommand() *cobra.Command {
 	}
 }
 
-// coexistFailed names the command in front of a failure.
 func coexistFailed(err error) error {
 	return fmt.Errorf("coexist: %w", err)
 }

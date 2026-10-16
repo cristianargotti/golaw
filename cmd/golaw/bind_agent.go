@@ -80,7 +80,6 @@ type enrollmentRecord struct {
 	now      time.Time
 }
 
-// enrollments is the enrollments seam.
 func (b binding) enrollments(root string, now time.Time) (enrollmentPort, error) {
 	dirs, err := b.dirs()
 	if err != nil {
@@ -144,7 +143,8 @@ func (r enrollmentRecord) ReadEnrollment(_ context.Context, identity, policyDige
 	return e, nil
 }
 
-// verify refuses an identity that is not the repository the record is for.
+// verify refuses an identity computed for another repository, because the
+// record the port reads and writes is keyed by its own root.
 func (r enrollmentRecord) verify(identity string) error {
 	_, want, err := install.ProjectIdentity(r.root)
 	if err != nil {

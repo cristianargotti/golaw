@@ -67,7 +67,6 @@ func (a *app) scan(ctx context.Context, out io.Writer, root string, asJSON bool)
 	return nil
 }
 
-// scanFailed names the command in front of a seam or engine failure.
 func scanFailed(err error) error {
 	return fmt.Errorf("scan: %w", err)
 }

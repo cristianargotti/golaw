@@ -44,7 +44,6 @@ func (b binding) pin() string {
 	return release
 }
 
-// dirs resolves the per-OS directories outside the checkout.
 func (b binding) dirs() (policy.Dirs, error) {
 	dirs, err := policy.DefaultDirs(b.goos, b.env)
 	if err != nil {
@@ -73,12 +72,12 @@ func (b binding) discover(ctx context.Context, dir string) (string, error) {
 	return repo.Root, nil
 }
 
-// discoverFailed names the directory whose repository was not found.
 func discoverFailed(dir string, err error) error {
 	return fmt.Errorf("discover %s: %w", dir, err)
 }
 
-// locate adapts the source discovery to the policy locator.
+// locate hands the policy package the source discovery, which the package
+// boundaries of section 5.1 keep it from importing.
 func locate(ctx context.Context, dir string) (policy.Discovery, error) {
 	repo, err := source.Discover(ctx, dir)
 	if err != nil {
@@ -99,7 +98,6 @@ func schemas() policy.Schemas {
 	return out
 }
 
-// loaded establishes the policy in force for a directory.
 func (b binding) loaded(ctx context.Context, dir string, now time.Time) (*policy.Loaded, error) {
 	dirs, err := b.dirs()
 	if err != nil {

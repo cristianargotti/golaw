@@ -149,8 +149,8 @@ func (s *suite) install(ctx context.Context) error {
 	return err
 }
 
-// installArgs is the agent install of the adoption sequence, the one every
-// row that installs runs.
+// installArgs keeps every row that installs on the one command the
+// adoption sequence documents.
 func installArgs() []string {
 	return []string{"agent", "install", "--agent", agentClaude}
 }

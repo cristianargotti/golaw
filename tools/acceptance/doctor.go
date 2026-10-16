@@ -57,9 +57,10 @@ func (s *suite) doctorRow(ctx context.Context) row {
 	return measured(categoryInstallation, caseDoctor, judgeDoctor(report, owed, s.binary))
 }
 
-// owedLines are the keys of the lines doctor owes the receipt the
-// installer wrote: one per artifact it lists and one per event and matcher
-// of the hook definition it recorded.
+// owedLines come from the receipt the installer wrote, one key per artifact
+// and per event and matcher of its hook definition, rather than from
+// doctor, so a line doctor leaves out is missing evidence and never a
+// smaller report.
 type owedLines struct {
 	artifacts []string
 	hooks     []string
@@ -164,8 +165,8 @@ func judgeDoctor(report doctor.Report, owed owedLines, built string) error {
 	return judgeBinary(lines[lineBinary][0], built)
 }
 
-// judgeLines groups the judged lines by id once each carries its code and
-// its state.
+// judgeLines refuses a judged line before it counts it, so a line at the
+// wrong code or state is never taken as coverage.
 func judgeLines(all []doctor.Line) (map[string][]doctor.Line, error) {
 	wants := judgedLines()
 	out := make(map[string][]doctor.Line, len(wants))
@@ -183,8 +184,8 @@ func judgeLines(all []doctor.Line) (map[string][]doctor.Line, error) {
 	return out, nil
 }
 
-// sameKeys compares the keys of the lines of an id with the keys the
-// receipt owes, as sets that also count repetitions.
+// sameKeys compares sorted keys, so a repeated line cannot stand in for a
+// missing one.
 func sameKeys(id string, lines []doctor.Line, owed []string) error {
 	got := make([]string, 0, len(lines))
 	for _, line := range lines {

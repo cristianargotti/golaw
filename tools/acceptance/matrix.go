@@ -110,8 +110,8 @@ func commitArgs(message string) []string {
 	}
 }
 
-// gitSteps runs git commands in a fixture repository in order and stops at
-// the first one that fails.
+// gitSteps stops at the first failing command, so no later step runs over
+// a repository an earlier one left half made.
 func (s *suite) gitSteps(ctx context.Context, repo string, steps ...[]string) error {
 	for _, args := range steps {
 		if err := success(s.execute(ctx, command{program: s.git, args: args, dir: repo, env: s.env})); err != nil {

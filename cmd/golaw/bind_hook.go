@@ -35,7 +35,6 @@ type hookBinding struct {
 	hookDigest string
 }
 
-// hookDependencies is the hookDeps seam.
 func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Dependencies, error) {
 	dirs, err := b.dirs()
 	if err != nil {
@@ -165,7 +164,6 @@ func stagedDeletion(ctx context.Context, l *policy.Loaded) error {
 	return nil
 }
 
-// snapshot is the frozen worktree of the repository.
 func (h hookBinding) snapshot(ctx context.Context, repo hook.Repository) (model.Snapshot, error) {
 	return h.binding.snapshot(ctx, repo.Root)
 }

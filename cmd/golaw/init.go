@@ -12,7 +12,6 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// initOptions are the flags of init.
 type initOptions struct {
 	apply        bool
 	language     string

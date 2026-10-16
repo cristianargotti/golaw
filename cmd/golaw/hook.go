@@ -53,7 +53,6 @@ func (a *app) hook(ctx context.Context, out, errOut io.Writer, id string) error 
 	return nil
 }
 
-// lookupAgent resolves an agent id or names the known ones.
 func lookupAgent(id string) (agents.Agent, error) {
 	agent, ok := agents.Lookup(id)
 	if !ok {
@@ -62,7 +61,6 @@ func lookupAgent(id string) (agents.Agent, error) {
 	return agent, nil
 }
 
-// hookFailed names the command in front of a failure.
 func hookFailed(err error) error {
 	return fmt.Errorf("hook: %w", err)
 }

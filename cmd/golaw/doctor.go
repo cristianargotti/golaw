@@ -65,7 +65,6 @@ func (a *app) doctor(ctx context.Context, out io.Writer, path, scope string, asJ
 	return nil
 }
 
-// doctorFailed names the command in front of a failure.
 func doctorFailed(err error) error {
 	return fmt.Errorf("doctor: %w", err)
 }

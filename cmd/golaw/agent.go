@@ -20,7 +20,6 @@ const (
 	scopeProject = "project"
 )
 
-// agentOptions are the flags the agent commands share.
 type agentOptions struct {
 	agent string
 	scope string
@@ -35,13 +34,11 @@ func (a *app) agentCommand() *cobra.Command {
 	return cmd
 }
 
-// agentFlags adds the flags the two subcommands share.
 func agentFlags(cmd *cobra.Command, opts *agentOptions) {
 	cmd.Flags().StringVar(&opts.agent, "agent", "", "the agent: "+strings.Join(agents.IDs(), ", "))
 	cmd.Flags().StringVar(&opts.scope, "scope", scopeUser, "where the artifacts go: "+scopeUser+" or "+scopeProject)
 }
 
-// agentRun is the body of one agent subcommand.
 type agentRun func(ctx context.Context, out io.Writer, path string, opts agentOptions) error
 
 func (a *app) agentInstallCommand() *cobra.Command {
@@ -54,8 +51,8 @@ func (a *app) agentUninstallCommand() *cobra.Command {
 	return agentSubcommand("uninstall [path]", "Remove exactly what the receipt of an agent lists", a.agentUninstall)
 }
 
-// agentSubcommand builds one subcommand over the shared flags and the
-// optional path argument.
+// agentSubcommand gives install and uninstall one shape, so their flags and
+// their path argument cannot drift apart.
 func agentSubcommand(use, short string, run agentRun) *cobra.Command {
 	var opts agentOptions
 	cmd := &cobra.Command{
@@ -99,7 +96,8 @@ func (a *app) agentInstall(ctx context.Context, out io.Writer, path string, opts
 	return installFailed(writeLines(out, []string{"installed: " + plan.ReceiptPath}))
 }
 
-// agentUninstall removes the artifacts of the receipt and the receipt.
+// agentUninstall goes by the receipt alone, so it removes only what the kit
+// wrote and leaves the person's own files and settings entries.
 func (a *app) agentUninstall(ctx context.Context, out io.Writer, path string, opts agentOptions) error {
 	agent, root, err := a.agentTarget(ctx, path, opts)
 	if err != nil {
@@ -119,7 +117,8 @@ func (a *app) agentUninstall(ctx context.Context, out io.Writer, path string, op
 	return uninstallFailed(writeLines(out, []string{"uninstalled: " + receipt}))
 }
 
-// agentTarget validates the flags and resolves the repository root.
+// agentTarget checks the flags before it discovers the repository, so a
+// usage error never depends on the directory the command runs in.
 func (a *app) agentTarget(ctx context.Context, path string, opts agentOptions) (agents.Agent, string, error) {
 	if opts.agent == "" {
 		return agents.Agent{}, "", fmt.Errorf("%w: --agent is required, known: %s", model.ErrUsage, strings.Join(agents.IDs(), ", "))
@@ -160,8 +159,8 @@ func (a *app) refuseOwnedFamilies(out io.Writer, root string) error {
 	return exitError{code: exitFindings}
 }
 
-// installFailed and uninstallFailed name the command in front of a failure
-// and pass nil through.
+// installFailed and uninstallFailed pass nil through, so a command returns
+// its last write through them and every exit reads the same way.
 func installFailed(err error) error {
 	if err == nil {
 		return nil
