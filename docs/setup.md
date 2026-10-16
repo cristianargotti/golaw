@@ -43,6 +43,8 @@ Signed release assets are the primary distribution path with checksums, a Sigsto
 
 For an independently downloaded release, verify checksums and the bundle before running the executable. Pin the certificate identity to this repository's release.yml under refs/tags and to the exact selected tag. The issuer is https://token.actions.githubusercontent.com.
 
+A release asset is named golaw_<version>_<os>-<arch>, with .exe on Windows. Install the verified asset on your PATH under the name golaw, golaw.exe on Windows, because the installed hook runs golaw from PATH.
+
 scan exits 0 when clean, 1 for findings, and 2 for usage errors, internal failures, or a required check left unmeasured.
 
 ## Local choice and removal
