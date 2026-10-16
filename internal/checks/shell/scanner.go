@@ -128,7 +128,7 @@ func (s *scanner) endWord() {
 	switch {
 	case s.open && s.pending != "":
 		s.redirects = append(s.redirects, segment{s.pending, string(s.word)})
-		if doc, strip := heredocOperator(s.pending); doc && s.escapeRune == rune(posix) {
+		if doc, strip := heredocOperator(s.pending); doc && s.escapeRune == rune(posix) && !s.docs.off {
 			s.docs.open = append(s.docs.open, heredoc{end: string(s.word), strip: strip, quoted: s.literal})
 		}
 		s.pending = ""

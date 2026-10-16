@@ -27,6 +27,7 @@ type documents struct {
 	line    []rune    // the body line being read
 	body    []rune    // the body read so far of the first document open
 	rest    []rune    // every rune read as a body since a document last closed
+	off     bool      // the lines of an unended body are read again, opening no document
 }
 
 // heredocOperator reports whether a redirection operator opens a
@@ -128,7 +129,8 @@ func (s *scanner) closeDocument() {
 // read, and the bodies the line never ended stand as they are and are read
 // as commands too, because a << the reader takes for an operator may open
 // no here-document in the shell, as in $[ ] or ${ }, and the lines it
-// would hide must not pass unread.
+// would hide must not pass unread; that second reading opens no document,
+// so each line is read once more at most.
 func (s *scanner) endInput() {
 	if s.docs.reading && len(s.docs.line) > 0 {
 		s.bodyLine()
@@ -137,12 +139,11 @@ func (s *scanner) endInput() {
 	for s.docs.reading {
 		s.closeDocument()
 	}
-	if !reading {
-		s.endSegment()
-		return
+	if reading {
+		s.docs.off = true
+		for _, r := range unended {
+			s.step(r)
+		}
 	}
-	for _, r := range unended {
-		s.step(r)
-	}
-	s.endInput()
+	s.endSegment()
 }
