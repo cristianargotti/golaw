@@ -140,5 +140,6 @@ func TestAgentContractDetection(t *testing.T) {
 		"is read to its end in bounded memory for its header",
 		"leaves to the notice only the verdict that file could change",
 		"a file the index marks assume-unchanged, by git update-index or core.ignorestat, or skip-worktree reads clean whatever its bytes",
+		"so one git status names before and after the command is named in the notice whatever the command did",
 	)
 }

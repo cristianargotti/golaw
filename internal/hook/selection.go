@@ -47,14 +47,18 @@ func (run execution) input(ctx context.Context, dependencies Dependencies) (mode
 
 // postPaths are the files a post event judges: those the host reports and
 // those the content identity of a command found changed, with the gap of a
-// detection that could not be measured, which never blocks.
+// detection that could not be measured and of each file it could not tell
+// changed or not, which never block.
 func (run execution) postPaths(ctx context.Context, dependencies Dependencies) ([]string, []Gap) {
 	paths := slices.Clone(run.request.Hints)
 	var gaps []Gap
 	if run.request.Event.Tool == "Bash" || run.request.Event.Tool == "PowerShell" {
-		changed, err := run.changedPaths(ctx, dependencies)
+		changed, sized, err := run.changedPaths(ctx, dependencies)
 		if err != nil {
 			gaps = append(gaps, detectionGap(err))
+		}
+		for _, path := range sized {
+			gaps = append(gaps, OverReadBound(path))
 		}
 		paths = append(paths, changed...)
 	}
@@ -62,26 +66,47 @@ func (run execution) postPaths(ctx context.Context, dependencies Dependencies) (
 	return slices.Compact(paths), gaps
 }
 
-func (run execution) changedPaths(ctx context.Context, dependencies Dependencies) ([]string, error) {
+// changedPaths are the paths whose content a command changed and, apart,
+// the paths it may have changed that a size alone identifies at both ends.
+func (run execution) changedPaths(ctx context.Context, dependencies Dependencies) ([]string, []string, error) {
 	if run.stateReason != "" {
-		return nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, run.stateReason)
+		return nil, nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, run.stateReason)
 	}
 	key, err := StateKey(run.repository.Identity, run.request.Event)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	before, err := dependencies.State.Load(ctx, key)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if before.Reason != "" {
-		return nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, before.Reason)
+		return nil, nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, before.Reason)
 	}
 	after, changes, err := run.captureIdentities(ctx, dependencies, slices.Sorted(maps.Keys(before.Files)))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return run.contentChanged(ctx, dependencies, before, after, changes), nil
+	var sized []string
+	if dependencies.Changes != nil {
+		sized = sizedAtBothEnds(before.Files, after)
+	}
+	return run.contentChanged(ctx, dependencies, before, after, changes), sized, nil
+}
+
+// sizedAtBothEnds are the paths git status named that a size identifies
+// before and after a command alike: a file over the read bound, whose
+// bytes no identity holds, so a rewrite that keeps its size cannot be told
+// from no change at all.
+func sizedAtBothEnds(before, after map[string]string) []string {
+	var sized []string
+	for path, identity := range before {
+		if strings.HasPrefix(identity, largeIdentity) && after[path] == identity {
+			sized = append(sized, path)
+		}
+	}
+	slices.Sort(sized)
+	return sized
 }
 
 func protectPolicy(repository Repository, candidates []model.Candidate) error {

@@ -79,6 +79,30 @@ func TestAChangedFileOverTheReadBoundIsANotice(t *testing.T) {
 	}
 }
 
+// TestAFileItsSizeIdentifiesAtBothEndsIsANotice names, in the notice of a
+// post event, a file over the read bound git status names before and after
+// the command with the same size, which a rewrite to that size leaves too;
+// without git status, every file is listed and such a file stays unnamed,
+// as TestAChangedFileOverTheReadBoundIsANotice pins.
+func TestAFileItsSizeIdentifiesAtBothEndsIsANotice(t *testing.T) {
+	t.Parallel()
+	req := shellRequest()
+	adapter, dependencies := harness(t, req)
+	tree := largeTree{size: model.MaxReadBytes + 1}
+	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) { return tree, nil }
+	dependencies.Changes = func(context.Context, hook.Repository, []string) (hook.Changes, error) {
+		return hook.Changes{Snapshot: tree, Paths: []string{"big.sql"}}, nil
+	}
+	event, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
+	if got.Outcome != hook.Allow || got.Notice != "" {
+		t.Fatal(got)
+	}
+	_, got = hook.Evaluate(t.Context(), "claude", []byte("{}"), asPostEvent(&req, event.Cwd, false), dependencies)
+	if got.Outcome != hook.Allow || !strings.Contains(got.Notice, "golaw did not measure big.sql") || !strings.Contains(got.Human, "big.sql") {
+		t.Fatalf("a file its size identifies at both ends: %+v", got)
+	}
+}
+
 // TestThePostDeadlineIsANotice answers a post event the deadline overtook
 // with an allow and a notice, while a pre event the deadline overtakes
 // stays a denial.
