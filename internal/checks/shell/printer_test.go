@@ -32,3 +32,22 @@ func TestCredentialPrint(t *testing.T) {
 		"go env":                                  false,
 	})
 }
+
+func TestCredentialPrintReadsEveryArgument(t *testing.T) {
+	t.Parallel()
+	denies(t, shell.CredentialPrint(), "credential-print", map[string]bool{
+		"printenv AWS_SECRET_ACCESS_KEY PATH":       true,
+		"printenv -0 NPM_TOKEN":                     true,
+		"echo $GITHUB_TOKEN done":                   true,
+		"echo TOKEN=$GITHUB_TOKEN":                  true,
+		"/usr/bin/printenv":                         true,
+		"/usr/bin/printenv GITHUB_TOKEN":            true,
+		"printenv.exe GITHUB_TOKEN":                 true,
+		`pwsh -Command 'echo $env:GITHUB_TOKEN'`:    true,
+		"cmd /c echo %GITHUB_TOKEN%":                true,
+		"/usr/bin/printenv PATH":                    false,
+		"echo the token expired; echo GITHUB_TOKEN": false,
+		"echo $HOME $PATH":                          false,
+		"GITHUB_TOKEN=x":                            false,
+	})
+}
