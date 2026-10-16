@@ -90,6 +90,45 @@ func TestHookJudgesTheRepositoryThatHoldsTheTarget(t *testing.T) {
 	}
 }
 
+// TestHookStartsAToolPathFromTheHome drives the real binding with names
+// that start from the home, which the host expands before it opens them:
+// the policy file, a dash and a secret of the repository named through the
+// home from a session outside it are judged there, while a dash so named
+// outside every repository from a session inside one is not.
+func TestHookStartsAToolPathFromTheHome(t *testing.T) {
+	t.Parallel()
+	e := enrolledHook(t)
+	outside := t.TempDir()
+	fromHome := func(dir, name string) string {
+		relative, err := filepath.Rel(e.home, filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return "~/" + filepath.ToSlash(relative)
+	}
+	write := func(target, content string) map[string]any {
+		return map[string]any{"file_path": target, "content": content}
+	}
+	for _, tc := range []struct {
+		name, tool, cwd string
+		input           map[string]any
+		denied          bool
+	}{
+		{"the policy file through the home from outside", "Write", outside, write(fromHome(e.root, "golaw.yml"), "x: 1\n"), true},
+		{"a dash into the repository through the home from outside", "Write", outside, write(fromHome(e.root, "notes.md"), "one \u2014 two\n"), true},
+		{"a secret of the repository through the home from outside", "Read", outside, map[string]any{"file_path": fromHome(e.root, ".env")}, true},
+		{"a dash outside every repository through the home from inside", "Write", e.root, write(fromHome(outside, "plain.md"), "one \u2014 two\n"), false},
+		{"a clean file of the repository through the home from outside", "Write", outside, write(fromHome(e.root, "notes.md"), "one-two\n"), false},
+	} {
+		agent := agentUnderTest()
+		reply := hook.Run(t.Context(), agent.ID, strings.NewReader(eventAt(t, tc.tool, tc.cwd, tc.input)), agent.Adapter, e.deps)
+		denied := strings.Contains(string(reply.Stdout), `"permissionDecision":"deny"`)
+		if reply.ExitCode != 0 || denied != tc.denied || reply.Stderr != "" {
+			t.Fatalf("%s: exit %d, stdout %q, stderr %q", tc.name, reply.ExitCode, reply.Stdout, reply.Stderr)
+		}
+	}
+}
+
 // TestHookJudgesBothNamesOfARead drives the real binding with reads
 // through links: a link named like secret material, a link to secret
 // material of the repository, a link to the credential store of the home,
@@ -100,21 +139,7 @@ func TestHookJudgesBothNamesOfARead(t *testing.T) {
 	t.Parallel()
 	e := enrolledHook(t)
 	root, outside := e.root, t.TempDir()
-	store := filepath.Join(e.home, ".aws", "credentials")
-	plant(t, map[string]string{
-		filepath.Join(root, "payload.txt"): "plain\n", filepath.Join(root, ".env.local"): "K=v\n",
-		store: "[default]\n", filepath.Join(outside, "plain.txt"): "plain\n", filepath.Join(root, "plain", "x.txt"): "plain\n",
-	}, [][2]string{
-		{"plain", filepath.Join(root, "secrets")},
-		{"..", filepath.Join(root, "plain", "secrets")},
-		{"payload.txt", filepath.Join(root, ".env")},
-		{".env.local", filepath.Join(root, "notes.txt")},
-		{store, filepath.Join(root, "config.txt")},
-		{filepath.Join(root, ".env.local"), filepath.Join(outside, "alias.txt")},
-		{filepath.Join(outside, "plain.txt"), filepath.Join(root, ".env.prod")},
-		{filepath.Join(root, "payload.txt"), filepath.Join(outside, "plain-alias.txt")},
-		{filepath.Join(outside, "plain.txt"), filepath.Join(root, "out.txt")},
-	})
+	plantReadLinks(t, root, outside, filepath.Join(e.home, ".aws", "credentials"))
 	for _, tc := range []struct {
 		name, cwd, target string
 		denied            bool
@@ -139,6 +164,27 @@ func TestHookJudgesBothNamesOfARead(t *testing.T) {
 			t.Fatalf("%s: exit %d, stdout %q, stderr %q", tc.name, reply.ExitCode, reply.Stdout, reply.Stderr)
 		}
 	}
+}
+
+// plantReadLinks plants the files and the links the read cases of the
+// binding go through: names like secret material, links to it in both
+// directions, a directory link back to the root and plain controls.
+func plantReadLinks(t *testing.T, root, outside, store string) {
+	t.Helper()
+	plant(t, map[string]string{
+		filepath.Join(root, "payload.txt"): "plain\n", filepath.Join(root, ".env.local"): "K=v\n",
+		store: "[default]\n", filepath.Join(outside, "plain.txt"): "plain\n", filepath.Join(root, "plain", "x.txt"): "plain\n",
+	}, [][2]string{
+		{"plain", filepath.Join(root, "secrets")},
+		{"..", filepath.Join(root, "plain", "secrets")},
+		{"payload.txt", filepath.Join(root, ".env")},
+		{".env.local", filepath.Join(root, "notes.txt")},
+		{store, filepath.Join(root, "config.txt")},
+		{filepath.Join(root, ".env.local"), filepath.Join(outside, "alias.txt")},
+		{filepath.Join(outside, "plain.txt"), filepath.Join(root, ".env.prod")},
+		{filepath.Join(root, "payload.txt"), filepath.Join(outside, "plain-alias.txt")},
+		{filepath.Join(outside, "plain.txt"), filepath.Join(root, "out.txt")},
+	})
 }
 
 // plant writes the files of a test and makes its symbolic links, each a

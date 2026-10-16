@@ -20,7 +20,7 @@ func asPostEvent(req *hook.Request, cwd string, failed bool) hook.Adapter {
 	req.Event.Post = &model.PostResult{Failed: failed}
 	adapter := harnessAdapter(*req)
 	adapter.Header = func([]byte) (model.Event, error) { return req.Event, nil }
-	adapter.Decode = func([]byte, string, model.Snapshot) (hook.Request, error) {
+	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
 		return *req, nil
 	}
 	return adapter

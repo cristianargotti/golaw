@@ -65,7 +65,7 @@ func TestWriteCandidates(t *testing.T) {
 			}
 			tc.input["file_path"] = filepath.Join(root, "a.go")
 			got, err := claude.Write(frame(t, "PreToolUse", tc.tool, root, tc.input),
-				root, proof.NewTree(files))
+				hook.Base{Root: root}, proof.NewTree(files))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -109,7 +109,7 @@ func TestWriteCannotJudgeAndNotebook(t *testing.T) {
 	} {
 		tc.input["file_path"] = filepath.Join(root, "a.go")
 		if _, err := claude.Write(frame(t, "PreToolUse", "Edit", root, tc.input),
-			root, proof.NewTree(map[string][]byte{"a.go": []byte(tc.base)})); !errors.Is(err, model.ErrCannotJudge) {
+			hook.Base{Root: root}, proof.NewTree(map[string][]byte{"a.go": []byte(tc.base)})); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatal(tc.input, err)
 		}
 	}
@@ -118,13 +118,13 @@ func TestWriteCannotJudgeAndNotebook(t *testing.T) {
 		{"file_path": filepath.Join(root, "a.go"), "content": "x", "unknown": true},
 	} {
 		if _, err := claude.Write(frame(t, "PreToolUse", "Write", root, input),
-			root, proof.NewTree(nil)); !errors.Is(err, model.ErrCannotJudge) {
+			hook.Base{Root: root}, proof.NewTree(nil)); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatal(err)
 		}
 	}
 	got, err := claude.Write(frame(t, "PreToolUse", "NotebookEdit", root,
 		map[string]any{"notebook_path": filepath.Join(root, "a.ipynb")}),
-		root, proof.NewTree(nil))
+		hook.Base{Root: root}, proof.NewTree(nil))
 	if err != nil || got.Denial != "NotebookEdit is not supported by this adapter" {
 		t.Fatalf("%+v, %v", got, err)
 	}

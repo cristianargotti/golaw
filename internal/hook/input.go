@@ -42,16 +42,42 @@ func ReadObject(reader io.Reader) ([]byte, error) {
 // own resolution does, so a loop of links ends.
 const maxLinks = 255
 
-// absolute is the path the host opens for a name: trimmed and cleaned the
-// way the host expands a tool's path before it opens it (its parent
-// elements resolved in the name, read in the 2.1.299 bundle), and joined to
-// the working directory when it is relative.
-func absolute(cwd, name string) string {
-	path := filepath.FromSlash(strings.TrimFunc(name, hostSpace))
-	if !filepath.IsAbs(path) {
-		return filepath.Join(cwd, path)
+// absolute is the path the host opens for a name, expanded the way the
+// host expands a tool's path before it opens it (read in the 2.1.299
+// bundle): trimmed, a name that is ~ or starts with ~/ taken from the home,
+// on Windows a name that starts with a slash, one letter and a slash read
+// as that drive, its parent elements resolved, and joined to the working
+// directory when it is relative. A name from a home the process does not
+// know cannot be placed.
+func absolute(home, cwd, name string) (string, error) {
+	path := strings.TrimFunc(name, hostSpace)
+	if path == "~" || strings.HasPrefix(path, "~/") {
+		if home == "" {
+			return "", fmt.Errorf("%w: %s starts from a home this process does not know", model.ErrCannotJudge, path)
+		}
+		return filepath.Join(home, filepath.FromSlash(path[1:])), nil
 	}
-	return filepath.Clean(path)
+	if filepath.Separator == '\\' {
+		path = windowsDrive(path)
+	}
+	path = filepath.FromSlash(path)
+	if !filepath.IsAbs(path) {
+		return filepath.Join(cwd, path), nil
+	}
+	return filepath.Clean(path), nil
+}
+
+// windowsDrive reads a name that starts with a slash, one letter and a
+// slash as that drive, /c/work as C:\work, the way the host reads it on
+// Windows.
+func windowsDrive(name string) string {
+	if len(name) < len("/c/") || name[0] != '/' || name[2] != '/' {
+		return name
+	}
+	if letter := name[1]; (letter < 'a' || letter > 'z') && (letter < 'A' || letter > 'Z') {
+		return name
+	}
+	return strings.ToUpper(name[1:2]) + ":" + strings.ReplaceAll(name[2:], "/", `\`)
 }
 
 // hostSpace is the white space the host trims from a path: the white space
@@ -144,16 +170,20 @@ func existingDir(path, fallback string) string {
 
 // enrollmentDirs are where the enrollment of an event is looked up (A3),
 // in order, the first enrolled one governing: for a write or a read, the
-// directory above the file its name leads to through every link, then the
-// one above the entry the name opens, so a link moves neither a write nor
-// a read out of an enrolled repository in either direction; a read then
-// falls back to the session's working directory. A shell command and an
-// event without a target are judged where they run.
-func enrollmentDirs(event model.Event) []string {
+// directory above the file its name, expanded as the host expands it,
+// leads to through every link, then the one above the entry the name
+// opens, so a link moves neither a write nor a read out of an enrolled
+// repository in either direction; a read then falls back to the session's
+// working directory. A shell command and an event without a target are
+// judged where they run.
+func enrollmentDirs(event model.Event, home string) ([]string, error) {
 	if event.Target == "" {
-		return []string{event.Cwd}
+		return []string{event.Cwd}, nil
 	}
-	path := absolute(event.Cwd, event.Target)
+	path, err := absolute(home, event.Cwd, event.Target)
+	if err != nil {
+		return nil, err
+	}
 	dirs := []string{existingDir(resolvePath(path), event.Cwd)}
 	if entry := existingDir(entryLocation(path), event.Cwd); entry != dirs[0] {
 		dirs = append(dirs, entry)
@@ -161,74 +191,11 @@ func enrollmentDirs(event model.Event) []string {
 	if event.Shape == model.ShapeRead && !slices.Contains(dirs, event.Cwd) {
 		dirs = append(dirs, event.Cwd)
 	}
-	return dirs
+	return dirs, nil
 }
 
 // Hash binds a decision to bytes without retaining their contents.
 func Hash(content []byte) string {
 	sum := sha256.Sum256(content)
 	return hex.EncodeToString(sum[:])
-}
-
-// Relative keeps candidates inside the discovered repository: a name is
-// the file it leads to through every link, its last one included, named
-// from the root, which is a real path, so a name given through a linked
-// working directory or through a link outside the repository lands where
-// the write lands.
-func Relative(root, cwd, name string) (string, error) {
-	if err := validLocation(root, cwd, name); err != nil {
-		return "", err
-	}
-	return local(filepath.Rel(resolvePath(root), resolvePath(absolute(cwd, name))))
-}
-
-// Requested is the name a read asks for, from the root: the path below the
-// outermost directory above it that is the root, whatever links lead
-// there, spelled as given, so a link between the root and the name, a
-// directory, the entry itself or a link back to the root, changes no
-// element of the name below the repository boundary the rule reads.
-func Requested(root, cwd, name string) (string, error) {
-	if err := validLocation(root, cwd, name); err != nil {
-		return "", err
-	}
-	rootInfo, err := os.Stat(root)
-	if err != nil {
-		return "", fmt.Errorf("%w: repository root: %w", model.ErrCannotJudge, err)
-	}
-	path, boundary := absolute(cwd, name), ""
-	for dir := filepath.Dir(path); ; dir = filepath.Dir(dir) {
-		if info, statErr := os.Stat(dir); statErr == nil && os.SameFile(info, rootInfo) {
-			boundary = dir
-		}
-		if filepath.Dir(dir) == dir {
-			break
-		}
-	}
-	if boundary == "" {
-		return "", fmt.Errorf("%w: candidate is outside the repository", model.ErrCannotJudge)
-	}
-	return local(filepath.Rel(boundary, path))
-}
-
-// Resolve is the file a name leads to through every link, as an absolute
-// path, for a read that leads out of the repository.
-func Resolve(cwd, name string) string { return resolvePath(absolute(cwd, name)) }
-
-func validLocation(root, cwd, name string) error {
-	if name == "" || !filepath.IsAbs(root) || !filepath.IsAbs(cwd) {
-		return fmt.Errorf("%w: invalid candidate location", model.ErrCannotJudge)
-	}
-	return nil
-}
-
-// local turns a relative path into the slash separated name of a file of
-// the repository, refusing the root itself and a path that leaves it.
-func local(relative string, err error) (string, error) {
-	if err != nil {
-		return "", fmt.Errorf("%w: relative path: %w", model.ErrCannotJudge, err)
-	}
-	if relative == "." || !filepath.IsLocal(relative) {
-		return "", fmt.Errorf("%w: candidate is outside the repository", model.ErrCannotJudge)
-	}
-	return strings.ReplaceAll(filepath.ToSlash(relative), `\`, "/"), nil
 }

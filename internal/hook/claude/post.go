@@ -9,7 +9,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-func postRequest(w wire, event model.Event, root string) (hook.Request, error) {
+func postRequest(w wire, event model.Event, base hook.Base) (hook.Request, error) {
 	response := w.Response
 	if event.Post.Failed {
 		if event.Tool != bashTool && event.Tool != powerTool {
@@ -25,9 +25,9 @@ func postRequest(w wire, event model.Event, root string) (hook.Request, error) {
 	var err error
 	switch event.Tool {
 	case writeTool, editTool, notebookTool:
-		hints, err = writeHints(w, root)
+		hints, err = writeHints(w, base)
 	case bashTool, powerTool:
-		hints = shellHints(w, root)
+		hints = shellHints(w, base)
 	default:
 		err = fmt.Errorf("%w: unsupported post tool", model.ErrCannotJudge)
 	}
@@ -37,7 +37,7 @@ func postRequest(w wire, event model.Event, root string) (hook.Request, error) {
 	return hook.Request{Event: event, Hints: hints}, nil
 }
 
-func writeHints(w wire, root string) ([]string, error) {
+func writeHints(w wire, base hook.Base) ([]string, error) {
 	var input struct {
 		Path     string `json:"file_path"`
 		Notebook string `json:"notebook_path"`
@@ -49,14 +49,14 @@ func writeHints(w wire, root string) ([]string, error) {
 	if w.Tool == notebookTool {
 		path = input.Notebook
 	}
-	relative, err := hook.Relative(root, w.Cwd, path)
+	relative, err := base.Relative(w.Cwd, path)
 	if err != nil {
 		return nil, fmt.Errorf("%w: post write path: %w", model.ErrCannotJudge, err)
 	}
 	return []string{relative}, nil
 }
 
-func shellHints(w wire, root string) []string {
+func shellHints(w wire, base hook.Base) []string {
 	var response struct {
 		Diff struct {
 			Changed []string `json:"changedFiles"`
@@ -74,7 +74,7 @@ func shellHints(w wire, root string) []string {
 	}
 	var out []string
 	for _, path := range paths {
-		relative, err := hook.Relative(root, w.Cwd, path)
+		relative, err := base.Relative(w.Cwd, path)
 		if err == nil {
 			out = append(out, relative)
 		}

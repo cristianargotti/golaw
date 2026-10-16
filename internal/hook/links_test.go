@@ -47,9 +47,17 @@ func touch(t *testing.T, path string) {
 // unenrolled, so the whole list is tried.
 func enrollmentCalls(t *testing.T, shape model.EventShape, cwd, target string) []string {
 	t.Helper()
+	return enrollmentCallsFrom(t, "", shape, cwd, target)
+}
+
+// enrollmentCallsFrom is enrollmentCalls for a hook process whose home is
+// the given directory.
+func enrollmentCallsFrom(t *testing.T, home string, shape model.EventShape, cwd, target string) []string {
+	t.Helper()
 	req := request("bad")
 	req.Event.Shape, req.Event.Cwd, req.Event.Target = shape, cwd, target
 	dependencies := harnessDependencies(t, cwd)
+	dependencies.Home = home
 	var calls []string
 	dependencies.Enroll = func(_ context.Context, dir, _ string) (hook.Repository, error) {
 		calls = append(calls, dir)
@@ -110,6 +118,42 @@ func TestEnrollmentFollowsEveryLinkOfTheTarget(t *testing.T) {
 	}
 }
 
+// TestEnrollmentStartsAToolPathFromTheHome looks enrollment up where the
+// host opens a name that starts from the home, ~ or ~/ after the trim, and
+// refuses such a name when the home of the process is unknown; a tilde
+// before a user name or inside a name stays a name under the working
+// directory, as the host leaves it.
+func TestEnrollmentStartsAToolPathFromTheHome(t *testing.T) {
+	t.Parallel()
+	base := realDir(t)
+	home, repo, session := filepath.Join(base, "home"), filepath.Join(base, "repo"), filepath.Join(base, "session")
+	for _, dir := range []string{home, repo, session} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		target string
+		want   []string
+	}{
+		{"~/../repo/golaw.yml", []string{repo}},
+		{" ~/notes.md", []string{home}},
+		{"~", []string{base}},
+		{"~someone/notes.md", []string{session}},
+		{"docs/~/notes.md", []string{session}},
+	} {
+		if got := enrollmentCallsFrom(t, home, model.ShapeWrite, session, tc.target); !slices.Equal(got, tc.want) {
+			t.Errorf("%q: enrolled from %v, want %v", tc.target, got, tc.want)
+		}
+	}
+	req := request("bad")
+	req.Event.Shape, req.Event.Cwd, req.Event.Target = model.ShapeWrite, session, "~/notes.md"
+	_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), harnessAdapter(req), harnessDependencies(t, session))
+	if got.Outcome != hook.Deny || !got.CannotJudge {
+		t.Fatalf("a name from an unknown home: %+v", got)
+	}
+}
+
 // TestRequestedSpellsTheNameBelowTheRoot names a read as it was asked for:
 // the path below the outermost directory that is the root, through
 // whatever links lead there, so a directory link inside the repository
@@ -133,7 +177,7 @@ func TestRequestedSpellsTheNameBelowTheRoot(t *testing.T) {
 		{repo, filepath.Join(repo, "plain", "up", "here", "notes.md"), "plain/up/here/notes.md"},
 		{outside, filepath.Join(outside, "proj", "here", "notes.md"), "here/notes.md"},
 	} {
-		if got, err := hook.Requested(repo, tc.cwd, tc.name); err != nil || got != tc.want {
+		if got, err := (hook.Base{Root: repo}).Requested(tc.cwd, tc.name); err != nil || got != tc.want {
 			t.Errorf("%s: %q, %v, want %q", tc.name, got, err, tc.want)
 		}
 	}
@@ -143,14 +187,14 @@ func TestRequestedSpellsTheNameBelowTheRoot(t *testing.T) {
 		{repo, repo},
 		{filepath.Join(outside, "absent-root"), filepath.Join(outside, "a.md")},
 	} {
-		if got, err := hook.Requested(tc.root, repo, tc.name); !errors.Is(err, model.ErrCannotJudge) {
+		if got, err := (hook.Base{Root: tc.root}).Requested(repo, tc.name); !errors.Is(err, model.ErrCannotJudge) {
 			t.Errorf("%s under %s: %q, %v, want cannot judge", tc.name, tc.root, got, err)
 		}
 	}
-	if got := hook.Resolve(outside, filepath.Join("proj", "plain", "x.txt")); got != filepath.Join(repo, "plain", "x.txt") {
+	if got := (hook.Base{}).Resolve(outside, filepath.Join("proj", "plain", "x.txt")); got != filepath.Join(repo, "plain", "x.txt") {
 		t.Errorf("Resolve through a linked directory: %q", got)
 	}
-	if got := hook.Resolve("relative", "x.txt"); got != filepath.Join("relative", "x.txt") {
+	if got := (hook.Base{}).Resolve("relative", "x.txt"); got != filepath.Join("relative", "x.txt") {
 		t.Errorf("a relative path has no place to start from: %q", got)
 	}
 }

@@ -31,12 +31,12 @@ func TestReadObject(t *testing.T) {
 func TestRelativeAndHash(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
-	got, err := hook.Relative(root, root, filepath.Join(root, "dir", "a.go"))
+	got, err := (hook.Base{Root: root}).Relative(root, filepath.Join(root, "dir", "a.go"))
 	if err != nil || got != "dir/a.go" {
 		t.Fatalf("got %q, %v", got, err)
 	}
 	for _, name := range []string{"", ".", "../outside.go"} {
-		if _, err := hook.Relative(root, root, name); err == nil {
+		if _, err := (hook.Base{Root: root}).Relative(root, name); err == nil {
 			t.Fatalf("accepted %q", name)
 		}
 	}
@@ -44,13 +44,13 @@ func TestRelativeAndHash(t *testing.T) {
 	if err := os.Symlink(root, link); err != nil {
 		t.Skipf("symbolic links are not available: %v", err)
 	}
-	if got, err := hook.Relative(root, link, "a.go"); err != nil || got != "a.go" {
+	if got, err := (hook.Base{Root: root}).Relative(link, "a.go"); err != nil || got != "a.go" {
 		t.Fatalf("linked cwd: %q, %v", got, err)
 	}
-	if got, err := hook.Relative(root, root, filepath.Join(link, "dir", "b.go")); err != nil || got != "dir/b.go" {
+	if got, err := (hook.Base{Root: root}).Relative(root, filepath.Join(link, "dir", "b.go")); err != nil || got != "dir/b.go" {
 		t.Fatalf("linked name: %q, %v", got, err)
 	}
-	if got, err := hook.Relative(root, link, filepath.Join("absent", "deep", "c.go")); err != nil || got != "absent/deep/c.go" {
+	if got, err := (hook.Base{Root: root}).Relative(link, filepath.Join("absent", "deep", "c.go")); err != nil || got != "absent/deep/c.go" {
 		t.Fatalf("absent directories: %q, %v", got, err)
 	}
 	if hook.Hash(nil) !=
@@ -92,13 +92,45 @@ func TestRelativeFollowsEveryLink(t *testing.T) {
 		" \uFEFF" + filepath.Join(outside, "alias") + "\n\t": "golaw.yml",
 		filepath.Join(repo, "golaw.yml") + "\u0085":          "golaw.yml\u0085",
 	} {
-		if got, err := hook.Relative(repo, outside, name); err != nil || got != want {
+		if got, err := (hook.Base{Root: repo}).Relative(outside, name); err != nil || got != want {
 			t.Errorf("%s: %q, %v, want %q", name, got, err, want)
 		}
 	}
 	for _, name := range []string{filepath.Join(repo, "out.md"), filepath.Join(repo, "gone.md")} {
-		if got, err := hook.Relative(repo, repo, name); !errors.Is(err, model.ErrCannotJudge) {
+		if got, err := (hook.Base{Root: repo}).Relative(repo, name); !errors.Is(err, model.ErrCannotJudge) {
 			t.Errorf("%s: %q, %v, want outside the repository", name, got, err)
 		}
+	}
+}
+
+// TestBaseNamesAToolPathFromTheHome names a candidate the host opens from
+// the home from the root, wherever the session runs, refuses one whose
+// home the process does not know, and resolves such a name under the
+// working directory when it can only be judged by its spelling.
+func TestBaseNamesAToolPathFromTheHome(t *testing.T) {
+	t.Parallel()
+	base := realDir(t)
+	home, repo, outside := filepath.Join(base, "home"), filepath.Join(base, "repo"), filepath.Join(base, "outside")
+	for _, dir := range []string{home, repo, outside} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	at := hook.Base{Root: repo, Home: home}
+	if got, err := at.Relative(outside, "~/../repo/a.go"); err != nil || got != "a.go" {
+		t.Fatalf("Relative: %q, %v", got, err)
+	}
+	if got, err := at.Requested(outside, "~/../repo/docs/a.md"); err != nil || got != "docs/a.md" {
+		t.Fatalf("Requested: %q, %v", got, err)
+	}
+	if got := at.Resolve(outside, "~/../outside/x.md"); got != filepath.Join(outside, "x.md") {
+		t.Fatalf("Resolve: %q", got)
+	}
+	unknown := hook.Base{Root: repo}
+	if got, err := unknown.Relative(outside, "~/../repo/a.go"); !errors.Is(err, model.ErrCannotJudge) {
+		t.Fatalf("Relative from an unknown home: %q, %v", got, err)
+	}
+	if got := unknown.Resolve(outside, "~/x.md"); got != filepath.Join(outside, "~", "x.md") {
+		t.Fatalf("Resolve from an unknown home: %q", got)
 	}
 }

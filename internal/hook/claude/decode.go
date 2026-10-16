@@ -10,7 +10,7 @@ import (
 )
 
 // Decode keeps vendor payloads outside the policy engine.
-func Decode(data []byte, root string, snapshot model.Snapshot) (hook.Request, error) {
+func Decode(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 	event, err := Header(data)
 	if err != nil {
 		return hook.Request{}, err
@@ -20,13 +20,13 @@ func Decode(data []byte, root string, snapshot model.Snapshot) (hook.Request, er
 		return hook.Request{}, err
 	}
 	if event.Shape == model.ShapePost {
-		return postRequest(w, event, root)
+		return postRequest(w, event, base)
 	}
 	switch event.Tool {
 	case writeTool, editTool, notebookTool:
-		return Write(data, root, snapshot)
+		return Write(data, base, snapshot)
 	case readTool:
-		return readRequest(w, event, root)
+		return readRequest(w, event, base)
 	case bashTool, powerTool:
 		return shellRequest(w, event)
 	default:
@@ -40,7 +40,7 @@ func Decode(data []byte, root string, snapshot model.Snapshot) (hook.Request, er
 // name it was given. A link between the name and the file gives the read
 // a second name, the file the link leads to, named the same way or by its
 // absolute path outside, and the rule judges both.
-func readRequest(w wire, event model.Event, root string) (hook.Request, error) {
+func readRequest(w wire, event model.Event, base hook.Base) (hook.Request, error) {
 	var input struct {
 		Path string `json:"file_path"`
 	}
@@ -50,8 +50,8 @@ func readRequest(w wire, event model.Event, root string) (hook.Request, error) {
 	if input.Path == "" {
 		return hook.Request{}, fmt.Errorf("%w: Read path is absent", model.ErrCannotJudge)
 	}
-	read := model.ReadRequest{Path: readName(hook.Requested, root, w.Cwd, input.Path, input.Path)}
-	if target := readName(hook.Relative, root, w.Cwd, input.Path, hook.Resolve(w.Cwd, input.Path)); target != read.Path {
+	read := model.ReadRequest{Path: readName(base.Requested, w.Cwd, input.Path, input.Path)}
+	if target := readName(base.Relative, w.Cwd, input.Path, base.Resolve(w.Cwd, input.Path)); target != read.Path {
 		read.Real = target
 	}
 	event.Shape = model.ShapeRead
@@ -62,8 +62,8 @@ func readRequest(w wire, event model.Event, root string) (hook.Request, error) {
 // readName is a name of a read from the root when the repository holds it,
 // else the given path, in slashes; a fallback, never an error, because a
 // read outside the repository is still judged by its name.
-func readName(inside func(string, string, string) (string, error), root, cwd, name, outside string) string {
-	if relative, err := inside(root, cwd, name); err == nil { // fallback: a name outside the repository keeps its own spelling
+func readName(inside func(string, string) (string, error), cwd, name, outside string) string {
+	if relative, err := inside(cwd, name); err == nil { // fallback: a name outside the repository keeps its own spelling
 		return relative
 	}
 	return strings.ReplaceAll(outside, `\`, "/")

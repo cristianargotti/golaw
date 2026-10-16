@@ -65,7 +65,7 @@ func harness(t *testing.T, req hook.Request) (hook.Adapter, hook.Dependencies) {
 func harnessAdapter(req hook.Request) hook.Adapter {
 	return hook.Adapter{
 		Header: func([]byte) (model.Event, error) { return req.Event, nil },
-		Decode: func([]byte, string, model.Snapshot) (hook.Request, error) {
+		Decode: func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
 			return req, nil
 		},
 		Encode: func(_ model.Event, result hook.Result) hook.Reply {

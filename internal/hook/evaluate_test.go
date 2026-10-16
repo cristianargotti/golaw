@@ -164,7 +164,7 @@ func TestShellPostUsesContentIdentity(t *testing.T) {
 	req.Event.Shell = nil
 	req.Event.Post = &model.PostResult{Failed: true, Response: "command failed"}
 	adapter.Header = func([]byte) (model.Event, error) { return req.Event, nil }
-	adapter.Decode = func([]byte, string, model.Snapshot) (hook.Request, error) {
+	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
 		return req, nil
 	}
 	dependencies.Snapshot = func(context.Context, hook.Repository) (model.Snapshot, error) {
@@ -183,7 +183,7 @@ func TestDecisionAndSelectionMutations(t *testing.T) {
 	if baseline.Outcome != hook.Deny {
 		t.Fatal(baseline)
 	}
-	adapter.Decode = func([]byte, string, model.Snapshot) (hook.Request, error) {
+	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
 		return hook.Request{Event: model.Event{
 			Agent: "claude", Tool: "Read", Shape: model.ShapeRead,
 			Read: &model.ReadRequest{Path: "a.go"},
@@ -194,7 +194,7 @@ func TestDecisionAndSelectionMutations(t *testing.T) {
 		t.Fatal("selection deletion did not remove the red finding")
 	}
 	adapter, dependencies = harness(t, request("safe"))
-	adapter.Decode = func([]byte, string, model.Snapshot) (hook.Request, error) {
+	adapter.Decode = func([]byte, hook.Base, model.Snapshot) (hook.Request, error) {
 		return hook.Request{Denial: "forced denial"}, nil
 	}
 	_, overfire := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)

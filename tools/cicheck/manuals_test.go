@@ -60,6 +60,8 @@ func TestAgentContract(t *testing.T) {
 		"doctor-json",
 		"deepest existing directory above tool_input.file_path",
 		"every symbolic link in it is followed, the last one included, dangling or not",
+		"a leading ~ or ~/ taken from the home the hook process shares with the host",
+		"so a host that sends the name as the model wrote it is placed the same way",
 		"both by the name it asks for and by the file its links lead to",
 		"a submodule moved to another revision are excluded from detection",
 		"records the fault and proves no denial",

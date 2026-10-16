@@ -54,9 +54,21 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	}
 	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest}
 	return hook.Dependencies{
+		Home:   b.processHome(),
 		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Overlay: h.overlay,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
+}
+
+// processHome is the home directory of the hook process, the one the host
+// that runs it expands a tool's path from; it is empty when the
+// environment names none, and the hook then refuses such a path.
+func (b binding) processHome() string {
+	home, err := b.home()
+	if err != nil {
+		return ""
+	}
+	return home
 }
 
 // hookDigest is the digest of the hook definition the plugin of an agent

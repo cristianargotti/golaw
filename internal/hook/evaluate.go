@@ -44,8 +44,11 @@ func Evaluate(ctx context.Context, agent string, data []byte, adapter Adapter, d
 // every repository; a write there is a positively unenrolled location.
 func enroll(ctx context.Context, event model.Event, dependencies Dependencies) (Repository, error) {
 	var repository Repository
-	var err error
-	for _, dir := range enrollmentDirs(event) {
+	dirs, err := enrollmentDirs(event, dependencies.Home)
+	if err != nil {
+		return repository, err
+	}
+	for _, dir := range dirs {
 		repository, err = dependencies.Enroll(ctx, dir, event.Cwd)
 		if err != nil || repository.Enrollment.State != model.EnrollmentNone {
 			break
@@ -71,7 +74,7 @@ func loadExecution(ctx context.Context, repository Repository, data []byte, adap
 	if err != nil {
 		return run, fmt.Errorf("%w: snapshot: %w", model.ErrCannotJudge, err)
 	}
-	request, err := adapter.Decode(data, repository.Root, snapshot)
+	request, err := adapter.Decode(data, Base{Root: repository.Root, Home: dependencies.Home}, snapshot)
 	if err != nil {
 		return run, fmt.Errorf("normalize hook input: %w", err)
 	}

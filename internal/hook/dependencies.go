@@ -19,8 +19,12 @@ type Repository struct {
 // Dependencies keep policy authority and snapshot ownership in their packages.
 // Enroll discovers the repository that governs a directory, the one that
 // holds the event's target, and receives the session's working directory
-// apart, as the evidence of where the agent runs the hook.
+// apart, as the evidence of where the agent runs the hook. Home is the
+// home directory of the hook process, which it shares with the host that
+// runs it, empty when it has none: the host expands a leading tilde of a
+// tool's path to it before it opens the file.
 type Dependencies struct {
+	Home     string
 	Enroll   func(ctx context.Context, dir, cwd string) (Repository, error)
 	Policy   func(context.Context, Repository) (*model.EffectivePolicy, error)
 	Snapshot func(context.Context, Repository) (model.Snapshot, error)

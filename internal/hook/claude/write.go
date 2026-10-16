@@ -15,7 +15,7 @@ type writeInput struct {
 }
 
 // Write reconstructs candidates without executing the intercepted operation.
-func Write(data []byte, root string, snapshot model.Snapshot) (hook.Request, error) {
+func Write(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 	event, err := Header(data)
 	if err != nil {
 		return hook.Request{}, err
@@ -37,9 +37,9 @@ func Write(data []byte, root string, snapshot model.Snapshot) (hook.Request, err
 	var content []byte
 	switch event.Tool {
 	case writeTool:
-		candidate, content, err = fullCandidate(w, root, snapshot)
+		candidate, content, err = fullCandidate(w, base, snapshot)
 	case editTool:
-		candidate, content, err = editCandidate(w, root, snapshot)
+		candidate, content, err = editCandidate(w, base, snapshot)
 	default:
 		err = fmt.Errorf("%w: unsupported write tool", model.ErrCannotJudge)
 	}
@@ -54,7 +54,7 @@ func Write(data []byte, root string, snapshot model.Snapshot) (hook.Request, err
 	}, nil
 }
 
-func fullCandidate(w wire, root string, snapshot model.Snapshot) (model.Candidate, []byte, error) {
+func fullCandidate(w wire, base hook.Base, snapshot model.Snapshot) (model.Candidate, []byte, error) {
 	var input writeInput
 	if err := strictInput(w.Input, &input); err != nil {
 		return model.Candidate{}, nil, err
@@ -62,7 +62,7 @@ func fullCandidate(w wire, root string, snapshot model.Snapshot) (model.Candidat
 	if input.Content == nil {
 		return model.Candidate{}, nil, fmt.Errorf("%w: Write content is absent", model.ErrCannotJudge)
 	}
-	path, err := hook.Relative(root, w.Cwd, input.Path)
+	path, err := base.Relative(w.Cwd, input.Path)
 	if err != nil {
 		return model.Candidate{}, nil, fmt.Errorf("%w: Write path: %w", model.ErrCannotJudge, err)
 	}

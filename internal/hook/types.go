@@ -35,9 +35,11 @@ type Reply struct {
 	ExitCode int
 }
 
-// Adapter prevents vendor wire formats from entering the engine.
+// Adapter prevents vendor wire formats from entering the engine. Decode
+// names the files of an event against the root of its repository and the
+// home the host expands a tool's path from.
 type Adapter struct {
 	Header func([]byte) (model.Event, error)
-	Decode func([]byte, string, model.Snapshot) (Request, error)
+	Decode func([]byte, Base, model.Snapshot) (Request, error)
 	Encode func(model.Event, Result) Reply
 }

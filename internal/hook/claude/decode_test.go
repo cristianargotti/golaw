@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/hook/claude"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/proof"
@@ -35,7 +36,7 @@ func TestDecodeReadAndShell(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	read, err := claude.Decode(frame(t, "PreToolUse", "Read", root,
-		map[string]any{"file_path": `C:\keys\private.key`}), root, nil)
+		map[string]any{"file_path": `C:\keys\private.key`}), hook.Base{Root: root}, nil)
 	if err != nil || read.Event.Read.Path != "C:/keys/private.key" {
 		t.Fatalf("%+v, %v", read, err)
 	}
@@ -49,7 +50,7 @@ func TestDecodeReadAndShell(t *testing.T) {
 			`bash -lc 'git commit --no-verify -m x'`,
 		} {
 			got, err := claude.Decode(frame(t, "PreToolUse", tool, root,
-				map[string]any{"command": command}), root, nil)
+				map[string]any{"command": command}), hook.Base{Root: root}, nil)
 			if err != nil || got.Event.Shell.Command != command ||
 				got.Event.Shell.Tool != tool || got.Event.Shell.Cwd != root {
 				t.Fatalf("%+v, %v", got, err)
@@ -70,7 +71,7 @@ func TestDecodeRoutesWritesToTheirCandidates(t *testing.T) {
 			}
 			tc.input["file_path"] = filepath.Join(root, "a.go")
 			got, err := claude.Decode(frame(t, "PreToolUse", tc.tool, root, tc.input),
-				root, proof.NewTree(files))
+				hook.Base{Root: root}, proof.NewTree(files))
 			if err != nil || got.Event.Shape != model.ShapeWrite || len(got.Event.Candidates) != 1 {
 				t.Fatalf("%+v, %v", got, err)
 			}
@@ -80,7 +81,7 @@ func TestDecodeRoutesWritesToTheirCandidates(t *testing.T) {
 	root := t.TempDir()
 	got, err := claude.Decode(frame(t, "PreToolUse", "NotebookEdit", root,
 		map[string]any{"notebook_path": filepath.Join(root, "a.ipynb")}),
-		root, proof.NewTree(nil))
+		hook.Base{Root: root}, proof.NewTree(nil))
 	if err != nil || got.Denial != "NotebookEdit is not supported by this adapter" {
 		t.Fatalf("%+v, %v", got, err)
 	}
@@ -96,7 +97,7 @@ func TestDecodePostHintsAndFailure(t *testing.T) {
 		}
 		got, err := claude.Decode(postFrame(t, "PostToolUse", tool, root,
 			map[string]any{key: filepath.Join(root, "a.go")},
-			map[string]any{"success": true}), root, nil)
+			map[string]any{"success": true}), hook.Base{Root: root}, nil)
 		if err != nil || !slices.Equal(got.Hints, []string{"a.go"}) {
 			t.Fatalf("%+v, %v", got, err)
 		}
@@ -108,13 +109,13 @@ func TestDecodePostHintsAndFailure(t *testing.T) {
 	for _, tool := range []string{"Bash", "PowerShell"} {
 		input := map[string]any{"command": "false"}
 		got, err := claude.Decode(postFrame(t, "PostToolUse", tool, root,
-			input, response), root, nil)
+			input, response), hook.Base{Root: root}, nil)
 		if err != nil || !slices.Equal(got.Hints, []string{"a.go", "b.go"}) ||
 			len(got.Event.Post.Changed) != 0 {
 			t.Fatalf("%+v, %v", got, err)
 		}
 		got, err = claude.Decode(postFrame(t, "PostToolUseFailure", tool, root,
-			input, "command failed"), root, nil)
+			input, "command failed"), hook.Base{Root: root}, nil)
 		if err != nil || !got.Event.Post.Failed {
 			t.Fatalf("%+v, %v", got, err)
 		}
@@ -137,7 +138,7 @@ func TestDecodeRejectsUnknownShapes(t *testing.T) {
 		postFrame(t, "PostToolUse", "Read", root,
 			map[string]any{"file_path": filepath.Join(root, "a.go")}, map[string]any{"content": "x"}),
 	} {
-		if _, err := claude.Decode(data, root, nil); !errors.Is(err, model.ErrCannotJudge) {
+		if _, err := claude.Decode(data, hook.Base{Root: root}, nil); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatalf("%s: %v", data, err)
 		}
 	}
@@ -203,7 +204,7 @@ func TestDecodeReadNamesTheEntryAndTheTarget(t *testing.T) {
 		{outside, filepath.Join(outside, "alias.txt"), filepath.ToSlash(filepath.Join(outside, "alias.txt")), ".env.local"},
 		{root, filepath.Join(root, "payload.txt"), "payload.txt", ""},
 	} {
-		got, err := claude.Decode(frame(t, "PreToolUse", "Read", tc.cwd, map[string]any{"file_path": tc.name}), root, nil)
+		got, err := claude.Decode(frame(t, "PreToolUse", "Read", tc.cwd, map[string]any{"file_path": tc.name}), hook.Base{Root: root}, nil)
 		if err != nil || got.Event.Read.Path != tc.path || got.Event.Read.Real != tc.real {
 			t.Errorf("%s: %+v, %v", tc.name, got.Event.Read, err)
 		}
@@ -228,9 +229,34 @@ func TestDecodeReadIsRelativeToTheRoot(t *testing.T) {
 		filepath.Join("config", "app.yaml"):       "config/app.yaml",
 		filepath.Join(base, "secrets", "db.yaml"): filepath.ToSlash(filepath.Join(base, "secrets", "db.yaml")),
 	} {
-		got, err := claude.Decode(frame(t, "PreToolUse", "Read", root, map[string]any{"file_path": target}), root, nil)
+		got, err := claude.Decode(frame(t, "PreToolUse", "Read", root, map[string]any{"file_path": target}), hook.Base{Root: root}, nil)
 		if err != nil || got.Event.Read.Path != want {
 			t.Fatalf("%s: %+v, %v", target, got.Event.Read, err)
 		}
+	}
+}
+
+// TestDecodeStartsAToolPathFromTheHome names the candidate of a write and
+// the name of a read that start from the home the way the host opens them,
+// from the root of the repository, whatever the working directory.
+func TestDecodeStartsAToolPathFromTheHome(t *testing.T) {
+	t.Parallel()
+	base := realDir(t)
+	home, root, outside := filepath.Join(base, "home"), filepath.Join(base, "repo"), filepath.Join(base, "outside")
+	for _, dir := range []string{home, root, outside} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	at := hook.Base{Root: root, Home: home}
+	write, err := claude.Decode(frame(t, "PreToolUse", "Write", outside,
+		map[string]any{"file_path": "~/../repo/a.go", "content": "package a\n"}), at, proof.NewTree(nil))
+	if err != nil || len(write.Event.Candidates) != 1 || write.Event.Candidates[0].Path != "a.go" {
+		t.Fatalf("write: %+v, %v", write.Event.Candidates, err)
+	}
+	read, err := claude.Decode(frame(t, "PreToolUse", "Read", outside,
+		map[string]any{"file_path": "~/../repo/notes.md"}), at, nil)
+	if err != nil || read.Event.Read.Path != "notes.md" || read.Event.Read.Real != "" {
+		t.Fatalf("read: %+v, %v", read.Event.Read, err)
 	}
 }
