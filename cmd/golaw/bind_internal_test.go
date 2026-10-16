@@ -89,6 +89,7 @@ func testBinding(t *testing.T) (binding, string) {
 		env:     func(name string) string { return values[name] },
 		environ: func() []string { return []string{"PATH=" + filepath.Join(home, "bin")} },
 		home:    func() (string, error) { return home, nil },
+		exe:     func() (string, error) { return filepath.Join(home, "bin", "golaw"), nil },
 		info:    buildinfo.Info{Version: testVersion, Module: "example.test/kit", Stamped: true},
 	}
 	return b, home

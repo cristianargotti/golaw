@@ -25,6 +25,7 @@ type binding struct {
 	env     func(string) string
 	environ func() []string
 	home    func() (string, error)
+	exe     func() (string, error)
 	info    buildinfo.Info
 }
 

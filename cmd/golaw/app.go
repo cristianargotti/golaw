@@ -54,6 +54,7 @@ type app struct {
 	installOptions func(ctx context.Context, agent agents.Agent, root, scope string, now time.Time) (install.Options, error)
 	receiptPath    func(agent agents.Agent, root, scope string) (string, error)
 	enrollments    func(root string, now time.Time) (enrollmentPort, error)
+	doctorReport   func(ctx context.Context, agent agents.Agent, root, scope string, now time.Time) (doctor.Report, error)
 }
 
 // exitError carries an exit code that is a result, not a failure: findings
@@ -82,7 +83,7 @@ func (a *app) rootCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand(), a.hookCommand(), a.agentCommand())
+	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand(), a.hookCommand(), a.agentCommand(), a.doctorCommand())
 	return root
 }
 

@@ -87,7 +87,7 @@ func TestNewAppBindsEverySeam(t *testing.T) {
 	if a.buildInfo == nil || a.now == nil || a.home == nil || a.stdin == nil || a.discover == nil {
 		t.Fatal("a production seam is nil")
 	}
-	if a.hookDeps == nil || a.installOptions == nil || a.receiptPath == nil || a.enrollments == nil {
+	if a.hookDeps == nil || a.installOptions == nil || a.receiptPath == nil || a.enrollments == nil || a.doctorReport == nil {
 		t.Fatal("an integration seam is nil")
 	}
 	if got := a.buildInfo(); !got.Stamped {

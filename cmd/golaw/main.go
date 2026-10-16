@@ -28,6 +28,7 @@ func newApp(stdout, stderr io.Writer) *app {
 		env:     os.Getenv,
 		environ: os.Environ,
 		home:    os.UserHomeDir,
+		exe:     os.Executable,
 		info:    buildinfo.Current(),
 	}
 	return &app{
@@ -49,5 +50,6 @@ func newApp(stdout, stderr io.Writer) *app {
 		installOptions: b.installOptions,
 		receiptPath:    b.receiptPath,
 		enrollments:    b.enrollments,
+		doctorReport:   b.doctorReport,
 	}
 }
