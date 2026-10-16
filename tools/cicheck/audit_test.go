@@ -17,7 +17,7 @@ func TestAuditProof(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry := auditRegistry(t, manifest)
+	registry := registryOf(t, manifest, proofRules(t))
 	for _, failure := range proof.Verify(t.Context(), registry, "proof", manifest) {
 		t.Error(failure.String())
 	}
@@ -71,5 +71,10 @@ func TestPublicTextBoundaries(t *testing.T) {
 	}
 	if documentation("internal/example.go") {
 		t.Fatal("source classified as documentation")
+	}
+	for _, path := range []string{"internal/example.go", "golaw.yml", "agents/manifest.json"} {
+		if !publicTextRule().match(path) {
+			t.Errorf("the private name is not read in %s", path)
+		}
 	}
 }

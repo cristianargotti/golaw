@@ -52,8 +52,26 @@ func (r auditRule) Run(_ context.Context, in model.Input) (model.Result, error) 
 
 func auditRegistry(t *testing.T, manifest proof.Manifest) *engine.Registry {
 	t.Helper()
+	return registryOf(t, manifest, auditRules(t))
+}
+
+// proofRules binds the public text rule to the placeholder name, so the red
+// fixture of the manifest proves the name branch without spelling the name.
+func proofRules(t *testing.T) []auditRule {
+	t.Helper()
+	rules := auditRules(t)
+	for index := range rules {
+		if rules[index].id == publicTextRule().id {
+			rules[index] = publicTextRuleFor(nameDigest(neutralName))
+		}
+	}
+	return rules
+}
+
+func registryOf(t *testing.T, manifest proof.Manifest, rules []auditRule) *engine.Registry {
+	t.Helper()
 	builder := engine.New()
-	for _, rule := range auditRules(t) {
+	for _, rule := range rules {
 		if err := builder.Register(rule); err != nil {
 			t.Fatal(err)
 		}
