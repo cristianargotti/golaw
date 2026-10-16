@@ -15,7 +15,7 @@ func TestShellFixturePairs(t *testing.T) {
 	}
 	denied := []string{
 		"bypass", "short-bypass", "commit-dash", "body-101",
-		"secret-token", "secret-directory", "package-redirect", "package-terminator-test", "redirect-flag-value", "redirect-bypass", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "cmd-for-command", "cmd-call", "cmd-start", "reserved-word-bypass", "eval-bypass", "xargs-bypass", "git-dir-bypass", "wrapper-option-bypass", "invoke-expression-bypass", "bash", "sh",
+		"secret-token", "secret-directory", "package-redirect", "package-terminator-test", "redirect-flag-value", "redirect-bypass", "pwsh", "powershell", "cmd", "cmd-escaped-quote", "cmd-control-block", "cmd-for-set", "cmd-for-command", "cmd-call", "cmd-start", "reserved-word-bypass", "eval-bypass", "xargs-bypass", "git-dir-bypass", "wrapper-option-bypass", "invoke-expression-bypass", "substitution-bypass", "bash", "sh",
 	}
 	allowed := []string{
 		"commit-control", "push-default", "fetch", "body-100", "source-token", "package-pattern", "package-terminator", "redirect-control",
@@ -32,7 +32,7 @@ func TestShellFixturePairs(t *testing.T) {
 		t.Fatal("a native PowerShell row runs through Bash")
 	}
 	expectShell(t, seen, []string{"heredoc-script"}, toolBash, wantDeny)
-	expectShell(t, seen, []string{"heredoc-data"}, toolBash, wantAllow)
+	expectShell(t, seen, []string{"heredoc-data", "heredoc-message"}, toolBash, wantAllow)
 	if _, found := seen["heredoc-data-"+toolPowerShell]; found {
 		t.Fatal("a POSIX row runs through PowerShell")
 	}

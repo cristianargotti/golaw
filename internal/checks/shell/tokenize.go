@@ -58,6 +58,11 @@ func split(command string, d dialect, depth int) []segment {
 		}
 		out = append(out, seg)
 	}
+	if d != cmdShell && depth < maxDepth {
+		for _, script := range substitutions(command, d) {
+			out = append(out, split(script, d, depth+1)...)
+		}
+	}
 	return out
 }
 

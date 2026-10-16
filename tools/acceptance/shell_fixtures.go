@@ -40,6 +40,7 @@ func shellCommands() []shellFixture {
 		{"git-dir-bypass", "git --git-dir .git commit --no-verify -m 'fix: safe'", wantDeny},
 		{"wrapper-option-bypass", "env -i git commit --no-verify -m 'fix: safe'", wantDeny},
 		{"invoke-expression-bypass", `Invoke-Expression "git commit --no-verify -m 'fix: safe'"`, wantDeny},
+		{"substitution-bypass", `git commit -m "$(git commit --no-verify -m y)"`, wantDeny},
 		{"bash", `bash -lc "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"sh", `sh -c "git commit --no-verify -m 'fix: safe'"`, wantDeny},
 		{"pwsh-control", `pwsh -Command "git status"`, wantAllow},
@@ -92,6 +93,7 @@ func posixCommands() []shellFixture {
 	return []shellFixture{
 		{"heredoc-data", "cat > notes.md <<'EOF'\nread the .env example\nEOF", wantAllow},
 		{"heredoc-script", "bash <<'EOF'\ngit commit --no-verify -m x\nEOF", wantDeny},
+		{"heredoc-message", "git commit -m \"$(cat <<'EOF'\nfix: read the .env example\nEOF\n)\"", wantAllow},
 	}
 }
 
