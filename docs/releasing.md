@@ -7,6 +7,7 @@ A release is a tag v<major>.<minor>.<patch> on a commit of main. The release lan
 1. The commit is on main and its CI run on push succeeded: make ci on Linux, macOS and Windows, the acceptance job, release-config and the plugin validation.
 2. The dated live record of the candidate is in docs/live/claude-darwin.json, as agent-contracts.md describes: one macOS session of the pinned host with the allowed control, the denied write, the host timeout and the missing binary, naming the digest of CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -buildvcs=false ./cmd/golaw run with Go 1.27.0, the go-version of release.yml. The gate rebuilds the candidate with that toolchain, so a record made with another Go release names another digest, and any toolchain bump, in release.yml or in go.mod, needs a new live record. A commit that only adds the record keeps that digest, so the record is committed first and the tag goes on that commit.
 3. CHANGELOG.md dates every rule change of the release with its reason.
+4. The README and docs/setup.md install the new tag, and agents/SKILL.md names the rules page at the same tag, with its plugin copy; cicheck holds the three to one version.
 
 ## What the lane runs
 

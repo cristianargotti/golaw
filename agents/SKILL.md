@@ -5,7 +5,7 @@ description: Use for Go implementation, tests, refactoring, review, dependencies
 
 # Go engineering with golaw
 
-Read golaw.yml and docs/rules.md before changing the repository.
+Read golaw.yml and the rules of the kit, https://github.com/cristianargotti/golaw/blob/v0.1.0/docs/rules.md, before changing the repository.
 
 Reuse in this order: existing repository code, the standard library, an existing platform capability, an installed dependency, then the smallest implementation that meets the need. Preserve boundary validation, error handling, and security. Record every new direct dependency and its alternatives in the configured decisions directory.
 
@@ -31,4 +31,4 @@ Run golaw scan . before finishing. When golaw scan --staged exists in your versi
 
 Installed agent guards deny violations until a person uninstalls them. Do not weaken policy to bypass a finding.
 
-Read docs/rules.md for the prose mapping and docs/checklists.md when it exists.
+The rules page carries the prose mapping; read docs/checklists.md of the kit at the same tag when it exists.

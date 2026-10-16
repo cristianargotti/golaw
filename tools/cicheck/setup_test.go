@@ -81,3 +81,19 @@ func TestReadmePinsTheInstall(t *testing.T) {
 		"checksums.txt",
 	)
 }
+
+// TestSkillPinsTheRulesOfTheKit holds the skill to a rules page every
+// adopting repository can open: init writes no docs/rules.md there, so the
+// skill names the page of the kit at the tag the setup page installs.
+func TestSkillPinsTheRulesOfTheKit(t *testing.T) {
+	t.Parallel()
+	pinned := regexp.MustCompile(`https://github\.com/cristianargotti/golaw/blob/(v\d+\.\d+\.\d+)/docs/rules\.md`)
+	skill := pinned.FindStringSubmatch(string(kitBytes(t, "agents/SKILL.md")))
+	setup := regexp.MustCompile(`golaw@(v\d+\.\d+\.\d+)\n`).FindStringSubmatch(string(kitBytes(t, "docs/setup.md")))
+	if skill == nil || setup == nil || skill[1] != setup[1] {
+		t.Fatalf("the skill pins %v, docs/setup.md installs %v", skill, setup)
+	}
+	if strings.Contains(string(kitBytes(t, "agents/SKILL.md")), "Read docs/rules.md") {
+		t.Fatal("the skill points at a rules page adopting repositories do not hold")
+	}
+}

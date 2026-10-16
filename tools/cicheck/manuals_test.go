@@ -20,6 +20,7 @@ func TestSecurityContract(t *testing.T) {
 		"time-boxed",
 		"no repository-level advisory switch",
 		"recovery-control",
+		"From a checkout of the kit at the validated tag",
 		"wherever the session runs",
 		"cover only private key files, Terraform variable files, SSH keys, and cloud credential files",
 		"such as git -C, is not judged",

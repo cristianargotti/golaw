@@ -74,7 +74,7 @@ When a payload change, panic, or missing executable blocks work, a person select
 
 Restore the matching kit.version and enrollment digests as part of the person's reviewed change, committing the repository policy change and updating external enrollment through agent install, which enrolls the committed policy only as a tightening, never lowering a policy floor. The binary and pin must move together.
 
-Run doctor again. Replay the recovery-control row of go run ./tools/acceptance, which takes the binary away, puts the validated one back, runs agent install again and requires the allowed write through the installed invocation, before resuming work.
+Run doctor again. From a checkout of the kit at the validated tag, since the harness ships with the kit and never with an adopting repository, replay the recovery-control row of go run ./tools/acceptance, which takes the binary away, puts the validated one back, runs agent install again and requires the allowed write through the installed invocation, before resuming work.
 
 Retain the previous validated combination in the compatibility history after every upgrade. The first release has no previous golaw release; its acceptance demonstrates reinstalling the validated candidate.
 
