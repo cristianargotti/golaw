@@ -54,7 +54,7 @@ func TestOversizedChecksTheJSONAsTheDecoderDoes(t *testing.T) {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
-	valid := write(big+`\"\\\/\b\f\n\r\té`+"\xff\x7f", `,"n":[-0.5e+3,0,10E2,true,false,null,{},[]]`)
+	valid := write(big+`\"\\\/\b\f\n\r\t\u00e9`+"\xff\x7f", `,"n":[-0.5e+3,0,10E2,true,false,null,{},[]]`)
 	if parsed, err := claude.Oversized(strings.NewReader(valid)); err != nil || parsed.Event.Target != filepath.Join(root, "big.md") {
 		t.Fatalf("a valid event = %+v, %v", parsed.Event, err)
 	}
