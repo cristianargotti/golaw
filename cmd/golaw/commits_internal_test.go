@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -173,5 +174,40 @@ func TestHookBindingNamesTheCommitsAndTheCommitter(t *testing.T) {
 	}
 	if _, err := h.committer(t.Context(), outside); err == nil {
 		t.Fatal("a directory outside git answered a committer")
+	}
+}
+
+// TestHookPostBoundsTheNoticeOfAPullGitCannotClassify drives through the
+// real binding a fast-forward pull of a teammate's commit of thirty files
+// holding a dash in a clone whose git var cannot name a committer, as in a
+// container whose host name has no domain, which a pull never needs: git
+// cannot tell which commits the command created, and the notice names the
+// files the move brought in one sentence, twenty by name and the rest
+// counted, for the agent and for the person, never as feedback. The test is
+// serial because the isolated git configuration lives in the environment
+// the git processes inherit.
+func TestHookPostBoundsTheNoticeOfAPullGitCannotClassify(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	e := enrolledHook(t)
+	files, names := map[string]string{}, make([]string, 0, 30)
+	for i := range 30 {
+		name := fmt.Sprintf("notes/f%02d.md", i)
+		files[name], names = "one \u2014 two\n", append(names, name)
+	}
+	pushedByMate(t, e.root, files)
+	gitRun(t, e.root, "config", "--unset", "user.email")
+	gitRun(t, e.root, "config", "--unset", "user.name")
+	gitRun(t, e.root, "config", "user.useConfigOnly", "true")
+	said := aroundCommand(t, e, "a pull git cannot classify", func(root string) { gitRun(t, root, "pull", "-q", "--ff-only", "origin", "main") })
+	if fedBack(said) {
+		t.Fatalf("a pull git cannot classify fed back: %q", said)
+	}
+	agentText, humanText := noticeOf(t, hook.Reply{Stdout: []byte(said)})
+	listed := strings.Join(names[:20], ", ")
+	if strings.Count(agentText, "golaw did not measure") != 1 ||
+		agentText != "golaw did not measure "+listed+" and 10 more: git could not tell which commits this command created; the pipeline judges them." ||
+		humanText != "golaw n\u00e3o mediu "+listed+" e mais 10, que o pipeline julga." {
+		t.Fatalf("agent %q, human %q", agentText, humanText)
 	}
 }

@@ -151,6 +151,7 @@ func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 		"A move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed",
 		"reads as a commit it did not create, a stated limit",
 		"a move of HEAD git cannot compare, a file git cannot convert to compare and the deadline each leave a notice the agent reads",
+		"the paths of one cause in one sentence that names twenty and counts the rest, for the agent and in the language of the policy for the person, so a pull git cannot classify, when git var cannot name the committer, is one bounded sentence",
 	)
 	requireText(t, "docs/security.md",
 		"of those, it judges only what the commits the command created changed, and names the files a pull, a checkout, a merge or a reset brought from other commits in a notice that asks for no fix",

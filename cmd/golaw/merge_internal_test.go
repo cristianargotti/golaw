@@ -189,7 +189,7 @@ func mergeLimits(t *testing.T) []mergeCase {
 		}
 		gitRun(t, root, "checkout", "-q", start)
 	}
-	octopus := "golaw did not measure one.md: git could not make the merge in progress by itself to compare it; the pipeline judges it."
+	octopus := "golaw did not measure one.md, two.md: git could not make the merge in progress by itself to compare it; the pipeline judges them."
 	return []mergeCase{
 		{"a merge -X theirs that mixes both sides, the stated limit", mixed, func(root string) {
 			gitRun(t, root, "merge", "-q", "--no-commit", "-X", "theirs", "side")
