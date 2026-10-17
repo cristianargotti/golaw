@@ -2,6 +2,7 @@ package hook
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
@@ -21,6 +22,7 @@ func decisionResult(event model.Event, decision engine.Decision, language string
 		return rejectionLanguage(event, "cannot judge: engine returned no reason", true, language)
 	}
 	result := rejectionLanguage(event, decision.Reason, len(decision.Unmeasured) != 0, language)
+	result.enforcedFinding = slices.ContainsFunc(decision.Findings, model.Finding.Enforced)
 	if event.Shape != model.ShapePost {
 		// A denial before execution names the rule through the phrase table
 		// of its codes; post feedback keeps the sentence that asks for a fix.

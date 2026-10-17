@@ -26,10 +26,10 @@ type completed struct {
 
 // Run bounds the whole invocation with one deadline below the host timeout:
 // every callback and the engine honor the context, and an answer that
-// arrives after the deadline is replaced by a denial, so a late answer never
-// reaches the agent as an allow. The kit starts no goroutine (its own
-// goleak rule), so a reader that never returns is bounded by the host
-// timeout and the fail-closed mode the installer configures.
+// arrives after the deadline denies a pre event; a post event keeps known
+// findings with a notice, because its tool already ran. The kit starts no
+// goroutine (its own goleak rule), so a reader that never returns is bounded
+// by the host timeout and the fail-closed mode the installer configures.
 func Run(ctx context.Context, agent string, input io.Reader, adapter Adapter, dependencies Dependencies) Reply {
 	if adapter.Parse == nil || adapter.Encode == nil {
 		return Reply{ExitCode: 2, Stderr: "cannot judge: incomplete adapter\n"}
@@ -51,17 +51,21 @@ func Run(ctx context.Context, agent string, input io.Reader, adapter Adapter, de
 	return adapter.Encode(answer.event, answer.result)
 }
 
-// lateReply answers an event the deadline overtook: a post event, whose
-// tool already ran, with an allow and a notice that leaves it to the
-// pipeline, and every other event with a denial, because a late answer
-// never allows what has not run yet.
+// lateReply keeps established findings after execution with a notice of
+// what the deadline left unmeasured; without a finding it leaves the work
+// to the pipeline. Every pre event stays denied because it has not run yet.
 func lateReply(adapter Adapter, answer completed) Reply {
 	if answer.event.Shape == model.ShapePost {
 		language := answer.language
 		if language == "" {
 			language = model.DefaultLanguage
 		}
-		return adapter.Encode(answer.event, noticed([]Gap{{Cause: causeDeadline}}, language))
+		gaps := []Gap{{Cause: causeDeadline}}
+		if answer.result.enforcedFinding {
+			answer.result.CannotJudge = false
+			return adapter.Encode(answer.event, withGaps(answer.result, gaps, language))
+		}
+		return adapter.Encode(answer.event, noticed(gaps, language))
 	}
 	return deadlineReply(adapter)
 }

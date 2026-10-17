@@ -43,6 +43,9 @@ type Result struct {
 	Human       string
 	CannotJudge bool
 	Notice      string
+
+	// A deadline preserves a measured finding, never a failure's reason.
+	enforcedFinding bool
 }
 
 // Reply keeps stdout and stderr separate through command integration.
