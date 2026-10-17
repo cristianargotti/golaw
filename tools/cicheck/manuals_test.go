@@ -173,6 +173,19 @@ func TestSecurityStatesThePolicyBound(t *testing.T) {
 	)
 }
 
+// TestSecurityStatesTheFilterDrivers pins what docs/security.md says the
+// git commands of change detection run from the git configuration of the
+// checkout, and why a cloned repository names nothing they run.
+func TestSecurityStatesTheFilterDrivers(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/security.md",
+		"The git status and git hash-object of change detection run the clean filter driver the git configuration of the checkout names for a path",
+		"and core.fsmonitor runs its hook, as any git command in that checkout does",
+		"A cloned repository names no such program, because git configuration is not cloned",
+		"the drivers are the person's own configuration and the tools they installed, such as git-lfs",
+	)
+}
+
 // TestAgentContractDetection pins what docs/agent-contracts.md says change
 // detection after a shell command sees and where it trusts git status.
 func TestAgentContractDetection(t *testing.T) {

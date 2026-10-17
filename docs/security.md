@@ -54,7 +54,7 @@ An adopting platform must demonstrate its remote stage before claiming that the 
 
 ## Untrusted repositories
 
-Agent hooks execute no repository code. They use trusted git plumbing, keep snapshots in memory, and never execute intercepted command text, make targets, generators, or repository tools.
+Agent hooks execute no repository code. They use trusted git plumbing, keep snapshots in memory, and never execute intercepted command text, make targets, generators, or repository tools. The git status and git hash-object of change detection run the clean filter driver the git configuration of the checkout names for a path, a long-running process filter included, and core.fsmonitor runs its hook, as any git command in that checkout does. A cloned repository names no such program, because git configuration is not cloned: a .gitattributes file names a driver only by its name, and the drivers are the person's own configuration and the tools they installed, such as git-lfs. A checkout copied with its .git directory keeps the configuration it was copied with, which the person's own git commands there run as well.
 
 init writes only within the real repository root and refuses symlinked path components. It never arms git hooks. Templates contain no project-level agent files.
 
