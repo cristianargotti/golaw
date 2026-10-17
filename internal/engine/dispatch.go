@@ -126,7 +126,10 @@ func resolveOptions(spec model.Spec, policy *model.EffectivePolicy) model.Option
 
 // runOne calls the check and turns a panic or an error into Unmeasured, so
 // a crashing rule denies instead of failing open on an agent that treats a
-// crash as success.
+// crash as success. An error keeps the findings the check answers beside
+// it, those it established before it stopped, so a deadline that stops a
+// check between its targets leaves them to the decision; a panic keeps
+// none.
 func runOne(ctx context.Context, c model.Check, in model.Input) model.Result {
 	var res model.Result
 	var err error
@@ -139,7 +142,7 @@ func runOne(ctx context.Context, c model.Check, in model.Input) model.Result {
 		res, err = c.Run(ctx, in)
 	}()
 	if err != nil {
-		return model.Result{Status: model.Unmeasured(err.Error()), Scope: res.Scope}
+		return model.Result{Status: model.Unmeasured(err.Error()), Scope: res.Scope, Findings: res.Findings}
 	}
 	return res
 }

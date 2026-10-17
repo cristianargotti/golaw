@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/checks/goast"
 	"github.com/cristianargotti/golaw/internal/model"
@@ -147,5 +148,43 @@ func TestRunFailsOnPassedDeadline(t *testing.T) {
 	_, err := c.Run(ctx, input(c, map[string]string{"a.go": "package a\n"}))
 	if !errors.Is(err, context.Canceled) || !strings.Contains(err.Error(), "goast.file-length: deadline") {
 		t.Fatalf("Run on a passed deadline = %v", err)
+	}
+}
+
+// countdown is a context whose deadline passes once its Err was asked a
+// number of times, so a check meets it between two of its targets.
+type countdown struct{ left *int }
+
+func (countdown) Deadline() (time.Time, bool) { return time.Time{}, false }
+
+func (countdown) Done() <-chan struct{} { return nil }
+
+func (countdown) Value(any) any { return nil }
+
+func (c countdown) Err() error {
+	if *c.left == 0 {
+		return context.DeadlineExceeded
+	}
+	*c.left--
+	return nil
+}
+
+// TestRunKeepsTheFindingsBeforeTheDeadline stops a check at a deadline that
+// passes between its two targets, after the first one's finding: the check
+// answers that finding beside the deadline error, so the engine can still
+// feed it back.
+func TestRunKeepsTheFindingsBeforeTheDeadline(t *testing.T) {
+	t.Parallel()
+	c := goast.Goleak()
+	left := 1
+	res, err := c.Run(countdown{left: &left}, input(c, map[string]string{
+		"a/a.go": "package a\n\n// Start starts itself again.\nfunc Start() { go Start() }\n",
+		"b/b.go": "package b\n\n// Start starts itself again.\nfunc Start() { go Start() }\n",
+	}))
+	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "goast.goleak: deadline") {
+		t.Fatalf("Run past the deadline = %+v, %v", res, err)
+	}
+	if len(res.Findings) != 1 || res.Findings[0].Path != "a/a.go" || res.Findings[0].Line != 4 || res.Findings[0].Code != "goleak" {
+		t.Fatalf("findings before the deadline = %+v", res.Findings)
 	}
 }

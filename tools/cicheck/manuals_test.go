@@ -106,6 +106,7 @@ func TestAgentContract(t *testing.T) {
 		"Accept one JSON object of at most 8 MiB",
 		"a post event it reaches is allowed with a notice",
 		"A finding the hook established before the deadline is still fed back, with the deadline notice appended.",
+		"So is a finding of a check the deadline stopped between two of its files, which the check established whole before the deadline.",
 		"Post detection never blocks on what it could not measure",
 		"records the fault and proves no denial",
 		"A failed run closes with the rows that fail it",

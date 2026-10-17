@@ -145,7 +145,8 @@ func (c check) Spec() model.Spec { return c.spec }
 
 // Run judges every applicable target; a read or parse failure leaves the
 // check Unmeasured, never clean, and a passed deadline is an error the
-// engine records the same way.
+// engine records the same way, answered with the findings of the targets
+// judged before it, because each was established whole.
 func (c check) Run(ctx context.Context, in model.Input) (model.Result, error) {
 	if c.gate != nil {
 		if status, ok := c.gate(in); !ok {
@@ -157,7 +158,7 @@ func (c check) Run(ctx context.Context, in model.Input) (model.Result, error) {
 	measured := 0
 	for _, f := range in.Targets {
 		if err := ctx.Err(); err != nil {
-			return model.Result{}, fmt.Errorf("%s: deadline: %w", c.spec.ID, err)
+			return model.Result{Findings: findings}, fmt.Errorf("%s: deadline: %w", c.spec.ID, err)
 		}
 		if !c.applies(f) {
 			continue

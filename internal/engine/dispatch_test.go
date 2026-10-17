@@ -152,6 +152,28 @@ func TestDispatchTurnsFailuresIntoUnmeasured(t *testing.T) {
 	}
 }
 
+// TestDispatchKeepsTheFindingsOfACheckThatErred keeps, beside the
+// unmeasured status of a check that answers an error, the findings it had
+// already established, so a deadline that stops a check midway leaves them
+// to the decision.
+func TestDispatchKeepsTheFindingsOfACheckThatErred(t *testing.T) {
+	t.Parallel()
+	stopped := fake{spec: spec("goast.stopped", model.ScopeFile), run: func(context.Context, model.Input) (model.Result, error) {
+		return model.Result{Findings: []model.Finding{finding("unused", "a.go", 3)}}, errBoom
+	}}
+	run, err := engine.Dispatch(t.Context(), build(t, stopped), scanInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := run.Outcomes[0].Result
+	if got.Status.Kind != model.StatusUnmeasured || got.Status.Reason != "boom" || len(got.Findings) != 1 || got.Findings[0].Check != "goast.stopped" {
+		t.Fatalf("result = %+v", got)
+	}
+	if decision := engine.Decide(run); decision.Reason != "goast.stopped: found unused (a.go:3)" || len(decision.Unmeasured) != 1 {
+		t.Fatalf("decision = %+v", decision)
+	}
+}
+
 func TestDispatchHonorsDeadline(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(t.Context())
