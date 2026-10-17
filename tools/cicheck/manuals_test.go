@@ -177,8 +177,8 @@ func TestContractsJudgeTheHostDiffAsDetectionDoes(t *testing.T) {
 }
 
 // TestContractsLeaveWhatAMergeBrought pins what both documents say of the
-// files git wrote for a merge the command started and of a conflict git
-// left unmerged.
+// files git wrote for a merge the command started, judged against the merge
+// git makes by itself, and of a conflict git left unmerged.
 func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 	t.Parallel()
 	requireText(t, "docs/agent-contracts.md",
@@ -186,12 +186,17 @@ func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 		"A path git status reports unmerged after the command that it did not name before holds the conflict git wrote from both sides",
 		"it is named in a notice and judged by the event that writes its resolution",
 		"A command that starts a merge it leaves in progress, MERGE_HEAD present after it and not before, read as a file",
-		"a file the merge staged whose bytes on disk are the staged ones is named in a notice that asks for no fix, a file git merged from both sides included",
+		"has git merge-tree --write-tree make, once, the merge of HEAD and the commit MERGE_HEAD names as git makes it by itself",
+		"so the repository receives no object",
+		"a file whose staged blob is one of those two is named in a notice that asks for no fix, a file git merged from both sides and a conflict resolved with the side of that commit taken whole included",
+		"a file whose staged blob is neither, the command's resolution of a conflict or its own edit, a file only the local side added or changed since the fork included, is judged",
 		"a merge already in progress before the command leaves the files the command writes judged as any other",
-		"A merged file the command edits and stages again in the same command reads as one the merge staged, a stated limit",
+		"A merge git cannot make by itself to compare, an octopus merge, one under a git older than 2.38, which has no merge-tree --write-tree, or one git fails, leaves each file the merge staged to a notice naming it",
+		"A merge made with a strategy option, such as -X theirs, differs from the merge git makes by itself in each file where the option resolved a conflict hunk by hunk, so such a file is judged as the command's resolution, a stated limit",
 	)
 	requireText(t, "docs/security.md",
-		"A merge the command starts and leaves in progress is read the same way: the files it staged from the commits it merges are named in that notice",
+		"A merge the command starts and leaves in progress is read the same way: a file it staged whose bytes are those of the merge git makes by itself or of the commit it merges is named in that notice",
+		"a file whose staged bytes are neither, the command's own resolution or edit, is judged",
 		"a file git leaves unmerged waits for the event that writes its resolution",
 	)
 }
@@ -214,6 +219,8 @@ func TestSecurityStatesTheFilterDrivers(t *testing.T) {
 	requireText(t, "docs/security.md",
 		"The git status and git hash-object of change detection run the clean filter driver the git configuration of the checkout names for a path",
 		"and core.fsmonitor runs its hook, as any git command in that checkout does",
+		"The git merge-tree that compares a merge the command left in progress with the merge git makes by itself runs the merge driver the git configuration of the checkout names for a path",
+		"writes the objects of that merge into a temporary object directory golaw removes after",
 		"A cloned repository names no such program, because git configuration is not cloned",
 		"the drivers are the person's own configuration and the tools they installed, such as git-lfs",
 	)

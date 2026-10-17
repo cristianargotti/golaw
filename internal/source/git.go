@@ -134,8 +134,19 @@ func git(ctx context.Context, dir string, args ...string) ([]byte, error) {
 // gitInput is git with the bytes the command reads on its standard input,
 // none when input is nil.
 func gitInput(ctx context.Context, dir string, input []byte, args ...string) ([]byte, error) {
+	return gitWith(ctx, dir, nil, input, args...)
+}
+
+// gitWith is gitInput with variables added to the environment git
+// inherits, such as the object directory it writes to; the environment of
+// the command is the one it would inherit, extended, and no variable of it
+// is read here.
+func gitWith(ctx context.Context, dir string, env []string, input []byte, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "git", args...) //nolint:gosec // the arguments are the kit's own plumbing
 	cmd.Dir = dir
+	if env != nil {
+		cmd.Env = append(cmd.Environ(), env...)
+	}
 	if input != nil {
 		cmd.Stdin = bytes.NewReader(input)
 	}

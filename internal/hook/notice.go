@@ -14,9 +14,9 @@ import (
 // of an event's input, the deadline, a pre event without a baseline, a move
 // of HEAD git could not compare, commits git could not tell apart, bytes
 // git could not convert to compare them, a conflict git left unmerged and a
-// merge in progress git could not compare. A file a move or a merge brought
-// from a commit the command did not create has a sentence of its own,
-// causeArrived and causeMerged mark it.
+// merge in progress git could not make by itself. A file a move or a merge
+// brought from a commit the command did not create has a sentence of its
+// own, causeArrived and causeMerged mark it.
 const (
 	causeReadBound    = "it is over the 8 MiB the hook reads"
 	causeInput        = "the event is over the 8 MiB the hook reads"
@@ -26,7 +26,7 @@ const (
 	causeCommits      = "git could not tell which commits this command created"
 	causeConvert      = "git could not convert it to compare"
 	causeUnmerged     = "git left it unmerged, and golaw judges the resolution the agent writes"
-	causeMergeUnknown = "git could not compare the merge in progress with HEAD"
+	causeMergeUnknown = "git could not make the merge in progress by itself to compare it"
 	causeArrived      = "the move of HEAD brought it from a commit this command did not create"
 	causeMerged       = "the merge in progress brought it from a commit this command did not create"
 )

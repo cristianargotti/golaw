@@ -11,11 +11,13 @@ import (
 // holds the conflict git wrote from both sides, so it is a gap until the
 // event that writes its resolution judges it. When the command started a
 // merge it left in progress, MERGE_HEAD present after it and not before, a
-// path the merge staged with its bytes on disk, among those a commit the
-// merge brings holds apart from HEAD, is named as brought by the merge, an
-// automatic merge of both sides included, because none of its bytes is the
-// command's; a path the command wrote after the merge, one the merge did
-// not touch and one git status named before stay judged.
+// path staged with its bytes on disk whose staged blob is the one the merge
+// git makes by itself holds there, or the one the merged commit holds, is
+// named as brought by the merge, because none of its bytes is the
+// command's; a path whose staged blob is neither, the command's resolution
+// or its own edit, a file only the local side changed included, one the
+// command wrote after the merge and one git status named before stay
+// judged.
 func (run execution) fromMerge(ctx context.Context, dependencies Dependencies, before Baseline, changes Changes, changed []string) ([]string, []Gap) {
 	var unmerged, staged []string
 	for _, path := range changed {
@@ -41,22 +43,22 @@ func (run execution) fromMerge(ctx context.Context, dependencies Dependencies, b
 	return slices.DeleteFunc(changed, among(merged)), append(gaps, pathGaps(merged, causeMerged)...)
 }
 
-// mergeBrought are the staged paths a commit MERGE_HEAD names holds apart
-// from HEAD, asked of git once for each such commit, one for any merge but
-// an octopus; it is false when git cannot answer, or no binding asks it.
+// mergeBrought are the staged paths whose staged blob is one the merge git
+// makes of HEAD and the commit MERGE_HEAD names by itself holds there, or
+// that commit holds, asked of git once; it is false for an octopus merge,
+// which git merge-tree cannot make, when git cannot answer, or when no
+// binding asks it.
 func (run execution) mergeBrought(ctx context.Context, dependencies Dependencies, changes Changes, staged []string) ([]string, bool) {
-	if dependencies.Moved == nil {
+	theirs := strings.Fields(changes.Merge)
+	if dependencies.Automatic == nil || len(theirs) != 1 {
 		return nil, false
 	}
-	apart := map[string]bool{}
-	for commit := range strings.FieldsSeq(changes.Merge) {
-		paths, err := dependencies.Moved(ctx, run.repository, commit, changes.Head)
-		if err != nil {
-			return nil, false
-		}
-		for path := range paths {
-			apart[path] = true
-		}
+	blobs, err := dependencies.Automatic(ctx, run.repository, changes.Head, theirs[0], staged)
+	if err != nil {
+		return nil, false
 	}
-	return slices.DeleteFunc(slices.Clone(staged), func(path string) bool { return !apart[path] }), true
+	return slices.DeleteFunc(slices.Clone(staged), func(path string) bool {
+		blob := changes.Index[path]
+		return blob == "" || !slices.Contains(blobs[path], blob)
+	}), true
 }

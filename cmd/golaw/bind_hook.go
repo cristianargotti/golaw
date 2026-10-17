@@ -59,7 +59,7 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	return hook.Dependencies{
 		Home: b.processHome(), Begin: h.cache.Reset,
 		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Moved: h.moved, Hashes: h.hashes, Overlay: h.overlay,
-		Commits: h.commits, Committer: h.committer,
+		Commits: h.commits, Committer: h.committer, Automatic: h.automatic,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
 }
@@ -207,8 +207,9 @@ func (h hookBinding) snapshot(ctx context.Context, repo hook.Repository) (model.
 // HEAD, the index or as untracked, as a snapshot of those paths and of the
 // paths of also only, so the content identity of a shell command hashes
 // nothing else, with the HEAD it compared with, the blobs HEAD holds at
-// those paths, what a merge staged or left unmerged and the merge in
-// progress. It is asked once per event and never kept.
+// those paths, what a merge staged, with the blobs of the index, or left
+// unmerged and the merge in progress. It is asked once per event and never
+// kept.
 func (h hookBinding) changes(ctx context.Context, repo hook.Repository, also []string) (hook.Changes, error) {
 	found, err := h.cache.Discover(ctx, repo.Root)
 	if err != nil {
@@ -220,7 +221,7 @@ func (h hookBinding) changes(ctx context.Context, repo hook.Repository, also []s
 	}
 	return hook.Changes{
 		Snapshot: st.Worktree, Paths: st.Paths, Head: found.Head, Blobs: st.Heads, Edited: st.Edited,
-		Staged: st.Staged, Unmerged: st.Unmerged, Merge: st.Merge,
+		Staged: st.Staged, Index: st.Index, Unmerged: st.Unmerged, Merge: st.Merge,
 	}, nil
 }
 

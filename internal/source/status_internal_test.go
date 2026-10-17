@@ -2,6 +2,7 @@ package source
 
 import (
 	"errors"
+	"maps"
 	"slices"
 	"testing"
 )
@@ -94,9 +95,9 @@ func TestParseStatusNamesWhatGitFoundEdited(t *testing.T) {
 
 // TestParseStatusNamesStagedAndUnmergedPaths names a path whose index entry
 // differs from HEAD while its bytes on disk are that entry, as a merge
-// leaves what it staged, and a path git left unmerged, and neither a path
-// edited again after it was staged nor one whose only change is in the
-// worktree.
+// leaves what it staged, with the blob of that entry, and a path git left
+// unmerged, and neither a path edited again after it was staged nor one
+// whose only change is in the worktree.
 func TestParseStatusNamesStagedAndUnmergedPaths(t *testing.T) {
 	t.Parallel()
 	entries, err := parseStatus([]byte("1 A. N... 000000 100644 100644 0000 a2 added.md\x00" +
@@ -111,13 +112,17 @@ func TestParseStatusNamesStagedAndUnmergedPaths(t *testing.T) {
 	var staged, unmerged []string
 	for _, e := range entries {
 		if e.staged {
-			staged = append(staged, e.path)
+			staged = append(staged, e.path+"@"+e.index)
 		}
 		if e.unmerged {
 			unmerged = append(unmerged, e.path)
 		}
 	}
-	if !slices.Equal(staged, []string{"added.md", "staged.md", "to.md"}) || !slices.Equal(unmerged, []string{"both.md"}) {
+	if !slices.Equal(staged, []string{"added.md@a2", "staged.md@c2", "to.md@e2"}) || !slices.Equal(unmerged, []string{"both.md"}) {
 		t.Fatalf("staged %v, unmerged %v", staged, unmerged)
+	}
+	st := statusOf(entries)
+	if !maps.Equal(st.Index, map[string]string{"added.md": "a2", "staged.md": "c2", "to.md": "e2"}) {
+		t.Fatalf("index blobs %v", st.Index)
 	}
 }

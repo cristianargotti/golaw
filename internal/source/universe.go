@@ -28,6 +28,7 @@ type entry struct {
 	head     string // the blob HEAD holds at the path, when git status named it
 	edited   bool   // git status found its bytes edited in the worktree under its own mode
 	staged   bool   // git status found its index entry apart from HEAD and its bytes that entry
+	index    string // the blob of that index entry, for a staged path
 	unmerged bool   // git status found it unmerged
 }
 

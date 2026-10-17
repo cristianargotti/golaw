@@ -42,7 +42,10 @@ type Repository struct {
 // only when a move of HEAD brought a path. Hashes answers the blob git
 // would store for the bytes each path holds now, through the conversions
 // git applies on the way in, for a path whose bytes are not the blob it
-// held.
+// held. Automatic answers, for a merge of the commit theirs into the
+// commit ours that a command left in progress, the blob the merge git
+// makes of the two by itself and the blob theirs hold at each path, empty
+// where one holds none.
 type Dependencies struct {
 	Home      string
 	Begin     func()
@@ -54,6 +57,7 @@ type Dependencies struct {
 	Commits   func(ctx context.Context, repository Repository, since, now string, from int64) ([]Commit, error)
 	Committer func(ctx context.Context, repository Repository) (string, error)
 	Hashes    func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
+	Automatic func(ctx context.Context, repository Repository, ours, theirs string, paths []string) (map[string][]string, error)
 	Overlay   func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
 	Registry  *engine.Registry
 	State     Store
@@ -76,8 +80,9 @@ type Commit struct {
 // named, and the paths whose only change git found is an edit of their
 // bytes under their own mode. Beside them: the paths whose index entry
 // differs from HEAD while their bytes on disk are that entry, as a merge
-// leaves what it staged, the paths git left unmerged, and the commits
-// MERGE_HEAD names while a merge is in progress, empty when none is.
+// leaves what it staged, with the blob of that entry, the paths git left
+// unmerged, and the commits MERGE_HEAD names while a merge is in progress,
+// empty when none is.
 type Changes struct {
 	Snapshot model.Snapshot
 	Paths    []string
@@ -85,6 +90,7 @@ type Changes struct {
 	Blobs    map[string]string
 	Edited   map[string]bool
 	Staged   map[string]bool
+	Index    map[string]string
 	Unmerged map[string]bool
 	Merge    string
 }

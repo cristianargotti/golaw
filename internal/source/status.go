@@ -16,8 +16,8 @@ import (
 // The fields of a porcelain v2 status record before its path: an ordinary
 // change, a rename or copy, whose original path is the next record, and
 // an unmerged path; and the fields of an ordinary or renamed record that
-// name the mode of the index and of the worktree and the object HEAD
-// holds.
+// name the mode of the index and of the worktree and the objects HEAD and
+// the index hold.
 const (
 	ordinaryFields = 9
 	renamedFields  = 10
@@ -25,6 +25,7 @@ const (
 	indexModeField = 4
 	treeModeField  = 5
 	headField      = 6
+	indexField     = 7
 )
 
 // Status is what one git status reported: a snapshot of the paths it
@@ -35,15 +36,16 @@ const (
 // worktree under the mode the index records, which git compared through
 // the conversions of the path, so their bytes are not the blob. Beside
 // them: the paths whose index entry differs from HEAD while their bytes on
-// disk are that entry, as a merge leaves what it staged, the paths git
-// left unmerged, and the commits MERGE_HEAD names while a merge is in
-// progress, empty when none is.
+// disk are that entry, as a merge leaves what it staged, with the blob of
+// that entry, the paths git left unmerged, and the commits MERGE_HEAD names
+// while a merge is in progress, empty when none is.
 type Status struct {
 	Worktree *Worktree
 	Paths    []string
 	Heads    map[string]string
 	Edited   map[string]bool
 	Staged   map[string]bool
+	Index    map[string]string
 	Unmerged map[string]bool
 	Merge    string
 }
@@ -81,7 +83,7 @@ func Changes(ctx context.Context, repo Repo, also []string) (Status, error) {
 func statusOf(entries []entry) Status {
 	st := Status{
 		Paths: make([]string, 0, len(entries)), Heads: map[string]string{},
-		Edited: map[string]bool{}, Staged: map[string]bool{}, Unmerged: map[string]bool{},
+		Edited: map[string]bool{}, Staged: map[string]bool{}, Index: map[string]string{}, Unmerged: map[string]bool{},
 	}
 	for _, e := range entries {
 		st.Paths = append(st.Paths, e.path)
@@ -93,6 +95,7 @@ func statusOf(entries []entry) Status {
 		}
 		if e.staged {
 			st.Staged[e.path] = true
+			st.Index[e.path] = e.index
 		}
 		if e.unmerged {
 			st.Unmerged[e.path] = true
@@ -170,6 +173,7 @@ func sortedEntries(entries []entry) []entry {
 			last.head = cmp.Or(last.head, e.head)
 			last.edited = last.edited || e.edited
 			last.staged = last.staged || e.staged
+			last.index = cmp.Or(last.index, e.index)
 			last.unmerged = last.unmerged || e.unmerged
 			continue
 		}
@@ -183,8 +187,8 @@ func sortedEntries(entries []entry) []entry {
 // the fixed fields. An ordinary record keeps the object HEAD holds at its
 // path; a rename answers it for its original path. An ordinary record and
 // the path a rename leads to are staged when the index differs from HEAD
-// there, a deletion apart, and the worktree from the index does not; an
-// unmerged record is unmerged.
+// there, a deletion apart, and the worktree from the index does not, with
+// the object the index holds; an unmerged record is unmerged.
 func changed(record, kind string) ([]entry, string, error) {
 	fields := map[string]int{"1": ordinaryFields, "2": renamedFields, "u": unmergedFields}[kind]
 	parts := strings.SplitN(record, " ", fields)
@@ -202,6 +206,9 @@ func changed(record, kind string) ([]entry, string, error) {
 	found := entry{path: parts[fields-1], tracked: true, unmerged: kind == "u"}
 	if kind != "u" {
 		found.staged = len(letters) == 2 && letters[0] != '.' && letters[0] != 'D' && letters[1] == '.'
+	}
+	if found.staged {
+		found.index = parts[indexField]
 	}
 	if kind == "1" {
 		found.head = head

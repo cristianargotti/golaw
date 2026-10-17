@@ -3,6 +3,7 @@ package hook
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,58 +11,75 @@ import (
 )
 
 // mergeChanges are the changes git status reports while a merge of m1 is
-// in progress: three paths it staged with their bytes on disk, two it left
-// unmerged, one of them already named before the command.
+// in progress: four paths staged with their bytes on disk and the blob the
+// index holds at each, two it left unmerged, one of them already named
+// before the command.
 func mergeChanges() Changes {
 	return Changes{
 		Head: "c1", Merge: "m1",
-		Staged:   map[string]bool{"auto.md": true, "mine.md": true, "theirs.md": true},
+		Staged: map[string]bool{"auto.md": true, "mine.md": true, "taken.md": true, "theirs.md": true},
+		Index: map[string]string{
+			"auto.md": "b-auto", "mine.md": "b-mine", "taken.md": "b-taken", "theirs.md": "b-theirs",
+		},
 		Unmerged: map[string]bool{"dirty.md": true, "shared.md": true},
 	}
 }
 
-// mergeMoves answer the paths m1 holds apart from c1, recording each
-// question.
-func mergeMoves(asked *[]string) Dependencies {
-	return Dependencies{Moved: func(_ context.Context, _ Repository, from, to string) (map[string]string, error) {
-		*asked = append(*asked, from+".."+to)
-		return map[string]string{"auto.md": "b1", "shared.md": "b2", "theirs.md": "b3"}, nil
+// automaticMerge answers the blobs the merge git makes of c1 and m1 by
+// itself and m1 hold at each staged path, recording each question: auto.md
+// as git merged it, theirs.md as m1 brought it, taken.md whose conflict
+// the command resolved with the side of m1 whole, and mine.md, which only
+// the local side holds, whose staged blob is neither.
+func automaticMerge(asked *[]string) Dependencies {
+	return Dependencies{Automatic: func(_ context.Context, _ Repository, ours, theirs string, paths []string) (map[string][]string, error) {
+		*asked = append(*asked, ours+".."+theirs+" "+strings.Join(paths, ","))
+		return map[string][]string{
+			"auto.md": {"b-auto", "b-side"}, "mine.md": {"b-local", ""},
+			"taken.md": {"b-conflict", "b-taken"}, "theirs.md": {"b-theirs", "b-theirs"},
+		}, nil
 	}}
 }
 
 // TestFromMergeLeavesWhatGitWrote leaves out of what a command changed what
 // git wrote for it: a path git left unmerged that git status did not name
 // before the command is a gap until its resolution is written, and, when
-// the command started the merge, a path the merge staged that the merged
-// commit holds apart from HEAD is named as brought by the merge, an
-// automatic merge of both sides included; a path the command wrote after
-// the merge, one the merge did not touch and one already named stay judged.
+// the command started the merge, a path the merge staged whose staged blob
+// is the one the merge git makes by itself holds there, or the one the
+// merged commit holds, is named as brought by the merge; a path whose
+// staged blob is neither, one the command wrote after the merge and one
+// already named stay judged.
 func TestFromMergeLeavesWhatGitWrote(t *testing.T) {
 	t.Parallel()
 	before := Baseline{Files: map[string]string{"dirty.md": "x"}, Head: "c1"}
-	changed := []string{"auto.md", "dirty.md", "edited.md", "mine.md", "shared.md", "theirs.md"}
+	changed := []string{"auto.md", "dirty.md", "edited.md", "mine.md", "shared.md", "taken.md", "theirs.md"}
 	run := execution{repository: Repository{Head: "c1"}}
 	var asked []string
-	got, gaps := run.fromMerge(t.Context(), mergeMoves(&asked), before, mergeChanges(), slices.Clone(changed))
+	got, gaps := run.fromMerge(t.Context(), automaticMerge(&asked), before, mergeChanges(), slices.Clone(changed))
 	unmerged := pathGaps([]string{"shared.md"}, causeUnmerged)
-	want := append(slices.Clone(unmerged), pathGaps([]string{"auto.md", "theirs.md"}, causeMerged)...)
-	if !slices.Equal(got, []string{"dirty.md", "edited.md", "mine.md"}) || !slices.Equal(gaps, want) || !slices.Equal(asked, []string{"m1..c1"}) {
+	want := append(slices.Clone(unmerged), pathGaps([]string{"auto.md", "taken.md", "theirs.md"}, causeMerged)...)
+	if !slices.Equal(got, []string{"dirty.md", "edited.md", "mine.md"}) || !slices.Equal(gaps, want) ||
+		!slices.Equal(asked, []string{"c1..m1 auto.md,mine.md,taken.md,theirs.md"}) {
 		t.Fatalf("a merge the command started: judged %v, gaps %+v after %v", got, gaps, asked)
 	}
 	before.Merge = "m1"
-	got, gaps = run.fromMerge(t.Context(), mergeMoves(&asked), before, mergeChanges(), slices.Clone(changed))
-	if !slices.Equal(got, []string{"auto.md", "dirty.md", "edited.md", "mine.md", "theirs.md"}) || !slices.Equal(gaps, unmerged) || len(asked) != 1 {
+	got, gaps = run.fromMerge(t.Context(), automaticMerge(&asked), before, mergeChanges(), slices.Clone(changed))
+	if !slices.Equal(got, []string{"auto.md", "dirty.md", "edited.md", "mine.md", "taken.md", "theirs.md"}) || !slices.Equal(gaps, unmerged) || len(asked) != 1 {
 		t.Fatalf("a merge in progress before the command: judged %v, gaps %+v after %v", got, gaps, asked)
 	}
 	before.Merge = ""
-	failing := Dependencies{Moved: func(context.Context, Repository, string, string) (map[string]string, error) {
+	failing := Dependencies{Automatic: func(context.Context, Repository, string, string, []string) (map[string][]string, error) {
 		return nil, model.ErrUnreadable
 	}}
-	for name, deps := range map[string]Dependencies{"git cannot compare": failing, "no binding": {}} {
-		got, gaps = run.fromMerge(t.Context(), deps, before, mergeChanges(), slices.Clone(changed))
-		want = append(slices.Clone(unmerged), pathGaps([]string{"auto.md", "mine.md", "theirs.md"}, causeMergeUnknown)...)
-		if !slices.Equal(got, []string{"dirty.md", "edited.md"}) || !slices.Equal(gaps, want) {
-			t.Fatalf("%s: judged %v, gaps %+v", name, got, gaps)
+	octopus := mergeChanges()
+	octopus.Merge = "m1\nm2"
+	for name, tc := range map[string]struct {
+		deps    Dependencies
+		changes Changes
+	}{"git cannot merge": {failing, mergeChanges()}, "no binding": {Dependencies{}, mergeChanges()}, "an octopus": {automaticMerge(&asked), octopus}} {
+		got, gaps = run.fromMerge(t.Context(), tc.deps, before, tc.changes, slices.Clone(changed))
+		want = append(slices.Clone(unmerged), pathGaps([]string{"auto.md", "mine.md", "taken.md", "theirs.md"}, causeMergeUnknown)...)
+		if !slices.Equal(got, []string{"dirty.md", "edited.md"}) || !slices.Equal(gaps, want) || len(asked) != 1 {
+			t.Fatalf("%s: judged %v, gaps %+v after %v", name, got, gaps, asked)
 		}
 	}
 }
