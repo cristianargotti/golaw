@@ -206,8 +206,9 @@ func (h hookBinding) snapshot(ctx context.Context, repo hook.Repository) (model.
 // changes is what git status reports changed in the repository, against
 // HEAD, the index or as untracked, as a snapshot of those paths and of the
 // paths of also only, so the content identity of a shell command hashes
-// nothing else, with the HEAD it compared with and the blobs HEAD holds at
-// those paths. It is asked once per event and never kept.
+// nothing else, with the HEAD it compared with, the blobs HEAD holds at
+// those paths, what a merge staged or left unmerged and the merge in
+// progress. It is asked once per event and never kept.
 func (h hookBinding) changes(ctx context.Context, repo hook.Repository, also []string) (hook.Changes, error) {
 	found, err := h.cache.Discover(ctx, repo.Root)
 	if err != nil {
@@ -217,7 +218,10 @@ func (h hookBinding) changes(ctx context.Context, repo hook.Repository, also []s
 	if err != nil {
 		return hook.Changes{}, fmt.Errorf("list the changes of %s: %w", found.Root, err)
 	}
-	return hook.Changes{Snapshot: st.Worktree, Paths: st.Paths, Head: found.Head, Blobs: st.Heads, Edited: st.Edited}, nil
+	return hook.Changes{
+		Snapshot: st.Worktree, Paths: st.Paths, Head: found.Head, Blobs: st.Heads, Edited: st.Edited,
+		Staged: st.Staged, Unmerged: st.Unmerged, Merge: st.Merge,
+	}, nil
 }
 
 // moved is what differs between two commits, with the blob the earlier one

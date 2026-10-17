@@ -72,10 +72,12 @@ func (run execution) postPaths(ctx context.Context, dependencies Dependencies) (
 
 // changedPaths are the paths whose content a command changed, of the
 // paths a move of HEAD brought only those a commit of the command changed,
-// and, apart, the gaps of what it could not compare: a move of HEAD git
-// could not answer, a path whose blob that move hides, a path a size alone
-// identifies at both ends, a path whose commit git could not tell, and the
-// files the move brought from other commits, named for the agent.
+// less what git wrote for a merge, and, apart, the gaps of what it could
+// not compare: a move of HEAD git could not answer, a path whose blob that
+// move hides, a path a size alone identifies at both ends, a path whose
+// commit git could not tell, a conflict git left unmerged, and the files
+// the move or a merge the command started brought from other commits,
+// named for the agent.
 func (run execution) changedPaths(ctx context.Context, dependencies Dependencies) ([]string, []Gap, error) {
 	if run.stateReason != "" {
 		return nil, nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, run.stateReason)
@@ -106,7 +108,8 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 	}
 	changed, unknown := run.contentChanged(ctx, dependencies, before, after, changes, moved)
 	changed, arrived := run.fromCommits(ctx, dependencies, before, changed, moved.brought(changes, changed, after))
-	return changed, append(append(gaps, unknown...), arrived...), nil
+	changed, merged := run.fromMerge(ctx, dependencies, before, changes, changed)
+	return changed, append(append(append(gaps, unknown...), arrived...), merged...), nil
 }
 
 // sizedAtBothEnds are the paths git status named whose size-only identity

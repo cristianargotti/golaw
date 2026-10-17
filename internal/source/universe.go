@@ -22,11 +22,13 @@ var generatedHeader = regexp.MustCompile(`(?m)^// Code generated .* DO NOT EDIT\
 
 // entry is one path of the universe as git listed it.
 type entry struct {
-	path    string // slash separated, relative to the root
-	tracked bool   // git tracks it; otherwise it would add it
-	dir     bool   // git listed a directory: a nested repository
-	head    string // the blob HEAD holds at the path, when git status named it
-	edited  bool   // git status found its bytes edited in the worktree under its own mode
+	path     string // slash separated, relative to the root
+	tracked  bool   // git tracks it; otherwise it would add it
+	dir      bool   // git listed a directory: a nested repository
+	head     string // the blob HEAD holds at the path, when git status named it
+	edited   bool   // git status found its bytes edited in the worktree under its own mode
+	staged   bool   // git status found its index entry apart from HEAD and its bytes that entry
+	unmerged bool   // git status found it unmerged
 }
 
 // listUniverse runs git ls-files -z -t -c -o --exclude-standard under the

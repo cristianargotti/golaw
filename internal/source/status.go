@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -29,12 +33,19 @@ const (
 // so a path whose status changed can be compared by its bytes, and the
 // paths whose only change git found is an edit of their bytes in the
 // worktree under the mode the index records, which git compared through
-// the conversions of the path, so their bytes are not the blob.
+// the conversions of the path, so their bytes are not the blob. Beside
+// them: the paths whose index entry differs from HEAD while their bytes on
+// disk are that entry, as a merge leaves what it staged, the paths git
+// left unmerged, and the commits MERGE_HEAD names while a merge is in
+// progress, empty when none is.
 type Status struct {
 	Worktree *Worktree
 	Paths    []string
 	Heads    map[string]string
 	Edited   map[string]bool
+	Staged   map[string]bool
+	Unmerged map[string]bool
+	Merge    string
 }
 
 // Changes asks git status for the paths that differ from HEAD in the
@@ -43,7 +54,8 @@ type Status struct {
 // that also reads the paths of also, as they are now. The status takes no
 // lock and writes no index (--no-optional-locks). A submodule whose only
 // change is the revision it has checked out is left out, as its identity
-// is its class; a deleted or replaced one is kept.
+// is its class; a deleted or replaced one is kept. MERGE_HEAD is read as a
+// file, so no git command is added.
 func Changes(ctx context.Context, repo Repo, also []string) (Status, error) {
 	out, err := git(ctx, repo.Root, "--no-optional-locks", "status", "--porcelain=v2", "-z",
 		"--untracked-files=all", "--ignore-submodules=dirty")
@@ -54,7 +66,23 @@ func Changes(ctx context.Context, repo Repo, also []string) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	st := Status{Paths: make([]string, 0, len(entries)), Heads: map[string]string{}, Edited: map[string]bool{}}
+	st := statusOf(entries)
+	if st.Merge, err = mergeHead(repo.GitDir); err != nil {
+		return Status{}, err
+	}
+	for _, path := range also {
+		entries = append(entries, entry{path: path, tracked: true})
+	}
+	st.Worktree = newWorktree(repo.Root, sortedEntries(entries))
+	return st, nil
+}
+
+// statusOf gathers what the entries of one git status say of their paths.
+func statusOf(entries []entry) Status {
+	st := Status{
+		Paths: make([]string, 0, len(entries)), Heads: map[string]string{},
+		Edited: map[string]bool{}, Staged: map[string]bool{}, Unmerged: map[string]bool{},
+	}
 	for _, e := range entries {
 		st.Paths = append(st.Paths, e.path)
 		if e.head != "" {
@@ -63,12 +91,33 @@ func Changes(ctx context.Context, repo Repo, also []string) (Status, error) {
 		if e.edited {
 			st.Edited[e.path] = true
 		}
+		if e.staged {
+			st.Staged[e.path] = true
+		}
+		if e.unmerged {
+			st.Unmerged[e.path] = true
+		}
 	}
-	for _, path := range also {
-		entries = append(entries, entry{path: path, tracked: true})
+	return st
+}
+
+// mergeHead reads the commits MERGE_HEAD names in the git directory, one
+// per line as git writes them, empty when no merge is in progress or the
+// directory is unknown; a MERGE_HEAD that cannot be read is an error,
+// because the paths the merge staged cannot then be told from the
+// command's.
+func mergeHead(gitDir string) (string, error) {
+	if gitDir == "" {
+		return "", nil
 	}
-	st.Worktree = newWorktree(repo.Root, sortedEntries(entries))
-	return st, nil
+	data, err := os.ReadFile(filepath.Join(gitDir, "MERGE_HEAD")) //nolint:gosec // the git directory discovery answered, never a name from an event
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("%w: read MERGE_HEAD: %w", ErrGit, err)
+	}
+	return strings.TrimSpace(string(data)), nil
 }
 
 // parseStatus reads the records of git status --porcelain=v2 -z into the
@@ -120,6 +169,8 @@ func sortedEntries(entries []entry) []entry {
 			last.dir = last.dir || e.dir
 			last.head = cmp.Or(last.head, e.head)
 			last.edited = last.edited || e.edited
+			last.staged = last.staged || e.staged
+			last.unmerged = last.unmerged || e.unmerged
 			continue
 		}
 		out = append(out, e)
@@ -130,7 +181,10 @@ func sortedEntries(entries []entry) []entry {
 // changed reads one record of a tracked path: its letters, its submodule
 // field, the object HEAD holds and the path, which may hold spaces, after
 // the fixed fields. An ordinary record keeps the object HEAD holds at its
-// path; a rename answers it for its original path.
+// path; a rename answers it for its original path. An ordinary record and
+// the path a rename leads to are staged when the index differs from HEAD
+// there, a deletion apart, and the worktree from the index does not; an
+// unmerged record is unmerged.
 func changed(record, kind string) ([]entry, string, error) {
 	fields := map[string]int{"1": ordinaryFields, "2": renamedFields, "u": unmergedFields}[kind]
 	parts := strings.SplitN(record, " ", fields)
@@ -145,7 +199,10 @@ func changed(record, kind string) ([]entry, string, error) {
 	if kind != "u" && strings.Trim(parts[headField], "0") != "" {
 		head = parts[headField]
 	}
-	found := entry{path: parts[fields-1], tracked: true}
+	found := entry{path: parts[fields-1], tracked: true, unmerged: kind == "u"}
+	if kind != "u" {
+		found.staged = len(letters) == 2 && letters[0] != '.' && letters[0] != 'D' && letters[1] == '.'
+	}
 	if kind == "1" {
 		found.head = head
 		found.edited = letters == ".M" && parts[indexModeField] == parts[treeModeField]

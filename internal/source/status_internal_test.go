@@ -91,3 +91,33 @@ func TestParseStatusNamesWhatGitFoundEdited(t *testing.T) {
 		t.Fatalf("edited = %v", edited)
 	}
 }
+
+// TestParseStatusNamesStagedAndUnmergedPaths names a path whose index entry
+// differs from HEAD while its bytes on disk are that entry, as a merge
+// leaves what it staged, and a path git left unmerged, and neither a path
+// edited again after it was staged nor one whose only change is in the
+// worktree.
+func TestParseStatusNamesStagedAndUnmergedPaths(t *testing.T) {
+	t.Parallel()
+	entries, err := parseStatus([]byte("1 A. N... 000000 100644 100644 0000 a2 added.md\x00" +
+		"1 AM N... 000000 100644 100644 0000 b2 rewritten.md\x00" +
+		"1 M. N... 100644 100644 100644 c1 c2 staged.md\x00" +
+		"1 .M N... 100644 100644 100644 d1 d2 edited.md\x00" +
+		"2 R. N... 100644 100644 100644 e1 e2 R100 to.md\x00from.md\x00" +
+		"u UU N... 100644 100644 100644 100644 f1 f2 f3 both.md\x00"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var staged, unmerged []string
+	for _, e := range entries {
+		if e.staged {
+			staged = append(staged, e.path)
+		}
+		if e.unmerged {
+			unmerged = append(unmerged, e.path)
+		}
+	}
+	if !slices.Equal(staged, []string{"added.md", "staged.md", "to.md"}) || !slices.Equal(unmerged, []string{"both.md"}) {
+		t.Fatalf("staged %v, unmerged %v", staged, unmerged)
+	}
+}

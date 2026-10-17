@@ -12,27 +12,35 @@ import (
 
 // The causes a notice gives the agent: the read bound of a file, the bound
 // of an event's input, the deadline, a pre event without a baseline, a move
-// of HEAD git could not compare, commits git could not tell apart and bytes
-// git could not convert to compare them. A file a move brought from a
-// commit the command did not create has a sentence of its own, causeArrived
-// marks it.
+// of HEAD git could not compare, commits git could not tell apart, bytes
+// git could not convert to compare them, a conflict git left unmerged and a
+// merge in progress git could not compare. A file a move or a merge brought
+// from a commit the command did not create has a sentence of its own,
+// causeArrived and causeMerged mark it.
 const (
-	causeReadBound = "it is over the 8 MiB the hook reads"
-	causeInput     = "the event is over the 8 MiB the hook reads"
-	causeDeadline  = "the hook reached its deadline first"
-	causeBaseline  = "its pre event left no baseline"
-	causeMove      = "git could not compare the HEAD the command started from with the HEAD it left"
-	causeCommits   = "git could not tell which commits this command created"
-	causeConvert   = "git could not convert it to compare"
-	causeArrived   = "the move of HEAD brought it from a commit this command did not create"
+	causeReadBound    = "it is over the 8 MiB the hook reads"
+	causeInput        = "the event is over the 8 MiB the hook reads"
+	causeDeadline     = "the hook reached its deadline first"
+	causeBaseline     = "its pre event left no baseline"
+	causeMove         = "git could not compare the HEAD the command started from with the HEAD it left"
+	causeCommits      = "git could not tell which commits this command created"
+	causeConvert      = "git could not convert it to compare"
+	causeUnmerged     = "git left it unmerged, and golaw judges the resolution the agent writes"
+	causeMergeUnknown = "git could not compare the merge in progress with HEAD"
+	causeArrived      = "the move of HEAD brought it from a commit this command did not create"
+	causeMerged       = "the merge in progress brought it from a commit this command did not create"
 )
 
-// maxArrived is how many of the files a move brought a notice names before
-// it counts the rest.
+// maxArrived is how many of the files a move or a merge brought a notice
+// names before it counts the rest.
 const maxArrived = 20
 
-// arrivedText is the sentence of the files a move brought, for the agent.
-const arrivedText = "golaw did not judge the files the move of HEAD brought from commits this command did not create, which ask for no fix: %s; the pipeline judges them."
+// arrivedText and mergedText are the sentences of the files a move of HEAD
+// and a merge in progress brought, for the agent.
+const (
+	arrivedText = "golaw did not judge the files the move of HEAD brought from commits this command did not create, which ask for no fix: %s; the pipeline judges them."
+	mergedText  = "golaw did not judge the files the merge in progress brought from commits this command did not create, which ask for no fix: %s; the pipeline judges them."
+)
 
 // OverReadBound is the gap of a file over the read bound, which a decoder
 // names when it cannot reconstruct a write within the bound.
@@ -59,8 +67,8 @@ func noticed(gaps []Gap, language string) Result {
 }
 
 func noticeText(gaps []Gap) string {
-	unmeasured, arrived := splitArrived(gaps)
-	parts := make([]string, 0, len(unmeasured)+1)
+	unmeasured, files := splitArrived(gaps)
+	parts := make([]string, 0, len(unmeasured)+2)
 	for _, gap := range unmeasured {
 		subject, object := gap.Path, "it"
 		if subject == "" {
@@ -68,15 +76,12 @@ func noticeText(gaps []Gap) string {
 		}
 		parts = append(parts, fmt.Sprintf("golaw did not measure %s: %s; the pipeline judges %s.", subject, gap.Cause, object))
 	}
-	if len(arrived) > 0 {
-		parts = append(parts, fmt.Sprintf(arrivedText, namedPaths(arrived, sentencesFor("").more)))
-	}
-	return strings.Join(parts, " ")
+	return strings.Join(append(parts, files.sentences(arrivedText, mergedText, sentencesFor("").more)...), " ")
 }
 
 func noticeHuman(gaps []Gap, language string) string {
 	words := sentencesFor(language)
-	unmeasured, arrived := splitArrived(gaps)
+	unmeasured, files := splitArrived(gaps)
 	subjects := make([]string, 0, len(unmeasured))
 	for _, gap := range unmeasured {
 		subject := gap.Path
@@ -87,29 +92,49 @@ func noticeHuman(gaps []Gap, language string) string {
 			subjects = append(subjects, subject)
 		}
 	}
-	parts := make([]string, 0, 2)
+	var parts []string
 	if len(subjects) > 0 {
 		parts = append(parts, fmt.Sprintf(words.unmeasured, strings.Join(subjects, ", ")))
 	}
-	if len(arrived) > 0 {
-		parts = append(parts, fmt.Sprintf(words.arrived, namedPaths(arrived, words.more)))
+	return strings.Join(append(parts, files.sentences(words.arrived, words.merged, words.more)...), " ")
+}
+
+// brought are the files a command brought from commits it did not create:
+// those of a move of HEAD and those of a merge in progress, which a notice
+// names in a sentence each.
+type brought struct {
+	moved, merged []string
+}
+
+// sentences names the files of a move and then those of a merge in the
+// sentences given, each only when it has a file.
+func (b brought) sentences(moved, merged, more string) []string {
+	var parts []string
+	if len(b.moved) > 0 {
+		parts = append(parts, fmt.Sprintf(moved, namedPaths(b.moved, more)))
 	}
-	return strings.Join(parts, " ")
+	if len(b.merged) > 0 {
+		parts = append(parts, fmt.Sprintf(merged, namedPaths(b.merged, more)))
+	}
+	return parts
 }
 
 // splitArrived parts the gaps of what was not measured from the paths of
-// the files a move brought, which a notice names in one sentence.
-func splitArrived(gaps []Gap) ([]Gap, []string) {
+// the files a move or a merge brought.
+func splitArrived(gaps []Gap) ([]Gap, brought) {
 	unmeasured := make([]Gap, 0, len(gaps))
-	var arrived []string
+	var files brought
 	for _, gap := range gaps {
-		if gap.Cause == causeArrived {
-			arrived = append(arrived, gap.Path)
-			continue
+		switch gap.Cause {
+		case causeArrived:
+			files.moved = append(files.moved, gap.Path)
+		case causeMerged:
+			files.merged = append(files.merged, gap.Path)
+		default:
+			unmeasured = append(unmeasured, gap)
 		}
-		unmeasured = append(unmeasured, gap)
 	}
-	return unmeasured, arrived
+	return unmeasured, files
 }
 
 // namedPaths names up to maxArrived paths and counts the rest in the words

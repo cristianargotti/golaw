@@ -16,6 +16,7 @@ type sentences struct {
 	unmeasured string
 	changes    string
 	arrived    string
+	merged     string
 	more       string
 }
 
@@ -31,6 +32,7 @@ func sentencesFor(language string) sentences {
 			unmeasured: "golaw não mediu %s, que o pipeline julga.",
 			changes:    "as mudanças deste comando",
 			arrived:    "golaw não julgou os arquivos que a mudança de HEAD trouxe de commits que este comando não criou, que não pedem correção: %s; o pipeline os julga.",
+			merged:     "golaw não julgou os arquivos que o merge em andamento trouxe de commits que este comando não criou, que não pedem correção: %s; o pipeline os julga.",
 			more:       " e mais %d",
 		}
 	}
@@ -41,6 +43,7 @@ func sentencesFor(language string) sentences {
 		unmeasured: "golaw did not measure %s, which the pipeline judges.",
 		changes:    "the changes of this command",
 		arrived:    arrivedText,
+		merged:     mergedText,
 		more:       " and %d more",
 	}
 }

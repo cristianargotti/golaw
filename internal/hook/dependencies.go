@@ -74,13 +74,19 @@ type Commit struct {
 // named, a deleted one included, the HEAD commit it compared with, empty
 // on an unborn branch, the blob that commit holds at each tracked path it
 // named, and the paths whose only change git found is an edit of their
-// bytes under their own mode.
+// bytes under their own mode. Beside them: the paths whose index entry
+// differs from HEAD while their bytes on disk are that entry, as a merge
+// leaves what it staged, the paths git left unmerged, and the commits
+// MERGE_HEAD names while a merge is in progress, empty when none is.
 type Changes struct {
 	Snapshot model.Snapshot
 	Paths    []string
 	Head     string
 	Blobs    map[string]string
 	Edited   map[string]bool
+	Staged   map[string]bool
+	Unmerged map[string]bool
+	Merge    string
 }
 
 type execution struct {

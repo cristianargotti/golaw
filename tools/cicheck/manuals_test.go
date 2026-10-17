@@ -176,6 +176,26 @@ func TestContractsJudgeTheHostDiffAsDetectionDoes(t *testing.T) {
 	)
 }
 
+// TestContractsLeaveWhatAMergeBrought pins what both documents say of the
+// files git wrote for a merge the command started and of a conflict git
+// left unmerged.
+func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/agent-contracts.md",
+		"so a command that leaves HEAD in place asks git nothing more, unless it starts a merge it leaves in progress",
+		"A path git status reports unmerged after the command that it did not name before holds the conflict git wrote from both sides",
+		"it is named in a notice and judged by the event that writes its resolution",
+		"A command that starts a merge it leaves in progress, MERGE_HEAD present after it and not before, read as a file",
+		"a file the merge staged whose bytes on disk are the staged ones is named in a notice that asks for no fix, a file git merged from both sides included",
+		"a merge already in progress before the command leaves the files the command writes judged as any other",
+		"A merged file the command edits and stages again in the same command reads as one the merge staged, a stated limit",
+	)
+	requireText(t, "docs/security.md",
+		"A merge the command starts and leaves in progress is read the same way: the files it staged from the commits it merges are named in that notice",
+		"a file git leaves unmerged waits for the event that writes its resolution",
+	)
+}
+
 // TestSecurityStatesThePolicyBound pins the bound init and the hooks share
 // for the golaw.yml of a checkout before its first commit.
 func TestSecurityStatesThePolicyBound(t *testing.T) {
