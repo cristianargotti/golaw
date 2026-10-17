@@ -38,6 +38,8 @@ func (d *deferredSnapshot) Read(path string) ([]byte, error) {
 
 func (d *deferredSnapshot) Class(path string) model.FileClass { return d.get().Class(path) }
 
+func (d *deferredSnapshot) StatIdentity(path string) string { return model.StatIdentity(d.get(), path) }
+
 func (d *deferredSnapshot) Select(match func(string) bool) []model.File {
 	return model.Select(d.get(), match)
 }

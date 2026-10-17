@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	maxIdentityPaths = 65536
-	maxIdentityBytes = 64 << 20
-	absentIdentity   = "absent"
-	largeIdentity    = "large:"
+	maxIdentityPaths  = 65536
+	maxIdentityBytes  = 64 << 20
+	absentIdentity    = "absent"
+	largeIdentity     = "large:"
+	largeStatIdentity = "large-stat:"
 )
 
 // StateKey prevents one tool invocation from borrowing another's baseline.
@@ -97,9 +98,13 @@ func pathIdentity(snapshot model.Snapshot, sizes map[string]int64, path string) 
 	}
 	content, err := snapshot.Read(path)
 	if errors.Is(err, model.ErrTooLarge) || err == nil && len(content) > model.MaxReadBytes {
-		// A file over the read bound is never read; its size stands for it,
-		// so a command that leaves it alone leaves its identity alone and a
-		// change of its size names it as not measured.
+		// A file over the read bound is never read: the lstat of the
+		// inspection that classified it stands for it, so a command that
+		// leaves it alone leaves its identity alone. A snapshot that holds
+		// no stat falls back to the size, which sizedAtBothEnds names.
+		if stamp := model.StatIdentity(snapshot, path); stamp != "" {
+			return largeStatIdentity + stamp, 0, nil
+		}
 		return largeIdentity + strconv.FormatInt(sizes[path], 10), 0, nil
 	}
 	if err != nil {

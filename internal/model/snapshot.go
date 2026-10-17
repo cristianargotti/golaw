@@ -104,6 +104,21 @@ type Snapshot interface {
 	Class(path string) FileClass
 }
 
+// Stamper is a snapshot that keeps the stat identity of an unread large
+// file from the inspection that classified it, without another stat.
+type Stamper interface {
+	StatIdentity(path string) string
+}
+
+// StatIdentity answers the snapshot's cached stat identity when it has
+// one, or nothing so a caller can keep its size-only fallback.
+func StatIdentity(s Snapshot, path string) string {
+	if stamper, ok := s.(Stamper); ok {
+		return stamper.StatIdentity(path)
+	}
+	return ""
+}
+
 // Selector is a snapshot that answers part of its universe without
 // classifying the rest, so a rule that reads one directory never makes a
 // hook read the whole tree.

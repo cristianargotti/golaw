@@ -69,18 +69,19 @@ const (
 // under a directory that is gone, is a deletion the next commit carries,
 // not a file that cannot be read: it answers ClassUnknown and leaves the
 // universe.
-func inspect(root string, e entry, dirs map[string]int) (model.File, []byte, bool) {
-	file := model.File{Path: e.path}
+func inspect(root string, e entry, dirs map[string]int) inspection {
+	got := inspection{file: model.File{Path: e.path}}
+	file := &got.file
 	if e.dir {
 		file.Class = model.ClassGitlink
-		return file, nil, false
+		return got
 	}
 	switch parentDirs(root, e.path, dirs) {
 	case dirsGone:
-		return file, nil, false
+		return got
 	case dirsLinked:
 		file.Class = model.ClassUnreadable
-		return file, nil, false
+		return got
 	}
 	info, err := os.Lstat(OSPath(root, e.path))
 	switch {
@@ -95,9 +96,12 @@ func inspect(root string, e entry, dirs map[string]int) (model.File, []byte, boo
 	case !info.Mode().IsRegular():
 		file.Class = model.ClassUnreadable
 	default:
-		return readRegular(root, e, info.Size())
+		got.file, got.content, got.read = readRegular(root, e, info.Size())
+		if info.Size() > model.MaxReadBytes {
+			got.stamp = statIdentity(info)
+		}
 	}
-	return file, nil, false
+	return got
 }
 
 // present reports whether a listed path is in the universe without

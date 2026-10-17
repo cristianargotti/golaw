@@ -103,10 +103,9 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 	return changed, append(append(gaps, unknown...), arrived...), nil
 }
 
-// sizedAtBothEnds are the paths git status named that a size identifies
-// before and after a command alike: a file over the read bound, whose
-// bytes no identity holds, so a rewrite that keeps its size cannot be told
-// from no change at all.
+// sizedAtBothEnds are the paths git status named whose size-only identity
+// stayed the same: without a stat stamp, a rewrite that keeps the size
+// cannot be told from no change at all.
 func sizedAtBothEnds(before, after map[string]string) []string {
 	var sized []string
 	for path, identity := range before {

@@ -86,7 +86,8 @@ func fullCandidate(w wire, in toolInput, base hook.Base, snapshot model.Snapshot
 			return model.Candidate{}, nil, fmt.Errorf("%w: Write base: %w", model.ErrCannotJudge, err)
 		}
 		// A base over the read bound binds no hash: the whole content is
-		// judged, and the freshness of the base is its size.
+		// judged, and the freshness of the base is its cached stat identity,
+		// or its size when the snapshot has no stat.
 	}
 	return candidate, []byte(*input.Content), nil
 }

@@ -34,6 +34,7 @@ const ledgerLine = 96
 type inspection struct {
 	file    model.File
 	content []byte
+	stamp   string
 	read    bool
 }
 
@@ -155,6 +156,13 @@ func (w *Worktree) Class(rel string) model.FileClass {
 	return got.file.Class
 }
 
+// StatIdentity answers the cached lstat stamp of a regular file originally
+// over the read bound, or nothing when no such stat was held.
+func (w *Worktree) StatIdentity(rel string) string {
+	got, _ := w.inspected(rel)
+	return got.stamp
+}
+
 // inspected answers the inspection of a listed path, made the first time
 // it is asked for, and whether the path is in the universe: a listed path
 // that is gone answers ClassUnknown and is not.
@@ -165,7 +173,7 @@ func (w *Worktree) inspected(rel string) (inspection, bool) {
 	}
 	got, done := w.seen[rel]
 	if !done {
-		got.file, got.content, got.read = inspect(w.root, w.entries[i], w.dirs)
+		got = inspect(w.root, w.entries[i], w.dirs)
 		w.seen[rel] = got
 	}
 	return got, got.file.Class != model.ClassUnknown
