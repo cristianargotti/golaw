@@ -26,6 +26,9 @@ func editCandidate(w wire, in toolInput, at hook.Base, snapshot model.Snapshot) 
 	if in.err != nil {
 		return model.Candidate{}, nil, in.err
 	}
+	if err := checkEdits(in.edit); err != nil {
+		return model.Candidate{}, nil, err
+	}
 	input := in.edit
 	path, err := at.Relative(w.Cwd, input.Path)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook"
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // secretLike is a variable file name the hook denies by name, assembled so
@@ -92,5 +93,55 @@ func TestHookJudgesTheNameOfAWriteItCannotRead(t *testing.T) { //nolint:parallel
 	reply := hook.Run(t.Context(), agent.ID, strings.NewReader(edit), agent.Adapter, e.deps)
 	if reply.ExitCode != 0 || !strings.Contains(string(reply.Stdout), `"permissionDecision":"deny"`) || !strings.Contains(string(reply.Stdout), "paths.forbidden") {
 		t.Fatalf("an edit of a secret-like file over the read bound: %+v", reply)
+	}
+}
+
+// TestHookValidatesEditsOverTheReadBound drives Edits of a committed file
+// over the read bound through the real binding: an Edit without its new
+// string, with an empty old string or with both schemas is cannot judge, as
+// the same Edit of a small file is, while a well-formed Edit of the large
+// file stays allowed with the notice naming it.
+func TestHookValidatesEditsOverTheReadBound(t *testing.T) { //nolint:paralleltest // a file of 8 MiB runs alone, so its deadline measures the hook, not the tests beside it
+	e := enrolledHook(t)
+	agent := agentUnderTest()
+	commitFiles(t, e.root, map[string]string{
+		"big.sql": strings.Repeat("a", model.MaxReadBytes+1), "small.sql": "a\nend\n",
+	})
+	for _, tc := range []struct {
+		name, reason string
+		input        map[string]any
+	}{
+		{"missing new string", "incomplete Edit operation", map[string]any{"old_string": "a"}},
+		{"empty old string", "incomplete Edit operation", map[string]any{"old_string": "", "new_string": "b"}},
+		{"mixed schemas", "mixed Edit schemas", map[string]any{"old_string": "a", "new_string": "b", "edits": []map[string]any{{"old_string": "a", "new_string": "b"}}}},
+		{"valid edit", "", map[string]any{"old_string": "a", "new_string": "b", "replace_all": true}},
+	} {
+		for _, path := range []string{"big.sql", "small.sql"} {
+			tc.input["file_path"] = filepath.Join(e.root, path)
+			event := eventAt(t, "Edit", e.root, tc.input)
+			reply := hook.Run(t.Context(), agent.ID, strings.NewReader(event), agent.Adapter, e.deps)
+			checkEditReply(t, reply, tc.name, path, tc.reason)
+		}
+	}
+}
+
+// checkEditReply holds the answer to an Edit of a case: exit 2 naming the
+// reason when the case has one, else an allow, with the notice for the
+// large file.
+func checkEditReply(t *testing.T, reply hook.Reply, name, path, reason string) {
+	t.Helper()
+	if reason != "" {
+		if reply.ExitCode != 2 || len(reply.Stdout) != 0 || !strings.Contains(reply.Stderr, "cannot judge: "+reason) {
+			t.Errorf("%s of %s: exit %d, stdout %q, stderr %q", name, path, reply.ExitCode, reply.Stdout, reply.Stderr)
+		}
+		return
+	}
+	want := ""
+	if path == "big.sql" {
+		want = "golaw did not measure big.sql: it is over the 8 MiB the hook reads; the pipeline judges it."
+	}
+	if reply.ExitCode != 0 || reply.Stderr != "" || strings.Contains(string(reply.Stdout), "permissionDecision") ||
+		(want == "" && len(reply.Stdout) != 0) || !strings.Contains(string(reply.Stdout), want) {
+		t.Errorf("%s of %s: exit %d, stdout %q, stderr %q", name, path, reply.ExitCode, reply.Stdout, reply.Stderr)
 	}
 }

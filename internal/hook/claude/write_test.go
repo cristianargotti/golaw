@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook"
@@ -149,5 +150,35 @@ func TestAWriteOverALargeBaseIsJudged(t *testing.T) {
 	got, err = claude.Write(frame(t, "PreToolUse", "Edit", root, edit), hook.Base{Root: root}, large)
 	if err != nil || len(got.Gaps) != 1 || got.Gaps[0].Path != "big.sql" || got.Event.Candidates[0].Path != "big.sql" || got.Content != nil {
 		t.Fatalf("an edit of a large file = %+v, %v", got, err)
+	}
+}
+
+// TestEditOverALargeBaseValidatesInput checks an Edit of a base over the
+// read bound before the base is read: an incomplete Edit and one of both
+// schemas are cannot judge, and a well-formed one is the gap of the file.
+func TestEditOverALargeBaseValidatesInput(t *testing.T) { //nolint:paralleltest // a base of 8 MiB runs alone to bound fixture memory
+	root := t.TempDir()
+	large := proof.NewTree(map[string][]byte{"big.sql": bytes.Repeat([]byte("a"), model.MaxReadBytes+1)})
+	for _, tc := range []struct {
+		name, reason string
+		input        map[string]any
+	}{
+		{"missing new string", "incomplete Edit operation", map[string]any{"old_string": "a"}},
+		{"empty old string", "incomplete Edit operation", map[string]any{"old_string": "", "new_string": "b"}},
+		{"mixed schemas", "mixed Edit schemas", map[string]any{"old_string": "a", "new_string": "b", "edits": []map[string]any{{"old_string": "a", "new_string": "b"}}}},
+		{"valid edit", "", map[string]any{"old_string": "a", "new_string": "b", "replace_all": true}},
+	} {
+		tc.input["file_path"] = filepath.Join(root, "big.sql")
+		got, err := claude.Write(frame(t, "PreToolUse", "Edit", root, tc.input), hook.Base{Root: root}, large)
+		if tc.reason != "" {
+			if !errors.Is(err, model.ErrCannotJudge) || !strings.Contains(err.Error(), tc.reason) {
+				t.Errorf("%s: request %+v, error %v", tc.name, got, err)
+			}
+			continue
+		}
+		if err != nil || len(got.Gaps) != 1 || got.Gaps[0] != hook.OverReadBound("big.sql") ||
+			len(got.Event.Candidates) != 1 || got.Event.Candidates[0].Path != "big.sql" || got.Content != nil {
+			t.Errorf("%s: request %+v, error %v", tc.name, got, err)
+		}
 	}
 }
