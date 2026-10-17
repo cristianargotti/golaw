@@ -158,3 +158,44 @@ func TestHookAsksGitEachFactOnceBeforeTheFirstCommit(t *testing.T) {
 		}
 	}
 }
+
+// TestHookAsksGitEachFactOnceAfterAMove counts the git commands of the post
+// event of a command that moved HEAD over a teammate's commit: the move, the
+// commits and the committer are each asked once beside the questions of an
+// ordinary post event, while a post event that did not move HEAD asks none
+// of them. The test is serial for the reason TestHookAsksGitEachFactOnce
+// gives.
+func TestHookAsksGitEachFactOnceAfterAMove(t *testing.T) {
+	trace := filepath.Join(t.TempDir(), "git.trace")
+	t.Setenv("GIT_TRACE", trace)
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	e := enrolledHook(t)
+	agent := agentUnderTest()
+	sideBranch(t, e.root, mate(earlier), map[string]string{"theirs.md": "clean\n"})
+	asked := func(command string) []string {
+		pre := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PreToolUse", e.root, command)), agent.Adapter, e.deps)
+		if command != "true" {
+			gitRun(t, e.root, "checkout", "-q", "side")
+		}
+		if err := os.WriteFile(trace, nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		post := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PostToolUse", e.root, command)), agent.Adapter, e.deps)
+		if pre.ExitCode != 0 || post.ExitCode != 0 || strings.Contains(string(post.Stdout), `"decision":"block"`) {
+			t.Fatalf("%s: pre %+v, post %+v", command, pre, post)
+		}
+		return gitCommandsOf(t, trace)
+	}
+	count := func(commands []string, name string) int {
+		return len(slices.DeleteFunc(slices.Clone(commands), func(c string) bool { return !strings.Contains(c, name) }))
+	}
+	still := asked("true")
+	moved := asked("git checkout -q side")
+	sorted := slices.Sorted(slices.Values(moved))
+	if count(still, "diff-tree")+count(still, " var ")+count(still, " log ") != 0 || len(moved) > 8 || len(slices.Compact(sorted)) != len(moved) ||
+		count(moved, "diff-tree") != 1 || count(moved, " var GIT_COMMITTER_IDENT") != 1 || count(moved, " log ") != 1 {
+		t.Fatalf("an ordinary post event ran:\n%s\nthe post event after a move ran %d git commands, the ceiling is 8:\n%s",
+			strings.Join(still, "\n"), len(moved), strings.Join(moved, "\n"))
+	}
+}

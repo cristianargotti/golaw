@@ -15,6 +15,8 @@ type sentences struct {
 	unknown    string
 	unmeasured string
 	changes    string
+	arrived    string
+	more       string
 }
 
 // sentencesFor is Portuguese for pt-BR and English for any other language,
@@ -28,6 +30,8 @@ func sentencesFor(language string) sentences {
 			unknown:    "não informado",
 			unmeasured: "golaw não mediu %s, que o pipeline julga.",
 			changes:    "as mudanças deste comando",
+			arrived:    "golaw não julgou os arquivos que a mudança de HEAD trouxe de commits que este comando não criou, que não pedem correção: %s; o pipeline os julga.",
+			more:       " e mais %d",
 		}
 	}
 	return sentences{
@@ -36,6 +40,8 @@ func sentencesFor(language string) sentences {
 		unknown:    "not given",
 		unmeasured: "golaw did not measure %s, which the pipeline judges.",
 		changes:    "the changes of this command",
+		arrived:    arrivedText,
+		more:       " and %d more",
 	}
 }
 

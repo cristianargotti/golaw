@@ -64,10 +64,12 @@ func (run execution) postPaths(ctx context.Context, dependencies Dependencies) (
 	return slices.Compact(paths), gaps
 }
 
-// changedPaths are the paths whose content a command changed and, apart,
-// the gaps of what it could not compare: a move of HEAD git could not
-// answer, a path whose blob that move hides and a path a size alone
-// identifies at both ends.
+// changedPaths are the paths whose content a command changed, of the
+// paths a move of HEAD brought only those a commit of the command changed,
+// and, apart, the gaps of what it could not compare: a move of HEAD git
+// could not answer, a path whose blob that move hides, a path a size alone
+// identifies at both ends, a path whose commit git could not tell, and the
+// files the move brought from other commits, named for the agent.
 func (run execution) changedPaths(ctx context.Context, dependencies Dependencies) ([]string, []Gap, error) {
 	if run.stateReason != "" {
 		return nil, nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, run.stateReason)
@@ -97,7 +99,8 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 		gaps = append(gaps, pathGaps(sizedAtBothEnds(before.Files, after), causeReadBound)...)
 	}
 	changed, unknown := run.contentChanged(ctx, dependencies, before, after, changes, moved)
-	return changed, append(gaps, unknown...), nil
+	changed, arrived := run.fromCommits(ctx, dependencies, before, changed, moved.brought(changes, changed, after))
+	return changed, append(append(gaps, unknown...), arrived...), nil
 }
 
 // sizedAtBothEnds are the paths git status named that a size identifies

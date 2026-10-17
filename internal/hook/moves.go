@@ -49,3 +49,18 @@ func (m moves) blobs(changes Changes) (map[string]string, map[string]bool) {
 	}
 	return blobs, settled
 }
+
+// brought are the changed paths the move changed that git status reports
+// clean after the command and that are still on disk: their bytes are the
+// ones HEAD holds now, so a commit wrote them, and which commit decides
+// whether they are judged. A path git status names is judged as any other.
+func (m moves) brought(changes Changes, changed []string, after map[string]string) []string {
+	named := among(changes.Paths)
+	var brought []string
+	for _, path := range changed {
+		if _, moved := m.paths[path]; moved && !named(path) && after[path] != absentIdentity {
+			brought = append(brought, path)
+		}
+	}
+	return brought
+}

@@ -32,11 +32,12 @@ type Store struct {
 // Baseline is what a pre event leaves its post event: the content
 // identities of the paths git status named, the HEAD commit they were
 // taken at, empty on an unborn branch, or the reason they could not be
-// taken.
+// taken, and, as Load answers it, the time the pre event started.
 type Baseline struct {
 	Files  map[string]string
 	Head   string
 	Reason string
+	At     time.Time
 }
 
 type stateRecord struct {
@@ -116,7 +117,7 @@ func (s Store) Load(ctx context.Context, key string) (Baseline, error) {
 	if !found {
 		return Baseline{}, fmt.Errorf("%w: baseline absent: %w", model.ErrCannotJudge, fs.ErrNotExist)
 	}
-	return Baseline{Files: selected.Files, Head: selected.Head, Reason: selected.Reason}, nil
+	return Baseline{Files: selected.Files, Head: selected.Head, Reason: selected.Reason, At: selected.At}, nil
 }
 
 func (s Store) sweepEntry(entry fs.DirEntry) error {

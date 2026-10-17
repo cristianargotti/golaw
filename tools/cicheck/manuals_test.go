@@ -128,20 +128,28 @@ func TestContractsCheckAnInputOverTheBound(t *testing.T) {
 
 // TestContractsJudgeWhatAMoveOfHeadChanged pins what both documents say a
 // command that moves HEAD has judged after it, from or to an unborn branch
-// too, and what a move git cannot compare leaves.
+// too: only what the commits the command created changed, with the files a
+// move brought from other commits named in a notice, and what a move git
+// cannot compare leaves.
 func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 	t.Parallel()
 	requireText(t, "docs/agent-contracts.md",
 		"unless the command moved HEAD: then git diff-tree names, once, the paths that differ between the HEAD of the pre event and the HEAD after the command, the HEAD of an unborn branch read as the empty tree",
-		"so a file a command writes and commits is judged, the first commit of its branch included",
+		"of the paths it finds changed that git status reports clean after the command, only those the commits the command created changed are judged",
+		"that are no merge, were committed in the second the pre event started or later, git recording whole seconds, and carry the name and email git var GIT_COMMITTER_IDENT answers in the repository",
+		"So a file a command writes and commits is judged, the first commit of its branch included",
+		"every file a pull, a checkout, a merge or a reset brings from commits the command did not create is named in a notice, twenty by name and the rest counted, that asks for no fix and leaves it to the pipeline",
 		"an orphan checkout, which leaves every file with the bytes the commit it left held, reports nothing",
-		"a move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed, while a path whose bytes changed since the pre event named it is still judged",
+		"Git log and git var run only when the move brought such a path",
+		"A move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed",
+		"reads as a commit it did not create, a stated limit",
 		"a move of HEAD git cannot compare and the deadline each leave a notice the agent reads",
 	)
 	requireText(t, "docs/security.md",
+		"of those, it judges only what the commits the command created changed, and names the files a pull, a checkout, a merge or a reset brought from other commits in a notice that asks for no fix",
 		"a pre event that left no baseline, a move of HEAD git cannot compare or the deadline, is a notice the agent reads",
 		"a move of HEAD git cannot compare are left to the pipeline with a notice the agent reads",
-		"a file a command writes and commits is judged, the first commit of its branch included, the paths between the two HEADs being asked of git",
+		"a file a command writes and commits is judged, the first commit of its branch included, the paths between the two HEADs being asked of git, while a file a move brings from a commit the command did not create is left to the pipeline with a notice that names it",
 	)
 }
 

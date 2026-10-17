@@ -34,22 +34,39 @@ type Repository struct {
 // only those, and a path clean at both ends is unchanged. Without it the
 // identity reads every file of the snapshot. Moved answers the paths that
 // differ between two commits with the blob the earlier one held at each,
-// for a command that moved HEAD. Hashes answers the blob git would store for the
-// bytes each path holds now, through the conversions git applies on the
-// way in, for a path whose bytes are not the blob it held.
+// for a command that moved HEAD, an empty commit name being the empty tree
+// of an unborn branch. Commits answers the commits that are no merge
+// reachable from now and not from since, every one of now when since is
+// empty, the walk bounded at those committed at or after the second from,
+// and Committer the identity git commits as in the repository, both asked
+// only when a move of HEAD brought a path. Hashes answers the blob git
+// would store for the bytes each path holds now, through the conversions
+// git applies on the way in, for a path whose bytes are not the blob it
+// held.
 type Dependencies struct {
-	Home     string
-	Begin    func()
-	Enroll   func(ctx context.Context, dir, cwd string) (Repository, error)
-	Policy   func(context.Context, Repository) (*model.EffectivePolicy, error)
-	Snapshot func(context.Context, Repository) (model.Snapshot, error)
-	Changes  func(ctx context.Context, repository Repository, also []string) (Changes, error)
-	Moved    func(ctx context.Context, repository Repository, from, to string) (map[string]string, error)
-	Hashes   func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
-	Overlay  func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
-	Registry *engine.Registry
-	State    Store
-	Budget   time.Duration
+	Home      string
+	Begin     func()
+	Enroll    func(ctx context.Context, dir, cwd string) (Repository, error)
+	Policy    func(context.Context, Repository) (*model.EffectivePolicy, error)
+	Snapshot  func(context.Context, Repository) (model.Snapshot, error)
+	Changes   func(ctx context.Context, repository Repository, also []string) (Changes, error)
+	Moved     func(ctx context.Context, repository Repository, from, to string) (map[string]string, error)
+	Commits   func(ctx context.Context, repository Repository, since, now string, from int64) ([]Commit, error)
+	Committer func(ctx context.Context, repository Repository) (string, error)
+	Hashes    func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
+	Overlay   func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
+	Registry  *engine.Registry
+	State     Store
+	Budget    time.Duration
+}
+
+// Commit is a commit git log named between two HEADs: its committer, name
+// and email as git writes an identity before the time, the second it was
+// committed and the paths it changed against its parent.
+type Commit struct {
+	Committer string
+	Time      int64
+	Paths     []string
 }
 
 // Changes is what git status reported changed in a repository: a snapshot

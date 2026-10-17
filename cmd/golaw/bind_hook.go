@@ -59,6 +59,7 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	return hook.Dependencies{
 		Home: b.processHome(), Begin: h.cache.Reset,
 		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Moved: h.moved, Hashes: h.hashes, Overlay: h.overlay,
+		Commits: h.commits, Committer: h.committer,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
 }
