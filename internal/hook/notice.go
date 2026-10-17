@@ -12,9 +12,10 @@ import (
 
 // The causes a notice gives the agent: the read bound of a file, the bound
 // of an event's input, the deadline, a pre event without a baseline, a move
-// of HEAD git could not compare and commits git could not tell apart. A
-// file a move brought from a commit the command did not create has a
-// sentence of its own, causeArrived marks it.
+// of HEAD git could not compare, commits git could not tell apart and bytes
+// git could not convert to compare them. A file a move brought from a
+// commit the command did not create has a sentence of its own, causeArrived
+// marks it.
 const (
 	causeReadBound = "it is over the 8 MiB the hook reads"
 	causeInput     = "the event is over the 8 MiB the hook reads"
@@ -22,6 +23,7 @@ const (
 	causeBaseline  = "its pre event left no baseline"
 	causeMove      = "git could not compare the HEAD the command started from with the HEAD it left"
 	causeCommits   = "git could not tell which commits this command created"
+	causeConvert   = "git could not convert it to compare"
 	causeArrived   = "the move of HEAD brought it from a commit this command did not create"
 )
 

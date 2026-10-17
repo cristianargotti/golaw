@@ -19,7 +19,8 @@ import (
 // now, and a path the move of HEAD changed that git status reports clean
 // after it is changed. After a move git could not answer, the blob of a
 // path named after the command only is unknown, so each such path is a gap
-// and never a change.
+// and never a change, and so is a path whose bytes git could not convert
+// to compare them with that blob.
 func (run execution) contentChanged(ctx context.Context, dependencies Dependencies, before Baseline, after map[string]string, changes Changes, moved moves) ([]string, []Gap) {
 	changed := Changed(before.Files, after)
 	var appeared []string
@@ -38,8 +39,9 @@ func (run execution) contentChanged(ctx context.Context, dependencies Dependenci
 		}
 		blobs, settled = moved.blobs(changes)
 	}
-	same := run.sameBlobs(ctx, dependencies, changes, appeared, blobs, settled)
-	return slices.DeleteFunc(changed, func(path string) bool { return same[path] }), nil
+	same, unknown := run.sameBlobs(ctx, dependencies, changes, appeared, blobs, settled)
+	changed = slices.DeleteFunc(changed, func(path string) bool { return same[path] })
+	return slices.DeleteFunc(changed, among(unknown)), pathGaps(unknown, causeConvert)
 }
 
 // sameBlobs are the paths whose bytes are still the blob named for them:
@@ -51,8 +53,10 @@ func (run execution) contentChanged(ctx context.Context, dependencies Dependenci
 // alone, it changed and git is not asked, and so did a path settled, one
 // git already found apart from its blob. A path without a blob, or whose
 // bytes the snapshot does not hold, a link or a file over the read bound
-// among them, is not the blob.
-func (run execution) sameBlobs(ctx context.Context, dependencies Dependencies, changes Changes, paths []string, blobs map[string]string, settled map[string]bool) map[string]bool {
+// among them, is not the blob. Apart, the paths git was asked about and
+// could not name, every one when its conversion failed, whose change is
+// unknown.
+func (run execution) sameBlobs(ctx context.Context, dependencies Dependencies, changes Changes, paths []string, blobs map[string]string, settled map[string]bool) (map[string]bool, []string) {
 	same := map[string]bool{}
 	var converted []string
 	for _, path := range paths {
@@ -67,16 +71,21 @@ func (run execution) sameBlobs(ctx context.Context, dependencies Dependencies, c
 		}
 	}
 	if len(converted) == 0 || dependencies.Hashes == nil {
-		return same
+		return same, nil
 	}
 	hashes, err := dependencies.Hashes(ctx, run.repository, converted)
 	if err != nil {
-		return same
+		return same, converted
 	}
+	var unknown []string
 	for _, path := range converted {
-		same[path] = hashes[path] == blobs[path]
+		hash, named := hashes[path]
+		if !named {
+			unknown = append(unknown, path)
+		}
+		same[path] = named && hash == blobs[path]
 	}
-	return same
+	return same, unknown
 }
 
 // blobName is the name git gives a blob of these bytes in the object

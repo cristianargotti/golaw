@@ -4,8 +4,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/hook"
 )
@@ -87,5 +89,43 @@ func TestHookPostLeavesWhatAConversionOnlyChangedTheStatusOf(t *testing.T) {
 		if pre.ExitCode != 0 || len(pre.Stdout) != 0 || post.ExitCode != 0 || fed != tc.fed {
 			t.Errorf("%s: pre %+v, post exit %d, stdout %q, stderr %q", tc.name, pre, post.ExitCode, said, post.Stderr)
 		}
+	}
+}
+
+// unconvertible commits notes.md, holding a dash, under a filter that git
+// status never needs: the file is checked out again with carriage returns
+// under core.autocrlf, its index entry is refreshed with a time well before
+// the index so no status reads its bytes, and only then the filter becomes
+// a required clean filter that fails, as an LFS filter does when git-lfs is
+// missing from the PATH of the hook.
+func unconvertible(t *testing.T, root string) {
+	t.Helper()
+	writeFiles(t, root, map[string]string{".gitattributes": "*.md filter=req\n", "notes.md": "start\none \u2014 two\n"})
+	gitRun(t, root, "add", "-A")
+	gitRun(t, root, "commit", "-q", "-m", "docs: the notes")
+	gitRun(t, root, "config", "core.autocrlf", "true")
+	if err := os.Remove(filepath.Join(root, "notes.md")); err != nil {
+		t.Fatal(err)
+	}
+	gitRun(t, root, "checkout", "--", "notes.md")
+	stampFile(t, root, "notes.md", time.Now().Add(-time.Hour))
+	gitRun(t, root, "update-index", "-q", "--refresh")
+	gitRun(t, root, "config", "filter.req.clean", "false")
+	gitRun(t, root, "config", "filter.req.required", "true")
+}
+
+// TestHookPostNamesWhatGitCannotConvert answers a command that only makes a
+// file executable whose bytes git cannot convert to compare them with the
+// blob it stores, with an allow whose notice names the file and leaves it to
+// the pipeline, never with the dash the tree already held; where the file
+// system keeps no executable bit, git sees no change at all.
+func TestHookPostNamesWhatGitCannotConvert(t *testing.T) {
+	t.Parallel()
+	e := enrolledHook(t)
+	unconvertible(t, e.root)
+	said := aroundCommand(t, e, "a mode change of a file git cannot convert", func(root string) { chmodFile(t, root, "notes.md", 0o755) })
+	named := strings.Contains(said, "golaw did not measure notes.md: git could not convert it to compare; the pipeline judges it.")
+	if fedBack(said) || runtime.GOOS != "windows" && !named {
+		t.Fatalf("a mode change of a file git cannot convert: post said %q", said)
 	}
 }

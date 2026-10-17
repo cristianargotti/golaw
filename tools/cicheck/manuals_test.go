@@ -143,13 +143,23 @@ func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 		"Git log and git var run only when the move brought such a path",
 		"A move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed",
 		"reads as a commit it did not create, a stated limit",
-		"a move of HEAD git cannot compare and the deadline each leave a notice the agent reads",
+		"a move of HEAD git cannot compare, a file git cannot convert to compare and the deadline each leave a notice the agent reads",
 	)
 	requireText(t, "docs/security.md",
 		"of those, it judges only what the commits the command created changed, and names the files a pull, a checkout, a merge or a reset brought from other commits in a notice that asks for no fix",
-		"a pre event that left no baseline, a move of HEAD git cannot compare or the deadline, is a notice the agent reads",
+		"a pre event that left no baseline, a move of HEAD git cannot compare, a file git cannot convert to compare or the deadline, is a notice the agent reads",
 		"a move of HEAD git cannot compare are left to the pipeline with a notice the agent reads",
 		"a file a command writes and commits is judged, the first commit of its branch included, the paths between the two HEADs being asked of git, while a file a move brings from a commit the command did not create is left to the pipeline with a notice that names it",
+	)
+}
+
+// TestContractsNameWhatGitCannotConvert pins what agent-contracts.md says
+// of a file whose bytes git cannot convert to compare them with the blob
+// HEAD holds.
+func TestContractsNameWhatGitCannotConvert(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/agent-contracts.md",
+		"and one git cannot convert, as when a required filter fails, is a notice naming it and never a change",
 	)
 }
 

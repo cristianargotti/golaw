@@ -115,8 +115,8 @@ func TestContentChangedNamesWhatItCannotCompare(t *testing.T) {
 	if got, gaps := run.contentChanged(t.Context(), Dependencies{}, unborn, after, Changes{Snapshot: snapshot, Blobs: blobs}, moves{known: true}); !slices.Equal(got, all) || len(gaps) != 0 {
 		t.Fatalf("an unborn branch before the command = %v, %v, want %v", got, gaps, all)
 	}
-	held := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: proof.NewTree(nil)}, []string{"mode.go"}, blobs, nil)
-	if bare := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: snapshot}, []string{"mode.go"}, nil, nil); held["mode.go"] || bare["mode.go"] {
+	held, _ := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: proof.NewTree(nil)}, []string{"mode.go"}, blobs, nil)
+	if bare, _ := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: snapshot}, []string{"mode.go"}, nil, nil); held["mode.go"] || bare["mode.go"] {
 		t.Fatal("a path the snapshot does not hold, or without a blob, has the same blob")
 	}
 }
@@ -166,7 +166,9 @@ func TestMovedSinceAsksOnlyWhenHeadMoved(t *testing.T) {
 // the pre event held and git may convert them on their way in: a path whose
 // status moved some other way than an edit of its bytes, and an edited one
 // whose bytes hold a carriage return. An edit without one is changed with
-// no question, and a binding that cannot answer keeps every path changed.
+// no question; when the binding cannot answer, or names no blob for a path,
+// each path it was asked is a gap that names it and never a change, while
+// the edit found changed without the question stays changed.
 func TestContentChangedAsksGitWhatItConverts(t *testing.T) {
 	t.Parallel()
 	snapshot := proof.NewTree(map[string][]byte{"crlf.md": []byte("hello\r\n"), "edited.md": []byte("changed\n"), "edited-cr.md": []byte("x\r\n")})
@@ -187,7 +189,15 @@ func TestContentChangedAsksGitWhatItConverts(t *testing.T) {
 	deps.Hashes = func(context.Context, Repository, []string) (map[string]string, error) {
 		return nil, model.ErrUnreadable
 	}
-	if got, _ := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true}); len(got) != 3 {
-		t.Fatalf("a binding that cannot answer = %v", got)
+	got, gaps := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true})
+	if !slices.Equal(got, []string{"edited.md"}) || !slices.Equal(gaps, pathGaps([]string{"crlf.md", "edited-cr.md"}, causeConvert)) {
+		t.Fatalf("a binding that cannot answer = %v, %+v", got, gaps)
+	}
+	deps.Hashes = func(context.Context, Repository, []string) (map[string]string, error) {
+		return map[string]string{"crlf.md": helloSHA1}, nil
+	}
+	got, gaps = run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true})
+	if !slices.Equal(got, []string{"edited.md"}) || !slices.Equal(gaps, pathGaps([]string{"edited-cr.md"}, causeConvert)) {
+		t.Fatalf("a binding that names no blob for a path = %v, %+v", got, gaps)
 	}
 }
