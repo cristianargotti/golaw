@@ -35,11 +35,13 @@ type Repository struct {
 // identity reads every file of the snapshot. Moved answers the paths that
 // differ between two commits with the blob the earlier one held at each,
 // for a command that moved HEAD, an empty commit name being the empty tree
-// of an unborn branch. Commits answers the commits that are no merge
-// reachable from now and not from since, every one of now when since is
-// empty, the walk bounded at those committed at or after the second from,
-// and Committer the identity git commits as in the repository, both asked
-// only when a move of HEAD brought a path. Hashes answers the blob git
+// of an unborn branch. Commits answers the commits reachable from now and
+// not from since, every one of now when since is empty, the walk bounded at
+// those committed at or after the second from, and Committer the identity
+// git commits as in the repository, both asked only when a move of HEAD
+// brought a path; Remerged answers, for each merge commit, the paths it
+// holds apart from the merge git makes of its parents by itself, asked only
+// when a merge the command made holds such a path apart from every parent. Hashes answers the blob git
 // would store for the bytes each path holds now, through the conversions
 // git applies on the way in, for a path whose bytes are not the blob it
 // held. Automatic answers, for a merge of the commit theirs into the
@@ -56,6 +58,7 @@ type Dependencies struct {
 	Moved     func(ctx context.Context, repository Repository, from, to string) (map[string]string, error)
 	Commits   func(ctx context.Context, repository Repository, since, now string, from int64) ([]Commit, error)
 	Committer func(ctx context.Context, repository Repository) (string, error)
+	Remerged  func(ctx context.Context, repository Repository, merges []string) (map[string][]string, error)
 	Hashes    func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
 	Automatic func(ctx context.Context, repository Repository, ours, theirs string, paths []string) (map[string][]string, error)
 	Overlay   func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
@@ -64,12 +67,15 @@ type Dependencies struct {
 	Budget    time.Duration
 }
 
-// Commit is a commit git log named between two HEADs: its committer, name
-// and email as git writes an identity before the time, the second it was
-// committed and the paths it changed against its parent.
+// Commit is a commit git log named between two HEADs: its name, its
+// committer, name and email as git writes an identity before the time, the
+// second it was committed, whether it is a merge, and the paths it changed
+// against its parent, for a merge those it holds apart from every parent.
 type Commit struct {
+	Name      string
 	Committer string
 	Time      int64
+	Merge     bool
 	Paths     []string
 }
 

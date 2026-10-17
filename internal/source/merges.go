@@ -118,3 +118,26 @@ func scratchObjects(gitDir, scratch string) ([]string, error) {
 	}
 	return []string{"GIT_OBJECT_DIRECTORY=" + scratch, "GIT_ALTERNATE_OBJECT_DIRECTORIES=" + objects}, nil
 }
+
+// Remerged answers, for each merge commit, the paths it holds apart from
+// the merge git makes of its parents by itself, a conflict in its markers,
+// in one git log --remerge-diff --name-only for all of them; git keeps the
+// objects of those merges in a temporary object directory it removes, so
+// none reaches the repository. --remerge-diff needs git 2.36; an older git
+// is an error.
+func Remerged(ctx context.Context, repo Repo, merges []string) (map[string][]string, error) {
+	args := []string{"log", "-z", "--no-walk", noRenames, "--remerge-diff", "--no-color", "--no-show-signature", commitFormat, "--name-only"}
+	out, err := git(ctx, repo.Root, append(append(args, merges...), "--")...)
+	if err != nil {
+		return nil, err
+	}
+	commits, err := parseCommits(string(out))
+	if err != nil {
+		return nil, err
+	}
+	remerged := make(map[string][]string, len(commits))
+	for _, commit := range commits {
+		remerged[commit.Name] = commit.Paths
+	}
+	return remerged, nil
+}

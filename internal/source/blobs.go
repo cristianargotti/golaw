@@ -9,6 +9,10 @@ import (
 // gitlinkMode is the mode git gives a submodule.
 const gitlinkMode = "160000"
 
+// noRenames has every diff of the kit read a rename as its two paths, a
+// deletion and an addition, so each is judged where it stands.
+const noRenames = "--no-renames"
+
 // rawFields are the fields of a record of git diff-tree before its path:
 // the two modes, the two objects and the status.
 const rawFields = 5
@@ -32,7 +36,7 @@ func Moved(ctx context.Context, repo Repo, from, to string) (map[string]string, 
 	if err != nil {
 		return nil, err
 	}
-	out, err := git(ctx, repo.Root, "diff-tree", "-r", "-z", "--no-renames", from, to)
+	out, err := git(ctx, repo.Root, "diff-tree", "-r", "-z", noRenames, from, to)
 	if err != nil {
 		return nil, err
 	}

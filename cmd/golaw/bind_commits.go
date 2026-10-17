@@ -8,8 +8,9 @@ import (
 	"github.com/cristianargotti/golaw/internal/source"
 )
 
-// commits are the commits that are no merge between two HEADs, with the
-// committer, the second and the paths of each, in one question to git.
+// commits are the commits between two HEADs, with the name, the
+// committer, the second, whether it is a merge and the paths of each, in
+// one question to git.
 func (h hookBinding) commits(ctx context.Context, repo hook.Repository, since, now string, from int64) ([]hook.Commit, error) {
 	found, err := h.cache.Discover(ctx, repo.Root)
 	if err != nil {
@@ -21,7 +22,9 @@ func (h hookBinding) commits(ctx context.Context, repo hook.Repository, since, n
 	}
 	commits := make([]hook.Commit, 0, len(listed))
 	for _, commit := range listed {
-		commits = append(commits, hook.Commit{Committer: commit.Committer, Time: commit.Time, Paths: commit.Paths})
+		commits = append(commits, hook.Commit{
+			Name: commit.Name, Committer: commit.Committer, Time: commit.Time, Merge: commit.Merge, Paths: commit.Paths,
+		})
 	}
 	return commits, nil
 }

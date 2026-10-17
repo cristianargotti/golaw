@@ -115,3 +115,70 @@ func TestTheNoticeNamesWhatAMoveBrought(t *testing.T) {
 		t.Fatalf("many arrived in Portuguese: %q", pt.Human)
 	}
 }
+
+// mergeDeps answer the committer and the commits of a move whose command
+// made a merge m1 in the second its pre event started, with the paths m1
+// holds apart from every parent, and a commit c3 of its own beside a
+// teammate's merge and commit of an hour before; Remerged answers the paths
+// m1 holds apart from the merge git makes of its parents by itself. Each
+// question is recorded.
+func mergeDeps(second int64, asked *[]string) Dependencies {
+	return Dependencies{
+		Committer: func(context.Context, Repository) (string, error) { return "me <me@example.com>", nil },
+		Commits: func(context.Context, Repository, string, string, int64) ([]Commit, error) {
+			*asked = append(*asked, "log")
+			return []Commit{
+				{Name: "m1", Committer: "me <me@example.com>", Time: second, Merge: true, Paths: []string{"auto.md", "mine.md", "other.md", "shared.md"}},
+				{Name: "m0", Committer: "mate <mate@example.com>", Time: second - 3600, Merge: true, Paths: []string{"theirs.md"}},
+				{Name: "c3", Committer: "me <me@example.com>", Time: second, Paths: []string{"own.md"}},
+				{Name: "t1", Committer: "mate <mate@example.com>", Time: second - 3600, Paths: []string{"theirs.md"}},
+			}, nil
+		},
+		Remerged: func(_ context.Context, _ Repository, merges []string) (map[string][]string, error) {
+			*asked = append(*asked, "remerge "+strings.Join(merges, ","))
+			return map[string][]string{"m1": {"extra.md", "mine.md", "shared.md"}}, nil
+		},
+	}
+}
+
+// TestFromCommitsJudgesWhatAMergeOfTheCommandHolds judges, of the paths a
+// move brought, those a merge the command made holds apart both from every
+// parent and from the merge git makes of its parents by itself, the
+// command's resolution and its own files, beside those of its other
+// commits, and names as arrived a path that merge took from one side whole
+// or that git merged by itself; git is asked the remerge once, only when
+// such a merge holds a path the move brought, and when it cannot answer,
+// each path that merge holds apart from every parent is a gap.
+func TestFromCommitsJudgesWhatAMergeOfTheCommandHolds(t *testing.T) {
+	t.Parallel()
+	started := time.Date(2026, time.October, 17, 12, 0, 0, 0, time.UTC)
+	before := Baseline{Head: "c1", At: started}
+	run := execution{repository: Repository{Head: "m1"}}
+	changed := []string{"auto.md", "dirty.md", "mine.md", "own.md", "shared.md", "taken.md", "theirs.md"}
+	brought := []string{"auto.md", "mine.md", "own.md", "shared.md", "taken.md", "theirs.md"}
+	var asked []string
+	deps := mergeDeps(started.Unix(), &asked)
+	got, gaps := run.fromCommits(t.Context(), deps, before, slices.Clone(changed), brought)
+	if !slices.Equal(got, []string{"dirty.md", "mine.md", "own.md", "shared.md"}) ||
+		!slices.Equal(gaps, pathGaps([]string{"auto.md", "taken.md", "theirs.md"}, causeArrived)) || !slices.Equal(asked, []string{"log", "remerge m1"}) {
+		t.Fatalf("judged %v, gaps %+v after %v", got, gaps, asked)
+	}
+	asked = nil
+	if got, gaps := run.fromCommits(t.Context(), deps, before, []string{"taken.md"}, []string{"taken.md"}); len(got) != 0 ||
+		!slices.Equal(gaps, pathGaps([]string{"taken.md"}, causeArrived)) || !slices.Equal(asked, []string{"log"}) {
+		t.Fatalf("a merge that holds no path the move brought: judged %v, gaps %+v after %v", got, gaps, asked)
+	}
+	failing := deps
+	failing.Remerged = func(context.Context, Repository, []string) (map[string][]string, error) {
+		return nil, model.ErrUnreadable
+	}
+	unbound := deps
+	unbound.Remerged = nil
+	for name, broken := range map[string]Dependencies{"git cannot remerge": failing, "no binding": unbound} {
+		got, gaps := run.fromCommits(t.Context(), broken, before, slices.Clone(changed), brought)
+		want := append(pathGaps([]string{"auto.md", "mine.md", "shared.md"}, causeRemergeUnknown), pathGaps([]string{"taken.md", "theirs.md"}, causeArrived)...)
+		if !slices.Equal(got, []string{"dirty.md", "own.md"}) || !slices.Equal(gaps, want) {
+			t.Fatalf("%s: judged %v, gaps %+v", name, got, gaps)
+		}
+	}
+}

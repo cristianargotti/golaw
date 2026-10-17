@@ -22,3 +22,17 @@ func (h hookBinding) automatic(ctx context.Context, repo hook.Repository, ours, 
 	}
 	return blobs, nil
 }
+
+// remerged is, for each merge commit, the paths it holds apart from the
+// merge git makes of its parents by itself, in one git log --remerge-diff.
+func (h hookBinding) remerged(ctx context.Context, repo hook.Repository, merges []string) (map[string][]string, error) {
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	remerged, err := source.Remerged(ctx, found, merges)
+	if err != nil {
+		return nil, fmt.Errorf("remerge the merges of %s as git merges by itself: %w", found.Root, err)
+	}
+	return remerged, nil
+}

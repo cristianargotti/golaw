@@ -121,3 +121,69 @@ func TestAutomaticMergeNamesTheBlobsOfTheMergeGitMakes(t *testing.T) {
 		t.Fatal("a commit git does not hold answered a merge")
 	}
 }
+
+// resolvedMerge is a repository whose merge commit at HEAD resolved the
+// conflict of shared.md with bytes of its own, added mine.md, merged
+// auto.md, which both sides changed apart, as git merges it by itself, and
+// took theirs.md from side whole; it answers the root, the commit main held
+// before the merge and the merge.
+func resolvedMerge(t *testing.T) (string, string, string) {
+	t.Helper()
+	root := initRepo(t)
+	write(t, root, "shared.md", "start\n")
+	write(t, root, "auto.md", "a\nb\nc\n")
+	commitAll(t, root, "docs: start")
+	gitRun(t, root, "checkout", "-q", "-b", "side")
+	write(t, root, "shared.md", "side\n")
+	write(t, root, "auto.md", "a\nb\nside c\n")
+	write(t, root, "theirs.md", "theirs\n")
+	commitAll(t, root, "docs: side")
+	gitRun(t, root, "checkout", "-q", "main")
+	write(t, root, "shared.md", "main\n")
+	write(t, root, "auto.md", "main a\nb\nc\n")
+	before := commitAll(t, root, "docs: main")
+	merge := exec.CommandContext(t.Context(), "git", "merge", "-q", "side")
+	merge.Dir = root
+	merge.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1",
+		"GIT_AUTHOR_NAME=tester", "GIT_AUTHOR_EMAIL=tester@example.com", "GIT_COMMITTER_NAME=tester", "GIT_COMMITTER_EMAIL=tester@example.com")
+	if out, err := merge.CombinedOutput(); err == nil {
+		t.Fatalf("the merge did not stop on its conflict: %s", out)
+	}
+	write(t, root, "shared.md", "resolved\n")
+	write(t, root, "mine.md", "mine\n")
+	gitRun(t, root, "add", "-A")
+	gitRun(t, root, "commit", "-q", "--no-edit")
+	return root, before, gitRun(t, root, "rev-parse", "HEAD")
+}
+
+// TestRemergedNamesWhatAMergeHoldsApartFromTheMergeGitMakes reads a merge
+// commit two ways: git log names it as a merge with the paths it holds
+// apart from every parent, the resolution, the new file and the file git
+// merged by itself, and git log --remerge-diff with the paths it holds apart
+// from the merge git makes of its parents by itself, the resolution and the
+// new file, writing no object into the repository; a commit git does not
+// hold is an error.
+func TestRemergedNamesWhatAMergeHoldsApartFromTheMergeGitMakes(t *testing.T) {
+	t.Parallel()
+	root, before, merge := resolvedMerge(t)
+	repo, err := source.Discover(t.Context(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commits, err := source.Commits(t.Context(), repo, before, repo.Head, 0)
+	if err != nil || len(commits) != 2 || !commits[0].Merge || commits[0].Name != merge ||
+		!slices.Equal(commits[0].Paths, []string{"auto.md", "mine.md", "shared.md"}) || commits[1].Merge {
+		t.Fatalf("commits = %+v, %v", commits, err)
+	}
+	objects := looseObjects(t, root)
+	remerged, err := source.Remerged(t.Context(), repo, []string{merge})
+	if err != nil || len(remerged) != 1 || !slices.Equal(remerged[merge], []string{"mine.md", "shared.md"}) {
+		t.Fatalf("remerged = %v, %v", remerged, err)
+	}
+	if after := looseObjects(t, root); after != objects {
+		t.Fatalf("the remerge wrote %d objects into the repository", after-objects)
+	}
+	if _, err := source.Remerged(t.Context(), repo, []string{strings.Repeat("0", 40)}); err == nil {
+		t.Fatal("a commit git does not hold answered a remerge")
+	}
+}

@@ -8,32 +8,38 @@ import (
 )
 
 // commitFields are the fields git log writes for a commit in the format of
-// Commits before its paths: the empty field that opens the commit, its
-// name, the second it was committed, and the name and email of its
-// committer.
+// Commits before its paths: its name, the second it was committed, the name
+// and email of its committer and its parents.
 const commitFields = 5
 
-// Commit is one commit git log named: its committer, as git writes an
-// identity before the time, the second it was committed and the paths it
-// changed against its parent, a root commit against the empty tree.
+// commitFormat opens each commit with two empty fields, which no list of
+// paths holds, so a merge whose paths git opens with an empty field of its
+// own is still read field by field.
+const commitFormat = "--format=%x00%x00%H%x00%ct%x00%cn%x00%ce%x00%P"
+
+// Commit is one commit git log named: its name, its committer, as git
+// writes an identity before the time, the second it was committed, whether
+// it is a merge, and the paths it changed: against its parent, a root
+// commit against the empty tree, and a merge, the paths it holds apart from
+// every parent.
 type Commit struct {
+	Name      string
 	Committer string
 	Time      int64
+	Merge     bool
 	Paths     []string
 }
 
 // Commits answers, in one git log, the commits reachable from now and not
-// from since, every one reachable from now when since is empty, that are no
-// merge, with the paths each changed: a rename is read as its two paths and
-// a root commit against the empty tree whatever log.showRoot says. A from
+// from since, every one reachable from now when since is empty, with the
+// paths each changed: a rename is read as its two paths, a root commit
+// against the empty tree whatever log.showRoot says, and a merge, as git
+// log --cc names them, the paths it holds apart from every parent. A from
 // above zero bounds the walk at the commits committed at or after that
 // second, so the history of a far checkout is not read; the walk stops at
 // the first older commit of each line, as git log --since does.
 func Commits(ctx context.Context, repo Repo, since, now string, from int64) ([]Commit, error) {
-	args := []string{
-		"log", "-z", "--root", "--no-renames", "--no-merges", "--no-color", "--no-show-signature",
-		"--format=%x00%H%x00%ct%x00%cn%x00%ce", "--name-only",
-	}
+	args := []string{"log", "-z", "--root", noRenames, "--cc", "--no-color", "--no-show-signature", commitFormat, "--name-only"}
 	if from > 0 {
 		args = append(args, "--since=@"+strconv.FormatInt(from, 10))
 	}
@@ -49,34 +55,59 @@ func Commits(ctx context.Context, repo Repo, since, now string, from int64) ([]C
 }
 
 // parseCommits reads the records git log -z writes in the format of
-// Commits: an empty field opens each commit and its four fields follow,
-// then each path it changed up to the empty field of the next one; git puts
-// a newline between the fields and the first path.
+// Commits: the last two of a run of empty fields open each commit, its five
+// fields follow, then each path it changed up to the next empty field.
 func parseCommits(out string) ([]Commit, error) {
-	if out == "" {
-		return nil, nil
-	}
-	fields := strings.Split(strings.TrimSuffix(out, "\x00"), "\x00")
+	fields := strings.Split(out, "\x00")
 	var commits []Commit
-	for i := 0; i < len(fields); {
-		if fields[i] != "" || i+commitFields > len(fields) {
+	for i := 0; ; {
+		opened := i
+		for i < len(fields) && fields[i] == "" {
+			i++
+		}
+		if i == len(fields) {
+			return commits, nil
+		}
+		if i-opened < 2 || i+commitFields > len(fields) {
 			return nil, fmt.Errorf("%w: git log printed %q", ErrGit, fields[i])
 		}
-		seconds, err := strconv.ParseInt(fields[i+2], 10, 64)
+		commit, err := commitOf(fields[i : i+commitFields])
 		if err != nil {
-			return nil, fmt.Errorf("%w: git log printed the time %q", ErrGit, fields[i+2])
+			return nil, err
 		}
-		commit := Commit{Committer: fields[i+3] + " <" + fields[i+4] + ">", Time: seconds}
-		for i += commitFields; i < len(fields) && fields[i] != ""; i++ {
-			path := fields[i]
-			if len(commit.Paths) == 0 {
-				path = strings.TrimPrefix(path, "\n")
-			}
-			commit.Paths = append(commit.Paths, path)
-		}
+		commit.Paths, i = pathsFrom(fields, i+commitFields, commit.Merge)
 		commits = append(commits, commit)
 	}
-	return commits, nil
+}
+
+// commitOf reads the five fields of a commit in the format of Commits.
+func commitOf(fields []string) (Commit, error) {
+	seconds, err := strconv.ParseInt(fields[1], 10, 64)
+	if err != nil {
+		return Commit{}, fmt.Errorf("%w: git log printed the time %q", ErrGit, fields[1])
+	}
+	return Commit{
+		Name: fields[0], Committer: fields[2] + " <" + fields[3] + ">", Time: seconds, Merge: len(strings.Fields(fields[4])) > 1,
+	}, nil
+}
+
+// pathsFrom reads the paths of a commit from the field at i up to the next
+// empty field and answers them with the index of that field: git puts a
+// newline before the first path of a commit and an empty field before the
+// first path of a merge it diffs against every parent.
+func pathsFrom(fields []string, i int, merge bool) ([]string, int) {
+	if merge && i+1 < len(fields) && fields[i] == "" && fields[i+1] != "" {
+		i++
+	}
+	var paths []string
+	for ; i < len(fields) && fields[i] != ""; i++ {
+		path := fields[i]
+		if len(paths) == 0 {
+			path = strings.TrimPrefix(path, "\n")
+		}
+		paths = append(paths, path)
+	}
+	return paths, i
 }
 
 // Committer answers the identity git commits as in the repository: the

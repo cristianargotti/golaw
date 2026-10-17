@@ -138,7 +138,12 @@ func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 	requireText(t, "docs/agent-contracts.md",
 		"unless the command moved HEAD: then git diff-tree names, once, the paths that differ between the HEAD of the pre event and the HEAD after the command, the HEAD of an unborn branch read as the empty tree",
 		"of the paths it finds changed that git status reports clean after the command, only those the commits the command created changed are judged",
-		"that are no merge, were committed in the second the pre event started or later, git recording whole seconds, and carry the name and email git var GIT_COMMITTER_IDENT answers in the repository",
+		"that were committed in the second the pre event started or later, git recording whole seconds, and carry the name and email git var GIT_COMMITTER_IDENT answers in the repository",
+		"Of a merge among them, the files it holds apart both from every parent, as git log --cc names them in the same question, and from the merge git makes of its parents by itself, as git log --remerge-diff names them, once for every such merge, are judged",
+		"while a file it took from one side whole and one git merged by itself are named in the notice",
+		"a git older than 2.36, which has no --remerge-diff, or a remerge git fails leaves each file such a merge holds apart from every parent to a notice naming it",
+		"and the resolution a merge commit of the command holds",
+		"and git log --remerge-diff only when a merge the command made holds one apart from every parent",
 		"So a file a command writes and commits is judged, the first commit of its branch included",
 		"every file a pull, a checkout, a merge or a reset brings from commits the command did not create is named in a notice, twenty by name and the rest counted, that asks for no fix and leaves it to the pipeline",
 		"an orphan checkout, which leaves every file with the bytes the commit it left held, reports nothing",
@@ -152,6 +157,7 @@ func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 		"a pre event that left no baseline, a move of HEAD git cannot compare, a file git cannot convert to compare or the deadline, is a notice the agent reads",
 		"a move of HEAD git cannot compare are left to the pipeline with a notice the agent reads",
 		"a file a command writes and commits is judged, the first commit of its branch included, the paths between the two HEADs being asked of git, while a file a move brings from a commit the command did not create is left to the pipeline with a notice that names it",
+		"of a merge commit the command made, it judges what the merge holds apart both from every parent and from the merge git makes of its parents by itself",
 	)
 }
 
@@ -192,7 +198,7 @@ func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 		"a file whose staged blob is neither, the command's resolution of a conflict or its own edit, a file only the local side added or changed since the fork included, is judged",
 		"a merge already in progress before the command leaves the files the command writes judged as any other",
 		"A merge git cannot make by itself to compare, an octopus merge, one under a git older than 2.38, which has no merge-tree --write-tree, or one git fails, leaves each file the merge staged to a notice naming it",
-		"A merge made with a strategy option, such as -X theirs, differs from the merge git makes by itself in each file where the option resolved a conflict hunk by hunk, so such a file is judged as the command's resolution, a stated limit",
+		"A merge made with a strategy option, such as -X theirs, left in progress or committed, differs from the merge git makes by itself in each file where the option resolved a conflict hunk by hunk, so such a file is judged as the command's resolution, a stated limit",
 	)
 	requireText(t, "docs/security.md",
 		"A merge the command starts and leaves in progress is read the same way: a file it staged whose bytes are those of the merge git makes by itself or of the commit it merges is named in that notice",
@@ -219,8 +225,8 @@ func TestSecurityStatesTheFilterDrivers(t *testing.T) {
 	requireText(t, "docs/security.md",
 		"The git status and git hash-object of change detection run the clean filter driver the git configuration of the checkout names for a path",
 		"and core.fsmonitor runs its hook, as any git command in that checkout does",
-		"The git merge-tree that compares a merge the command left in progress with the merge git makes by itself runs the merge driver the git configuration of the checkout names for a path",
-		"writes the objects of that merge into a temporary object directory golaw removes after",
+		"The git merge-tree that compares a merge the command left in progress, and the git log --remerge-diff that compares a merge commit the command made, with the merge git makes by itself run the merge driver the git configuration of the checkout names for a path",
+		"keep the objects of that merge in a temporary object directory removed after, so none reaches the repository",
 		"A cloned repository names no such program, because git configuration is not cloned",
 		"the drivers are the person's own configuration and the tools they installed, such as git-lfs",
 	)

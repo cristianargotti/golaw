@@ -57,12 +57,13 @@ func historyOfCommits(t *testing.T) (string, string) {
 }
 
 // TestCommitsNamesWhatEachCommitChanged asks git log once for the commits
-// between two HEADs: each one not a merge, with its committer, the second it
-// was committed and the paths it changed, a rename as both of its paths, an
-// empty commit with none and the root commit, a teammate's of 2020, with
-// every path it holds; every commit of HEAD when the earlier HEAD is
-// unborn, none older than the second the walk is bounded by, and a
-// directory outside git is an error.
+// between two HEADs, with the name, the committer, the second it was
+// committed and the paths each changed: a rename as both of its paths, an
+// empty commit with none, the root commit, a teammate's of 2020, with every
+// path it holds, and a merge, marked as one, with the paths it holds apart
+// from every parent, none for a merge that took one side whole; every
+// commit of HEAD when the earlier HEAD is unborn, none older than the
+// second the walk is bounded by, and a directory outside git is an error.
 func TestCommitsNamesWhatEachCommitChanged(t *testing.T) {
 	t.Parallel()
 	root, first := historyOfCommits(t)
@@ -71,23 +72,26 @@ func TestCommitsNamesWhatEachCommitChanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	all, err := source.Commits(t.Context(), repo, "", repo.Head, 0)
-	if err != nil || len(all) != 5 {
+	if err != nil || len(all) != 6 || !all[0].Merge || all[0].Name != repo.Head || len(all[0].Paths) != 0 {
 		t.Fatalf("every commit = %+v, %v", all, err)
 	}
 	named := map[string][]string{}
-	for _, commit := range all {
+	for _, commit := range all[1:] {
 		named[strings.Join(commit.Paths, "|")] = append(named[strings.Join(commit.Paths, "|")], commit.Committer+" "+strconv.FormatInt(commit.Time, 10))
+	}
+	if slices.ContainsFunc(all[1:], func(c source.Commit) bool { return c.Merge || len(c.Name) != len(repo.Head) }) {
+		t.Fatalf("the commits that are no merge = %+v", all[1:])
 	}
 	if !slices.Equal(named["t.txt"], []string{"mate <mate@example.com> 1577836800"}) || len(named["a.txt|b.txt"]) != 1 ||
 		len(named[""]) != 1 || len(named["s.txt"]) != 1 || len(named["a.txt|odd name \u00e9.txt"]) != 1 {
 		t.Fatalf("the paths of each commit = %v", named)
 	}
 	since, err := source.Commits(t.Context(), repo, first, repo.Head, 0)
-	if err != nil || len(since) != 4 {
+	if err != nil || len(since) != 5 {
 		t.Fatalf("the commits since the first = %+v, %v", since, err)
 	}
 	recent, err := source.Commits(t.Context(), repo, "", repo.Head, 1600000000)
-	if err != nil || len(recent) != 4 || slices.ContainsFunc(recent, func(c source.Commit) bool { return strings.HasPrefix(c.Committer, "mate") }) {
+	if err != nil || len(recent) != 5 || slices.ContainsFunc(recent, func(c source.Commit) bool { return strings.HasPrefix(c.Committer, "mate") }) {
 		t.Fatalf("the commits of the walk bounded after 2020 = %+v, %v", recent, err)
 	}
 	if none, err := source.Commits(t.Context(), repo, repo.Head, repo.Head, 0); err != nil || len(none) != 0 {
