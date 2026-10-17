@@ -127,15 +127,21 @@ func TestContractsCheckAnInputOverTheBound(t *testing.T) {
 }
 
 // TestContractsJudgeWhatAMoveOfHeadChanged pins what both documents say a
-// command that moves HEAD has judged after it.
+// command that moves HEAD has judged after it, from or to an unborn branch
+// too, and what a move git cannot compare leaves.
 func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 	t.Parallel()
 	requireText(t, "docs/agent-contracts.md",
-		"unless the command moved HEAD: then git diff-tree names, once, the paths that differ between the HEAD of the pre event and the HEAD after the command",
-		"a file a command writes and commits as the first commit of its branch, whose earlier HEAD holds nothing to compare it with, is left to the pipeline",
+		"unless the command moved HEAD: then git diff-tree names, once, the paths that differ between the HEAD of the pre event and the HEAD after the command, the HEAD of an unborn branch read as the empty tree",
+		"so a file a command writes and commits is judged, the first commit of its branch included",
+		"an orphan checkout, which leaves every file with the bytes the commit it left held, reports nothing",
+		"a move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed, while a path whose bytes changed since the pre event named it is still judged",
+		"a move of HEAD git cannot compare and the deadline each leave a notice the agent reads",
 	)
 	requireText(t, "docs/security.md",
-		"a file a command writes and commits on a branch that has a commit is judged, the paths between the two HEADs being asked of git",
+		"a pre event that left no baseline, a move of HEAD git cannot compare or the deadline, is a notice the agent reads",
+		"a move of HEAD git cannot compare are left to the pipeline with a notice the agent reads",
+		"a file a command writes and commits is judged, the first commit of its branch included, the paths between the two HEADs being asked of git",
 	)
 }
 

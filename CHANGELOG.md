@@ -17,6 +17,7 @@ Every rule change is dated here with its reason. The format follows Keep a Chang
 
 ### Changed
 
+- 2026-10-17: change detection reads the HEAD of an unborn branch as the empty tree and answers a move of HEAD git cannot compare with a notice, because a command that wrote a file and made the first commit of its branch was allowed with no notice, an orphan checkout fed back the files the commit it left already held, and a move from a commit the command pruned was allowed with nothing said.
 - 2026-10-16: the hook resolves enrollment from the target of a write or read, and a read outside every enrolled repository falls back to the session's repository, because a write or read into an enrolled repository from an unenrolled working directory was allowed and a write to the agent's own plans from an enrolled one was refused as cannot judge.
 - 2026-10-16: agent install re-enrolls a committed golaw.yml that tightens the enrolled policy and refuses one that weakens it, and init --apply keeps an existing golaw.yml, because a reviewed change left the record behind with no way back and the advised init --apply rendered the defaults over the reviewed file.
 - 2026-10-16: the text family and paths.generated-tracked answer unmeasured for a file the snapshot could not read, and a tracked file deleted from the worktree leaves the snapshot, because an unreadable file scanned clean and a deletion would then have read as unreadable.

@@ -13,11 +13,25 @@ const gitlinkMode = "160000"
 // the two modes, the two objects and the status.
 const rawFields = 5
 
+// The names of the empty tree in the two object formats git knows; git
+// answers either without holding it as an object.
+const (
+	emptyTreeSHA1   = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+	emptyTreeSHA256 = "6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321"
+)
+
 // Moved answers the paths that differ between two commits with the blob
 // the earlier one held at each, empty where it held none, asking git
 // diff-tree once; a submodule moved to another revision is left out, as
-// change detection excludes it.
+// change detection excludes it. An empty name is the HEAD of an unborn
+// branch, read as the empty tree, so a first commit names every path it
+// holds without an earlier blob and an orphan checkout every path of the
+// commit it left with the blob that commit holds.
 func Moved(ctx context.Context, repo Repo, from, to string) (map[string]string, error) {
+	from, to, err := treeEnds(from, to)
+	if err != nil {
+		return nil, err
+	}
 	out, err := git(ctx, repo.Root, "diff-tree", "-r", "-z", "--no-renames", from, to)
 	if err != nil {
 		return nil, err
@@ -39,6 +53,34 @@ func Moved(ctx context.Context, repo Repo, from, to string) (map[string]string, 
 		moved[records[i+1]] = blob
 	}
 	return moved, nil
+}
+
+// treeEnds puts the empty tree of the object format the other name belongs
+// to in place of an empty name, the format a name of that length is in.
+func treeEnds(from, to string) (string, string, error) {
+	switch {
+	case from == "":
+		from = emptyTree(to)
+	case to == "":
+		to = emptyTree(from)
+	}
+	if from == "" || to == "" {
+		return "", "", fmt.Errorf("%w: no object format names a commit %q", ErrGit, from+to)
+	}
+	return from, to, nil
+}
+
+// emptyTree is the name of the empty tree in the object format of a name of
+// this length, empty for a length no format has.
+func emptyTree(name string) string {
+	switch len(name) {
+	case len(emptyTreeSHA1):
+		return emptyTreeSHA1
+	case len(emptyTreeSHA256):
+		return emptyTreeSHA256
+	default:
+		return ""
+	}
 }
 
 // HashObjects answers the blob git would store for the bytes each path

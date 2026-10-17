@@ -11,17 +11,28 @@ import (
 )
 
 // The causes a notice gives the agent: the read bound of a file, the bound
-// of an event's input, the deadline and a pre event without a baseline.
+// of an event's input, the deadline, a pre event without a baseline and a
+// move of HEAD git could not compare.
 const (
 	causeReadBound = "it is over the 8 MiB the hook reads"
 	causeInput     = "the event is over the 8 MiB the hook reads"
 	causeDeadline  = "the hook reached its deadline first"
 	causeBaseline  = "its pre event left no baseline"
+	causeMove      = "git could not compare the HEAD the command started from with the HEAD it left"
 )
 
 // OverReadBound is the gap of a file over the read bound, which a decoder
 // names when it cannot reconstruct a write within the bound.
 func OverReadBound(path string) Gap { return Gap{Path: path, Cause: causeReadBound} }
+
+// pathGaps is the gap of each path for one cause.
+func pathGaps(paths []string, cause string) []Gap {
+	gaps := make([]Gap, 0, len(paths))
+	for _, path := range paths {
+		gaps = append(gaps, Gap{Path: path, Cause: cause})
+	}
+	return gaps
+}
 
 // OverInputBound is the gap of a write whose event is over the bound of the
 // input, which the decoder of such an event names in place of its content.

@@ -6,23 +6,23 @@ import (
 )
 
 // moves is what the move of HEAD since the pre event changed: each path
-// that differs between the HEAD the pre event saw and the HEAD the post
-// event sees, with the blob the earlier one held there, empty where it
-// held none. known is false when HEAD moved and no move could be read: a
-// move from an unborn branch, or a binding that cannot answer.
+// that differs between the tree the HEAD of the pre event held and the tree
+// HEAD holds after the command, the empty tree on an unborn branch, with the
+// blob the earlier one held there, empty where it held none. known is false
+// when HEAD moved and git could not answer the move, or no binding asks it.
 type moves struct {
 	paths map[string]string
 	known bool
 }
 
 // movedSince asks once, and only when HEAD moved, what the move since the
-// HEAD of the pre event changed.
+// HEAD of the pre event changed, an unborn branch at either end included.
 func (run execution) movedSince(ctx context.Context, dependencies Dependencies, since string) moves {
 	now := run.repository.Head
 	if since == now {
 		return moves{known: true}
 	}
-	if since == "" || now == "" || dependencies.Moved == nil {
+	if dependencies.Moved == nil {
 		return moves{}
 	}
 	paths, err := dependencies.Moved(ctx, run.repository, since, now)
@@ -35,12 +35,8 @@ func (run execution) movedSince(ctx context.Context, dependencies Dependencies, 
 // blobs answers the blob the HEAD of the pre event held at the paths git
 // status named after the move, those of the commits apart from the blobs
 // HEAD holds now, and the paths the move changed that git status reports
-// clean after it, whose bytes git already found apart from that blob. An
-// unknown move answers no blob.
+// clean after it, whose bytes git already found apart from that blob.
 func (m moves) blobs(changes Changes) (map[string]string, map[string]bool) {
-	if !m.known {
-		return nil, nil
-	}
 	blobs := maps.Clone(changes.Blobs)
 	if blobs == nil {
 		blobs = map[string]string{}

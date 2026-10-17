@@ -13,11 +13,14 @@ import (
 // contentChanged is what changed between the identities of the pre event
 // and of the post event, less the paths only their status moved: a path
 // git status named after the command and not before it was clean then, so
-// its bytes were the blob the HEAD of the pre event held there, and it is
-// unchanged when its bytes are still that blob. A path named before the
-// command is compared by the identity its bytes have now, and a path the
-// move of HEAD changed that git status reports clean after it is changed.
-func (run execution) contentChanged(ctx context.Context, dependencies Dependencies, before Baseline, after map[string]string, changes Changes, moved moves) []string {
+// its bytes were the blob the HEAD of the pre event held there, none on an
+// unborn branch, and it is unchanged when its bytes are still that blob. A
+// path named before the command is compared by the identity its bytes have
+// now, and a path the move of HEAD changed that git status reports clean
+// after it is changed. After a move git could not answer, the blob of a
+// path named after the command only is unknown, so each such path is a gap
+// and never a change.
+func (run execution) contentChanged(ctx context.Context, dependencies Dependencies, before Baseline, after map[string]string, changes Changes, moved moves) ([]string, []Gap) {
 	changed := Changed(before.Files, after)
 	var appeared []string
 	for _, path := range changed {
@@ -26,14 +29,17 @@ func (run execution) contentChanged(ctx context.Context, dependencies Dependenci
 		}
 	}
 	if len(appeared) == 0 || before.Head == "" {
-		return changed
+		return changed, nil
 	}
 	blobs, settled := changes.Blobs, map[string]bool(nil)
 	if changes.Head != before.Head {
+		if !moved.known {
+			return slices.DeleteFunc(changed, among(appeared)), pathGaps(appeared, causeMove)
+		}
 		blobs, settled = moved.blobs(changes)
 	}
 	same := run.sameBlobs(ctx, dependencies, changes, appeared, blobs, settled)
-	return slices.DeleteFunc(changed, func(path string) bool { return same[path] })
+	return slices.DeleteFunc(changed, func(path string) bool { return same[path] }), nil
 }
 
 // sameBlobs are the paths whose bytes are still the blob named for them:

@@ -53,13 +53,11 @@ func (run execution) postPaths(ctx context.Context, dependencies Dependencies) (
 	paths := slices.Clone(run.request.Hints)
 	var gaps []Gap
 	if run.request.Event.Tool == "Bash" || run.request.Event.Tool == "PowerShell" {
-		changed, sized, err := run.changedPaths(ctx, dependencies)
+		changed, found, err := run.changedPaths(ctx, dependencies)
 		if err != nil {
 			gaps = append(gaps, detectionGap(err))
 		}
-		for _, path := range sized {
-			gaps = append(gaps, OverReadBound(path))
-		}
+		gaps = append(gaps, found...)
 		paths = append(paths, changed...)
 	}
 	slices.Sort(paths)
@@ -67,8 +65,10 @@ func (run execution) postPaths(ctx context.Context, dependencies Dependencies) (
 }
 
 // changedPaths are the paths whose content a command changed and, apart,
-// the paths it may have changed that a size alone identifies at both ends.
-func (run execution) changedPaths(ctx context.Context, dependencies Dependencies) ([]string, []string, error) {
+// the gaps of what it could not compare: a move of HEAD git could not
+// answer, a path whose blob that move hides and a path a size alone
+// identifies at both ends.
+func (run execution) changedPaths(ctx context.Context, dependencies Dependencies) ([]string, []Gap, error) {
 	if run.stateReason != "" {
 		return nil, nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, run.stateReason)
 	}
@@ -89,11 +89,15 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 	if err != nil {
 		return nil, nil, err
 	}
-	var sized []string
-	if dependencies.Changes != nil {
-		sized = sizedAtBothEnds(before.Files, after)
+	var gaps []Gap
+	if !moved.known {
+		gaps = append(gaps, Gap{Cause: causeMove})
 	}
-	return run.contentChanged(ctx, dependencies, before, after, changes, moved), sized, nil
+	if dependencies.Changes != nil {
+		gaps = append(gaps, pathGaps(sizedAtBothEnds(before.Files, after), causeReadBound)...)
+	}
+	changed, unknown := run.contentChanged(ctx, dependencies, before, after, changes, moved)
+	return changed, append(gaps, unknown...), nil
 }
 
 // sizedAtBothEnds are the paths git status named that a size identifies

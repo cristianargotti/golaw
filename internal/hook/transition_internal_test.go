@@ -55,17 +55,17 @@ func TestContentChangedLeavesWhatOnlyItsStatusMoved(t *testing.T) {
 	run := execution{}
 	want := []string{"dirty.go", "edit.go", "gone.go", "new.go"}
 	same := Changes{Snapshot: snapshot, Head: "c1", Blobs: blobs}
-	if got := run.contentChanged(t.Context(), Dependencies{}, before, after, same, moves{known: true}); !slices.Equal(got, want) {
-		t.Fatalf("HEAD unchanged = %v, want %v", got, want)
+	if got, gaps := run.contentChanged(t.Context(), Dependencies{}, before, after, same, moves{known: true}); !slices.Equal(got, want) || len(gaps) != 0 {
+		t.Fatalf("HEAD unchanged = %v, %v, want %v", got, gaps, want)
 	}
 	named := []string{"dirty.go", "edit.go", "gone.go", "mode.go", "new.go"}
 	moved := moves{paths: map[string]string{"edit.go": helloSHA1, "gone.go": helloSHA1}, known: true}
 	now := Changes{Snapshot: snapshot, Head: "c2", Paths: named, Blobs: map[string]string{"mode.go": helloSHA1, "edit.go": "other"}}
-	if got := run.contentChanged(t.Context(), Dependencies{}, before, after, now, moved); !slices.Equal(got, want) {
-		t.Fatalf("HEAD moved = %v, want %v", got, want)
+	if got, gaps := run.contentChanged(t.Context(), Dependencies{}, before, after, now, moved); !slices.Equal(got, want) || len(gaps) != 0 {
+		t.Fatalf("HEAD moved = %v, %v, want %v", got, gaps, want)
 	}
-	if got := run.contentChanged(t.Context(), Dependencies{}, before, map[string]string{"dirty.go": Hash([]byte("one"))}, same, moves{known: true}); len(got) != 0 {
-		t.Fatalf("nothing changed = %v", got)
+	if got, gaps := run.contentChanged(t.Context(), Dependencies{}, before, map[string]string{"dirty.go": Hash([]byte("one"))}, same, moves{known: true}); len(got) != 0 || len(gaps) != 0 {
+		t.Fatalf("nothing changed = %v, %v", got, gaps)
 	}
 }
 
@@ -84,26 +84,36 @@ func TestContentChangedJudgesWhatAMoveOfHeadChanged(t *testing.T) {
 		return nil, model.ErrUnreadable
 	}}
 	before, run := Baseline{Files: map[string]string{}, Head: "c1"}, execution{}
-	if got := run.contentChanged(t.Context(), deps, before, after, Changes{Snapshot: snapshot, Head: "c2"}, moved); !slices.Equal(got, []string{"committed.go"}) || asked != 0 {
-		t.Fatalf("changed %v after %d questions", got, asked)
+	if got, gaps := run.contentChanged(t.Context(), deps, before, after, Changes{Snapshot: snapshot, Head: "c2"}, moved); !slices.Equal(got, []string{"committed.go"}) || len(gaps) != 0 || asked != 0 {
+		t.Fatalf("changed %v, %v after %d questions", got, gaps, asked)
 	}
 }
 
-// TestContentChangedKeepsWhatItCannotCompare keeps every path whose
-// status alone changed when the blob of the pre event cannot be known: a
-// move of HEAD no binding could read, and an unborn branch before the
-// command.
-func TestContentChangedKeepsWhatItCannotCompare(t *testing.T) {
+// TestContentChangedNamesWhatItCannotCompare judges what it compares
+// without the blob of the pre event and names what it cannot: after a move
+// of HEAD no binding could read, a path named before the command is judged
+// by its bytes and every path whose status alone changed is a gap, never a
+// change; on an unborn branch before the command, whose tree is empty,
+// every path named after it only had no blob, so each is changed.
+func TestContentChangedNamesWhatItCannotCompare(t *testing.T) {
 	t.Parallel()
 	before, after, blobs, snapshot := transition()
 	run := execution{}
 	all := []string{"dirty.go", "edit.go", "gone.go", "mode.go", "new.go"}
-	if got := run.contentChanged(t.Context(), Dependencies{}, before, after, Changes{Snapshot: snapshot, Head: "c2", Blobs: blobs}, moves{}); !slices.Equal(got, all) {
-		t.Fatalf("an unknown move = %v, want %v", got, all)
+	got, gaps := run.contentChanged(t.Context(), Dependencies{}, before, after, Changes{Snapshot: snapshot, Head: "c2", Blobs: blobs}, moves{})
+	named := make([]string, 0, len(gaps))
+	for _, gap := range gaps {
+		if gap.Cause != causeMove {
+			t.Fatalf("an unknown move named %+v", gap)
+		}
+		named = append(named, gap.Path)
+	}
+	if !slices.Equal(got, []string{"dirty.go"}) || !slices.Equal(named, all[1:]) {
+		t.Fatalf("an unknown move = %v, gaps %v", got, gaps)
 	}
 	unborn := Baseline{Files: before.Files}
-	if got := run.contentChanged(t.Context(), Dependencies{}, unborn, after, Changes{Snapshot: snapshot, Blobs: blobs}, moves{known: true}); !slices.Equal(got, all) {
-		t.Fatalf("an unborn branch before the command = %v, want %v", got, all)
+	if got, gaps := run.contentChanged(t.Context(), Dependencies{}, unborn, after, Changes{Snapshot: snapshot, Blobs: blobs}, moves{known: true}); !slices.Equal(got, all) || len(gaps) != 0 {
+		t.Fatalf("an unborn branch before the command = %v, %v, want %v", got, gaps, all)
 	}
 	held := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: proof.NewTree(nil)}, []string{"mode.go"}, blobs, nil)
 	if bare := run.sameBlobs(t.Context(), Dependencies{}, Changes{Snapshot: snapshot}, []string{"mode.go"}, nil, nil); held["mode.go"] || bare["mode.go"] {
@@ -113,8 +123,9 @@ func TestContentChangedKeepsWhatItCannotCompare(t *testing.T) {
 
 // TestMovedSinceAsksOnlyWhenHeadMoved asks the binding for the move of HEAD
 // once, only when the HEAD of the post event is another commit than the
-// one of the pre event, and answers an unknown move from an unborn branch,
-// without a binding and when the binding fails.
+// one of the pre event, an unborn branch at either end included, which the
+// binding reads as the empty tree, and answers an unknown move without a
+// binding and when the binding fails.
 func TestMovedSinceAsksOnlyWhenHeadMoved(t *testing.T) {
 	t.Parallel()
 	asked := 0
@@ -123,19 +134,27 @@ func TestMovedSinceAsksOnlyWhenHeadMoved(t *testing.T) {
 		if from == "c0" {
 			return nil, model.ErrUnreadable
 		}
-		return map[string]string{"a.go": from + to}, nil
+		return map[string]string{"a.go": from + "|" + to}, nil
 	}}
 	run := execution{repository: Repository{Head: "c2"}}
 	if got := run.movedSince(t.Context(), deps, "c2"); !got.known || got.paths != nil || asked != 0 {
 		t.Fatalf("HEAD in place = %+v after %d questions", got, asked)
 	}
-	if got := run.movedSince(t.Context(), deps, "c1"); !got.known || got.paths["a.go"] != "c1c2" || asked != 1 {
+	if got := run.movedSince(t.Context(), deps, "c1"); !got.known || got.paths["a.go"] != "c1|c2" || asked != 1 {
 		t.Fatalf("HEAD moved = %+v after %d questions", got, asked)
 	}
-	for name, since := range map[string]string{"an unborn branch": "", "a failing binding": "c0"} {
-		if got := run.movedSince(t.Context(), deps, since); got.known {
-			t.Fatalf("%s = %+v", name, got)
-		}
+	if got := run.movedSince(t.Context(), deps, ""); !got.known || got.paths["a.go"] != "|c2" || asked != 2 {
+		t.Fatalf("from an unborn branch = %+v after %d questions", got, asked)
+	}
+	orphan := execution{repository: Repository{}}
+	if got := orphan.movedSince(t.Context(), deps, "c1"); !got.known || got.paths["a.go"] != "c1|" || asked != 3 {
+		t.Fatalf("to an unborn branch = %+v after %d questions", got, asked)
+	}
+	if got := orphan.movedSince(t.Context(), deps, ""); !got.known || asked != 3 {
+		t.Fatalf("an unborn branch at both ends = %+v after %d questions", got, asked)
+	}
+	if got := run.movedSince(t.Context(), deps, "c0"); got.known {
+		t.Fatalf("a failing binding = %+v", got)
 	}
 	if got := run.movedSince(t.Context(), Dependencies{}, "c1"); got.known {
 		t.Fatalf("no binding = %+v", got)
@@ -161,14 +180,14 @@ func TestContentChangedAsksGitWhatItConverts(t *testing.T) {
 		return map[string]string{"crlf.md": helloSHA1, "edited-cr.md": "other"}, nil
 	}}
 	run := execution{}
-	if got := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true}); !slices.Equal(got, []string{"edited-cr.md", "edited.md"}) ||
+	if got, _ := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true}); !slices.Equal(got, []string{"edited-cr.md", "edited.md"}) ||
 		len(asked) != 1 || !slices.Equal(asked[0], []string{"crlf.md", "edited-cr.md"}) {
 		t.Fatalf("changed %v after asking %v", got, asked)
 	}
 	deps.Hashes = func(context.Context, Repository, []string) (map[string]string, error) {
 		return nil, model.ErrUnreadable
 	}
-	if got := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true}); len(got) != 3 {
+	if got, _ := run.contentChanged(t.Context(), deps, before, after, changes, moves{known: true}); len(got) != 3 {
 		t.Fatalf("a binding that cannot answer = %v", got)
 	}
 }

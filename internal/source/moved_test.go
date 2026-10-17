@@ -1,6 +1,8 @@
 package source_test
 
 import (
+	"maps"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -43,5 +45,41 @@ func TestMovedAnswersWhatTwoCommitsHoldApart(t *testing.T) {
 	}
 	if _, err := source.Moved(t.Context(), source.Repo{Root: t.TempDir()}, from, from); err == nil {
 		t.Fatal("a directory outside git answered a move")
+	}
+}
+
+// TestMovedReadsAnUnbornEndAsTheEmptyTree reads an empty commit name, the
+// HEAD of an unborn branch, as the empty tree of the object format the
+// other end is named in, in both formats git knows: from an unborn HEAD
+// every path of the commit is named without an earlier blob, to an unborn
+// HEAD every path with the blob the commit holds, and a name of no format
+// git knows is an error.
+func TestMovedReadsAnUnbornEndAsTheEmptyTree(t *testing.T) {
+	t.Parallel()
+	for _, format := range []string{"sha1", "sha256"} {
+		root, err := filepath.EvalSymlinks(t.TempDir())
+		if err != nil {
+			t.Fatal(err)
+		}
+		gitRun(t, root, "init", "-q", "-b", "main", "--object-format="+format)
+		write(t, root, "a.txt", "one\n")
+		write(t, root, "dir/b.txt", "two\n")
+		commitAll(t, root, "one")
+		repo, err := source.Discover(t.Context(), root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		head := func(path string) string { return strings.TrimSpace(gitRun(t, root, "rev-parse", "HEAD:"+path)) }
+		born, err := source.Moved(t.Context(), repo, "", repo.Head)
+		if err != nil || !maps.Equal(born, map[string]string{"a.txt": "", "dir/b.txt": ""}) {
+			t.Fatalf("%s from an unborn HEAD = %v, %v", format, born, err)
+		}
+		gone, err := source.Moved(t.Context(), repo, repo.Head, "")
+		if err != nil || !maps.Equal(gone, map[string]string{"a.txt": head("a.txt"), "dir/b.txt": head("dir/b.txt")}) {
+			t.Fatalf("%s to an unborn HEAD = %v, %v", format, gone, err)
+		}
+		if _, err := source.Moved(t.Context(), repo, "", "abc"); err == nil {
+			t.Fatalf("%s: a name of no object format answered a move", format)
+		}
 	}
 }
