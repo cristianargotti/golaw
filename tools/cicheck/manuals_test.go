@@ -164,6 +164,17 @@ func TestContractsNameWhatGitCannotConvert(t *testing.T) {
 	)
 }
 
+// TestContractsJudgeTheHostDiffAsDetectionDoes pins what agent-contracts.md
+// says the post event of a shell command does with the files the host names
+// in bashEditDiff.
+func TestContractsJudgeTheHostDiffAsDetectionDoes(t *testing.T) {
+	t.Parallel()
+	requireText(t, "docs/agent-contracts.md",
+		"A file bashEditDiff names gets the answer that detection gives it",
+		"the files bashEditDiff names are judged as they stand only when no baseline classifies what the command changed",
+	)
+}
+
 // TestSecurityStatesThePolicyBound pins the bound init and the hooks share
 // for the golaw.yml of a checkout before its first commit.
 func TestSecurityStatesThePolicyBound(t *testing.T) {
