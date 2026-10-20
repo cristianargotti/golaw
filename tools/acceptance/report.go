@@ -1,11 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"io"
-	"runtime"
-	"strings"
-)
+import "io"
 
 const (
 	statusPass = "PASS"
@@ -33,31 +28,7 @@ func measured(category, name string, err error) row {
 // (section 10.3 item 6), and closes a failed run with the rows that fail
 // it, so a release run stopped by a skipped required row names that row.
 func report(out io.Writer, rows []row, version, digest string) bool {
-	if _, err := fmt.Fprintln(out,
-		"CATEGORY\tAGENT\tOS\tVERSION\tBINARY\tSTATUS\tREQUIRED\tCASE\tDETAIL"); err != nil {
-		return false
-	}
-	var failing []string
-	for _, item := range rows {
-		if blocks(item) {
-			failing = append(failing, failure(item))
-		}
-		need := "optional"
-		if item.required {
-			need = "required"
-		}
-		detail := strings.Join(strings.Fields(item.detail), " ")
-		if _, err := fmt.Fprintf(out, "%s\tclaude\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			item.category, runtime.GOOS, version, digest,
-			item.status, need, item.name, detail); err != nil {
-			return false
-		}
-	}
-	if len(failing) == 0 {
-		return true
-	}
-	_, _ = fmt.Fprintf(out, "rows that fail the run: %s\n", strings.Join(failing, ", ")) //nolint:errcheck // the run fails whatever the write answers
-	return false
+	return reportEvidence(out, rows, version, digest, nil)
 }
 
 // blocks reports whether a row fails the run: a FAIL, a SKIP of a

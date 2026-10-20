@@ -43,6 +43,8 @@ type suite struct {
 	digest   string
 	execute  executor
 	lookup   locator
+	m2       *m2Shared
+	m2OS     string
 }
 
 func newSuite(root, base string, execute executor, lookup locator) *suite {

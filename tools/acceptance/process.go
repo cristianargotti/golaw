@@ -52,7 +52,16 @@ type executor func(context.Context, command) result
 type locator func(string) (string, error)
 
 func runCommand(ctx context.Context, c command) result {
-	ctx, cancel := context.WithTimeout(ctx, processTimeout)
+	return runCommandWithin(ctx, c, processTimeout)
+}
+
+func runM2Command(ctx context.Context, c command) result {
+	const limit = 20 * time.Minute
+	return runCommandWithin(ctx, c, limit)
+}
+
+func runCommandWithin(ctx context.Context, c command, limit time.Duration) result {
+	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, c.program, c.args...) //nolint:gosec // Only fixed build, installer, and hook invocations enter this executor.
 	if c.argv0 != "" {
