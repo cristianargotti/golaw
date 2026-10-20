@@ -46,20 +46,20 @@ func (run execution) fromCommits(ctx context.Context, dependencies Dependencies,
 // committed in the whole second the pre event started or later, as git
 // records whole seconds, by the identity git commits as now. It is not ok
 // when git cannot answer the commits or the identity.
-func (run execution) created(ctx context.Context, dependencies Dependencies, before Baseline) commitMemory {
+func (run execution) created(ctx context.Context, dependencies Dependencies, before Baseline) commitAnswer {
 	if dependencies.Commits == nil || dependencies.Committer == nil {
-		return commitMemory{asked: true}
+		return commitAnswer{asked: true}
 	}
 	committer, err := dependencies.Committer(ctx, run.repository)
 	if err != nil {
-		return commitMemory{asked: true}
+		return commitAnswer{asked: true}
 	}
 	from := before.At.Unix()
 	commits, err := dependencies.Commits(ctx, run.repository, before.Head, run.repository.Head, from)
 	if err != nil {
-		return commitMemory{asked: true}
+		return commitAnswer{asked: true}
 	}
-	own := commitMemory{asked: true, ok: true, paths: map[string]bool{}}
+	own := commitAnswer{asked: true, ok: true, paths: map[string]bool{}}
 	for _, commit := range commits {
 		if commit.Time < from || commit.Committer != committer {
 			continue

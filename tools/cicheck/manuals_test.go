@@ -215,6 +215,7 @@ func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 		"a merge already in progress before the command leaves the files the command writes judged as any other",
 		"A file a commit the command created before it started that merge changed, as when it commits its own change and then merges, is judged whatever the merge staged there",
 		"as is such a file the command left unmerged with the bytes HEAD holds",
+		"So is a file an amend of the command changed against the HEAD it rewrote before it started that merge, a file the amend restored to the bytes of its parent included",
 		"A merge git cannot make by itself to compare, an octopus merge, one under a git older than 2.38, which has no merge-tree --write-tree, or one git fails, leaves each file the merge staged to a notice naming it",
 		"A merge made with the strategy option -X ours or -X theirs, left in progress or committed, is also compared with the merge git makes with that option",
 		"which the pre event reads from a git merge or git pull the text of the command runs plainly, in each spelling git takes",

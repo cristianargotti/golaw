@@ -94,6 +94,9 @@ func (run execution) changedPaths(ctx context.Context, dependencies Dependencies
 		return nil, nil, fmt.Errorf("%w: %s", model.ErrCannotJudge, before.Reason)
 	}
 	moved := run.movedSince(ctx, dependencies, before.Head)
+	if run.own != nil {
+		run.own.moved = moved
+	}
 	also := append(slices.Sorted(maps.Keys(before.Files)), slices.Sorted(maps.Keys(moved.paths))...)
 	after, changes, err := run.captureIdentities(ctx, dependencies, also)
 	if err != nil {
