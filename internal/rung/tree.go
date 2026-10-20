@@ -31,11 +31,20 @@ type goTree struct {
 // the index for every Go input, a copy of the index materialized outside
 // the repository otherwise, so the package graph and the tools read what
 // the commit records (section 7). A copy the runner refuses leaves the Go
-// steps to the pipeline (copied).
+// steps to the pipeline (copied), and so does a Go file git ignores: in
+// place the steps would read it, and a copy would lack it, which refuses
+// every commit of a repository that ignores the code it generates.
 func (p *precommit) tree(ctx context.Context) (goTree, Outcome, bool) {
 	t := goTree{dir: p.deps.Dir, close: func() error { return nil }}
 	if !p.goCommit() {
 		return t, Outcome{}, true
+	}
+	ignored, err := ignoredGo(ctx, p.deps)
+	if err != nil {
+		return t, stepFailed(treeStep, err), false
+	}
+	if len(ignored) > 0 {
+		return t, passed(treeStep, "the Go steps are left to the pipeline: the worktree holds Go files git ignores, which the commit does not record and a copy of the index lacks: "+named(ignored)), false
 	}
 	dirty, err := p.dirty(ctx)
 	if err != nil {

@@ -132,9 +132,10 @@ func (p prepush) judge(short string, found []vuln.Finding) Outcome {
 }
 
 // tree answers where govulncheck reads a tip: the worktree in place when
-// it holds the tip, HEAD with nothing changed or untracked, a copy of the
-// tip under the state directory otherwise, with its removal; a sweep of
-// the trees an ended rung left that fails is named and the scan goes on.
+// it holds the tip, HEAD with nothing changed or untracked and no Go file
+// git ignores (go would read it, the push carries none), a copy of the tip
+// under the state directory otherwise, with its removal; a sweep of the
+// trees an ended rung left that fails is named and the scan goes on.
 func (p prepush) tree(ctx context.Context, tip string) (string, func() error, Outcome, error) {
 	head, err := plumbing(ctx, p.deps, "rev-parse", "--verify", "-q", "HEAD^{commit}")
 	if err != nil {
@@ -144,7 +145,11 @@ func (p prepush) tree(ctx context.Context, tip string) (string, func() error, Ou
 	if err != nil {
 		return "", nil, Outcome{}, err
 	}
-	if strings.TrimSpace(string(head.Stdout)) == tip && status.Code == 0 && len(status.Stdout) == 0 {
+	ignored, err := ignoredGo(ctx, p.deps)
+	if err != nil {
+		return "", nil, Outcome{}, err
+	}
+	if strings.TrimSpace(string(head.Stdout)) == tip && status.Code == 0 && len(status.Stdout) == 0 && len(ignored) == 0 {
 		return p.deps.Dir, func() error { return nil }, Outcome{}, nil
 	}
 	noted := Outcome{}

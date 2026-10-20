@@ -57,11 +57,17 @@ func settled(run *engine.Run) (engine.Decision, []string) {
 // unreadLine names the files a rung leaves to the pipeline because they
 // are over the read bound, at most maxNamed and the rest counted.
 func unreadLine(name string, unread []string) string {
-	named, rest := unread, ""
-	if len(named) > maxNamed {
-		named, rest = named[:maxNamed], fmt.Sprintf(" and %d more", len(unread)-maxNamed)
+	return prefix(name) + "over the read bound, not judged here: " + named(unread) + "; the pipeline judges them"
+}
+
+// named joins the paths of one line, at most maxNamed, so a commit of
+// thousands of files still answers git with a line a person reads.
+func named(paths []string) string {
+	shown, rest := paths, ""
+	if len(shown) > maxNamed {
+		shown, rest = shown[:maxNamed], fmt.Sprintf(" and %d more", len(paths)-maxNamed)
 	}
-	return prefix(name) + "over the read bound, not judged here: " + strings.Join(named, ", ") + rest + "; the pipeline judges them"
+	return strings.Join(shown, ", ") + rest
 }
 
 // reportLines renders a run as the text report a scan prints, one entry

@@ -9,6 +9,7 @@ import (
 
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/runner"
+	"github.com/cristianargotti/golaw/internal/source"
 )
 
 // The suffix of a Go file and the files of the module that make every
@@ -56,6 +57,27 @@ func (p *precommit) goDirs() map[string]bool {
 // to the package above it.
 func touchesGo(path string, dirs map[string]bool) bool {
 	return strings.HasSuffix(path, goSuffix) || path == goMod || path == goSum || dirs[packageDir(path)]
+}
+
+// ignoredGo lists the Go files git ignores, those of an ignored directory
+// included, because go reads every one of them in place while the commit
+// and the push carry none. A name that starts with a dot or an underscore
+// is left out: go never reads such a file.
+func ignoredGo(ctx context.Context, deps Dependencies) ([]string, error) {
+	out, err := plumbing(ctx, deps, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", "*"+goSuffix)
+	if err != nil {
+		return nil, err
+	}
+	if out.Code != 0 {
+		return nil, fmt.Errorf("%w: git ls-files: %s", source.ErrGit, strings.TrimSpace(string(out.Stderr)))
+	}
+	var files []string
+	for path := range strings.SplitSeq(string(out.Stdout), "\x00") {
+		if base := pathpkg.Base(path); path != "" && !strings.HasPrefix(base, ".") && !strings.HasPrefix(base, "_") {
+			files = append(files, path)
+		}
+	}
+	return files, nil
 }
 
 // packageDir is the directory of the package a path belongs to: its own

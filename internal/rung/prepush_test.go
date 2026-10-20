@@ -138,3 +138,27 @@ func TestPrePushSwitchedOffReadsNoInput(t *testing.T) {
 		t.Errorf("govulncheck ran: %v", calls)
 	}
 }
+
+// An ignored Go file is no part of the pushed tip, yet govulncheck reads it
+// in place, so a push of HEAD beside one scans a copy of the tip; an
+// ignored file go never reads keeps the worktree read in place.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPrePushScansACopyBesideAGoFileGitIgnores(t *testing.T) {
+	fakes(t, map[string]runnertest.Behavior{"govulncheck": scanned("v1.7.0")})
+	r := armedRepo(t, armedPolicy)
+	r.Commit("chore: ignore the local files", map[string]string{".gitignore": "local.go\n*.log\n"})
+	r.Write("run.log", "ran\n")
+	inPlace := pushing(t, r, update(r.Head()))
+	if out := rung.RunPrePush(t.Context(), inPlace, "origin", ""); out.Code != 0 || len(out.Lines) != 1 {
+		t.Errorf("HEAD beside an ignored log = %+v", out)
+	}
+	if _, err := os.Stat(filepath.Join(inPlace.State, "runner")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("an ignored file go never reads keeps HEAD read in place: %v", err)
+	}
+	r.Write("local.go", "package m\n\nimport _ \"example.test/vulnerable\"\n")
+	copied := pushing(t, r, update(r.Head()))
+	if out := rung.RunPrePush(t.Context(), copied, "origin", ""); out.Code != 0 || len(out.Lines) != 1 || !emptyDir(t, filepath.Join(copied.State, "runner", "trees")) {
+		t.Errorf("HEAD beside an ignored Go file = %+v", out)
+	}
+}

@@ -162,3 +162,36 @@ func TestPreCommitNamesThePackagesOfTheIndex(t *testing.T) {
 		t.Errorf("a dependency the worktree changes after its importer was staged = %+v", out)
 	}
 }
+
+// Git ignores files the commit never records, yet go reads every Go file of
+// the module: in place the steps would judge them, and a copy of the index
+// would lack them, which refuses every commit of a repository that ignores
+// the code it generates. The Go steps are left to the pipeline with the
+// files named, a Go file of an ignored directory included; an ignored file
+// go never reads keeps the worktree read in place.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPreCommitLeavesToThePipelineTheGoFilesGitIgnores(t *testing.T) {
+	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks, "golangci-lint": linter})
+	r := armedRepo(t, armedPolicy)
+	r.Commit("chore: ignore the local files", map[string]string{".gitignore": "local.go\n[._]*.go\ngen/\n*.log\n", "a/a.go": vetClean})
+	r.Stage(map[string]string{"a/b.go": "package a\n\n// B answers one.\nfunc B() int { return 1 }\n"})
+	for name, path := range map[string]string{"an ignored broken Go file beside the staged package": "a/local.go", "a Go file of an ignored directory": "gen/gen.go"} {
+		r.Write(path, "package a\n\nimport \"fmt\"\n\n// L formats a value.\nfunc L() string { return fmt.Sprintf(\"%d\", \"x\") }\n")
+		out := rung.RunPreCommit(t.Context(), deps(t, r))
+		if out.Code != 0 || !contains(out, "golaw pre-commit: tree: the Go steps are left to the pipeline: ") || !contains(out, path) || contains(out, "vet:") {
+			t.Errorf("%s = %+v", name, out)
+		}
+		r.Remove(path)
+	}
+	r.Write("a/run.log", "ran\n")
+	r.Write("a/.local.go", "package a\n\nfunc broken(\n")
+	r.Write("a/_local.go", "package a\n\nfunc broken(\n")
+	inPlace := deps(t, r)
+	if out := rung.RunPreCommit(t.Context(), inPlace); out.Code != 0 || !contains(out, "vet: go vet found nothing in 1 affected packages") {
+		t.Errorf("ignored files go never reads = %+v", out)
+	}
+	if _, err := os.Stat(filepath.Join(inPlace.State, "runner")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("ignored files go never reads keep the worktree read in place: %v", err)
+	}
+}

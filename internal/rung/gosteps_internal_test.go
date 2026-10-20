@@ -1,6 +1,7 @@
 package rung
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -53,5 +54,21 @@ func TestStagedPatchCarriesThePrefixesTheLinterReads(t *testing.T) {
 		if err != nil || !strings.Contains(string(data), "\n+++ b/a/a.go\n") {
 			t.Errorf("%s: patch %q, %v", setting, data, err)
 		}
+	}
+}
+
+// A git that cannot list the ignored files leaves the rung without the
+// answer it needs to choose the tree, which is a failure of the step and
+// never a tree read by guess.
+func TestIgnoredGoNamesTheGitThatCannotAnswer(t *testing.T) {
+	t.Parallel()
+	outside := t.TempDir()
+	d := Dependencies{Dir: outside, Environ: append(gittest.Isolated(), "GIT_CEILING_DIRECTORIES="+filepath.Dir(outside))}
+	if _, err := ignoredGo(t.Context(), d); !errors.Is(err, source.ErrGit) {
+		t.Errorf("a directory outside every repository = %v", err)
+	}
+	d.Dir = filepath.Join(outside, "absent")
+	if _, err := ignoredGo(t.Context(), d); err == nil || errors.Is(err, source.ErrGit) {
+		t.Errorf("a git that cannot start = %v", err)
 	}
 }
