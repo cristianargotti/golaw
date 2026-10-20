@@ -142,7 +142,9 @@ func TestIndexLeavesOutIntentsToAddAndUnmergedPaths(t *testing.T) {
 	r.Commit("feat: ours", map[string]string{"shared.md": "ours\n", "kept.md": "kept\n"})
 	r.MergeInProgress("side")
 	r.Write("intent.md", "intent\n")
-	r.Git("add", "-N", "intent.md")
+	r.Write("gone.png", "png\n")
+	r.Git("add", "-N", "intent.md", "gone.png")
+	r.Remove("gone.png")
 	r.Stage(map[string]string{"empty.md": ""})
 	x := indexOf(t, r.Root, source.IndexOptions{})
 	if got, want := pathsOf(x.Files()), []string{"empty.md", "kept.md"}; !slices.Equal(got, want) {
@@ -151,7 +153,7 @@ func TestIndexLeavesOutIntentsToAddAndUnmergedPaths(t *testing.T) {
 	if got := readText(t, x, "empty.md"); got != "" {
 		t.Errorf("empty.md = %q", got)
 	}
-	for _, rel := range []string{"intent.md", "shared.md"} {
+	for _, rel := range []string{"intent.md", "gone.png", "shared.md"} {
 		if got := x.Class(rel); got != model.ClassUnknown {
 			t.Errorf("%s has the class %s", rel, got)
 		}

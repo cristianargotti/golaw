@@ -2,7 +2,9 @@ package source_test
 
 import (
 	"errors"
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/gittest"
@@ -82,18 +84,72 @@ func TestIndexChangesOfAnUnbornBranchAndAgainstABase(t *testing.T) {
 func TestIndexChangesLeaveOutIntentsToAdd(t *testing.T) {
 	t.Parallel()
 	r := gittest.New(t)
-	r.Commit("feat: base", map[string]string{"a/.keep": "", "x.txt": "x\n"})
+	r.Commit("feat: base", map[string]string{"a/.keep": "", "c/.keep": "", "x.txt": "x\n"})
 	r.StageDeletion("a/.keep")
+	r.Git("rm", "-q", "--cached", "c/.keep")
 	r.Write("b/.keep", "")
 	r.Write("intent.txt", "intent\n")
-	r.Git("add", "-N", "b/.keep", "intent.txt")
+	r.Git("add", "-N", "b/.keep", "c/.keep", "intent.txt")
 	x := indexOf(t, r.Root, source.IndexOptions{})
-	want := []model.Change{{Op: model.ChangeDelete, OldPath: "a/.keep", Mode: "100644", Before: blobAt(r, "HEAD:a/.keep")}}
+	want := []model.Change{
+		{Op: model.ChangeDelete, OldPath: "a/.keep", Mode: "100644", Before: blobAt(r, "HEAD:a/.keep")},
+		{Op: model.ChangeDelete, OldPath: "c/.keep", Mode: "100644", Before: blobAt(r, "HEAD:c/.keep")},
+	}
 	if got := x.Changes(); !slices.Equal(got, want) {
 		t.Errorf("changes = %+v, want %+v", got, want)
 	}
 	if got := x.Staged(); len(got) != 0 {
 		t.Errorf("staged = %+v, want nothing", got)
+	}
+	if got := pathsOf(x.Files()); !slices.Equal(got, []string{"x.txt"}) {
+		t.Errorf("files = %v, want x.txt alone, as the next commit records", got)
+	}
+}
+
+// TestIndexChangesLeaveOutAnIntentWhoseFileIsGone holds the universe and
+// the changes to what the next commit records when the file of an intent
+// to add left the worktree, beside an empty file that is truly staged: on
+// a branch with a history, where an intent at a path HEAD holds is its
+// deletion, on an unborn branch and in a repository of the other object
+// format.
+func TestIndexChangesLeaveOutAnIntentWhoseFileIsGone(t *testing.T) {
+	t.Parallel()
+	r := gittest.New(t)
+	r.Commit("feat: base", map[string]string{"a.txt": "a\n", "held.txt": "held\n"})
+	r.Git("rm", "-q", "--cached", "held.txt")
+	r.Write("gone.png", "png\n")
+	r.Git("add", "-N", "gone.png", "held.txt")
+	r.Remove("gone.png")
+	r.Remove("held.txt")
+	r.Stage(map[string]string{"empty.txt": ""})
+	x := indexOf(t, r.Root, source.IndexOptions{})
+	want := []model.Change{
+		{Op: model.ChangeAdd, NewPath: "empty.txt", Mode: "100644", After: blobAt(r, ":empty.txt")},
+		{Op: model.ChangeDelete, OldPath: "held.txt", Mode: "100644", Before: blobAt(r, "HEAD:held.txt")},
+	}
+	if got := x.Changes(); !slices.Equal(got, want) {
+		t.Errorf("changes = %+v, want %+v", got, want)
+	}
+	if got := pathsOf(x.Staged()); !slices.Equal(got, []string{"empty.txt"}) {
+		t.Errorf("staged = %v, want empty.txt alone", got)
+	}
+	r.Git("commit", "-q", "-m", "feat: next")
+	if got, want := strings.Join(pathsOf(x.Files()), "\n"), r.Git("ls-tree", "-r", "--name-only", "HEAD"); got != want {
+		t.Errorf("files = %q, and the next commit records %q", got, want)
+	}
+	for _, format := range []string{"sha1", "sha256"} {
+		unborn := gittest.New(t)
+		unborn.Git("init", "-q", "-b", "main", "--object-format="+format, "repo")
+		unborn.Write("repo/e.txt", "")
+		unborn.Write("repo/n.txt", "n\n")
+		unborn.Write("repo/i.txt", "i\n")
+		unborn.Git("-C", "repo", "add", "e.txt", "n.txt")
+		unborn.Git("-C", "repo", "add", "-N", "i.txt")
+		unborn.Remove("repo/i.txt")
+		got := pathsOf(indexOf(t, filepath.Join(unborn.Root, "repo"), source.IndexOptions{}).Files())
+		if !slices.Equal(got, []string{"e.txt", "n.txt"}) {
+			t.Errorf("%s unborn files = %v, want e.txt and n.txt", format, got)
+		}
 	}
 }
 

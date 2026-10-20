@@ -63,16 +63,12 @@ func NewIndex(ctx context.Context, repo Repo, opts IndexOptions) (*Index, error)
 	if err != nil {
 		return nil, err
 	}
-	intents, err := intentsToAdd(ctx, repo.Root, env, entries)
+	changes, intents, err := indexChanges(ctx, repo, env, opts.Base, entries)
 	if err != nil {
 		return nil, err
 	}
 	entries = slices.DeleteFunc(entries, func(e treeEntry) bool { return intents[e.path] })
 	f := newFrozen(ctx, repo.Root, env, entries)
-	changes, err := indexChanges(ctx, repo, env, opts.Base, f.entries, intents)
-	if err != nil {
-		return nil, err
-	}
 	merge, err := mergeHead(repo.GitDir)
 	if err != nil {
 		return nil, err
@@ -125,27 +121,6 @@ func listed(out []byte, command string, keep func(fields []string, path string))
 		keep(fields, path)
 	}
 	return nil
-}
-
-// intentsToAdd answers the paths git add -N recorded, which the next commit
-// does not hold: git diff-files names each of them as an addition and
-// nothing else as one. The question is asked only when an entry holds the
-// empty blob such an entry holds, so an index without one costs nothing.
-func intentsToAdd(ctx context.Context, root string, env []string, entries []treeEntry) (map[string]bool, error) {
-	intents := map[string]bool{}
-	empty := func(e treeEntry) bool { return e.oid == emptyBlobSHA1 || e.oid == emptyBlobSHA256 }
-	if !slices.ContainsFunc(entries, empty) {
-		return intents, nil
-	}
-	out, err := gitWith(ctx, root, env, nil, "diff-files", "-z", "--diff-filter=A", "--name-status")
-	if err != nil {
-		return nil, err
-	}
-	fields := strings.Split(strings.TrimSuffix(string(out), "\x00"), "\x00")
-	for i := 0; i+1 < len(fields); i += 2 {
-		intents[fields[i+1]] = true
-	}
-	return intents, nil
 }
 
 // ledger is the sha256 over the path, the mode and the object id of every
