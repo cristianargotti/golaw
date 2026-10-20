@@ -6,14 +6,15 @@ import (
 )
 
 // commitMemory is what git answered about the commits the command created:
-// the paths its commits changed and the merges it made, ok false when git
-// could not tell them. A post event keeps one, so git is asked once
-// whichever of the move and the merge needs it first.
+// the paths its commits changed, the merges it made and every commit it
+// made, ok false when git could not tell them. A post event keeps one, so
+// git is asked once whichever of the move and the merge needs it first.
 type commitMemory struct {
 	asked  bool
 	ok     bool
 	paths  map[string]bool
 	merges []Commit
+	mine   []Commit
 }
 
 // ownCommits answers created through the memory of the post event, asking

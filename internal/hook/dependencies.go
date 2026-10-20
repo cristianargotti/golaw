@@ -53,7 +53,9 @@ type Repository struct {
 // them, each asked only for the paths the merge without them leaves apart.
 // Conflicts answers, for the merge a command started and left in progress,
 // the bytes the merge git makes with those options and the merged commit
-// hold at each path git left unmerged.
+// hold at each path git left unmerged. Parents answers the commits a commit
+// was made on, asked only when a commit of the command may rewrite the HEAD
+// the pre event started from.
 type Dependencies struct {
 	Home      string
 	Begin     func()
@@ -75,18 +77,21 @@ type Dependencies struct {
 	AutomaticWith func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string][]string, error)
 	RemergedWith  func(ctx context.Context, repository Repository, merges, options []string) (map[string][]string, error)
 	Conflicts     func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string]Conflict, error)
+	Parents       func(ctx context.Context, repository Repository, commit string) ([]string, error)
 }
 
 // Commit is a commit git log named between two HEADs: its name, its
 // committer, name and email as git writes an identity before the time, the
 // second it was committed, whether it is a merge, and the paths it changed
-// against its parent, for a merge those it holds apart from every parent.
+// against its parent, for a merge those it holds apart from every parent;
+// Parents are the commits it was made on, none for a root commit.
 type Commit struct {
 	Name      string
 	Committer string
 	Time      int64
 	Merge     bool
 	Paths     []string
+	Parents   []string
 }
 
 // Changes is what git status reported changed in a repository: a snapshot

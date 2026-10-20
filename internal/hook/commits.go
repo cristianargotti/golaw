@@ -8,13 +8,14 @@ import (
 // fromCommits keeps, of the paths a move of HEAD brought, those a commit
 // the command created changed, and of a merge the command made, those it
 // holds apart both from every parent and from the merge git makes of its
-// parents by itself, its resolution of a conflict and its own files; it
-// names every other one in a notice that asks for no fix, because the move
-// brought it from a commit someone else or an earlier moment made, which
-// the pipeline judges. When git cannot tell which commits the command
-// created, each path it brought is a gap, and when it cannot make a merge
-// of the command by itself, so is each path that merge holds apart from
-// every parent.
+// parents by itself, its resolution of a conflict and its own files, and
+// every path an amend of the command changed (unrewritten); it names every
+// other one in a notice that asks for no fix, because the move brought it
+// from a commit someone else or an earlier moment made, which the pipeline
+// judges. When git cannot tell which commits the command created, or
+// whether one rewrote the HEAD the pre event started from, each path it
+// brought is a gap, and when it cannot make a merge of the command by
+// itself, so is each path that merge holds apart from every parent.
 func (run execution) fromCommits(ctx context.Context, dependencies Dependencies, before Baseline, changed, brought []string) ([]string, []Gap) {
 	if len(brought) == 0 {
 		return changed, nil
@@ -35,8 +36,9 @@ func (run execution) fromCommits(ctx context.Context, dependencies Dependencies,
 			arrived = append(arrived, path)
 		}
 	}
-	changed = slices.DeleteFunc(changed, among(append(slices.Clone(arrived), untold...)))
-	return changed, append(pathGaps(untold, causeRemergeUnknown), pathGaps(arrived, causeArrived)...)
+	arrived, uncertain := run.unrewritten(ctx, dependencies, before, own.mine, arrived)
+	changed = slices.DeleteFunc(changed, among(slices.Concat(arrived, untold, uncertain)))
+	return changed, slices.Concat(pathGaps(untold, causeRemergeUnknown), pathGaps(uncertain, causeCommits), pathGaps(arrived, causeArrived))
 }
 
 // created are the paths the commits the command created changed, and apart
@@ -59,14 +61,16 @@ func (run execution) created(ctx context.Context, dependencies Dependencies, bef
 	}
 	own := commitMemory{asked: true, ok: true, paths: map[string]bool{}}
 	for _, commit := range commits {
-		switch {
-		case commit.Time < from || commit.Committer != committer:
-		case commit.Merge:
+		if commit.Time < from || commit.Committer != committer {
+			continue
+		}
+		own.mine = append(own.mine, commit)
+		if commit.Merge {
 			own.merges = append(own.merges, commit)
-		default:
-			for _, path := range commit.Paths {
-				own.paths[path] = true
-			}
+			continue
+		}
+		for _, path := range commit.Paths {
+			own.paths[path] = true
 		}
 	}
 	return own
