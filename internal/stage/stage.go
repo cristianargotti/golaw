@@ -1,7 +1,8 @@
 // Package stage judges what a commit introduces: the index snapshot of the
 // next commit, the proposed policy judged apart (A2), the rules over the
 // staged files and, compared as a multiset of fingerprints with the same
-// files at the base, only the findings the index introduces.
+// files at the base and, during a merge, at the other parent, only the
+// findings the index introduces.
 package stage
 
 import (
@@ -41,9 +42,10 @@ type Result struct {
 // ModeStaged over the staged files under the policy in force, dispatches it
 // again over the same paths at the base (source.NewRevision of Base, the old
 // path of a rename) and apart over the files beside a target whose
-// directory those paths miss, and keeps the findings report.Introduced
-// names. A refused proposal is its error (ErrPolicy or ErrEnrollment of
-// model), so the command exits 2.
+// directory those paths miss, the same at the commit MERGE_HEAD names while
+// a merge is in progress, and keeps the findings report.Introduced names. A
+// refused proposal is its error (ErrPolicy or ErrEnrollment of model), so
+// the command exits 2.
 func Scan(ctx context.Context, in Input) (Result, error) {
 	index, err := source.NewIndex(ctx, in.Repo, in.Index)
 	if err != nil {
@@ -68,7 +70,7 @@ func Scan(ctx context.Context, in Input) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("judge the index of %s: %w", in.Repo.Root, err)
 	}
-	if err := introducedOnly(ctx, in, candidate, run); err != nil {
+	if err := introducedOnly(ctx, in, candidate, run, index.MergeHead()); err != nil {
 		return Result{}, err
 	}
 	return Result{Input: candidate, Index: index, Run: run, Decision: engine.Decide(run), Proposal: proposal, Brought: brought}, nil

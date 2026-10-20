@@ -20,22 +20,45 @@ import (
 var countRun = regexp.MustCompile(`\b\d+( lines| statements| times| non-test files)\b`)
 
 // introducedOnly keeps, in each outcome of the run over the index, the
-// findings the same files at the base do not hold, compared as a multiset
-// of staged keys: the base is the tree of the base commit, the empty tree
-// on an unborn branch, and a renamed file is read at its old path there, so
-// a finding the commit only carries along is never its own.
-func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *engine.Run) error {
+// findings no base holds, compared as a multiset of staged keys: the tree
+// of the base commit, the empty tree on an unborn branch, and while a merge
+// is in progress the tree of theirs, the other parent, since a finding the
+// other side holds is one the merge brought (section 8.1). A renamed file
+// is read at its old path in each, so a finding the commit only carries
+// along is never its own.
+func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *engine.Run, theirs string) error {
 	moved := renames(candidate.Changes)
-	held, err := judgeBase(ctx, in, candidate, baseOf(in), moved)
-	if err != nil {
-		return err
+	revs := []string{baseOf(in)}
+	if theirs != "" {
+		revs = append(revs, theirs)
+	}
+	bases := make([]*baseRun, 0, len(revs))
+	for _, rev := range revs {
+		held, err := judgeBase(ctx, in, candidate, rev, moved)
+		if err != nil {
+			return err
+		}
+		bases = append(bases, held)
 	}
 	for i := range run.Outcomes {
 		got := &run.Outcomes[i].Result
-		got.Findings = introduced(got.Findings, held.findings(i))
-		held.provable(got, held.staged.Outcomes[i].Result)
+		got.Findings = introduced(got.Findings, heldAt(bases, i))
+		for _, held := range bases {
+			held.provable(got, held.staged.Outcomes[i].Result)
+		}
 	}
 	return nil
+}
+
+// heldAt is what the bases hold for outcome i, keyed, as a multiset union:
+// a finding both parents of a merge hold cancels one finding of the index,
+// never two.
+func heldAt(bases []*baseRun, i int) []model.Finding {
+	held := keyed(bases[0].findings(i))
+	for _, b := range bases[1:] {
+		held = append(held, report.Introduced(keyed(b.findings(i)), held)...)
+	}
+	return held
 }
 
 // baseRun is the base judged in two runs: over the paths the targets had
@@ -116,13 +139,14 @@ func joined(targets, base []model.File) map[string]bool {
 }
 
 // introduced is report.Introduced under stagedKey: the index findings the
-// base does not hold, each kept finding answered with the fingerprint the
-// engine gave it, which an exception that names its record in the message
-// afterwards does not change. report.Introduced keeps the candidate order,
-// so the kept findings are found again in order among the keyed ones.
-func introduced(candidate, base []model.Finding) []model.Finding {
+// keyed findings of the bases do not hold, each kept finding answered with
+// the fingerprint the engine gave it, which an exception that names its
+// record in the message afterwards does not change. report.Introduced
+// keeps the candidate order, so the kept findings are found again in order
+// among the keyed ones.
+func introduced(candidate, held []model.Finding) []model.Finding {
 	keys := keyed(candidate)
-	kept := report.Introduced(keys, keyed(base))
+	kept := report.Introduced(keys, held)
 	for i, j := 0, 0; i < len(keys) && j < len(kept); i++ {
 		if keys[i] == kept[j] {
 			kept[j].Fingerprint = candidate[i].Fingerprint
@@ -147,61 +171,6 @@ func keyed(findings []model.Finding) []model.Finding {
 func stagedKey(f model.Finding) string {
 	f.Message = countRun.ReplaceAllString(f.Message, "#$1")
 	return model.Fingerprint(f)
-}
-
-// provable holds back the findings of the index the base cannot disprove:
-// where it left a file over the read bound, or stopped before it measured,
-// a finding may be one it held, so it is neither the commit's own nor
-// clean, whatever the index measured. The outcome is then unmeasured, with
-// the reason of the base unless the index left it unmeasured already, and
-// the files behind the doubt among its unread files, which a rung names and
-// leaves to the pipeline (section 5.2).
-func (b *baseRun) provable(got *model.Result, base model.Result) {
-	if base.Status.Kind != model.StatusUnmeasured {
-		return
-	}
-	var behind []string
-	kept := slices.DeleteFunc(slices.Clone(got.Findings), func(f model.Finding) bool {
-		unread, doubted := b.doubt(f, base.Unread)
-		behind = append(behind, unread...)
-		return doubted
-	})
-	if len(kept) == len(got.Findings) {
-		return
-	}
-	if got.Status.Kind == model.StatusMeasured {
-		got.Status = model.Unmeasured("compare with the base: " + base.Status.Reason)
-	}
-	for _, p := range behind {
-		if !slices.Contains(got.Unread, p) {
-			got.Unread = append(got.Unread, p)
-		}
-	}
-	got.Findings = kept
-}
-
-// doubt answers whether a finding may be one the base held though its run
-// reports none, and the files behind the doubt as the index names them: a
-// file the base left unread in the directory of the file the finding sits
-// in, that file itself included, because a check reads its directory with
-// it (the LogValue of a struct, a test that imports goleak). A base that
-// stopped before it measured disproves no finding, and a file it does not
-// hold, such as a new one, holds none of its findings.
-func (b *baseRun) doubt(f model.Finding, unread []string) ([]string, bool) {
-	if len(unread) == 0 {
-		return nil, true
-	}
-	from, held := b.holds[f.Path]
-	if !held {
-		return nil, false
-	}
-	var behind []string
-	for _, u := range unread {
-		if path.Dir(u) == path.Dir(from) {
-			behind = append(behind, renamedTo(u, b.moved))
-		}
-	}
-	return behind, len(behind) > 0
 }
 
 // baseOf is the commit the changes were taken against: the base the input
