@@ -18,9 +18,9 @@ const (
 	executableMode = "100755"
 )
 
-// The names of the empty blob in the two object formats git knows. Git
-// add -N records it without writing it, so its bytes are known here and
-// never asked of the object store.
+// The names of the empty blob in the two object formats git knows: an
+// intent-to-add entry records it, so only an entry that holds it can be
+// one, and an index without such an entry asks git nothing about intents.
 const (
 	emptyBlobSHA1   = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 	emptyBlobSHA256 = "473a0f4c3be8a93681a267e3b1e9a7dcda1185436fe141f7749120a303721813"
@@ -65,10 +65,9 @@ func newFrozen(ctx context.Context, root string, env []string, entries []treeEnt
 	for i, e := range entries {
 		index[e.path] = i
 	}
-	empty := stored{info: objectInfo{kind: blobKind}, content: []byte{}, read: true}
 	return &frozen{
 		ctx: ctx, root: root, env: env, entries: entries, index: index,
-		objects: map[string]stored{emptyBlobSHA1: empty, emptyBlobSHA256: empty}, seen: map[string]model.File{},
+		objects: map[string]stored{}, seen: map[string]model.File{},
 	}
 }
 

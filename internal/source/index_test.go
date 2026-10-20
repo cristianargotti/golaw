@@ -95,17 +95,18 @@ func TestIndexClassifiesEveryEntryFromItsModeAndBlob(t *testing.T) {
 	r.Git("update-index", "--add", "--cacheinfo", "120000,"+link+",link")
 	r.Git("update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("1", 40)+",sub")
 	r.Git("update-index", "--add", "--cacheinfo", "100644,"+strings.Repeat("2", 40)+",ghost.txt")
+	r.Git("update-index", "--add", "--cacheinfo", "100644,e69de29bb2d1d6434b8b29ae775ad8c2e48c5391,unwritten.txt")
 	x := indexOf(t, r.Root, source.IndexOptions{})
 	for rel, want := range map[string]model.FileClass{
 		"main.go": model.ClassTracked, "main_test.go": model.ClassTest, "testdata/case.txt": model.ClassFixture,
 		"gen.go": model.ClassGenerated, "image.bin": model.ClassBinary, "link": model.ClassSymlink,
-		"sub": model.ClassGitlink, "ghost.txt": model.ClassUnreadable,
+		"sub": model.ClassGitlink, "ghost.txt": model.ClassUnreadable, "unwritten.txt": model.ClassUnreadable,
 	} {
 		if got := x.Class(rel); got != want {
 			t.Errorf("%s = %s, want %s", rel, got, want)
 		}
 	}
-	for _, rel := range []string{"link", "sub", "ghost.txt"} {
+	for _, rel := range []string{"link", "sub", "ghost.txt", "unwritten.txt"} {
 		if _, err := x.Read(rel); !errors.Is(err, model.ErrUnreadable) {
 			t.Errorf("%s: %v, want ErrUnreadable", rel, err)
 		}
@@ -113,7 +114,7 @@ func TestIndexClassifiesEveryEntryFromItsModeAndBlob(t *testing.T) {
 	if got := readText(t, x, "image.bin"); got != "\x00\x01" {
 		t.Errorf("image.bin = %q", got)
 	}
-	if got := x.Files(); len(got) != 9 || got[3].Path != "link" || got[3].Size != int64(len("main.go")) {
+	if got := x.Files(); len(got) != 10 || got[3].Path != "link" || got[3].Size != int64(len("main.go")) {
 		t.Errorf("files = %+v", got)
 	}
 }
