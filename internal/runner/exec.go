@@ -49,7 +49,10 @@ func Run(ctx context.Context, c Command) (Output, error) {
 	if ctxErr := ctx.Err(); ctxErr != nil {
 		return out, fmt.Errorf("run %s: %w", c.Name, ctxErr)
 	}
-	if err == nil {
+	// exec answers ErrWaitDelay for a program that exited 0 while a
+	// descendant still held its pipes: the program ran, and the bounded wait
+	// only closed the pipes it left behind.
+	if err == nil || errors.Is(err, exec.ErrWaitDelay) {
 		return out, nil
 	}
 	if exit, exited := errors.AsType[*exec.ExitError](err); exited {

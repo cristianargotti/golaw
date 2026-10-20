@@ -126,6 +126,32 @@ func TestRunStopsARunningProcessWhenTheContextEnds(t *testing.T) {
 	}
 }
 
+func TestRunAnswersTheExitOfAProgramWhoseDescendantHoldsThePipes(t *testing.T) {
+	t.Parallel()
+	scripts := map[string]struct {
+		script string
+		code   int
+	}{
+		"an exit of zero": {"sleep 10 & echo $!", 0},
+		"another status":  {"sleep 10 & echo $!; exit 3", 3},
+	}
+	for name, c := range scripts {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			start := time.Now()
+			out, err := runner.Run(t.Context(), shell(t, c.script))
+			took := time.Since(start)
+			reap(t, out.Stdout)
+			if err != nil || out.Code != c.code || len(strings.Fields(string(out.Stdout))) != 1 {
+				t.Errorf("Run = %+v, %v, want the output and the status %d of a program that ran", out, err, c.code)
+			}
+			if took > 3*time.Second {
+				t.Errorf("Run answered after %s, want at most a second for the pipes", took)
+			}
+		})
+	}
+}
+
 func TestRunKeepsAtMostTheBoundOfEachStream(t *testing.T) {
 	t.Parallel()
 	r := gittest.New(t)
