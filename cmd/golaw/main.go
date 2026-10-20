@@ -53,5 +53,6 @@ func newApp(stdout, stderr io.Writer) *app {
 		receiptPath:    b.receiptPath,
 		enrollments:    b.enrollments,
 		doctorReport:   b.doctorReport,
+		bind:           func() binding { return b },
 	}
 }

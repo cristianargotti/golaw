@@ -57,6 +57,7 @@ type app struct {
 	receiptPath    func(agent agents.Agent, root, scope string) (string, error)
 	enrollments    func(root string, now time.Time) (enrollmentPort, error)
 	doctorReport   func(ctx context.Context, agent agents.Agent, root, scope string, now time.Time) (doctor.Report, error)
+	bind           func() binding // the production binding the rungs, setup and the ladder helpers reach without a seam of their own
 }
 
 // exitError carries an exit code that is a result, not a failure: findings
