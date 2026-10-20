@@ -30,16 +30,17 @@ type Commit struct {
 
 // Validate refuses a cleanup mode git never applies after the hook, the
 // configured "default" included, which the rung resolves before it builds
-// the commit, and a comment string git refuses: one that starts with a space
-// or a tab or holds a line break. A rung bug is then a usage error, never a
-// message judged under the wrong rules.
+// the commit, and a comment string git refuses: one that holds a line
+// break. Git takes any other, a space, a tab or a carriage return included,
+// so refusing more would fail a commit git makes. A rung bug is then a
+// usage error, never a message judged under the wrong rules.
 func (c *Commit) Validate() error {
 	switch c.Cleanup {
 	case "", CleanupStrip, CleanupWhitespace, CleanupVerbatim, CleanupScissors:
 	default:
 		return fmt.Errorf("%w: commit cleanup %q is not strip, whitespace, verbatim or scissors", ErrUsage, c.Cleanup)
 	}
-	if strings.ContainsAny(c.CommentChar, "\r\n") || strings.HasPrefix(c.CommentChar, " ") || strings.HasPrefix(c.CommentChar, "\t") {
+	if strings.Contains(c.CommentChar, "\n") {
 		return fmt.Errorf("%w: commit comment string %q", ErrUsage, c.CommentChar)
 	}
 	return nil

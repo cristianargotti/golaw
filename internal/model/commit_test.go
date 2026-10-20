@@ -15,6 +15,9 @@ func TestCommitValidateAcceptsWhatGitWrites(t *testing.T) {
 		{Message: "fix: y", Cleanup: model.CleanupWhitespace, CommentChar: ";"},
 		{Message: "x", Cleanup: model.CleanupScissors, CommentChar: model.DefaultCommentChar},
 		{Message: "x", Cleanup: model.CleanupStrip, CommentChar: "//", Author: "tester <tester@example.com>"},
+		{Message: "x", CommentChar: " "},
+		{Message: "x", CommentChar: "\t#"},
+		{Message: "x", CommentChar: "\r"},
 	}
 	for _, c := range valid {
 		if err := c.Validate(); err != nil {
@@ -28,8 +31,6 @@ func TestCommitValidateRefusesWhatGitNeverWrites(t *testing.T) {
 	invalid := map[string]model.Commit{
 		"unresolved default": {Message: "x", Cleanup: "default"},
 		"unknown cleanup":    {Message: "x", Cleanup: "trim"},
-		"space comment":      {Message: "x", CommentChar: " "},
-		"tab first":          {Message: "x", CommentChar: "\t#"},
 		"line break":         {Message: "x", CommentChar: "#\n"},
 	}
 	for name, c := range invalid {
