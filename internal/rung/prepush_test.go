@@ -162,3 +162,27 @@ func TestPrePushScansACopyBesideAGoFileGitIgnores(t *testing.T) {
 		t.Errorf("HEAD beside an ignored Go file = %+v", out)
 	}
 }
+
+// One push carries every tip it updates: two distinct live tips are scanned
+// once each, a duplicate and a deletion add no scan, and the copy of the tip
+// that is not HEAD is removed.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPrePushScansEachDistinctTipOfOnePush(t *testing.T) {
+	dir := fakes(t, map[string]runnertest.Behavior{"govulncheck": scanned("v1.7.0")})
+	r := armedRepo(t, armedPolicy)
+	side := r.Branch("side", map[string]string{"side.md": "side\n"})
+	d := pushing(t, r, update(r.Head()), "refs/heads/side "+side+" refs/heads/side "+runner.ZeroSHA,
+		"refs/heads/release "+r.Head()+" refs/heads/release "+runner.ZeroSHA, "(delete) "+runner.ZeroSHA+" refs/heads/old "+side)
+	out := rung.RunPrePush(t.Context(), d, "origin", "")
+	clean := ": govulncheck finds no reachable vulnerability"
+	if out.Code != 0 || len(out.Lines) != 2 || !contains(out, "golaw pre-push: "+r.Head()[:12]+clean) || !contains(out, "golaw pre-push: "+side[:12]+clean) {
+		t.Errorf("HEAD, side, a duplicate and a deletion = %+v", out)
+	}
+	if calls := runnertest.Calls(t, dir, "govulncheck"); len(calls) != 2 {
+		t.Errorf("govulncheck ran %d times", len(calls))
+	}
+	if !emptyDir(t, filepath.Join(d.State, "runner", "trees")) {
+		t.Error("the copy of the side tip stays after the push")
+	}
+}
