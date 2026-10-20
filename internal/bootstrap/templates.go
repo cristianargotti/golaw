@@ -101,6 +101,13 @@ func (plan *TemplatePlan) addTemplate(file assets.Rendered) error {
 func (plan *TemplatePlan) addKitTemplate(change install.Change) {
 	hash := install.Digest(change.After)
 	index := slices.IndexFunc(plan.Managed, func(m policy.ManagedFile) bool { return m.Path == change.Path })
+	// A recorded file that is gone was deleted by its team, as the update reads it.
+	if !change.Existed && index >= 0 {
+		plan.LocalEdits = append(plan.LocalEdits, LocalEdit{
+			Path: change.Path, Recorded: plan.Managed[index].SHA256, Proposed: hash,
+		})
+		return
+	}
 	if change.Existed && !bytes.Equal(change.Before, change.After) {
 		plan.Proposed = append(plan.Proposed, change)
 		if index >= 0 && plan.Managed[index].SHA256 != install.Digest(change.Before) {

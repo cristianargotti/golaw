@@ -150,3 +150,42 @@ func TestInitUpdateReportsDeletionWithoutRecreatingIt(t *testing.T) {
 	}
 	requireSecondUpdate(t, ta, repo.Root)
 }
+
+// Plain init keeps a managed file the team deleted deleted, as the update
+// does, and names it with the same line, in the preview and on --apply.
+func TestInitKeepsADeletedManagedFileDeleted(t *testing.T) {
+	t.Parallel()
+	repo := gittest.New(t)
+	repo.Write("go.mod", "module example.test/service\n\ngo 1.27\n")
+	ta := initBindApp(t)
+	if code := ta.run(t.Context(), []string{"init", "--apply", repo.Root}); code != exitClean {
+		t.Fatal(ta.stderr.String())
+	}
+	path := filepath.Join(repo.Root, ".gremlins.yaml")
+	original, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policyBefore, err := bootstrap.Current(repo.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo.Remove(".gremlins.yaml")
+	hash := install.Digest(original)
+	line := "Edição local preservada: .gremlins.yaml registrado=" + hash + " atual=ausente proposto=" + hash + ".\n"
+	for _, args := range [][]string{{"init", repo.Root}, {"init", "--apply", repo.Root}} {
+		ta.stdout.Reset()
+		if code := ta.run(t.Context(), args); code != exitClean {
+			t.Fatalf("%v exit = %d: %s", args, code, ta.stderr.String())
+		}
+		if !strings.Contains(ta.stdout.String(), line) || strings.Contains(ta.stdout.String(), "+++ .gremlins.yaml") {
+			t.Fatalf("%v deletion report = %q", args, ta.stdout.String())
+		}
+		if _, statErr := os.Stat(path); !errors.Is(statErr, fs.ErrNotExist) {
+			t.Fatalf("%v recreated the deleted file: %v", args, statErr)
+		}
+	}
+	if after, readErr := bootstrap.Current(repo.Root); readErr != nil || !bytes.Equal(after, policyBefore) {
+		t.Fatalf("deletion changed the policy: %q, %v", after, readErr)
+	}
+}

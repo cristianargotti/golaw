@@ -23,27 +23,30 @@ func TestTemplatePlansPreserveRecordedLocalBaselines(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
 	baseline := install.Digest([]byte("original\n"))
-	config := fmt.Sprintf("golaw: 1\nkit: {version: 0.1.0}\nmanaged:\n  - {path: z.txt, sha256: %s}\n", baseline)
+	config := fmt.Sprintf("golaw: 1\nkit: {version: 0.1.0}\nmanaged:\n"+
+		"  - {path: d.txt, sha256: %s}\n  - {path: z.txt, sha256: %s}\n", baseline, baseline)
 	writeBefore(t, filepath.Join(root, bootstrap.PolicyFile), config)
 	writeBefore(t, filepath.Join(root, "z.txt"), "local\n")
 	plan, err := bootstrap.PlanTemplates(root, []assets.Rendered{
 		templateFile("z.txt", "desired\n", assets.OwnedByKit),
 		templateFile("a.txt", "new\n", assets.OwnedByKit),
+		templateFile("d.txt", "desired\n", assets.OwnedByKit),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := []policy.ManagedFile{
 		{Path: "a.txt", SHA256: install.Digest([]byte("new\n"))},
+		{Path: "d.txt", SHA256: baseline},
 		{Path: "z.txt", SHA256: baseline},
 	}
-	if !reflect.DeepEqual(plan.Managed, want) || len(plan.LocalEdits) != 1 {
-		t.Fatalf("managed = %+v, local = %+v", plan.Managed, plan.LocalEdits)
+	desired := install.Digest([]byte("desired\n"))
+	edits := []bootstrap.LocalEdit{
+		{Path: "z.txt", Recorded: baseline, Current: install.Digest([]byte("local\n")), Proposed: desired},
+		{Path: "d.txt", Recorded: baseline, Current: "", Proposed: desired},
 	}
-	edit := plan.LocalEdits[0]
-	if edit.Path != "z.txt" || edit.Recorded != baseline ||
-		edit.Current != install.Digest([]byte("local\n")) || edit.Proposed != install.Digest([]byte("desired\n")) {
-		t.Fatalf("local edit = %+v", edit)
+	if !reflect.DeepEqual(plan.Managed, want) || !reflect.DeepEqual(plan.LocalEdits, edits) {
+		t.Fatalf("managed = %+v, local = %+v", plan.Managed, plan.LocalEdits)
 	}
 	if applyErr := bootstrap.ApplyTemplates(root, plan, io.Discard); applyErr != nil {
 		t.Fatal(applyErr)
@@ -52,6 +55,7 @@ func TestTemplatePlansPreserveRecordedLocalBaselines(t *testing.T) {
 	if err != nil || string(data) != "local\n" {
 		t.Fatalf("local bytes = %q, %v", data, err)
 	}
+	requireTemplateAbsent(t, root, "d.txt")
 }
 
 func TestTemplateApplyRefusesChangedInputsBeforeAnyWrites(t *testing.T) {

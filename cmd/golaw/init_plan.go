@@ -114,10 +114,17 @@ func printInitPolicy(out io.Writer, plan initPlan) error {
 			return err
 		}
 	}
+	var lines []string
 	if plan.notice != "" {
-		return writeLines(out, []string{plan.notice})
+		lines = append(lines, plan.notice)
 	}
-	return nil
+	// The update names its local edits in its notice already.
+	if !plan.update {
+		for _, edit := range plan.templates.LocalEdits {
+			lines = append(lines, updateLocalEdit(edit, plan.templates.Language))
+		}
+	}
+	return writeLines(out, lines)
 }
 
 func previewInit(out io.Writer, plan initPlan) error {
