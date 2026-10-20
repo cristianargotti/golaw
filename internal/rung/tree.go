@@ -95,10 +95,11 @@ func (p *precommit) copied(ctx context.Context, t goTree) (goTree, Outcome, bool
 // dirty reports whether the worktree differs from the index git commits
 // through in a Go input anywhere in the module: a file changed or deleted
 // after it was staged, or a file git would add, that is a Go file, go.mod,
-// go.sum or a file of a package directory of the index, an importer and a
-// forward dependency alike, or a staged Go file whose worktree bytes are
-// not the bytes of the index. Go reads all of them, so the worktree is read
-// in place only when it holds what the commit records for every one.
+// go.sum, a file of a package directory of the index, an importer and a
+// forward dependency alike, or the golangci-lint configuration at the root,
+// or a staged Go file whose worktree bytes are not the bytes of the index.
+// The tools read all of them, so the worktree is read in place only when it
+// holds what the commit records for every one.
 func (p *precommit) dirty(ctx context.Context) (bool, error) {
 	out, err := plumbing(ctx, p.deps, "--no-optional-locks", "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames")
 	if err != nil {
@@ -109,7 +110,7 @@ func (p *precommit) dirty(ctx context.Context) (bool, error) {
 	}
 	dirs := p.goDirs()
 	for record := range strings.SplitSeq(string(out.Stdout), "\x00") {
-		if len(record) >= 4 && record[1] != ' ' && touchesGo(record[3:], dirs) {
+		if len(record) >= 4 && record[1] != ' ' && (touchesGo(record[3:], dirs) || lintConfig(record[3:])) {
 			return true, nil
 		}
 	}

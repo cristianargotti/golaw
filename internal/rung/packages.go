@@ -59,6 +59,18 @@ func touchesGo(path string, dirs map[string]bool) bool {
 	return strings.HasSuffix(path, goSuffix) || path == goMod || path == goSum || dirs[packageDir(path)]
 }
 
+// lintConfig reports whether a path is a configuration golangci-lint reads
+// at the root of the tree: in a module whose root holds no Go file it is no
+// Go input, yet it decides the verdict of the lint step as a Go file does.
+func lintConfig(path string) bool {
+	switch path {
+	case ".golangci.yml", ".golangci.yaml", ".golangci.toml", ".golangci.json":
+		return true
+	default:
+		return false
+	}
+}
+
 // ignoredGo lists the Go files git ignores, those of an ignored directory
 // included, because go reads every one of them in place while the commit
 // and the push carry none. A name that starts with a dot or an underscore
