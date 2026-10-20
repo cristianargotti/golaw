@@ -22,12 +22,7 @@ type ownershipRule struct {
 func AllowedPaths(paths []string, codeowners []byte) (Ownership, error) {
 	rules, unsupported := ownershipRules(codeowners)
 	result := Ownership{Unsupported: unsupported}
-	var baseline []string
-	for _, rule := range rules {
-		if ownershipCatchall(rule.pattern) {
-			baseline = rule.owners
-		}
-	}
+	baseline := ownershipBaseline(rules)
 	for _, destination := range paths {
 		var owners []string
 		for _, rule := range rules {
@@ -44,9 +39,28 @@ func AllowedPaths(paths []string, codeowners []byte) (Ownership, error) {
 	return result, nil
 }
 
+// ownershipBaseline falls back to the root files line only without a line
+// for every path, because /* assigns no nested file.
+func ownershipBaseline(rules []ownershipRule) []string {
+	var global, root []string
+	found := false
+	for _, rule := range rules {
+		switch {
+		case ownershipCatchall(rule.pattern):
+			global, found = rule.owners, true
+		case rule.pattern == "/*":
+			root = rule.owners
+		}
+	}
+	if found {
+		return global
+	}
+	return root
+}
+
 func ownershipCatchall(pattern string) bool {
 	switch pattern {
-	case "*", "**", "/*", "/**", "**/*":
+	case "*", "**", "/**", "**/*":
 		return true
 	default:
 		return false

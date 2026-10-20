@@ -31,6 +31,11 @@ func ownershipMatches(pattern, destination string) bool {
 	if !directory && len(wanted) > 1 && wanted[len(wanted)-1] == "**" {
 		return ownershipDescendant(wanted[:len(wanted)-1], parts)
 	}
+	// GitHub reads docs/* as the files of docs alone, so a final bare star
+	// names no directory whose descendants it would also take.
+	if !directory && (rooted || len(wanted) > 1) && wanted[len(wanted)-1] == "*" {
+		return ownershipComponents(wanted, parts)
+	}
 	limit := len(parts)
 	if directory {
 		limit--
