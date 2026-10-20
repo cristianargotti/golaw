@@ -154,3 +154,7 @@ checks:
     code: conventional-subject
     red: testdata/commit.conventional/red
     near: testdata/commit.conventional/near
+  - id: commit.no-trailers
+    code: trailer
+    red: testdata/commit.no-trailers/red
+    near: testdata/commit.no-trailers/near
