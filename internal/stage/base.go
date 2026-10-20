@@ -6,6 +6,7 @@ import (
 	"path"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
@@ -18,6 +19,13 @@ import (
 // string literal appears 4 times", "13 non-test files in one adapter
 // package"); any other digit, as one of a name, tells two findings apart.
 var countRun = regexp.MustCompile(`\b\d+( lines| statements| times| non-test files)\b`)
+
+// packageRule reports one finding for a package at the first of its files
+// a run meets, so the base and the index meet it at different files.
+const packageRule = "goast.goleak"
+
+// goSuffix ends the name of a Go file.
+const goSuffix = ".go"
 
 // introducedOnly keeps, in each outcome of the run over the index, the
 // findings no base holds, compared as a multiset of staged keys: the tree
@@ -66,7 +74,7 @@ func heldAt(bases []*baseRun, i int) []model.Finding {
 // the paths the targets had decides what the base cannot disprove.
 type baseRun struct {
 	staged *engine.Run
-	beside *engine.Run       // nil when the first run holds a file of every directory a target sits in
+	beside *engine.Run       // nil when no file of the base sits beside a target
 	holds  map[string]string // the base path of each file the first run judges, by its path in the index
 	moved  map[string]string
 }
@@ -84,11 +92,13 @@ func (b *baseRun) findings(i int) []model.Finding {
 
 // judgeBase freezes the base at rev and judges the paths the targets had
 // there, then, in a run of their own, the other files of every directory a
-// target joins that the first run holds no file of: a rule that judges a
-// directory through one of its files, as the file count of an adapter
-// package, is asked about a directory the commit only adds to. Only the
-// first run can hold a finding back (provable), so a file beside that no
-// check can judge never makes a staged finding unmeasured.
+// target joins that the first run holds no file of, and the other Go files
+// of the package of every Go target: a rule that judges a directory
+// through one of its files, as the file count of an adapter package or a
+// package that starts goroutines, is asked about the whole directory the
+// commit adds to. Only the first run can hold a finding back (provable),
+// so a file beside that no check can judge never makes a staged finding
+// unmeasured.
 func judgeBase(ctx context.Context, in Input, candidate model.Input, rev string, moved map[string]string) (*baseRun, error) {
 	base, err := source.NewRevision(ctx, in.Repo, rev)
 	if err != nil {
@@ -103,11 +113,11 @@ func judgeBase(ctx context.Context, in Input, candidate model.Input, rev string,
 	if held.staged, err = judge(ctx, in, base, targets); err != nil {
 		return nil, err
 	}
-	dirs := joined(candidate.Targets, targets)
-	if len(dirs) == 0 {
-		return held, nil
+	dirs, packages := joined(candidate.Targets, targets), goPackages(candidate.Targets)
+	besides := func(p string) bool {
+		return dirs[path.Dir(p)] || !paths[p] && packages[path.Dir(p)] && strings.HasSuffix(p, goSuffix)
 	}
-	if beside := base.Select(func(p string) bool { return dirs[path.Dir(p)] }); len(beside) > 0 {
+	if beside := base.Select(besides); len(beside) > 0 {
 		if held.beside, err = judge(ctx, in, base, beside); err != nil {
 			return nil, err
 		}
@@ -123,6 +133,18 @@ func judge(ctx context.Context, in Input, base model.Snapshot, targets []model.F
 		return nil, fmt.Errorf("judge the base of %s: %w", in.Repo.Root, err)
 	}
 	return run, nil
+}
+
+// goPackages names the directories of the Go targets of the index, the
+// packages a package rule judges whole.
+func goPackages(targets []model.File) map[string]bool {
+	dirs := map[string]bool{}
+	for _, f := range targets {
+		if strings.HasSuffix(f.Path, goSuffix) {
+			dirs[path.Dir(f.Path)] = true
+		}
+	}
+	return dirs
 }
 
 // joined names the directories the targets of the index sit in where the
@@ -171,9 +193,14 @@ func keyed(findings []model.Finding) []model.Finding {
 
 // stagedKey is model.Fingerprint with every count of the message read as
 // one mark: an edit changes the count while the finding stays the one the
-// base held, so a count never makes it new.
+// base held, so a count never makes it new. A finding of a package rule is
+// keyed by its package: it sits at the first file a run meets, which is
+// the staged file in the index and any file of the package at the base.
 func stagedKey(f model.Finding) string {
 	f.Message = countRun.ReplaceAllString(f.Message, "#$1")
+	if f.Check == packageRule {
+		f.Path = path.Dir(f.Path)
+	}
 	return model.Fingerprint(f)
 }
 

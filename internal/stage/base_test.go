@@ -98,11 +98,12 @@ func TestScanKeepsAFindingWhoseCountOnlyChanged(t *testing.T) {
 	}
 }
 
-// The files beside a new file are judged at the base in a run of their
-// own, and a staged file at its own path as the index judges it: a file
-// there that no check can judge never holds a staged finding back, and a
-// package finding a check reports at the first file it meets stays where
-// both runs meet it.
+// The files beside a new file, and the other Go files of a staged
+// package, are judged at the base in a run of their own, and a staged file
+// at its own path as the index judges it: a file there that no check can
+// judge never holds a staged finding back, and a package finding a check
+// reports at the first file it meets is the one the base holds wherever
+// in the package each run meets it.
 func TestScanJudgesTheFilesBesideANewFileApart(t *testing.T) {
 	t.Parallel()
 	start := func(name string) string { return "package p\n\nfunc " + name + "() { go " + name + "() }\n" }
@@ -115,6 +116,12 @@ func TestScanJudgesTheFilesBesideANewFileApart(t *testing.T) {
 		},
 		"the second of two goroutine starts edited": {
 			map[string]string{"p/a.go": start("a"), "p/b.go": start("b")}, at("p/b.go", start("b")+"\nvar x = 1\n"), nil,
+		},
+		"a start added beside the one the base holds": {
+			map[string]string{"p/a.go": start("a"), "p/b.go": "package p\n"}, at("p/b.go", start("b")), nil,
+		},
+		"the first start of a package": {
+			map[string]string{"p/a.go": "package p\n", "p/b.go": "package p\n"}, at("p/b.go", start("b")), []string{"p/b.go"},
 		},
 	}
 	for name, tc := range cases {
