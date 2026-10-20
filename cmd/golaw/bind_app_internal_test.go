@@ -27,6 +27,9 @@ func TestNewAppBindsTheProductionBinding(t *testing.T) {
 	if b := a.bind(); b.goos != runtime.GOOS || b.env == nil || b.environ == nil || b.home == nil || b.exe == nil {
 		t.Errorf("binding = %+v", b)
 	}
+	if registry, err := a.registry(); err != nil || registry == nil {
+		t.Errorf("registry = %v, %v, want the catalog", registry, err)
+	}
 }
 
 func TestBindAppReachesTheBindingOfItsHome(t *testing.T) {
