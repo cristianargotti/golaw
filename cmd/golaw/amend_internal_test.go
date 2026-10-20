@@ -28,8 +28,8 @@ func amendableBeside(t *testing.T, root string) {
 	t.Helper()
 	body := "\n1\n2\n3\n4\n5\nlast\n"
 	commitFiles(t, root, map[string]string{"notes.md": "start\nold text" + body})
-	sideBranch(t, root, mate(earlier), map[string]string{"notes.md": "start\nold text\n1\n2\n3\n4\n5\nlast mate\n", "theirs.md": "one — two\n"})
-	commitAs(t, root, mate(earlier), map[string]string{"notes.md": "start\nold — text" + body})
+	sideBranch(t, root, mate(earlier), map[string]string{"notes.md": "start\nold text\n1\n2\n3\n4\n5\nlast mate\n", "theirs.md": "one \u2014 two\n"})
+	commitAs(t, root, mate(earlier), map[string]string{"notes.md": "start\nold \u2014 text" + body})
 	commitAs(t, root, at(earlier), map[string]string{"notes.md": "start\nold text" + body, "keep.md": "keep\n"})
 }
 
