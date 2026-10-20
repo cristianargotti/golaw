@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: pre-commit names and leaves to the pipeline a check the comparison with the base cannot measure, as when the base revision of a staged file does not parse, because a commit that repaired a syntax error and kept an inherited finding exited 2 for a base the person cannot fix through the commit; scan --staged keeps exit 2.
 - 2026-10-20: pre-commit counts a file a //go:embed pattern of an index package names, in a subdirectory of the package, as a Go input when it chooses between the worktree and a copy of the index, because an embedded asset staged and deleted only in the worktree made go vet refuse a commit whose index is valid.
 - 2026-10-20: a setup that fails after lefthook install puts every git hook back as it found it and names the restoration, because a failed setup left hooks lefthook had armed with the repository's own commands and no receipt, which setup --uninstall could not remove.
 - 2026-10-20: setup refuses, before it installs anything, a lefthook.yml whose pre-commit, commit-msg or pre-push section runs no golaw hook of that rung and names each missing rung, because on a repository whose own lefthook.yml init only proposed over, setup either failed on a hook lefthook never created with no fix named, or armed the repository's own commands while doctor reported the rungs armed.

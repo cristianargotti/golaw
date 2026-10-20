@@ -9,6 +9,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/report"
+	"github.com/cristianargotti/golaw/internal/stage"
 )
 
 // maxNamed bounds the paths one line names, as the notices of the agent
@@ -21,37 +22,69 @@ const maxNamed = 20
 // the language of the policy, which names the rule through the phrase
 // table.
 func judged(name, language string, run *engine.Run) Outcome {
-	decision, unread := settled(run)
-	lines, err := reportLines(run, decision)
+	s := settled(run)
+	lines, err := reportLines(run, s.decision)
 	if err != nil {
 		return failed(name, language, err)
 	}
-	out := Outcome{Code: codeOf(decision), Lines: lines}
-	if len(unread) > 0 {
-		out.Lines = append(out.Lines, unreadLine(name, unread))
-	}
+	out := Outcome{Code: codeOf(s.decision), Lines: append(lines, s.lines(name)...)}
 	if out.Code != codeClean {
-		out.Lines = append(out.Lines, report.Human(language, decision))
+		out.Lines = append(out.Lines, report.Human(language, s.decision))
 	}
 	return out
 }
 
+// settlement is a decision once the checks a rung leaves to the pipeline
+// count as measured: the files over the read bound, and the checks whose
+// comparison with the base could not be measured, each with its reason.
+type settlement struct {
+	decision engine.Decision
+	unread   []string
+	based    []string
+}
+
 // settled is the decision of a run once every check the read bound alone
-// left unmeasured counts as measured, with the files it could not read
-// aside: a rung refuses only what it recognizes with certainty (the
-// owner's zero friction goal of 2026-10-16), so such a file is named and
+// left unmeasured, and every check the comparison with the base left
+// unmeasured, counts as measured, with the files it could not read and the
+// checks it could not compare aside: a rung refuses only what it
+// recognizes with certainty (the owner's zero friction goal of
+// 2026-10-16), and a base that does not parse is no fault of the commit
+// and none the commit can repair, so such a file or check is named and
 // left to the pipeline, while scan keeps exit 2 for it (section 5.2).
-func settled(run *engine.Run) (engine.Decision, []string) {
-	var unread []string
+func settled(run *engine.Run) settlement {
+	var s settlement
 	for i := range run.Outcomes {
 		res := &run.Outcomes[i].Result
-		if res.Status.Kind == model.StatusUnmeasured && len(res.Unread) > 0 && strings.HasSuffix(res.Status.Reason, model.ErrTooLarge.Error()) {
-			res.Status = model.Measured()
-			unread = append(unread, res.Unread...)
+		if res.Status.Kind != model.StatusUnmeasured {
+			continue
 		}
+		reason, compared := strings.CutPrefix(res.Status.Reason, stage.BaseReason)
+		switch {
+		case len(res.Unread) > 0 && strings.HasSuffix(res.Status.Reason, model.ErrTooLarge.Error()):
+		case compared:
+			s.based = append(s.based, fmt.Sprintf("%s (%s)", run.Outcomes[i].Spec.ID, reason))
+		default:
+			continue
+		}
+		res.Status = model.Measured()
+		s.unread = append(s.unread, res.Unread...)
 	}
-	slices.Sort(unread)
-	return engine.Decide(run), slices.Compact(unread)
+	slices.Sort(s.unread)
+	s.unread = slices.Compact(s.unread)
+	s.decision = engine.Decide(run)
+	return s
+}
+
+// lines name what the settlement leaves to the pipeline.
+func (s settlement) lines(name string) []string {
+	var out []string
+	if len(s.unread) > 0 {
+		out = append(out, unreadLine(name, s.unread))
+	}
+	if len(s.based) > 0 {
+		out = append(out, prefix(name)+"not judged against a base it could not measure, the pipeline judges them: "+strings.Join(s.based, "; "))
+	}
+	return out
 }
 
 // unreadLine names the files a rung leaves to the pipeline because they

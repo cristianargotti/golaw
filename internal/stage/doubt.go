@@ -7,6 +7,11 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
+// BaseReason starts the reason of a check the comparison with the base
+// left unmeasured: the base cannot disprove its findings, which a rung
+// leaves to the pipeline.
+const BaseReason = "compare with the base: "
+
 // provable holds back the findings of the index the base cannot disprove:
 // where it left a file over the read bound, or stopped before it measured,
 // a finding may be one it held, so it is neither the commit's own nor
@@ -28,7 +33,7 @@ func (b *baseRun) provable(got *model.Result, base model.Result) {
 		return
 	}
 	if got.Status.Kind == model.StatusMeasured {
-		got.Status = model.Unmeasured("compare with the base: " + base.Status.Reason)
+		got.Status = model.Unmeasured(BaseReason + base.Status.Reason)
 	}
 	for _, p := range behind {
 		if !slices.Contains(got.Unread, p) {
