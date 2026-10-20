@@ -12,23 +12,25 @@ import (
 )
 
 const (
-	processTimeout = 2 * time.Minute
-	wantAllow      = "allow"
-	wantDeny       = "deny"
-	wantError      = "error"
-	wantPost       = "post"
-	wantFailure    = "failure"
-	wantPostAllow  = "post-allow"
-	eventPre       = "PreToolUse"
-	eventPost      = "PostToolUse"
-	eventFailure   = "PostToolUseFailure"
-	agentClaude    = "claude"
-	toolWrite      = "Write"
-	toolEdit       = "Edit"
-	toolNotebook   = "NotebookEdit"
-	toolRead       = "Read"
-	toolBash       = "Bash"
-	toolPowerShell = "PowerShell"
+	processTimeout       = 2 * time.Minute
+	m2ProcessTimeout     = 20 * time.Minute
+	m2MeasurementTimeout = 50 * time.Minute
+	wantAllow            = "allow"
+	wantDeny             = "deny"
+	wantError            = "error"
+	wantPost             = "post"
+	wantFailure          = "failure"
+	wantPostAllow        = "post-allow"
+	eventPre             = "PreToolUse"
+	eventPost            = "PostToolUse"
+	eventFailure         = "PostToolUseFailure"
+	agentClaude          = "claude"
+	toolWrite            = "Write"
+	toolEdit             = "Edit"
+	toolNotebook         = "NotebookEdit"
+	toolRead             = "Read"
+	toolBash             = "Bash"
+	toolPowerShell       = "PowerShell"
 )
 
 type command struct {
@@ -38,6 +40,7 @@ type command struct {
 	dir     string
 	env     []string
 	input   string
+	timeout time.Duration
 }
 
 type result struct {
@@ -56,11 +59,13 @@ func runCommand(ctx context.Context, c command) result {
 }
 
 func runM2Command(ctx context.Context, c command) result {
-	const limit = 20 * time.Minute
-	return runCommandWithin(ctx, c, limit)
+	return runCommandWithin(ctx, c, m2ProcessTimeout)
 }
 
 func runCommandWithin(ctx context.Context, c command, limit time.Duration) result {
+	if c.timeout > 0 {
+		limit = c.timeout
+	}
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, c.program, c.args...) //nolint:gosec // Only fixed build, installer, and hook invocations enter this executor.
