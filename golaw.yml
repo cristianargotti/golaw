@@ -4,7 +4,7 @@
 # section 3, each with a red case in the proof fixtures; this file is one of
 # them because the list itself names the terms.
 golaw: 1
-kit: { version: 0.1.0 }
+kit: { version: 0.2.0 }
 language: pt-BR
 capabilities: [cli, go]
 layout: { main: cmd, decisions: docs/adr }

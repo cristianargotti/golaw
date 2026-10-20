@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 // TestSetupExplainsTheRepairAndTheEvidence pins what the setup page says
@@ -58,4 +60,30 @@ func TestSkillPinsTheRulesOfTheKit(t *testing.T) {
 	if strings.Contains(string(kitBytes(t, "agents/SKILL.md")), "Read docs/rules.md") {
 		t.Fatal("the skill points at a rules page adopting repositories do not hold")
 	}
+}
+
+// TestPolicyPinsTheReleaseTheSetupInstalls holds the kit's own golaw.yml
+// to the tag the setup page installs: the release lane scans the tagged
+// commit with the candidate it built, and that binary refuses a policy
+// that pins another kit version, so a stale pin stops the release.
+func TestPolicyPinsTheReleaseTheSetupInstalls(t *testing.T) {
+	t.Parallel()
+	root, err := document(kitBytes(t, "golaw.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin := at(root, "kit", "version")
+	setup := regexp.MustCompile(`golaw@v(\d+\.\d+\.\d+)\n`).FindStringSubmatch(string(kitBytes(t, "docs/setup.md")))
+	if pin == nil || setup == nil || pin.Value != setup[1] {
+		t.Fatalf("golaw.yml pins %q, docs/setup.md installs %v", nodeValue(pin), setup)
+	}
+	requireText(t, "docs/releasing.md", "kit.version of golaw.yml")
+}
+
+// nodeValue is the scalar of a node the test may not find.
+func nodeValue(node *yaml.Node) string {
+	if node == nil {
+		return ""
+	}
+	return node.Value
 }
