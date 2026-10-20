@@ -59,6 +59,11 @@ type Input struct {
 	// holds, when its bytes mean the policy the record enrolled, so an
 	// agent works in a repository init --apply just enrolled.
 	Uncommitted bool
+	// Expected, when set, is the enrollment CI provisions (A3): the state
+	// directory is not consulted, the location is enrolled with these
+	// digests, a HEAD without golaw.yml is ErrEnrollment and a digest that
+	// differs is ErrEnrollment naming both digests.
+	Expected *Expected
 }
 
 // Loaded is the policy in force with everything config explain reports.
@@ -72,6 +77,7 @@ type Loaded struct {
 	Stamp   *Stamp
 	Schemas Schemas // the option schemas of the catalog, whose defaults explain lists
 	git     *reads  // the answers git gave about golaw.yml, each asked once
+	expect  bool    // the record is the enrollment the pipeline provisions (Input.Expected)
 }
 
 // Load establishes the policy in force for a directory: the enrollment
@@ -82,11 +88,11 @@ type Loaded struct {
 // breaks the schema or the floors is ErrPolicy; an unenrolled repository
 // without golaw.yml gets the core defaults.
 func Load(ctx context.Context, in Input) (*Loaded, error) {
-	loc, err := Locate(ctx, in.Dirs.State, in.Dir, in.Discover)
+	loc, err := in.locate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas}
+	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas, expect: in.Expected != nil}
 	data, err := l.inForce(ctx, in.Uncommitted)
 	if err != nil {
 		return nil, err
@@ -178,6 +184,9 @@ func (l *Loaded) enroll(reenroll bool, schemas Schemas) error {
 	}
 	if l.Record.PolicyDigest != l.Policy.Digest || l.Record.ProfileDigest != profile {
 		l.Policy.Enrollment.State = model.EnrollmentMismatch
+		if l.expect {
+			return l.unexpected(profile)
+		}
 		if reenroll {
 			return CheckReenrollment(*l.Record, l.File, schemas)
 		}
