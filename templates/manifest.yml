@@ -1,4 +1,8 @@
 templates:
+  - source: templates/.golangci.yml.tmpl
+    destination: .golangci.yml
+    ownership: kit
+    when: []
   - source: templates/lefthook.yml.tmpl
     destination: lefthook.yml
     ownership: kit
