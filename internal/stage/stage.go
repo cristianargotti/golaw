@@ -36,12 +36,13 @@ type Result struct {
 }
 
 // Scan builds the index snapshot, judges the proposed policy
-// (policy.EvaluateProposal over the golaw.yml the snapshot holds),
-// dispatches the registry in ModeStaged over the staged files under the
-// policy in force, dispatches it again over the same paths at the base
-// (source.NewRevision of Base, the old path of a rename), and keeps the
-// findings report.Introduced names. A refused proposal is its error
-// (ErrPolicy or ErrEnrollment of model), so the command exits 2.
+// (policy.EvaluateProposal over the golaw.yml the snapshot holds), leaves
+// out what a merge in progress brought (Brought), dispatches the registry in
+// ModeStaged over the staged files under the policy in force, dispatches it
+// again over the same paths at the base (source.NewRevision of Base, the old
+// path of a rename), and keeps the findings report.Introduced names. A
+// refused proposal is its error (ErrPolicy or ErrEnrollment of model), so
+// the command exits 2.
 func Scan(ctx context.Context, in Input) (Result, error) {
 	index, err := source.NewIndex(ctx, in.Repo, in.Index)
 	if err != nil {
@@ -55,9 +56,13 @@ func Scan(ctx context.Context, in Input) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("staged %s: %w", policy.FileName, err)
 	}
-	candidate := model.Input{
-		Mode: model.ModeStaged, Policy: in.Loaded.Policy, Snapshot: index, Targets: index.Staged(), Changes: index.Changes(),
+	brought, err := Brought(ctx, in.Repo, index)
+	if err != nil {
+		return Result{}, err
 	}
+	candidate := leftOut(model.Input{
+		Mode: model.ModeStaged, Policy: in.Loaded.Policy, Snapshot: index, Targets: index.Staged(), Changes: index.Changes(),
+	}, brought)
 	run, err := engine.Dispatch(ctx, in.Registry, candidate)
 	if err != nil {
 		return Result{}, fmt.Errorf("judge the index of %s: %w", in.Repo.Root, err)
@@ -65,7 +70,7 @@ func Scan(ctx context.Context, in Input) (Result, error) {
 	if err := introducedOnly(ctx, in, candidate, run); err != nil {
 		return Result{}, err
 	}
-	return Result{Input: candidate, Index: index, Run: run, Decision: engine.Decide(run), Proposal: proposal}, nil
+	return Result{Input: candidate, Index: index, Run: run, Decision: engine.Decide(run), Proposal: proposal, Brought: brought}, nil
 }
 
 // stagedPolicy is what the index snapshot holds at golaw.yml, read from the
