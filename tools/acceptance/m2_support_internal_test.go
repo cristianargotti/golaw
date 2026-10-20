@@ -74,6 +74,12 @@ func m2TestSuite(t *testing.T) *suite {
 	s.env = m2Environment(nil, s.home, filepath.Dir(s.binary), s.base)
 	m2Write(t, s.binary, m2Executable)
 	s.digest = install.Digest([]byte(m2Executable))
+	for _, name := range []string{"go", "sh"} {
+		m2Write(t, filepath.Join(simulated, executable(name)), "simulated "+name+"\n")
+	}
+	for _, tool := range runner.Toolchain() {
+		m2Write(t, filepath.Join(s.m2.Bin, executable(tool.Name)), "simulated "+tool.Name+"\n")
+	}
 	return s
 }
 
