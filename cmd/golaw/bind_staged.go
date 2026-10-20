@@ -42,6 +42,25 @@ func (b binding) staged(ctx context.Context, in policy.Input, registry *engine.R
 	return result, nil
 }
 
+// dirsFor fills the directories the load of in reads. The enrollment a
+// pipeline provisions (A3) reads no record, so its load resolves no state
+// directory, and only a policy that names a profile reads the config
+// directory: a runner whose environment names neither is refused only by
+// a load that reads one.
+func (b binding) dirsFor(in *policy.Input) error {
+	if in.Expected == nil {
+		dirs, err := b.dirs()
+		in.Dirs = dirs
+		return err
+	}
+	config, err := policy.ConfigDir(b.goos, b.env)
+	if err != nil {
+		in.ConfigErr = fmt.Errorf("resolve the config directory: %w", err)
+	}
+	in.Dirs = policy.Dirs{Config: config}
+	return nil
+}
+
 // expectedLoad is the load seam under the enrollment the pipeline
 // provisions (A3): the policy in force of the repository that holds root,
 // enrolled with the expected digests instead of the record of the state

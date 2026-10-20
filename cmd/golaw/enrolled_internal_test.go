@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -21,6 +22,25 @@ func enrolledApp(t *testing.T) testApp {
 
 // otherDigest is a well formed digest no test policy has.
 func otherDigest() string { return strings.Repeat("c", 64) }
+
+// runnerApp is the enrolled app on a pipeline runner whose environment
+// names only the variables kept, so a test sees which directories a scan
+// resolves.
+func runnerApp(t *testing.T, kept ...string) testApp {
+	t.Helper()
+	ta := enrolledApp(t)
+	b := ta.bind()
+	env := b.env
+	b.env = func(name string) string {
+		if slices.Contains(kept, name) {
+			return env(name)
+		}
+		return ""
+	}
+	ta.bind = func() binding { return b }
+	ta.snapshot, ta.load = b.snapshot, b.load
+	return ta
+}
 
 func TestScanEnrolledRunsUnderTheProvisionedDigests(t *testing.T) {
 	t.Parallel()
@@ -98,5 +118,55 @@ func TestScanStagedEnrolledJudgesTheIndexUnderTheProvisionedDigests(t *testing.T
 	other := enrolledApp(t)
 	if got := other.run(t.Context(), []string{"scan", "--staged", "--enrolled", otherDigest(), root}); got != exitFailure {
 		t.Errorf("a digest the pipeline does not expect: exit %d", got)
+	}
+}
+
+// A runner the pipeline provisions may name no home: the enrollment it
+// provisions reads no record, so no state directory is resolved, and a
+// policy without a profile reads no config directory either. A scan that
+// reads the record still resolves the state directory.
+func TestScanEnrolledResolvesOnlyTheDirectoriesItReads(t *testing.T) {
+	t.Parallel()
+	root := repository(t, true)
+	digest := digestOf(renderedPolicy(t))
+	for name, kept := range map[string][]string{"the config directory alone": {"XDG_CONFIG_HOME"}, "no variable": nil} {
+		for _, args := range [][]string{{"scan", "--enrolled", digest, root}, {"scan", "--staged", "--enrolled", digest, root}} {
+			ta := runnerApp(t, kept...)
+			if got := ta.run(t.Context(), args); got != exitClean || !strings.Contains(ta.stdout.String(), "verdict clean") {
+				t.Errorf("%s, %s: exit %d, stdout %q, stderr %q", name, args[1], got, ta.stdout.String(), ta.stderr.String())
+			}
+		}
+	}
+	local := runnerApp(t, "XDG_CONFIG_HOME")
+	if got := local.run(t.Context(), []string{"scan", root}); got != exitFailure || !strings.Contains(local.stderr.String(), "neither XDG_STATE_HOME nor HOME is set") {
+		t.Errorf("a scan that reads the record: exit %d, stderr %q", got, local.stderr.String())
+	}
+}
+
+// A policy that names a profile reads the config directory: without one
+// the refusal names the variables to set, and with one the bundle is
+// verified as every load verifies it.
+func TestScanEnrolledNamesTheConfigDirectoryAProfileReads(t *testing.T) {
+	t.Parallel()
+	profile := strings.Repeat("d", 64)
+	line := `profile: { name: acme, source: https://example.com/acme.git, version: 0.3.0, digest: "sha256:` + profile + `" }`
+	data := strings.Replace(string(renderedPolicy(t)), "language:", line+"\nlanguage:", 1)
+	root := repository(t, false)
+	writeFiles(t, root, map[string]string{"golaw.yml": data})
+	gitRun(t, root, "add", "-A")
+	gitRun(t, root, "commit", "-q", "-m", "build: the policy")
+	expected := digestOf([]byte(data)) + "," + profile
+	cases := map[string]struct {
+		kept []string
+		says string
+	}{
+		"no variable":      {nil, "profile acme: resolve the config directory: usage: neither XDG_CONFIG_HOME nor HOME is set"},
+		"the config named": {[]string{"XDG_CONFIG_HOME"}, "profile acme is not installed: run golaw profile install https://example.com/acme.git@0.3.0"},
+	}
+	for name, tc := range cases {
+		ta := runnerApp(t, tc.kept...)
+		if got := ta.run(t.Context(), []string{"scan", "--enrolled", expected, root}); got != exitFailure || !strings.Contains(ta.stderr.String(), tc.says) {
+			t.Errorf("%s: exit %d, stderr %q", name, got, ta.stderr.String())
+		}
 	}
 }

@@ -17,6 +17,31 @@ func expectedInput(dir string, d policy.Dirs, e policy.Expected) policy.Input {
 	return in
 }
 
+// errNoConfig stands for the reason cmd gives when no config directory
+// resolves on a runner.
+var errNoConfig = errors.New("neither XDG_CONFIG_HOME nor HOME is set")
+
+// TestLoadReadsTheConfigDirectoryOnlyForAProfile loads a policy without a
+// profile where no config directory resolves, and refuses one that names a
+// profile with the reason, naming the profile.
+func TestLoadReadsTheConfigDirectoryOnlyForAProfile(t *testing.T) {
+	t.Parallel()
+	root := initRepo(t)
+	write(t, root, "golaw.yml", minimalPolicy)
+	commitAll(t, root, "policy")
+	core := expectedInput(root, policy.Dirs{}, policy.Expected{PolicyDigest: policy.Digest(decode(t, minimalPolicy))})
+	core.ConfigErr = errNoConfig
+	if l, err := policy.Load(t.Context(), core); err != nil || l.Policy.Enrollment.State != model.EnrollmentEnrolled {
+		t.Errorf("a policy without a profile = %+v, %v", l, err)
+	}
+	profiled, _ := enrolled(t, fullPolicy)
+	in := expectedInput(profiled, policy.Dirs{}, policy.Expected{PolicyDigest: policy.Digest(decode(t, fullPolicy)), ProfileDigest: "sha256:" + acmeDigest})
+	in.ConfigErr = errNoConfig
+	if _, err := policy.Load(t.Context(), in); !errors.Is(err, errNoConfig) || !strings.Contains(err.Error(), "profile acme: ") {
+		t.Errorf("a policy that names a profile: %v", err)
+	}
+}
+
 func TestParseExpectedReadsTheProvisionedDigests(t *testing.T) {
 	t.Parallel()
 	digest := strings.Repeat("a", 64)

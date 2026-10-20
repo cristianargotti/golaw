@@ -114,11 +114,10 @@ func (b binding) loadedFor(ctx context.Context, dir string, now time.Time, reenr
 // process and the policy it takes before the first commit; the binding
 // fills the directories, the pin and the schemas.
 func (b binding) loadedBy(ctx context.Context, in policy.Input) (*policy.Loaded, error) {
-	dirs, err := b.dirs()
-	if err != nil {
+	if err := b.dirsFor(&in); err != nil {
 		return nil, err
 	}
-	in.Dirs, in.Version, in.Schemas = dirs, b.pin(), schemas()
+	in.Version, in.Schemas = b.pin(), schemas()
 	l, err := policy.Load(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("load the policy of %s: %w", in.Dir, err)
