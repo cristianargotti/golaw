@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"bytes"
 	"errors"
 	"io/fs"
 	"maps"
@@ -23,13 +24,16 @@ const (
 )
 
 // ManagedFact is the evidence of one file the managed list of golaw.yml
-// records: the hash init wrote and the hash the checkout holds now.
+// records: the hash init wrote and the hash the checkout holds now, and,
+// for bytes that hold a CRLF, their hash with each CRLF read as LF, which
+// tells a checkout that converted line endings from an edit.
 type ManagedFact struct {
-	Path     string `json:"path"`
-	Recorded string `json:"recorded"`
-	Current  string `json:"current"`
-	Missing  bool   `json:"missing"`
-	Error    string `json:"error"`
+	Path      string `json:"path"`
+	Recorded  string `json:"recorded"`
+	Current   string `json:"current"`
+	CurrentLF string `json:"current_lf,omitempty"`
+	Missing   bool   `json:"missing"`
+	Error     string `json:"error"`
 }
 
 // CollectManaged hashes, in path order, every file the managed list
@@ -71,6 +75,9 @@ func collectManaged(root, path, recorded string) ManagedFact {
 		return managedFailure(fact, err)
 	}
 	fact.Current = install.Digest(data)
+	if folded := bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n")); len(folded) != len(data) {
+		fact.CurrentLF = install.Digest(folded)
+	}
 	return fact
 }
 
@@ -89,7 +96,9 @@ func managedFailure(fact ManagedFact, err error) ManagedFact {
 // ok, another hash is drift, which init --update shows and keeps, an
 // absent file is missing, which init --update keeps as a local edit too,
 // so its line names git restore, and a file doctor could not read is
-// unknown.
+// unknown. A drift of the line endings alone names its cause, because the
+// diff init --update shows does not, and git rewrites the file only once
+// the attribute says LF and the index forgets the converted copy.
 func AssessManaged(facts []ManagedFact) []Line {
 	lines := make([]Line, 0, len(facts))
 	for _, fact := range facts {
@@ -100,6 +109,11 @@ func AssessManaged(facts []ManagedFact) []Line {
 			line.Detail = fact.Path + " is gone from the checkout, and golaw init --update keeps a deletion as a local edit: restore it with git restore --source=HEAD --staged --worktree -- " + fact.Path
 		case fact.Error != "":
 			line.State, line.Code, line.Detail = stateUnknown, "managed-unreadable", fact.Path+": "+fact.Error
+		case fact.Current != fact.Recorded && fact.CurrentLF != "" && fact.CurrentLF == fact.Recorded:
+			line.State, line.Code = managedDrift, "managed-drift"
+			line.Detail = fact.Path + " differs from the hash init recorded only in its CRLF line endings, so golaw init --update keeps it as a local edit: " +
+				"add the line * text=auto eol=lf to .gitattributes, run git rm --cached -q -- " + fact.Path +
+				", then git restore --source=HEAD --staged --worktree -- " + fact.Path
 		case fact.Current != fact.Recorded:
 			line.State, line.Code = managedDrift, "managed-drift"
 			line.Detail = fact.Path + " differs from the hash init recorded: golaw init --update shows the diff and keeps the edit"

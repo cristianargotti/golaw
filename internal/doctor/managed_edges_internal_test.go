@@ -1,8 +1,10 @@
 package doctor
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/install"
@@ -63,6 +65,61 @@ func TestManagedLinesReadOnlyRegularFilesUnderTheRoot(t *testing.T) {
 			requireManagedEdge(t, root, tc)
 		})
 	}
+}
+
+// TestManagedDriftNamesLineEndingsAlone covers a checkout that converts
+// line endings, as core.autocrlf does on Windows without eol=lf: the LF
+// file init wrote reads back with CRLF, golaw init --update keeps it as a
+// local edit, so the line names that cause and the commands that write the
+// file back with LF.
+func TestManagedDriftNamesLineEndingsAlone(t *testing.T) {
+	t.Parallel()
+	edited := "golaw.mk differs from the hash init recorded: golaw init --update shows the diff and keeps the edit"
+	endings := "golaw.mk differs from the hash init recorded only in its CRLF line endings, so golaw init --update keeps it as a local edit: " +
+		"add the line * text=auto eol=lf to .gitattributes, run git rm --cached -q -- golaw.mk, " +
+		"then git restore --source=HEAD --staged --worktree -- golaw.mk"
+	for _, tc := range []struct {
+		name, content, detail string
+	}{
+		{"converted line endings", "recorded\r\nsecond\r\n", endings},
+		{"one converted line", "recorded\r\nsecond\n", endings},
+		{"converted line endings and an edit", "recorded\r\nedited\r\n", edited},
+		{"a lone carriage return", "recorded\rsecond\n", edited},
+		{"an edit", "recorded\nedited\n", edited},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			if err := os.WriteFile(filepath.Join(root, "golaw.mk"), []byte(tc.content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			lines := replayedManaged(t, CollectManaged(root, map[string]string{
+				"golaw.mk": install.Digest([]byte("recorded\nsecond\n")),
+			}))
+			if line := lines[0]; line.State != "drift" || line.Code != "managed-drift" || line.Detail != tc.detail {
+				t.Fatalf("line = %+v, want detail %q", line, tc.detail)
+			}
+		})
+	}
+}
+
+// replayedManaged assesses the evidence of one file, and requires the same
+// assessment of the evidence after a JSON round trip.
+func replayedManaged(t *testing.T, facts []ManagedFact) []Line {
+	t.Helper()
+	encoded, err := json.Marshal(facts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var replay []ManagedFact
+	if err := json.Unmarshal(encoded, &replay); err != nil {
+		t.Fatal(err)
+	}
+	lines := AssessManaged(replay)
+	if !reflect.DeepEqual(lines, AssessManaged(facts)) || len(lines) != 1 {
+		t.Fatalf("serialized evidence changed the assessment: %+v", lines)
+	}
+	return lines
 }
 
 // requireManagedEdge requires a read file to match its record and any
