@@ -86,16 +86,26 @@ func TestScanOnAnUnbornBranchJudgesEveryStagedFile(t *testing.T) {
 	}
 }
 
+// What a merge brought is named against HEAD, so an explicit base compares
+// with that commit alone, a merge in progress included.
 func TestScanComparesWithTheBaseItIsGiven(t *testing.T) {
 	t.Parallel()
 	r := gittest.New(t)
 	first := r.Commit("docs: base", map[string]string{"a.md": "clean\n"})
+	r.Branch("side", map[string]string{"s.md": "s\n"})
 	r.Commit("docs: a dash", map[string]string{"a.md": "a " + dash + " b\n"})
 	if got := findingPaths(scan(t, r, source.IndexOptions{}).Decision); len(got) != 0 {
 		t.Errorf("against HEAD nothing is staged: %v", got)
 	}
 	if got := findingPaths(scan(t, r, source.IndexOptions{Base: first}).Decision); !slices.Equal(got, []string{"a.md"}) {
 		t.Errorf("against the first commit: %v", got)
+	}
+	r.MergeInProgress("side")
+	if res := scan(t, r, source.IndexOptions{}); len(findingPaths(res.Decision)) != 0 || !slices.Equal(res.Brought, []string{"s.md"}) {
+		t.Errorf("against HEAD during the merge: findings at %v, brought %v", findingPaths(res.Decision), res.Brought)
+	}
+	if res := scan(t, r, source.IndexOptions{Base: first}); !slices.Equal(findingPaths(res.Decision), []string{"a.md"}) || res.Brought != nil {
+		t.Errorf("against the first commit during the merge: findings at %v, brought %v", findingPaths(res.Decision), res.Brought)
 	}
 }
 

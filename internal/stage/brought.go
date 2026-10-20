@@ -18,6 +18,8 @@ import (
 // options the merge was started with), so a rung never feeds back what git
 // merged from the other side as the commit's own finding (section 8.1
 // applied to the rungs); it answers nothing when no merge is in progress.
+// It reads the changes of the index as taken against HEAD, the side the
+// merge is made on.
 func Brought(ctx context.Context, repo source.Repo, index *source.Index) ([]string, error) {
 	theirs := index.MergeHead()
 	if theirs == "" || repo.Head == "" {
@@ -46,6 +48,22 @@ func Brought(ctx context.Context, repo source.Repo, index *source.Index) ([]stri
 		}
 	}
 	return slices.Sorted(maps.Keys(brought)), nil
+}
+
+// mergeOf answers what a merge in progress brought and the other parent the
+// index is also compared with, both named against HEAD. With a base the
+// input names, which no rung passes, the scan compares with that commit
+// alone, the merge included: a path the branch changed since then holds the
+// blob of the merge too, and is its own.
+func mergeOf(ctx context.Context, in Input, index *source.Index) ([]string, string, error) {
+	if in.Index.Base != "" {
+		return nil, "", nil
+	}
+	brought, err := Brought(ctx, in.Repo, index)
+	if err != nil {
+		return nil, "", err
+	}
+	return brought, index.MergeHead(), nil
 }
 
 // leftOut drops from the staged files and changes the paths a merge in

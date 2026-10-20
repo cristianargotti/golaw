@@ -43,7 +43,8 @@ type Result struct {
 // again over the same paths at the base (source.NewRevision of Base, the old
 // path of a rename) and apart over the files beside a target whose
 // directory those paths miss, the same at the commit MERGE_HEAD names while
-// a merge is in progress, and keeps the findings report.Introduced names. A
+// a merge is in progress, and keeps the findings report.Introduced names;
+// with a base the input names, it compares with that commit alone. A
 // refused proposal is its error (ErrPolicy or ErrEnrollment of model), so
 // the command exits 2.
 func Scan(ctx context.Context, in Input) (Result, error) {
@@ -59,7 +60,7 @@ func Scan(ctx context.Context, in Input) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("staged %s: %w", policy.FileName, err)
 	}
-	brought, err := Brought(ctx, in.Repo, index)
+	brought, theirs, err := mergeOf(ctx, in, index)
 	if err != nil {
 		return Result{}, err
 	}
@@ -70,7 +71,7 @@ func Scan(ctx context.Context, in Input) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("judge the index of %s: %w", in.Repo.Root, err)
 	}
-	if err := introducedOnly(ctx, in, candidate, run, index.MergeHead()); err != nil {
+	if err := introducedOnly(ctx, in, candidate, run, theirs); err != nil {
 		return Result{}, err
 	}
 	return Result{Input: candidate, Index: index, Run: run, Decision: engine.Decide(run), Proposal: proposal, Brought: brought}, nil
