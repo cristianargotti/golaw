@@ -51,6 +51,6 @@ func (a *app) planUpdate(ctx context.Context, root string, current []byte) (init
 		return initPlan{}, initOperation("update managed policy", err)
 	}
 	return a.compileInitPlan(root, initPlan{
-		current: current, data: data, templates: templates, module: module, notice: notice,
+		current: current, data: data, templates: templates, module: module, notice: notice, update: true,
 	})
 }

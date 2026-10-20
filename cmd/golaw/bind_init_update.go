@@ -19,15 +19,19 @@ func (b binding) updateTemplates(ctx context.Context, root string, data []byte, 
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", initOperation("decode update settings", err)
 	}
+	owners, err := b.initOwnership(ctx, root)
+	if err != nil {
+		return bootstrap.TemplatePlan{}, "", err
+	}
 	config.Kit.Version = pin
 	inputs, notice, err := b.initTemplateContext(ctx, root, config)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", err
 	}
-	return renderUpdateTemplates(root, inputs, config.Managed, notice)
+	return renderUpdateTemplates(root, inputs, config.Managed, notice, owners)
 }
 
-func renderUpdateTemplates(root string, inputs assets.Context, recorded []policy.ManagedFile, notice string) (bootstrap.TemplatePlan, string, error) {
+func renderUpdateTemplates(root string, inputs assets.Context, recorded []policy.ManagedFile, notice string, owners []byte) (bootstrap.TemplatePlan, string, error) {
 	var rendered []assets.Rendered
 	if notice == "" {
 		var err error
@@ -36,11 +40,15 @@ func renderUpdateTemplates(root string, inputs assets.Context, recorded []policy
 			return bootstrap.TemplatePlan{}, "", initOperation("render updated templates", err)
 		}
 	}
-	plan, err := bootstrap.PlanUpdate(root, rendered, recorded)
+	allowed, ownership, err := filterInitOwnership(rendered, owners)
+	if err != nil {
+		return bootstrap.TemplatePlan{}, "", err
+	}
+	plan, err := bootstrap.PlanUpdate(root, allowed, recorded)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", initOperation("plan updated templates", err)
 	}
-	plan.Language = inputs.Language
+	plan.Language, plan.Ownership = inputs.Language, ownership
 	lines := updateNotices(plan, rendered)
 	if notice != "" {
 		lines = append([]string{notice}, lines...)

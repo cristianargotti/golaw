@@ -17,11 +17,19 @@ func (b binding) initTemplates(ctx context.Context, root string, data []byte) (b
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", initOperation("decode template settings", err)
 	}
-	inputs, notice, err := b.initTemplateContext(ctx, root, config)
-	if err != nil || notice != "" {
-		return bootstrap.TemplatePlan{}, notice, err
+	owners, err := b.initOwnership(ctx, root)
+	if err != nil {
+		return bootstrap.TemplatePlan{}, "", err
 	}
-	plan, err := renderInitTemplates(root, inputs)
+	inputs, notice, err := b.initTemplateContext(ctx, root, config)
+	if err != nil {
+		return bootstrap.TemplatePlan{}, "", err
+	}
+	if notice != "" {
+		_, ownership, filterErr := filterInitOwnership(nil, owners)
+		return bootstrap.TemplatePlan{Ownership: ownership, Language: inputs.Language}, notice, filterErr
+	}
+	plan, err := renderInitTemplates(root, inputs, owners)
 	return plan, "", err
 }
 
@@ -46,13 +54,17 @@ func (b binding) initTemplateContext(ctx context.Context, root string, config po
 	return inputs, "", nil
 }
 
-func renderInitTemplates(root string, inputs assets.Context) (bootstrap.TemplatePlan, error) {
+func renderInitTemplates(root string, inputs assets.Context, owners []byte) (bootstrap.TemplatePlan, error) {
 	rendered, err := assets.RenderAllContext(golaw.FS, inputs)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, initOperation("render templates", err)
 	}
-	plan, err := bootstrap.PlanTemplates(root, rendered)
-	plan.Language = inputs.Language
+	allowed, ownership, err := filterInitOwnership(rendered, owners)
+	if err != nil {
+		return bootstrap.TemplatePlan{}, err
+	}
+	plan, err := bootstrap.PlanTemplates(root, allowed)
+	plan.Language, plan.Ownership = inputs.Language, ownership
 	return plan, initOperation("plan templates", err)
 }
 

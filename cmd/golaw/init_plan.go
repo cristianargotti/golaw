@@ -19,6 +19,7 @@ type initPlan struct {
 	policy        *model.EffectivePolicy
 	notice        string
 	status        string
+	update        bool
 }
 
 func initialPolicy(root, pin string, opts initOptions) ([]byte, bool, error) {
@@ -66,6 +67,9 @@ func (a *app) planInit(ctx context.Context, root string, current, data []byte) (
 }
 
 func (a *app) compileInitPlan(root string, plan initPlan) (initPlan, error) {
+	if err := checkInitOwnership(plan); err != nil {
+		return initPlan{}, err
+	}
 	compiled, err := a.compile(plan.data, a.now())
 	if err != nil {
 		return initPlan{}, err
