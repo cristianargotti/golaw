@@ -19,6 +19,11 @@ func (p *setupProbe) hooksCommand(t *testing.T, action string) runner.Output {
 		path := filepath.Join(p.hooks, hook)
 		switch action {
 		case "install":
+			// A partial lefthook arms the hooks its config names and
+			// creates no pre-push, as for a lefthook.yml without one.
+			if p.partial && hook == "pre-push" {
+				continue
+			}
 			installHook(t, path)
 			if p.failHook && index == 0 {
 				return runner.Output{Code: 1, Stderr: []byte("interrupted install\n")}

@@ -46,7 +46,7 @@ Choose an absolute GOBIN and put it first on PATH before running golaw setup. Ke
 
 Before it installs anything, setup reads lefthook.yml and refuses one whose pre-commit, commit-msg or pre-push section runs no golaw hook of that rung, naming each rung it lacks. init only proposes over a lefthook.yml the repository already holds, so apply that proposal first, then run golaw setup. setup reads lefthook.yml and the lefthook-local.yml beside it. A configuration that extends another file or pulls a remote one, and a command named through a YAML alias, are left to lefthook, which then arms what that configuration names, a stated limit.
 
-The receipt is written last, after installation succeeds. An interrupted setup leaves no receipt; run golaw setup again to finish. A repeated setup with matching tools, routing and hooks changes nothing. To remove the owned git hooks and receipt while retaining installed tools, run:
+The receipt is written last, after installation succeeds. An interrupted setup leaves no receipt; run golaw setup again to finish. A setup that fails after lefthook install puts every git hook back as it found it, a foreign hook lefthook moved aside included, and its reason says so, so only a setup that succeeds arms a rung. A repeated setup with matching tools, routing and hooks changes nothing. To remove the owned git hooks and receipt while retaining installed tools, run:
 
 ```sh
 golaw setup --uninstall

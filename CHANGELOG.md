@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: a setup that fails after lefthook install puts every git hook back as it found it and names the restoration, because a failed setup left hooks lefthook had armed with the repository's own commands and no receipt, which setup --uninstall could not remove.
 - 2026-10-20: setup refuses, before it installs anything, a lefthook.yml whose pre-commit, commit-msg or pre-push section runs no golaw hook of that rung and names each missing rung, because on a repository whose own lefthook.yml init only proposed over, setup either failed on a hook lefthook never created with no fix named, or armed the repository's own commands while doctor reported the rungs armed.
 - 2026-10-20: pre-push and the vulnerability lane name every module and fix of a reachable advisory, sorted, and a waived advisory once, because govulncheck reports in no fixed order and an advisory reachable in the standard library and in golang.org/x/net named one of its two fixes at random.
 - 2026-10-20: the CI, release and vulnerability lanes build and gate with Go 1.27.2, because govulncheck finds GO-2026-6604, os.Root.Mkdir and MkdirAll following a junction out of the root on Windows, reachable from the tree boundary of internal/runner under Go 1.27.0.

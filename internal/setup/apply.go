@@ -34,11 +34,19 @@ func Apply(ctx context.Context, plan Plan, out io.Writer, deps Dependencies) err
 	if err != nil {
 		return err
 	}
-	if err := armHooks(ctx, plan, deps); err != nil {
+	if err := checkPlan(ctx, plan, deps); err != nil {
 		return err
 	}
+	// From here lefthook may have written a hook, so a failure puts every
+	// hook back: only a setup that succeeds arms a rung.
+	if err := armHooks(ctx, plan, deps); err != nil {
+		return restoreHooks(plan.Changes, err)
+	}
 	plan.Receipt.Tools = tools
-	return finishInstall(ctx, plan, out)
+	if err := finishInstall(ctx, plan, out); err != nil {
+		return restoreHooks(plan.Changes, err)
+	}
+	return nil
 }
 
 func checkPlan(ctx context.Context, plan Plan, deps Dependencies) error {
@@ -66,9 +74,6 @@ func removeCompletedReceipt(ctx context.Context, path string) error {
 }
 
 func armHooks(ctx context.Context, plan Plan, deps Dependencies) error {
-	if err := checkPlan(ctx, plan, deps); err != nil {
-		return err
-	}
 	output, err := runCommand(ctx, plan.Options, deps, lefthookTool, []string{"install"}, runner.UserEnv(plan.Options.Env))
 	if err != nil {
 		return err

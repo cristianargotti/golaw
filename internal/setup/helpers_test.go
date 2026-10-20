@@ -40,6 +40,7 @@ type setupProbe struct {
 	failTool bool
 	failHook bool
 	failUndo bool
+	partial  bool
 	shadow   bool
 	old      bool
 	hooks    string
