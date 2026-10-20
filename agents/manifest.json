@@ -7,7 +7,10 @@
     "agents/manifest.json",
     "agents/marketplace.json",
     "templates/.golangci.yml.tmpl",
+    "templates/Makefile.tmpl",
+    "templates/golaw.mk.tmpl",
     "templates/lefthook.yml.tmpl",
-    "templates/manifest.yml"
+    "templates/manifest.yml",
+    "templates/tools/go.mod.tmpl"
   ]
 }

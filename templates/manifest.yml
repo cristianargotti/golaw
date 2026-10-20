@@ -3,7 +3,19 @@ templates:
     destination: .golangci.yml
     ownership: kit
     when: []
+  - source: templates/Makefile.tmpl
+    destination: Makefile
+    ownership: merged
+    when: []
+  - source: templates/golaw.mk.tmpl
+    destination: golaw.mk
+    ownership: kit
+    when: []
   - source: templates/lefthook.yml.tmpl
     destination: lefthook.yml
+    ownership: kit
+    when: []
+  - source: templates/tools/go.mod.tmpl
+    destination: tools/go.mod
     ownership: kit
     when: []
