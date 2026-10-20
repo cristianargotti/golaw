@@ -1,6 +1,9 @@
 package proof
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -12,24 +15,28 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// The two conventions of a fixture tree.
+// The three conventions of a fixture tree.
 const (
 	// EventFile is the normalized event an event check fixture carries.
 	EventFile = "event.json"
+	// CommitFile is the commit a commit check fixture carries.
+	CommitFile = "commit.json"
 	// EscapedSuffix marks a file whose content holds Go unicode escapes.
 	EscapedSuffix = ".esc"
 )
 
 // Fixture is one loaded red or near-miss tree: its files at their in-tree
-// paths and, for an event check, the normalized event.
+// paths and, for an event check, the normalized event or, for a commit
+// check, the commit.
 type Fixture struct {
-	Files map[string][]byte
-	Event *model.Event
+	Files  map[string][]byte
+	Event  *model.Event
+	Commit *model.Commit
 }
 
 // LoadFixture reads a fixture directory. A .esc file is decoded and loses
-// its suffix, event.json becomes the Event, and an empty tree is an error
-// because it would prove nothing.
+// its suffix, event.json becomes the Event, commit.json the Commit, and an
+// empty tree is an error because it would prove nothing.
 func LoadFixture(dir string) (Fixture, error) {
 	f := Fixture{Files: make(map[string][]byte)}
 	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
@@ -49,8 +56,8 @@ func LoadFixture(dir string) (Fixture, error) {
 	if err != nil {
 		return Fixture{}, fmt.Errorf("%w: %s: %w", ErrFixture, dir, err)
 	}
-	if len(f.Files) == 0 && f.Event == nil {
-		return Fixture{}, fmt.Errorf("%w: %s holds no file and no event", ErrFixture, dir)
+	if len(f.Files) == 0 && f.Event == nil && f.Commit == nil {
+		return Fixture{}, fmt.Errorf("%w: %s holds no file, no event and no commit", ErrFixture, dir)
 	}
 	return f, nil
 }
@@ -107,8 +114,9 @@ func Policy() *model.EffectivePolicy {
 }
 
 // Input builds the dispatch input of the fixture for a check scope: a scan
-// over the tree for file and tree checks, the commit rung for commit
-// checks, a hook with the event for event checks.
+// over the tree for file and tree checks, the commit rung over a commit that
+// adds every file of the tree for commit checks, a hook with the event for
+// event checks.
 func (f *Fixture) Input(scope model.Scope, policy *model.EffectivePolicy) (model.Input, error) {
 	tree := NewTree(f.Files)
 	in := model.Input{Policy: policy, Snapshot: tree}
@@ -116,7 +124,10 @@ func (f *Fixture) Input(scope model.Scope, policy *model.EffectivePolicy) (model
 	case model.ScopeFile, model.ScopeTree:
 		in.Mode, in.Targets = model.ModeScan, tree.Files()
 	case model.ScopeCommit:
-		in.Mode, in.Targets = model.ModeCommit, tree.Files()
+		if f.Commit == nil {
+			return model.Input{}, fmt.Errorf("%w: a commit check fixture needs %s", ErrFixture, CommitFile)
+		}
+		in.Mode, in.Commit, in.Targets, in.Changes = model.ModeCommit, f.Commit, tree.Files(), additions(tree)
 	case model.ScopeEvent:
 		if f.Event == nil {
 			return model.Input{}, fmt.Errorf("%w: an event check fixture needs %s", ErrFixture, EventFile)
@@ -152,21 +163,67 @@ func eventTargets(e *model.Event, tree *Tree) []model.File {
 	return out
 }
 
+// add places one entry of the tree: the event, the commit, or a file, a
+// .esc file decoded, and names the entry in front of a failure.
 func (f *Fixture) add(rel string, content []byte) error {
-	if rel == EventFile {
-		var e model.Event
-		if err := json.Unmarshal(content, &e); err != nil {
-			return fmt.Errorf("%s: %w", EventFile, err)
-		}
-		if err := e.Validate(); err != nil {
-			return fmt.Errorf("%s: %w", EventFile, err)
-		}
-		f.Event = &e
-		return nil
+	var err error
+	switch rel {
+	case EventFile:
+		err = f.addEvent(content)
+	case CommitFile:
+		err = f.addCommit(content)
+	default:
+		f.addFile(rel, content)
 	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", rel, err)
+	}
+	return nil
+}
+
+func (f *Fixture) addFile(rel string, content []byte) {
 	if plain, ok := strings.CutSuffix(rel, EscapedSuffix); ok {
 		rel, content = plain, Unescape(content)
 	}
 	f.Files[rel] = content
+}
+
+func (f *Fixture) addEvent(content []byte) error {
+	var e model.Event
+	if err := json.Unmarshal(content, &e); err != nil {
+		return fmt.Errorf("decode: %w", err)
+	}
+	if err := e.Validate(); err != nil {
+		return fmt.Errorf("validate: %w", err)
+	}
+	f.Event = &e
 	return nil
+}
+
+// addCommit decodes the commit strictly, so a misspelled key fails the
+// fixture instead of proving a commit with an empty field.
+func (f *Fixture) addCommit(content []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.DisallowUnknownFields()
+	var c model.Commit
+	if err := decoder.Decode(&c); err != nil {
+		return fmt.Errorf("decode: %w", err)
+	}
+	if err := c.Validate(); err != nil {
+		return fmt.Errorf("validate: %w", err)
+	}
+	f.Commit = &c
+	return nil
+}
+
+// additions is the change set of a commit that adds every file of the tree,
+// in path order, each named by the sha256 of its bytes in place of a blob id.
+func additions(tree *Tree) []model.Change {
+	files := tree.Files()
+	out := make([]model.Change, 0, len(files))
+	for _, file := range files {
+		sum := sha256.Sum256(tree.files[file.Path])
+		out = append(out, model.Change{Op: model.ChangeAdd, NewPath: file.Path, Mode: "100644", After: hex.EncodeToString(sum[:])})
+	}
+	return out
 }

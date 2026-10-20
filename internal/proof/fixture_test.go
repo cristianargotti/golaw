@@ -69,7 +69,7 @@ func TestLoadFixtureRefusesBrokenTrees(t *testing.T) {
 func TestFixtureInput(t *testing.T) {
 	t.Parallel()
 	files := proof.Fixture{Files: map[string][]byte{"a.go": []byte("package a\n"), "b.go": []byte("package b\n")}}
-	modes := map[model.Scope]model.Mode{model.ScopeFile: model.ModeScan, model.ScopeTree: model.ModeScan, model.ScopeCommit: model.ModeCommit}
+	modes := map[model.Scope]model.Mode{model.ScopeFile: model.ModeScan, model.ScopeTree: model.ModeScan}
 	for scope, mode := range modes {
 		in, err := files.Input(scope, proof.Policy())
 		if err != nil || in.Mode != mode || len(in.Targets) != 2 || in.Event != nil || in.Policy == nil || in.Snapshot == nil {
