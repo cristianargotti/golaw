@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -13,12 +14,16 @@ import (
 )
 
 // The keys of the git configuration the cleanup of a message reads, as git
-// config names them, and the comment string git uses when auto picks one.
+// config names them, the value that lets git pick the comment character,
+// the characters it picks from in order (builtin/commit.c), and the line
+// git writes after the comment character above the diff of --verbose.
 const (
 	cleanupKey       = "commit.cleanup"
 	commentCharKey   = "core.commentchar"
 	commentStringKey = "core.commentstring"
 	autoComment      = "auto"
+	autoCandidates   = "#;@!$%^&|:"
+	scissorsLine     = " ------------------------ >8 ------------------------"
 )
 
 // readCommit reads the message file as git wrote it, with the cleanup, the
@@ -32,14 +37,41 @@ func readCommit(ctx context.Context, deps Dependencies, file string) (model.Comm
 	if err != nil {
 		return model.Commit{}, err
 	}
+	cleanup := cleanupOf(settings[cleanupKey], deps.Environ)
 	comment := settings[commentStringKey]
-	if comment == autoComment {
-		comment = ""
+	if strings.EqualFold(comment, autoComment) {
+		comment, message = picked(message, cleanup == model.CleanupStrip)
 	}
-	return model.Commit{
-		Message: message, Cleanup: cleanupOf(settings[cleanupKey], deps.Environ),
-		CommentChar: comment, Author: author(ctx, deps),
-	}, nil
+	return model.Commit{Message: message, Cleanup: cleanup, CommentChar: comment, Author: author(ctx, deps)}, nil
+}
+
+// picked reads the comment character git picked under auto from the message
+// it wrote, because git picks the first candidate that starts no line of
+// the message it prepared, which the hook never sees: the character of its
+// scissors line, else the one candidate that starts lines, else the default
+// when none does. Lines that start with two or more candidates leave the
+// choice unknown, so under strip every such line is left unjudged instead:
+// judging a line git drops could refuse a commit git makes.
+func picked(message string, strip bool) (string, string) {
+	starts := ""
+	for line := range strings.SplitSeq(message, "\n") {
+		if line == "" || !strings.ContainsRune(autoCandidates, rune(line[0])) {
+			continue
+		}
+		if line[1:] == scissorsLine {
+			return line[:1], message
+		}
+		if !strings.Contains(starts, line[:1]) {
+			starts += line[:1]
+		}
+	}
+	if len(starts) <= 1 || !strip {
+		return starts[:min(len(starts), 1)], message
+	}
+	kept := slices.DeleteFunc(strings.Split(message, "\n"), func(line string) bool {
+		return line != "" && strings.Contains(starts, line[:1])
+	})
+	return "", strings.Join(kept, "\n")
 }
 
 // readMessage reads the message file git hands the hook, a path relative to

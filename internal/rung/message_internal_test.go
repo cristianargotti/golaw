@@ -61,3 +61,31 @@ func TestIndexFileIsAbsoluteAgainstTheWorktree(t *testing.T) {
 		}
 	}
 }
+
+func TestPickedReadsTheCommentCharacterGitPicked(t *testing.T) {
+	t.Parallel()
+	verbose := "Merge branch 'side'\n\n# Conflicts:\n;\n; ------------------------ >8 ------------------------\n; Do not modify\n+diff\n"
+	mixed := "fix: keep it\n\n# kept or not\n; kept or not\nthe body\n"
+	cases := []struct {
+		name, message, comment, judged string
+		strip                          bool
+	}{
+		{"the scissors line of a verbose merge", verbose, ";", verbose, true},
+		{"a scissors line the person wrote above git's", "fix: x\n! ------------------------ >8 ------------------------\n" + verbose, "!", "fix: x\n! ------------------------ >8 ------------------------\n" + verbose, true},
+		{"no line a candidate starts", "fix: keep it\n\nthe body\n", "", "fix: keep it\n\nthe body\n", true},
+		{"one candidate", "fix: keep it\n\n; a comment\n", ";", "fix: keep it\n\n; a comment\n", true},
+		{"two candidates under strip", mixed, "", "fix: keep it\n\nthe body\n", true},
+		{"two candidates git keeps", mixed, "#", mixed, false},
+	}
+	for _, c := range cases {
+		if comment, judged := picked(c.message, c.strip); comment != c.comment || judged != c.judged {
+			t.Errorf("%s: picked = %q, %q, want %q, %q", c.name, comment, judged, c.comment, c.judged)
+		}
+	}
+	r := repository(t, "")
+	r.Write("message.txt", "fix: keep it\n\n; a comment\n")
+	r.Git("config", "core.commentChar", "AUTO")
+	if commit, err := readCommit(t.Context(), Dependencies{Dir: r.Root, Environ: gittest.Isolated()}, "message.txt"); err != nil || commit.CommentChar != ";" {
+		t.Errorf("auto in capitals, as git reads it = %+v, %v", commit, err)
+	}
+}

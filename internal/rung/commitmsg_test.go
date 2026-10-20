@@ -139,3 +139,37 @@ func TestCommitMsgRefusesAMessageItCannotRead(t *testing.T) {
 		t.Errorf("a rung switched off reads no message: %+v", out)
 	}
 }
+
+// Under core.commentChar=auto git picks the first of #;@!$%^&|: that starts
+// no line of the message it prepares: a conflicted merge, whose message
+// holds # lines, gets ;, keeps the # lines and drops the verbose diff below
+// its ; scissors line. The rung reads the choice from the message git
+// wrote, captured here by an editor that copies it, so the merge commits.
+func TestCommitMsgReadsTheCommentCharacterGitPicked(t *testing.T) {
+	t.Parallel()
+	r := armedRepo(t, armedPolicy)
+	r.Commit("chore: add the table", map[string]string{"a.txt": "base\n"})
+	long := "side " + strings.Repeat("x", 120) + "\n"
+	r.Branch("side", map[string]string{"a.txt": long})
+	r.Commit("feat: change the table", map[string]string{"a.txt": "main\n"})
+	r.MergeInProgress("side")
+	r.Stage(map[string]string{"a.txt": long})
+	r.Git("config", "core.commentChar", "auto")
+	r.Git("config", "commit.verbose", "true")
+	captured := filepath.ToSlash(filepath.Join(t.TempDir(), "COMMIT_EDITMSG"))
+	r.GitEnv([]string{"GIT_EDITOR=cp \"$1\" '" + captured + "'; true"}, "commit", "-q")
+	if recorded := r.Git("log", "-1", "--format=%B"); !strings.Contains(recorded, "# Conflicts:") {
+		t.Fatalf("git dropped the # lines, so it did not pick ; under auto: %q", recorded)
+	}
+	if out := rung.RunCommitMsg(t.Context(), deps(t, r), captured); out.Code != 0 {
+		t.Errorf("a verbose merge under core.commentChar=auto = %+v", out)
+	}
+	plain := armedRepo(t, armedPolicy)
+	plain.Git("config", "core.commentChar", "auto")
+	if out := rung.RunCommitMsg(t.Context(), deps(t, plain), message(plain, "fix: keep it\n\nthe body\n# a comment git drops "+dash+"\n")); out.Code != 0 {
+		t.Errorf("a # comment git drops under auto = %+v", out)
+	}
+	if out := rung.RunCommitMsg(t.Context(), deps(t, plain), message(plain, "fix: keep it\n\nthe body "+dash+"\n# a comment\n")); out.Code != 1 || !contains(out, "commit.no-dashes") {
+		t.Errorf("a dash in the body under auto = %+v", out)
+	}
+}
