@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/engine"
+	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/policy"
 	"github.com/cristianargotti/golaw/internal/source"
 	"github.com/cristianargotti/golaw/internal/stage"
@@ -38,4 +40,22 @@ func (b binding) staged(ctx context.Context, in policy.Input, registry *engine.R
 		return stage.Result{}, fmt.Errorf("scan the index of %s: %w", repo.Root, err)
 	}
 	return result, nil
+}
+
+// expectedLoad is the load seam under the enrollment the pipeline
+// provisions (A3): the policy in force of the repository that holds root,
+// enrolled with the expected digests instead of the record of the state
+// directory, and refused, as the load seam refuses it, when the checkout
+// no longer holds golaw.yml.
+func (b binding) expectedLoad(expected *policy.Expected) func(ctx context.Context, root string, now time.Time) (*model.EffectivePolicy, error) {
+	return func(ctx context.Context, root string, now time.Time) (*model.EffectivePolicy, error) {
+		l, err := b.loadedBy(ctx, policy.Input{Dir: root, Now: now, Discover: locate, Expected: expected})
+		if err != nil {
+			return nil, err
+		}
+		if err := enrolledCheckout(l); err != nil {
+			return nil, err
+		}
+		return l.Policy, nil
+	}
 }
