@@ -200,7 +200,8 @@ func fixedIn(version string) string {
 	return version
 }
 
-// firstLine is the first line a tool printed on a stream.
+// firstLine keeps one line of what a failed scan printed, because the
+// push goes on and the pipeline repeats the scan with all of it.
 func firstLine(data []byte) string {
 	line, _, _ := strings.Cut(strings.TrimSpace(string(data)), "\n")
 	return line

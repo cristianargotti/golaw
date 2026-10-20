@@ -14,12 +14,15 @@ import (
 // counted.
 const maxToolLines = 200
 
-// stepLine is the line of one step of the pre-commit rung.
+// stepLine names the rung and the step in every line, because git prints
+// the output of every hook with no frame around it, and a person or an
+// agent who reads one line alone must know which step to fix.
 func stepLine(step, text string) string {
 	return prefix(PreCommit) + step + ": " + text
 }
 
-// passed is a step that lets the commit go, with what it measured.
+// passed prints a line even for a step that lets the commit go or skips,
+// because a silent step could not be told from one that never ran.
 func passed(step, text string) Outcome {
 	return Outcome{Lines: []string{stepLine(step, text)}}
 }
@@ -30,7 +33,9 @@ func refusedBy(step, text string, out runner.Output) Outcome {
 	return Outcome{Code: codeFindings, Lines: slices.Concat([]string{stepLine(step, text)}, toolLines(out))}
 }
 
-// stepFailed is a step that could not judge.
+// stepFailed answers the failure code and not the findings one: a step
+// that could not judge found nothing wrong in the commit, so its line
+// names what broke, which is what the person fixes, not the change.
 func stepFailed(step string, err error) Outcome {
 	return Outcome{Code: codeFailure, Lines: []string{stepLine(step, err.Error())}}
 }
