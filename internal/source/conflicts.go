@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -24,11 +25,12 @@ type Conflict struct {
 
 // Conflicts answers, for a merge of the commit theirs into the commit ours
 // with each strategy option passed as -X <option>, the Conflict of each
-// path: git merge-tree --write-tree makes the merge once and git cat-file
-// --batch reads the three blobs of every path in one more question, with the
-// temporary object directory of AutomaticMergeWith, so no object reaches
-// the repository. A name one line of input cannot carry is left out, so a
-// caller reads it as unknown.
+// path: git merge-tree --write-tree makes the merge once, git cat-file
+// --batch-check describes the three blobs of every path in one more
+// question and git cat-file --batch reads those within the read bound in a
+// last one, with the temporary object directory of AutomaticMergeWith, so
+// no object reaches the repository. A name one line of input cannot carry
+// is left out, so a caller reads it as unknown.
 func Conflicts(ctx context.Context, repo Repo, ours, theirs string, options, paths []string) (map[string]Conflict, error) {
 	var conflicts map[string]Conflict
 	err := withScratch(repo, func(env []string) error {
@@ -41,9 +43,10 @@ func Conflicts(ctx context.Context, repo Repo, ours, theirs string, options, pat
 	return conflicts, err
 }
 
-// conflictBytes reads, with one git cat-file --batch, the blob the tree of
-// a merge, the commit merged and the commit merged into hold at each path,
-// in that order.
+// conflictBytes reads the blob the tree of a merge, the commit merged and
+// the commit merged into hold at each path, in that order. The sizes come
+// first because git cat-file --batch prints a whole object before its
+// reader can drop it, so a blob over the bound is never printed at all.
 func conflictBytes(ctx context.Context, dir string, env []string, tree, theirs, ours string, paths []string) (map[string]Conflict, error) {
 	revisions := []string{tree, theirs, ours}
 	var input []byte
@@ -61,19 +64,77 @@ func conflictBytes(ctx context.Context, dir string, env []string, tree, theirs, 
 	if len(asked) == 0 {
 		return conflicts, nil
 	}
-	out, err := gitWith(ctx, dir, env, input, "cat-file", "--batch")
+	names, err := boundedNames(ctx, dir, env, input, len(revisions)*len(asked))
 	if err != nil {
 		return nil, err
 	}
-	blobs, err := batchBlobs(out, len(revisions)*len(asked))
+	blobs, err := blobsByName(ctx, dir, env, names)
 	if err != nil {
 		return nil, err
 	}
 	for i, path := range asked {
 		at := len(revisions) * i
-		conflicts[path] = Conflict{Merged: blobs[at], Theirs: blobs[at+1], Ours: blobs[at+2]}
+		conflicts[path] = Conflict{Merged: blobs[names[at]], Theirs: blobs[names[at+1]], Ours: blobs[names[at+2]]}
 	}
 	return conflicts, nil
+}
+
+// boundedNames are the objects git cat-file --batch-check names for count
+// lines of input, one for each line: the name of a blob within
+// model.MaxReadBytes, and empty for any other answer, so only such a blob
+// is ever read.
+func boundedNames(ctx context.Context, dir string, env []string, input []byte, count int) ([]string, error) {
+	out, err := catFileBatch(ctx, dir, env, input, "--batch-check")
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+	if len(lines) != count {
+		return nil, catFileError(out)
+	}
+	names := make([]string, count)
+	for i, line := range lines {
+		if strings.HasSuffix(line, " missing") || strings.HasSuffix(line, " ambiguous") {
+			continue
+		}
+		name, kind, size, err := objectLine([]byte(line))
+		if err != nil {
+			return nil, err
+		}
+		if heldBlob(kind, size) {
+			names[i] = name
+		}
+	}
+	return names, nil
+}
+
+// blobsByName reads the bytes of each blob named, empty names left out,
+// with one git cat-file --batch, and none when no name is left.
+func blobsByName(ctx context.Context, dir string, env, names []string) (map[string][]byte, error) {
+	var input []byte
+	var wanted []string
+	for _, name := range names {
+		if name != "" && !slices.Contains(wanted, name) {
+			wanted = append(wanted, name)
+			input = append(input, name+"\n"...)
+		}
+	}
+	blobs := make(map[string][]byte, len(wanted))
+	if len(wanted) == 0 {
+		return blobs, nil
+	}
+	out, err := catFileBatch(ctx, dir, env, input, "--batch")
+	if err != nil {
+		return nil, err
+	}
+	read, err := batchBlobs(out, len(wanted))
+	if err != nil {
+		return nil, err
+	}
+	for i, name := range wanted {
+		blobs[name] = read[i]
+	}
+	return blobs, nil
 }
 
 // batchBlobs reads count answers of git cat-file --batch, each a header
@@ -91,12 +152,12 @@ func batchBlobs(out []byte, count int) ([][]byte, error) {
 			blobs, out = append(blobs, nil), rest
 			continue
 		}
-		kind, size, err := batchHeader(header, len(rest))
-		if err != nil {
-			return nil, err
+		_, kind, size, err := objectLine(header)
+		if err != nil || size >= len(rest) {
+			return nil, catFileError(header)
 		}
 		var blob []byte
-		if kind == "blob" && size <= model.MaxReadBytes {
+		if heldBlob(kind, size) {
 			blob = rest[:size]
 		}
 		blobs, out = append(blobs, blob), rest[size+1:]
@@ -104,22 +165,35 @@ func batchBlobs(out []byte, count int) ([][]byte, error) {
 	return blobs, nil
 }
 
-// headerFields are the fields of the header git cat-file --batch prints
-// before an object: its name, its type and its size.
+// headerFields are the fields of the line git cat-file prints to describe
+// an object: its name, its type and its size.
 const headerFields = 3
 
-// batchHeader reads the type and the size a header of git cat-file --batch
-// names, when the answer after it holds that many bytes and a line feed.
-func batchHeader(header []byte, held int) (string, int, error) {
-	fields := strings.Fields(string(header))
+// objectLine reads the name, the type and the size a line of git cat-file
+// describes an object with.
+func objectLine(line []byte) (string, string, int, error) {
+	fields := strings.Fields(string(line))
 	if len(fields) != headerFields {
-		return "", 0, catFileError(header)
+		return "", "", 0, catFileError(line)
 	}
 	size, err := strconv.Atoi(fields[2])
-	if err != nil || size < 0 || size >= held {
-		return "", 0, catFileError(header)
+	if err != nil || size < 0 {
+		return "", "", 0, catFileError(line)
 	}
-	return fields[1], size, nil
+	return fields[0], fields[1], size, nil
+}
+
+// heldBlob reports whether an object git cat-file describes is a blob the
+// read bound lets the kit hold.
+func heldBlob(kind string, size int) bool {
+	return kind == "blob" && size <= model.MaxReadBytes
+}
+
+// catFileBatch runs git cat-file in one batch mode over the lines of input:
+// the conflict read asks it twice, once to size the blobs and once to read
+// those the bound lets it hold.
+func catFileBatch(ctx context.Context, dir string, env []string, input []byte, mode string) ([]byte, error) {
+	return gitWith(ctx, dir, env, input, "cat-file", mode)
 }
 
 // catFileError is an answer of git cat-file the kit cannot read.

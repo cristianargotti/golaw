@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook"
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // resolutionCases are the commands that leave a conflict of a teammate's
@@ -76,8 +77,9 @@ func TestHookPostJudgesAResolutionWrittenWithoutGitAdd(t *testing.T) {
 // TestHookAsksTheConflictOnlyForAMergeThatStops counts the git commands of
 // the post event of a merge the command left stopped on a conflict: the
 // bytes of the merge git makes by itself are asked once, as one git
-// merge-tree and one git cat-file --batch, beside the merge-tree and the
-// git cat-file --batch-check of the file it staged and the questions of an
+// merge-tree, one git cat-file --batch-check that sizes the blobs and one
+// git cat-file --batch that reads them, beside the merge-tree and the git
+// cat-file --batch-check of the file it staged and the questions of an
 // ordinary post event. The test is serial for the reason
 // TestHookAsksGitEachFactOnce gives.
 func TestHookAsksTheConflictOnlyForAMergeThatStops(t *testing.T) {
@@ -98,9 +100,41 @@ func TestHookAsksTheConflictOnlyForAMergeThatStops(t *testing.T) {
 	count := func(name string) int {
 		return len(slices.DeleteFunc(slices.Clone(commands), func(c string) bool { return !strings.Contains(c, name) }))
 	}
-	if pre.ExitCode != 0 || post.ExitCode != 0 || fedBack(string(post.Stdout)) || len(commands) > 9 ||
-		count("merge-tree") != 2 || count("--batch-check") != 1 {
-		t.Fatalf("pre %s, post %s, the post event ran %d git commands, the ceiling is 9:\n%s", pre.Stdout, post.Stdout, len(commands), strings.Join(commands, "\n"))
+	if pre.ExitCode != 0 || post.ExitCode != 0 || fedBack(string(post.Stdout)) || len(commands) > 10 ||
+		count("merge-tree") != 2 || count("--batch-check") != 2 {
+		t.Fatalf("pre %s, post %s, the post event ran %d git commands, the ceiling is 10:\n%s", pre.Stdout, post.Stdout, len(commands), strings.Join(commands, "\n"))
+	}
+}
+
+// TestHookReadsNoConflictOverTheReadBound counts the git commands of the
+// post event of a merge the command left stopped on the conflict of big.md,
+// a file over the read bound on disk: big.md waits in the unmerged notice,
+// and git is asked neither the merge nor a blob for it, no git merge-tree
+// and no git cat-file --batch beside the one that reads the policy. The
+// test is serial for the reason TestHookAsksGitEachFactOnce gives.
+func TestHookReadsNoConflictOverTheReadBound(t *testing.T) {
+	trace := filepath.Join(t.TempDir(), "git.trace")
+	t.Setenv("GIT_TRACE", trace)
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	e := enrolledHook(t)
+	big := strings.Repeat("common line\n", model.MaxReadBytes/12+1)
+	commitFiles(t, e.root, map[string]string{"big.md": big + "start\n"})
+	sideBranch(t, e.root, mate(earlier), map[string]string{"big.md": big + "mate \u2014 line\n"})
+	commitFiles(t, e.root, map[string]string{"big.md": big + "local line\n"})
+	agent := agentUnderTest()
+	pre := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PreToolUse", e.root, "true")), agent.Adapter, e.deps)
+	gitStops(t, e.root, "merge", "-q", "side")
+	if err := os.WriteFile(trace, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	post := hook.Run(t.Context(), agent.ID, strings.NewReader(shellEventAt(t, "PostToolUse", e.root, "true")), agent.Adapter, e.deps)
+	commands, said := gitCommandsOf(t, trace), string(post.Stdout)
+	unmerged := "golaw did not measure big.md: git left it unmerged, and golaw judges the resolution the agent writes; the pipeline judges it."
+	merged := slices.ContainsFunc(commands, func(c string) bool { return strings.Contains(c, "merge-tree") })
+	reads := len(slices.DeleteFunc(slices.Clone(commands), func(c string) bool { return c != "git cat-file --batch" }))
+	if pre.ExitCode != 0 || post.ExitCode != 0 || fedBack(said) || !strings.Contains(said, unmerged) || merged || reads != 1 {
+		t.Fatalf("pre %s, post %s, the post event ran:\n%s", pre.Stdout, said, strings.Join(commands, "\n"))
 	}
 }
 

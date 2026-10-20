@@ -199,6 +199,7 @@ func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 		"A path git status reports unmerged after the command that it did not name before holds the conflict git wrote from both sides",
 		"it is named in a notice and judged by the event that writes its resolution",
 		"When the command started the merge, its bytes are first compared with that conflict, the merge git makes by itself with the strategy options of the command",
+		"one git cat-file --batch-check that sizes the blobs and one git cat-file --batch that reads those within the read bound asked once for every such path whose bytes on disk are within that bound, so a path over it waits without a merge made for it",
 		"bytes HEAD holds whole are unchanged and report nothing",
 		"any other bytes, a resolution the command wrote without git add, are judged in the same event",
 		"a resolution the command writes for a conflict a rebase, a cherry-pick, a revert or a stash left, which no MERGE_HEAD names, waits for a later event, a stated limit",

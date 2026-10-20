@@ -5,6 +5,8 @@ import (
 	"context"
 	"slices"
 	"strings"
+
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // Conflict is what the merge git makes by itself, the merged commit and the
@@ -49,26 +51,45 @@ const markerSize = 7
 // length alone, because git names the sides in it after the names a command
 // gave them. Every path waits when the command did not start the merge, for
 // an octopus merge, a path git cannot read or name, and when git cannot
-// answer or no binding asks it.
+// answer or no binding asks it. The bytes on disk are read before git is
+// asked, so a path gone from disk or over the read bound waits without a
+// merge made for it.
 func (run execution) resolutions(ctx context.Context, dependencies Dependencies, before Baseline, changes Changes, unmerged []string) ([]string, []Gap) {
 	theirs := strings.Fields(changes.Merge)
 	if len(unmerged) == 0 || changes.Merge == before.Merge || len(theirs) != 1 || dependencies.Conflicts == nil {
 		return nil, pathGaps(unmerged, causeUnmerged)
 	}
-	conflicts, err := dependencies.Conflicts(ctx, run.repository, changes.Head, theirs[0], before.Options, unmerged)
-	if err != nil {
-		return nil, pathGaps(unmerged, causeUnmerged)
+	contents, read := readUnmerged(changes.Snapshot, unmerged)
+	var conflicts map[string]Conflict
+	if len(read) > 0 {
+		var err error
+		if conflicts, err = dependencies.Conflicts(ctx, run.repository, changes.Head, theirs[0], before.Options, read); err != nil {
+			return nil, pathGaps(unmerged, causeUnmerged)
+		}
 	}
 	sorted := map[resolution][]string{}
 	for _, path := range unmerged {
-		content, readErr := changes.Snapshot.Read(path)
+		content, held := contents[path]
 		conflict, known := conflicts[path]
-		kind := resolutionOf(content, conflict, readErr == nil && known)
+		kind := resolutionOf(content, conflict, held && known)
 		sorted[kind] = append(sorted[kind], path)
 	}
 	stays, untold := run.notOwn(ctx, dependencies, before, changes, slices.Clone(sorted[kept]))
 	own := slices.DeleteFunc(slices.Clone(sorted[kept]), among(slices.Concat(stays, untold)))
 	return append(sorted[written], own...), slices.Concat(pathGaps(sorted[waiting], causeUnmerged), pathGaps(untold, causeCommits), pathGaps(sorted[taken], causeMerged))
+}
+
+// readUnmerged reads the bytes on disk of each unmerged path the snapshot
+// holds within the read bound and answers the paths it read, in order.
+func readUnmerged(snapshot model.Snapshot, unmerged []string) (map[string][]byte, []string) {
+	contents := map[string][]byte{}
+	var read []string
+	for _, path := range unmerged {
+		if content, err := snapshot.Read(path); err == nil {
+			contents[path], read = content, append(read, path)
+		}
+	}
+	return contents, read
 }
 
 // resolutionOf is what the bytes on disk of an unmerged path are, against

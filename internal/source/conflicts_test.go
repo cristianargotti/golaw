@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/gittest"
+	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/source"
 )
 
@@ -53,4 +54,53 @@ func TestConflictsReadTheBytesOfTheMergeGitMakes(t *testing.T) {
 	if err != nil || string(written) != "<<<<<<< HEAD\nmain\n=======\nside\n>>>>>>> side\n" {
 		t.Fatalf("git merge wrote %q, %v", written, err)
 	}
+}
+
+// TestConflictsReadNoBlobOverTheReadBound reads, for a merge whose big.md
+// conflicts in a file over the read bound on both sides and whose shared.md
+// conflicts within it, the bytes of shared.md and none of big.md: git
+// cat-file --batch reads only the blobs within the bound, and runs not at
+// all when every blob asked is over it. The test is serial because it
+// traces the git commands through the environment.
+func TestConflictsReadNoBlobOverTheReadBound(t *testing.T) {
+	r := gittest.New(t)
+	big := strings.Repeat("common line\n", model.MaxReadBytes/12+1)
+	r.Commit("docs: start", map[string]string{"big.md": big + "start\n", "shared.md": "start\n"})
+	side := r.Branch("side", map[string]string{"big.md": big + "side\n", "shared.md": "side\n"})
+	r.Commit("docs: main", map[string]string{"big.md": big + "main\n", "shared.md": "main\n"})
+	repo, err := source.Discover(t.Context(), r.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trace := filepath.Join(t.TempDir(), "git.trace")
+	t.Setenv("GIT_TRACE", trace)
+	conflicts, err := source.Conflicts(t.Context(), repo, repo.Head, side, nil, []string{"big.md", "shared.md"})
+	over := conflicts["big.md"]
+	if err != nil || over.Merged != nil || over.Theirs != nil || over.Ours != nil || string(conflicts["shared.md"].Theirs) != "side\n" || batchReads(t, trace) != 1 {
+		t.Fatalf("conflicts %d paths, big.md read %v, %v", len(conflicts), over.Merged != nil || over.Theirs != nil || over.Ours != nil, err)
+	}
+	if writeErr := os.WriteFile(trace, nil, 0o600); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	only, err := source.Conflicts(t.Context(), repo, repo.Head, side, nil, []string{"big.md"})
+	if err != nil || len(only) != 1 || only["big.md"].Merged != nil || batchReads(t, trace) != 0 {
+		t.Fatalf("big.md alone: %d paths, %v, %d batch reads", len(only), err, batchReads(t, trace))
+	}
+}
+
+// batchReads counts the git cat-file --batch commands a trace of git holds,
+// the ones that read the bytes of objects rather than describe them.
+func batchReads(t *testing.T, trace string) int {
+	t.Helper()
+	data, err := os.ReadFile(trace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if strings.HasSuffix(line, "trace: built-in: git cat-file --batch") {
+			count++
+		}
+	}
+	return count
 }

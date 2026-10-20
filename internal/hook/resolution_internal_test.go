@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"bytes"
 	"context"
 	"slices"
 	"strings"
@@ -63,13 +64,14 @@ func conflictsOf(asked *[]string) func(context.Context, Repository, string, stri
 
 // resolutionChanges are the changes git status reports after a command
 // merged m1 into c1 and left it in progress: the unmerged paths and the
-// bytes on disk of each but gone.md, deleted.
+// bytes on disk of each but gone.md, deleted, huge.md over the read bound.
 func resolutionChanges() Changes {
 	return Changes{
 		Head: "c1", Merge: "m1",
 		Snapshot: proof.NewTree(map[string][]byte{
 			"conflict.md": []byte("<<<<<<< HEAD\nmine \u2014 old\n=======\ntheirs \u2014 x\n>>>>>>> side\n"),
 			"crlf.md":     []byte("<<<<<<< HEAD\r\nmine \u2014 old\r\n=======\r\ntheirs \u2014 x\r\n>>>>>>> side\r\n"),
+			"huge.md":     append(bytes.Repeat([]byte("x"), model.MaxReadBytes), "\nmine \u2014 resolved\n"...),
 			"mine.md":     []byte("mine \u2014 resolved\n"),
 			"ours.md":     []byte("mine \u2014 old\r\n"),
 			"theirs.md":   []byte("theirs \u2014 x\r\n"),
@@ -77,7 +79,8 @@ func resolutionChanges() Changes {
 			"unknown.md":  []byte("mine \u2014 resolved\n"),
 		}),
 		Unmerged: map[string]bool{
-			"conflict.md": true, "crlf.md": true, "gone.md": true, "mine.md": true, "ours.md": true, "over.md": true, "theirs.md": true, "unknown.md": true,
+			"conflict.md": true, "crlf.md": true, "gone.md": true, "huge.md": true, "mine.md": true, "ours.md": true, "over.md": true,
+			"theirs.md": true, "unknown.md": true,
 		},
 	}
 }
@@ -88,23 +91,31 @@ func resolutionChanges() Changes {
 // brought, keeps silent the one that holds the bytes of HEAD, unchanged,
 // and leaves to the event of its resolution each that holds the conflict
 // git wrote, whatever its line ends and the names of its sides, one gone
-// from disk, one whose bytes git could not read and one git could not name;
-// git is asked once, with the strategy options of the command, and never
-// for a merge the command did not start, an octopus merge or without a
-// binding, and when git cannot answer every path waits.
+// from disk, one over the read bound, one whose bytes git could not read
+// and one git could not name; git is asked once, with the strategy options
+// of the command, only for the paths whose bytes were read, never for a
+// merge the command did not start, an octopus merge, without a binding or
+// when no path could be read, and when git cannot answer every path waits.
 func TestResolutionsJudgeWhatTheCommandWrote(t *testing.T) {
 	t.Parallel()
-	unmerged := []string{"conflict.md", "crlf.md", "gone.md", "mine.md", "ours.md", "over.md", "theirs.md", "unknown.md"}
+	unmerged := []string{"conflict.md", "crlf.md", "gone.md", "huge.md", "mine.md", "ours.md", "over.md", "theirs.md", "unknown.md"}
 	run := execution{repository: Repository{Head: "c1"}}
 	var asked []string
 	deps := Dependencies{Conflicts: conflictsOf(&asked)}
 	before := Baseline{Files: map[string]string{}, Head: "c1", Options: []string{"theirs"}}
 	changed := append(slices.Clone(unmerged), "edited.md")
 	got, gaps := run.fromMerge(t.Context(), deps, before, resolutionChanges(), changed)
-	waiting := pathGaps([]string{"conflict.md", "crlf.md", "gone.md", "over.md", "unknown.md"}, causeUnmerged)
+	waiting := pathGaps([]string{"conflict.md", "crlf.md", "gone.md", "huge.md", "over.md", "unknown.md"}, causeUnmerged)
+	read := []string{"conflict.md", "crlf.md", "mine.md", "ours.md", "over.md", "theirs.md", "unknown.md"}
 	if !slices.Equal(got, []string{"mine.md", "edited.md"}) || !slices.Equal(gaps, append(waiting, pathGaps([]string{"theirs.md"}, causeMerged)...)) ||
-		!slices.Equal(asked, []string{"c1..m1 theirs " + strings.Join(unmerged, ",")}) {
+		!slices.Equal(asked, []string{"c1..m1 theirs " + strings.Join(read, ",")}) {
 		t.Fatalf("judged %v, gaps %+v after %q", got, gaps, asked)
+	}
+	asked = nil
+	unread := []string{"gone.md", "huge.md"}
+	if written, waited := run.resolutions(t.Context(), deps, before, resolutionChanges(), unread); len(written) != 0 ||
+		!slices.Equal(waited, pathGaps(unread, causeUnmerged)) || len(asked) != 0 {
+		t.Fatalf("no path read: written %v, gaps %+v after %q", written, waited, asked)
 	}
 	failing := Dependencies{Conflicts: func(context.Context, Repository, string, string, []string, []string) (map[string]Conflict, error) {
 		return nil, model.ErrUnreadable
