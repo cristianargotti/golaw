@@ -53,7 +53,7 @@ func receipts(state string) []setup.Receipt {
 		if !strings.HasSuffix(entry.Name(), ".json") {
 			continue
 		}
-		if r, err := setup.ReadReceipt(filepath.Join(dir, entry.Name())); err == nil {
+		if r, err := setup.ReadReceipt(filepath.Join(dir, entry.Name())); err == nil { // fallback: a file that is no receipt arms nothing
 			out = append(out, r)
 		}
 	}
@@ -86,10 +86,9 @@ func gitPaths(ctx context.Context, dir string, env []string, args ...string) []s
 
 // realPath is a path with its links resolved, so a receipt that names a
 // directory through a link, as /var names /private/var on macOS, matches
-// what git answers; a path that does not resolve, a hooks directory not
-// made yet, compares by its clean form.
+// what git answers.
 func realPath(path string) string {
-	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+	if resolved, err := filepath.EvalSymlinks(path); err == nil { // fallback: a hooks directory not made yet compares by its clean form
 		return resolved
 	}
 	return filepath.Clean(path)
