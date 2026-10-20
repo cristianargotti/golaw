@@ -207,3 +207,21 @@ func TestPrePushScansABranchAndItsTagOnce(t *testing.T) {
 		t.Errorf("the tag of HEAD is read in place: %v", err)
 	}
 }
+
+// Two entries may waive one advisory, an extension beside the one that
+// lapsed: the push goes on while one is in force, and its line names the
+// entry in force, whatever their order.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPrePushNamesTheWaiverInForce(t *testing.T) {
+	old := "  - {id: GO-2026-0002, until: 2026-10-01, record: docs/adr/0003-old.md}\n"
+	current := "  - {id: GO-2026-0002, until: 2026-12-31, record: docs/adr/0004-new.md}\n"
+	for name, waivers := range map[string]string{"the lapsed one first": old + current, "the one in force first": current + old} {
+		r := armedRepo(t, armedPolicy+"vulnerability_waivers:\n"+waivers)
+		fakes(t, map[string]runnertest.Behavior{"govulncheck": scanned("v1.7.0", serveFinding)})
+		out := rung.RunPrePush(t.Context(), pushing(t, r, update(r.Head())), "origin", "")
+		if out.Code != 0 || len(out.Lines) != 1 || !contains(out, "GO-2026-0002 waived until 2026-12-31 (docs/adr/0004-new.md)") {
+			t.Errorf("%s = %+v", name, out)
+		}
+	}
+}

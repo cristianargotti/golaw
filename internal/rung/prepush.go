@@ -128,15 +128,19 @@ func (p prepush) read(short string, out runner.Output, err error) Outcome {
 }
 
 // judge splits the reachable advisories of one tip by the waivers and
-// names each, an expired waiver of a refused advisory with it.
+// names the entry behind each verdict: for a waived one the entry in force,
+// because an extension may sit beside the entry that lapsed and a past day
+// would tell the person the waiver no longer holds; for a refused one its
+// lapsed entry, the one to renew.
 func (p prepush) judge(short string, found []vuln.Finding) Outcome {
 	if len(found) == 0 {
 		return Outcome{Lines: []string{prefix(PrePush) + short + ": govulncheck finds no reachable vulnerability"}}
 	}
 	verdict := vuln.Judge(found, p.waivers, p.deps.Now)
+	lapsed := vuln.Expired(p.waivers, p.deps.Now)
 	out := Outcome{}
 	for _, f := range verdict.Waived {
-		w := p.waivers[slices.IndexFunc(p.waivers, func(w model.Waiver) bool { return w.ID == f.ID })]
+		w := p.waivers[slices.IndexFunc(p.waivers, func(w model.Waiver) bool { return w.ID == f.ID && !slices.Contains(lapsed, w) })]
 		out.Lines = append(out.Lines, fmt.Sprintf("%s%s: %s waived until %s (%s)", prefix(PrePush), short, f.ID, w.Until, w.Record))
 	}
 	for _, f := range verdict.Refused {
