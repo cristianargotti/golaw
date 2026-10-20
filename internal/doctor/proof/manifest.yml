@@ -63,3 +63,7 @@ checks:
     code: setup-tool-unavailable
     red: testdata/setup-tools/red
     near: testdata/setup-tools/near
+  - id: doctor.managed
+    code: managed-drift
+    red: testdata/managed/red
+    near: testdata/managed/near

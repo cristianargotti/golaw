@@ -31,6 +31,7 @@ func (a *app) doctorReports(ctx context.Context, root, scope string) ([]doctor.R
 	if err != nil {
 		return nil, err
 	}
+	lines = append(lines, a.bind().managedDoctor(ctx, root, a.now())...)
 	return withSetupLines(reports, lines), nil
 }
 
