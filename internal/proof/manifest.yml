@@ -166,3 +166,7 @@ checks:
     code: body-width
     red: testdata/commit.body-width/red
     near: testdata/commit.body-width/near
+  - id: commit.shape
+    code: commit-shape
+    red: testdata/commit.shape/red
+    near: testdata/commit.shape/near
