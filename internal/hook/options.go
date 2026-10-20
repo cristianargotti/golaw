@@ -137,8 +137,9 @@ func (s *shellScan) endPart() {
 	}
 }
 
-// subcommand is the subcommand of a git command and the words after it,
-// read after the global options, empty when no word names one.
+// subcommand skips -C and -c with the word after them, the two global
+// options of git whose value is the next word, so that value is never read
+// as the subcommand.
 func subcommand(words []string) []string {
 	skip := false
 	for i, word := range words {
@@ -156,8 +157,8 @@ func subcommand(words []string) []string {
 	return nil
 }
 
-// optionValue is the value a word gives the strategy option, from the word
-// itself or from the word after it.
+// optionValue reads both spellings because git parses -X and
+// --strategy-option with the value joined to them or in the next word.
 func optionValue(word string, after []string) (string, bool) {
 	switch {
 	case word == "-X" || word == "--strategy-option":

@@ -70,8 +70,9 @@ func (run execution) resolutions(ctx context.Context, dependencies Dependencies,
 	return append(sorted[written], own...), slices.Concat(pathGaps(sorted[waiting], causeUnmerged), pathGaps(untold, causeCommits), pathGaps(sorted[taken], causeMerged))
 }
 
-// readUnmerged reads the bytes on disk of each unmerged path the snapshot
-// holds within the read bound and answers the paths it read, in order.
+// readUnmerged answers the unmerged paths whose bytes the snapshot holds
+// within the read bound, with those bytes, so git makes no merge for a path
+// whose bytes could not be compared.
 func readUnmerged(snapshot model.Snapshot, unmerged []string) (map[string][]byte, []string) {
 	contents := map[string][]byte{}
 	var read []string
@@ -146,7 +147,9 @@ func (run execution) restyled(ctx context.Context, dependencies Dependencies, ou
 }
 
 // baseMarked reports whether bytes hold the base marker of the diff3 and
-// the zdiff3 styles, a line that opens with a run of seven or more |.
+// the zdiff3 styles, a line that opens with a run of seven or more |: only
+// such bytes can be a conflict in those styles, so only they cost git the
+// merges of restyled.
 func baseMarked(content []byte) bool {
 	for line := range bytes.SplitSeq(content, []byte("\n")) {
 		line = bytes.TrimSuffix(line, []byte("\r"))

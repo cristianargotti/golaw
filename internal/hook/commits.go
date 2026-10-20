@@ -148,7 +148,8 @@ func (run execution) remergedWith(ctx context.Context, dependencies Dependencies
 	return apart, nil
 }
 
-// holding are the merges named that still hold a path apart, in order.
+// holding are the merges named that still hold a path apart, in order:
+// only they need the merge with the next option.
 func holding(apart map[string][]string, names []string) []string {
 	var held []string
 	for _, name := range names {

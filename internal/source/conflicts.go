@@ -150,8 +150,9 @@ func boundedNames(ctx context.Context, dir string, env []string, input []byte, c
 	return names, nil
 }
 
-// blobsByName reads the bytes of each blob named, empty names left out,
-// with one git cat-file --batch, and none when no name is left.
+// blobsByName asks git cat-file --batch once for the distinct blobs named,
+// so a blob several revisions hold is read once, and not at all when the
+// bound left no name.
 func blobsByName(ctx context.Context, dir string, env, names []string) (map[string][]byte, error) {
 	var input []byte
 	var wanted []string
@@ -211,8 +212,8 @@ func batchBlobs(out []byte, count int) ([][]byte, error) {
 // an object: its name, its type and its size.
 const headerFields = 3
 
-// objectLine reads the name, the type and the size a line of git cat-file
-// describes an object with.
+// objectLine parses the line both batch modes of git cat-file describe an
+// object with, so the sizing and the read agree on one reading of it.
 func objectLine(line []byte) (string, string, int, error) {
 	fields := strings.Fields(string(line))
 	if len(fields) != headerFields {
@@ -225,8 +226,8 @@ func objectLine(line []byte) (string, string, int, error) {
 	return fields[0], fields[1], size, nil
 }
 
-// heldBlob reports whether an object git cat-file describes is a blob the
-// read bound lets the kit hold.
+// heldBlob is the one test both batch modes apply, so a blob the sizing
+// left out is never read.
 func heldBlob(kind string, size int) bool {
 	return kind == "blob" && size <= model.MaxReadBytes
 }
@@ -238,7 +239,8 @@ func catFileBatch(ctx context.Context, dir string, env []string, input []byte, m
 	return gitWith(ctx, dir, env, input, "cat-file", mode)
 }
 
-// catFileError is an answer of git cat-file the kit cannot read.
+// catFileError marks an answer the kit cannot read as ErrGit, so a caller
+// treats it as git failing and never as an answer.
 func catFileError(text []byte) error {
 	return fmt.Errorf("%w: git cat-file printed %q", ErrGit, text)
 }
