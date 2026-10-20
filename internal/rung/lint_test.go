@@ -33,7 +33,7 @@ func TestPreCommitFormatsAndLintsTheStagedGo(t *testing.T) {
 	}
 	calls := runnertest.Calls(t, dir, "golangci-lint")
 	patch := filepath.Join(r.GitDir(), "golaw", "pre-commit.patch")
-	want := [][]string{{"version"}, {"fmt", "--diff", filepath.FromSlash("a/a.go")}, {"run", "--new-from-patch=" + patch, "./a"}}
+	want := [][]string{{"version"}, {"fmt", "--diff", filepath.FromSlash("a/a.go")}, {"run", "--allow-parallel-runners", "--new-from-patch=" + patch, "./a"}}
 	if !slices.EqualFunc(calls, want, slices.Equal) {
 		t.Errorf("golangci-lint calls = %v, want %v", calls, want)
 	}
@@ -106,7 +106,7 @@ func TestPreCommitLintsAModuleOnlyChange(t *testing.T) {
 		t.Errorf("a module-only change = %+v", out)
 	}
 	patch := filepath.Join(r.GitDir(), "golaw", "pre-commit.patch")
-	want := [][]string{{"version"}, {"run", "--new-from-patch=" + patch, "./..."}}
+	want := [][]string{{"version"}, {"run", "--allow-parallel-runners", "--new-from-patch=" + patch, "./..."}}
 	if calls := runnertest.Calls(t, dir, "golangci-lint"); !slices.EqualFunc(calls, want, slices.Equal) {
 		t.Errorf("golangci-lint calls = %v, want %v", calls, want)
 	}

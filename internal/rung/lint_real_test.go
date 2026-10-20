@@ -3,8 +3,10 @@ package rung_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/cristianargotti/golaw/internal/gittest"
 	"github.com/cristianargotti/golaw/internal/rung"
 	"github.com/cristianargotti/golaw/internal/runner"
 	"github.com/cristianargotti/golaw/internal/runnertest"
@@ -91,5 +93,38 @@ func TestPreCommitPlacesTheStagedLinesThroughALinkAnEscapedNameAndARename(t *tes
 	out := rung.RunPreCommit(t.Context(), through)
 	if out.Code != 1 || !contains(out, filepath.FromSlash("a/café.go")+":3:1: Comment should end in a period (godot)") || contains(out, "moved.go:") {
 		t.Errorf("a new issue in a staged file beside an old one a rename moved, through a link = %+v", out)
+	}
+}
+
+// golangci-lint takes a lock in the temporary directory for its whole run,
+// and a second run that finds it held fails at once, so another
+// golangci-lint, such as the one an editor runs on save, would fail the
+// lint step of a commit that introduces nothing. The plain run under the
+// held lock shows the lock holds; the rung lints beside it.
+//
+//nolint:paralleltest // the fake gitleaks is found through PATH
+func TestPreCommitLintsBesideAnotherGolangciLint(t *testing.T) {
+	realLinter(t)
+	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks})
+	r := armedRepo(t, armedPolicy)
+	r.Commit("build: lint the comments", map[string]string{".golangci.yml": lintComments, "a/a.go": "package a\n\n// A answers one.\nfunc A() int { return 1 }\n"})
+	r.Stage(map[string]string{"a/b.go": "package a\n\n// B answers two.\nfunc B() int { return 2 }\n"})
+	tmp := t.TempDir()
+	held, err := runner.Acquire(t.Context(), filepath.Join(tmp, "golangci-lint.lock"), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if released := held.Release(); released != nil {
+			t.Error(released)
+		}
+	})
+	env := []string{"TMPDIR=" + tmp, "TMP=" + tmp, "TEMP=" + tmp}
+	plain, err := runner.Run(t.Context(), runner.Command{Name: "golangci-lint", Args: []string{"run", "./..."}, Dir: r.Root, Env: append(gittest.Isolated(), env...)})
+	if err != nil || plain.Code == 0 || !strings.Contains(string(plain.Stdout)+string(plain.Stderr), "parallel golangci-lint is running") {
+		t.Fatalf("the held lock does not stop a plain golangci-lint run: %+v, %v", plain, err)
+	}
+	if out := rung.RunPreCommit(t.Context(), deps(t, r, env...)); out.Code != 0 || !contains(out, "lint: golangci-lint found no issue on the staged lines of 1 affected packages") {
+		t.Errorf("a clean commit beside another golangci-lint = %+v", out)
 	}
 }

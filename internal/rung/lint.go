@@ -66,7 +66,10 @@ func (p *precommit) format(ctx context.Context, t goTree, path string, env, file
 
 // lint runs golangci-lint over the affected packages and keeps the issues
 // of the lines the staged patch adds. While a merge is in progress that
-// patch holds what the merge brought, which the pipeline judges.
+// patch holds what the merge brought, which the pipeline judges. It runs
+// beside any other golangci-lint, such as the one an editor runs on save,
+// because the lock golangci-lint takes otherwise fails a run that finds it
+// held, and a run the commit did not start is no reason to refuse it.
 func (p *precommit) lint(ctx context.Context, t goTree, path string, env []string) Outcome {
 	if p.scan.Index.MergeHead() != "" {
 		return passed(lintStep, "skipped, a merge is in progress and its staged patch holds what the merge brought, which the pipeline judges")
@@ -75,7 +78,7 @@ func (p *precommit) lint(ctx context.Context, t goTree, path string, env []strin
 	if err != nil {
 		return stepFailed(lintStep, err)
 	}
-	args := slices.Concat([]string{"run", "--new-from-patch=" + patch}, t.set.Patterns)
+	args := slices.Concat([]string{"run", "--allow-parallel-runners", "--new-from-patch=" + patch}, t.set.Patterns)
 	out, err := runner.Run(ctx, runner.Command{Name: path, Args: args, Dir: t.dir, Env: env})
 	result := linted(len(t.set.Packages), out, err)
 	if gone := os.Remove(patch); gone != nil && !errors.Is(gone, fs.ErrNotExist) {
