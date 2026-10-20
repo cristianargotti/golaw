@@ -1,6 +1,7 @@
 package hook
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -14,24 +15,31 @@ const (
 )
 
 // strategyOptions are the strategy options a command text gives git merge
-// or git pull, ours and theirs, in the order it gives them, read only in
-// the words of a git merge or git pull the text runs (gitInvocations): the
-// word -X or --strategy-option followed by the value, or the value joined
-// as -Xtheirs or --strategy-option=theirs, a word read with one pair of
-// surrounding quotes. An -X of another program, an option the
-// configuration, an alias or a script gives, and any other shell form are
-// not read, so the merge the hook makes again then has no option.
+// or git pull, ours and theirs: of each git merge or git pull the text runs
+// plainly (gitInvocations), the last it gives, as git takes it, in the word
+// -X or --strategy-option followed by the value, or the value joined as
+// -Xtheirs or --strategy-option=theirs, a word read with one pair of
+// surrounding quotes, and each option once, in the order the text first
+// gives it. Two options are two merges to make again apart, because the
+// text does not tell which of its merges made the merge the post event
+// reads. An -X of another program, an option the configuration, an alias
+// or a script gives, and any other shell form are not read, so the merge
+// the hook makes again then has no option.
 func strategyOptions(command string) []string {
 	var options []string
 	for _, words := range gitInvocations(command) {
 		if words[0] != "merge" && words[0] != "pull" {
 			continue
 		}
+		last := ""
 		for i, word := range words[1:] {
 			value, found := optionValue(bare(word), words[i+2:])
 			if value = bare(value); found && (value == optionOurs || value == optionTheirs) {
-				options = append(options, value)
+				last = value
 			}
+		}
+		if last != "" && !slices.Contains(options, last) {
+			options = append(options, last)
 		}
 	}
 	return options

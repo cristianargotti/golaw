@@ -60,13 +60,19 @@ type lineCase struct {
 
 // strategyCases are the commands that merge a teammate's dash with -X ours
 // or -X theirs, left in progress or committed, in the spellings git takes,
-// which name what the option took in the notice; the red case, an edit the
-// command stages after such a merge; and the stated limit, an option the
-// text of the command does not spell, as a script that runs the merge.
+// and beside a fallback of the other option that did not run, which name
+// what the option took in the notice, and a merge without an option that
+// stops on a conflict beside an -X theirs merge that failed after it,
+// whose conflict waits; the red case, an edit the command stages after
+// such a merge; and the stated limit, an option the text of the command
+// does not spell, as a script that runs the merge.
 func strategyCases(t *testing.T) []lineCase {
 	t.Helper()
 	merged := "the merge in progress brought from commits this command did not create, which ask for no fix: shared.md"
 	moved := "the move of HEAD brought from commits this command did not create, which ask for no fix: shared.md"
+	unmerged := "golaw did not measure shared.md: git left it unmerged, and golaw judges the resolution the agent writes; the pipeline judges it."
+	stops := func(root string) { gitStops(t, root, "merge", "-q", "side") }
+	conflict := func(root string) { conflicting(t, root, false) }
 	merge := func(args ...string) func(string) {
 		return func(root string) { gitRun(t, root, append([]string{"merge", "-q"}, args...)...) }
 	}
@@ -86,6 +92,17 @@ func strategyCases(t *testing.T) []lineCase {
 		{"a merge -Xtheirs committed", "git merge -q --no-edit -Xtheirs side", theirs(dash), merge("--no-edit", "-Xtheirs", "side"), "", []string{moved}},
 		{"a merge --strategy-option=ours left in progress", "git merge -q --no-commit --strategy-option=ours side", ours, merge("--no-commit", "--strategy-option=ours", "side"), "", []string{merged}},
 		{"a pull -X ours committed", "git pull -q --no-rebase --no-edit -X ours . side", ours, pull, "", []string{moved}},
+		{
+			"a merge -X theirs left in progress, its -X ours fallback not run", "git merge -q --no-commit -X theirs side || git merge -q --no-commit -X ours side",
+			theirs(dash), merge("--no-commit", "-X", "theirs", "side"), "",
+			[]string{merged},
+		},
+		{
+			"a merge -X theirs committed, its -X ours fallback not run", "git merge -q --no-edit -X theirs side || git merge -q --no-edit -X ours side",
+			theirs(dash), merge("--no-edit", "-X", "theirs", "side"), "",
+			[]string{moved},
+		},
+		{"a conflict of a merge without an option beside a failed -X theirs", "git merge -q side || git merge -q -X theirs side", conflict, stops, "", []string{unmerged}},
 		{"an edit the command stages after a merge -X theirs", "git merge -q --no-commit -X theirs side && printf 'mine' >> shared.md && git add shared.md", theirs(clean), edited, "shared.md:8", nil},
 		{"a merge -X theirs a script runs, the stated limit", "sh merge.sh", theirs(dash), merge("--no-commit", "-X", "theirs", "side"), "shared.md:1", nil},
 	}

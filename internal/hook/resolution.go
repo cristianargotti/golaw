@@ -40,39 +40,30 @@ const markerSize = 7
 // resolutions sorts the paths git left unmerged after the command that git
 // status did not name before it, when the command started the merge: a path
 // whose bytes are those HEAD holds is kept, judged when a commit the command
-// created changed it (notOwn) and left as unchanged otherwise; one whose bytes are
-// those of the merged commit is named as brought by the merge; one whose
-// bytes are the conflict git wrote, the merge git makes by itself with the
-// strategy options of the command, waits for the event that writes its
-// resolution; and one whose bytes are none of these, a resolution the
-// command wrote without git add, is answered first, to be judged. Two texts
-// are the same when their lines are, a carriage return before a line end
-// ignored, and a conflict marker line compared by its character and its
-// length alone, because git names the sides in it after the names a command
-// gave them. Every path waits when the command did not start the merge, for
-// an octopus merge, a path git cannot read or name, and when git cannot
-// answer or no binding asks it. The bytes on disk are read before git is
-// asked, so a path gone from disk or over the read bound waits without a
-// merge made for it.
+// created changed it (notOwn) and left as unchanged otherwise; one whose
+// bytes are those of the merged commit is named as brought by the merge;
+// one whose bytes are the conflict git wrote, the merge git makes by itself
+// or with one strategy option of the command (conflictKinds), waits for the
+// event that writes its resolution; and one whose bytes are none of these,
+// a resolution the command wrote without git add, is answered first, to be
+// judged. Two texts are the same when their lines are, a carriage return
+// before a line end ignored, and a conflict marker line compared by its
+// character and its length alone, because git names the sides in it after
+// the names a command gave them. Every path waits when the command did not
+// start the merge, for an octopus merge, a path git cannot read or name,
+// and when git cannot answer or no binding asks it. The bytes on disk are
+// read before git is asked, so a path gone from disk or over the read bound
+// waits without a merge made for it.
 func (run execution) resolutions(ctx context.Context, dependencies Dependencies, before Baseline, changes Changes, unmerged []string) ([]string, []Gap) {
 	theirs := strings.Fields(changes.Merge)
 	if len(unmerged) == 0 || changes.Merge == before.Merge || len(theirs) != 1 || dependencies.Conflicts == nil {
 		return nil, pathGaps(unmerged, causeUnmerged)
 	}
 	contents, read := readUnmerged(changes.Snapshot, unmerged)
-	var conflicts map[string]Conflict
-	if len(read) > 0 {
-		var err error
-		if conflicts, err = dependencies.Conflicts(ctx, run.repository, changes.Head, theirs[0], before.Options, read); err != nil {
-			return nil, pathGaps(unmerged, causeUnmerged)
-		}
-	}
+	kinds := run.conflictKinds(ctx, dependencies, changes.Head, theirs[0], before.Options, contents, read)
 	sorted := map[resolution][]string{}
 	for _, path := range unmerged {
-		content, held := contents[path]
-		conflict, known := conflicts[path]
-		kind := resolutionOf(content, conflict, held && known)
-		sorted[kind] = append(sorted[kind], path)
+		sorted[kinds[path]] = append(sorted[kinds[path]], path)
 	}
 	stays, untold := run.notOwn(ctx, dependencies, before, changes, slices.Clone(sorted[kept]))
 	own := slices.DeleteFunc(slices.Clone(sorted[kept]), among(slices.Concat(stays, untold)))
@@ -90,6 +81,43 @@ func readUnmerged(snapshot model.Snapshot, unmerged []string) (map[string][]byte
 		}
 	}
 	return contents, read
+}
+
+// conflictKinds sorts the paths read by what their bytes are against the
+// conflicts git makes of ours and theirs: the merge without an option
+// first, then the merge with each strategy option of the command alone,
+// asked only for the paths whose bytes no merge before it holds, because
+// the text does not tell which of its merges stopped, so bytes any of them
+// holds are git's. A path git cannot answer for waits, as does every path
+// not read.
+func (run execution) conflictKinds(ctx context.Context, dependencies Dependencies, ours, theirs string, options []string, contents map[string][]byte, read []string) map[string]resolution {
+	kinds := map[string]resolution{}
+	candidates := make([][]string, 1, 1+len(options))
+	for _, option := range options {
+		candidates = append(candidates, []string{option})
+	}
+	left := read
+	for _, candidate := range candidates {
+		if len(left) == 0 {
+			break
+		}
+		conflicts, err := dependencies.Conflicts(ctx, run.repository, ours, theirs, candidate, left)
+		if err != nil {
+			for _, path := range left {
+				kinds[path] = waiting
+			}
+			break
+		}
+		var unmatched []string
+		for _, path := range left {
+			conflict, known := conflicts[path]
+			if kinds[path] = resolutionOf(contents[path], conflict, known); kinds[path] == written {
+				unmatched = append(unmatched, path)
+			}
+		}
+		left = unmatched
+	}
+	return kinds
 }
 
 // resolutionOf is what the bytes on disk of an unmerged path are, against

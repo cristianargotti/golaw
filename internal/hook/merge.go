@@ -12,16 +12,15 @@ import (
 // event that writes its resolution judges it, unless the command started
 // the merge and wrote bytes of its own there (resolutions). When the
 // command started a merge it left in progress, MERGE_HEAD present after it
-// and not before, a
-// path staged with its bytes on disk whose staged blob is the one the merge
-// git makes by itself holds there, with the strategy options the command
-// text gave when the merge without them leaves it, or the one the merged
-// commit holds, is named as brought by the merge, because none of its
-// bytes is the command's, unless a commit the command created before the
-// merge changed it (notOwn); a path whose staged blob is neither, the
-// command's resolution or its own edit, a file only the local side changed
-// included, one the command wrote after the merge and one git status named
-// before stay judged.
+// and not before, a path staged with its bytes on disk whose staged blob is
+// the one the merge git makes by itself holds there, with each strategy
+// option the command text gave alone when the merge without them leaves
+// it, or the one the merged commit holds, is named as brought by the merge,
+// because none of its bytes is the command's, unless a commit the command
+// created before the merge changed it (notOwn); a path whose staged blob is
+// neither, the command's resolution or its own edit, a file only the local
+// side changed included, one the command wrote after the merge and one git
+// status named before stay judged.
 func (run execution) fromMerge(ctx context.Context, dependencies Dependencies, before Baseline, changes Changes, changed []string) ([]string, []Gap) {
 	var unmerged, staged []string
 	for _, path := range changed {
@@ -50,11 +49,11 @@ func (run execution) fromMerge(ctx context.Context, dependencies Dependencies, b
 // makes of HEAD and the commit MERGE_HEAD names by itself holds there, or
 // that commit holds, asked of git once, and, when the command text gave
 // strategy options, of the paths that merge leaves, those whose staged blob
-// the merge with the options holds, asked once more. Apart, the paths it
-// could not tell: every staged path for an octopus merge, which git
-// merge-tree cannot make, when git cannot answer or no binding asks it, and
-// the paths the first merge leaves when the merge with the options cannot
-// be made.
+// the merge with one option holds, asked once more for each option alone,
+// only for the paths the merges before it leave. Apart, the paths it could
+// not tell: every staged path for an octopus merge, which git merge-tree
+// cannot make, when git cannot answer or no binding asks it, and the paths
+// the merges before leave when a merge with an option cannot be made.
 func (run execution) mergeBrought(ctx context.Context, dependencies Dependencies, changes Changes, staged, options []string) ([]string, []string) {
 	theirs := strings.Fields(changes.Merge)
 	if len(theirs) != 1 {
@@ -65,16 +64,21 @@ func (run execution) mergeBrought(ctx context.Context, dependencies Dependencies
 		return nil, staged
 	}
 	rest := slices.DeleteFunc(slices.Clone(staged), among(merged))
-	if len(options) == 0 || len(rest) == 0 {
-		return merged, nil
+	var unknown []string
+	for _, option := range options {
+		if len(rest) == 0 {
+			break
+		}
+		more, known := run.gitMerged(ctx, dependencies, changes, theirs[0], []string{option}, rest)
+		if !known {
+			unknown = rest
+			break
+		}
+		merged = append(merged, more...)
+		rest = slices.DeleteFunc(rest, among(more))
 	}
-	more, known := run.gitMerged(ctx, dependencies, changes, theirs[0], options, rest)
-	if !known {
-		return merged, rest
-	}
-	merged = append(merged, more...)
 	slices.Sort(merged)
-	return merged, nil
+	return merged, unknown
 }
 
 // gitMerged are the staged paths whose staged blob is the one the merge git

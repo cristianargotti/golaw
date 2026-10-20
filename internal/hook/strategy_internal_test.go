@@ -12,8 +12,10 @@ import (
 
 // TestStrategyOptionsReadsOursAndTheirs reads -X ours and -X theirs from a
 // command text in the four spellings git takes, quoted or before the
-// separator of the next command, and nothing else: another value, the -X
-// of another program, an -X after the git command ends, a word that only
+// separator of the next command, each option once and, of one git merge,
+// the last it gives, as git takes it, while two merges of the text keep
+// their two options apart; and nothing else: another value, the -X of
+// another program, an -X after the git command ends, a word that only
 // starts like one and an -X inside a quoted message, a separator in it
 // included.
 func TestStrategyOptionsReadsOursAndTheirs(t *testing.T) {
@@ -38,6 +40,9 @@ func TestStrategyOptionsReadsOursAndTheirs(t *testing.T) {
 		"git merge -m 'take -X theirs' side":              nil,
 		`git merge -m "x; git merge -X theirs y" side`:    nil,
 		"git merge -m 'note; more' -X theirs side":        {"theirs"},
+		"git merge -X ours -X theirs side":                {"theirs"},
+		"git merge -X theirs a || git merge -X theirs b":  {"theirs"},
+		"git merge -X theirs a || git merge -X ours b":    {"theirs", "ours"},
 	} {
 		if got := strategyOptions(command); !slices.Equal(got, want) {
 			t.Errorf("%q: options %q, want %q", command, got, want)
@@ -67,9 +72,11 @@ func optionMerges(asked *[]string, failing bool) Dependencies {
 // TestMergeBroughtTakesTheOptionsOfTheCommand names as brought by a merge
 // in progress a staged file whose blob the merge -X theirs of the command
 // holds, asking git that merge only for the files the merge without an
-// option leaves, and judges the local file neither holds; without an option
-// in the command text git is asked once, and a merge with the option git
-// cannot make leaves what the first merge left to a notice.
+// option leaves, and judges the local file neither holds; when the text
+// names both options, each is a merge of its own, asked only for the files
+// the merges before it leave; without an option in the command text git is
+// asked once, and a merge with the option git cannot make leaves what the
+// first merge left to a notice.
 func TestMergeBroughtTakesTheOptionsOfTheCommand(t *testing.T) {
 	t.Parallel()
 	changes := Changes{
@@ -97,6 +104,14 @@ func TestMergeBroughtTakesTheOptionsOfTheCommand(t *testing.T) {
 	if len(got) != 0 || !slices.Equal(gaps, want) {
 		t.Fatalf("a merge with an option git cannot make: judged %v, gaps %+v", got, gaps)
 	}
+	asked = nil
+	before.Options = []string{"theirs", "ours"}
+	got, gaps = run.fromMerge(t.Context(), optionMerges(&asked, false), before, changes, slices.Clone(changed))
+	if !slices.Equal(got, []string{"mine.md"}) || !slices.Equal(gaps, pathGaps([]string{"auto.md", "shared.md"}, causeMerged)) ||
+		!slices.Equal(asked, []string{"c1..m1  auto.md,mine.md,shared.md", "c1..m1 theirs mine.md,shared.md", "c1..m1 ours mine.md"}) {
+		t.Fatalf("a merge whose text names -X theirs and -X ours: judged %v, gaps %+v after %q", got, gaps, asked)
+	}
+	before.Options = []string{"theirs"}
 	m1Only := Dependencies{Automatic: func(context.Context, Repository, string, string, []string) (map[string][]string, error) {
 		return map[string][]string{"auto.md": {"b-auto", "b-side"}}, nil
 	}}
@@ -135,8 +150,9 @@ func optionRemerges(second int64, asked *[]string, failing bool) Dependencies {
 // the command made with -X theirs, only the file it holds apart from the
 // merge git makes with that option too, its own file, and names as arrived
 // the file the option resolved; the remerge with the option is asked once,
-// never without an option in the command text, and when git cannot make it
-// each file still apart is a gap.
+// once for each option when the text names both, never without an option
+// in the command text, and when git cannot make it each file still apart
+// is a gap.
 func TestResolvedRemergesWithTheOptionsOfTheCommand(t *testing.T) {
 	t.Parallel()
 	started := time.Date(2026, time.October, 17, 12, 0, 0, 0, time.UTC)
@@ -153,6 +169,12 @@ func TestResolvedRemergesWithTheOptionsOfTheCommand(t *testing.T) {
 	got, gaps = run.fromCommits(t.Context(), optionRemerges(started.Unix(), &asked, false), before, slices.Clone(brought), brought)
 	if !slices.Equal(got, []string{"mine.md", "shared.md"}) || !slices.Equal(gaps, pathGaps([]string{"auto.md"}, causeArrived)) || len(asked) != 0 {
 		t.Fatalf("a merge without an option: judged %v, gaps %+v after %q", got, gaps, asked)
+	}
+	asked, before.Options = nil, []string{"theirs", "ours"}
+	got, gaps = run.fromCommits(t.Context(), optionRemerges(started.Unix(), &asked, false), before, slices.Clone(brought), brought)
+	if !slices.Equal(got, []string{"mine.md"}) || !slices.Equal(gaps, pathGaps([]string{"auto.md", "shared.md"}, causeArrived)) ||
+		!slices.Equal(asked, []string{"m1 theirs", "m1 ours"}) {
+		t.Fatalf("a merge whose text names -X theirs and -X ours: judged %v, gaps %+v after %q", got, gaps, asked)
 	}
 	before.Options = []string{"theirs"}
 	unbound := optionRemerges(started.Unix(), &asked, false)

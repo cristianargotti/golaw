@@ -81,9 +81,9 @@ func (run execution) created(ctx context.Context, dependencies Dependencies, bef
 // from the merge git makes of its parents by itself, asked of git once for
 // every such merge and only when one holds such a path, and, when the
 // command text gave strategy options, also apart from the merge git makes
-// with them, asked once more for the paths still apart; it answers the
-// paths it could not tell, every such path of a merge when git cannot make
-// it by itself or no binding asks it.
+// with each alone, asked once more for each, for the paths still apart; it
+// answers the paths it could not tell, every such path of a merge when git
+// cannot make it by itself or no binding asks it.
 func (run execution) resolved(ctx context.Context, dependencies Dependencies, merges []Commit, brought []string, created map[string]bool, options []string) []string {
 	apart, names := mergesApart(merges, brought)
 	if len(names) == 0 {
@@ -125,30 +125,38 @@ func mergesApart(merges []Commit, brought []string) (map[string][]string, []stri
 
 // remergedWith keeps, of the paths each merge holds apart from the merge
 // git makes of its parents by itself, those it also holds apart from that
-// merge made with the strategy options, asked of git once for the merges
-// that still hold one; when git cannot answer or no binding asks it, every
-// such path is answered apart as unknown.
+// merge made with each strategy option alone, asked of git once for each
+// option, for the merges that still hold one; when git cannot answer or no
+// binding asks it, every such path is answered apart as unknown.
 func (run execution) remergedWith(ctx context.Context, dependencies Dependencies, apart map[string][]string, names, options []string) (map[string][]string, []string) {
-	var asked []string
-	for _, name := range names {
-		if len(apart[name]) > 0 {
-			asked = append(asked, name)
+	for _, option := range options {
+		asked := holding(apart, names)
+		if len(asked) == 0 {
+			break
+		}
+		if dependencies.RemergedWith == nil {
+			return nil, flatten(apart, asked)
+		}
+		again, err := dependencies.RemergedWith(ctx, run.repository, asked, []string{option})
+		if err != nil {
+			return nil, flatten(apart, asked)
+		}
+		for _, name := range asked {
+			apart[name] = slices.DeleteFunc(apart[name], func(path string) bool { return !slices.Contains(again[name], path) })
 		}
 	}
-	if len(asked) == 0 {
-		return apart, nil
-	}
-	if dependencies.RemergedWith == nil {
-		return nil, flatten(apart, asked)
-	}
-	again, err := dependencies.RemergedWith(ctx, run.repository, asked, options)
-	if err != nil {
-		return nil, flatten(apart, asked)
-	}
-	for _, name := range asked {
-		apart[name] = slices.DeleteFunc(apart[name], func(path string) bool { return !slices.Contains(again[name], path) })
-	}
 	return apart, nil
+}
+
+// holding are the merges named that still hold a path apart, in order.
+func holding(apart map[string][]string, names []string) []string {
+	var held []string
+	for _, name := range names {
+		if len(apart[name]) > 0 {
+			held = append(held, name)
+		}
+	}
+	return held
 }
 
 // flatten lists the paths of the merges named, in their order.

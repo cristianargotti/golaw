@@ -92,10 +92,11 @@ func resolutionChanges() Changes {
 // and leaves to the event of its resolution each that holds the conflict
 // git wrote, whatever its line ends and the names of its sides, one gone
 // from disk, one over the read bound, one whose bytes git could not read
-// and one git could not name; git is asked once, with the strategy options
-// of the command, only for the paths whose bytes were read, never for a
-// merge the command did not start, an octopus merge, without a binding or
-// when no path could be read, and when git cannot answer every path waits.
+// and one git could not name; git is asked once without an option, only for
+// the paths whose bytes were read, and once more with the strategy option
+// of the command for the bytes that merge left unmatched, never for a merge
+// the command did not start, an octopus merge, without a binding or when no
+// path could be read, and when git cannot answer every path waits.
 func TestResolutionsJudgeWhatTheCommandWrote(t *testing.T) {
 	t.Parallel()
 	unmerged := []string{"conflict.md", "crlf.md", "gone.md", "huge.md", "mine.md", "ours.md", "over.md", "theirs.md", "unknown.md"}
@@ -108,7 +109,7 @@ func TestResolutionsJudgeWhatTheCommandWrote(t *testing.T) {
 	waiting := pathGaps([]string{"conflict.md", "crlf.md", "gone.md", "huge.md", "over.md", "unknown.md"}, causeUnmerged)
 	read := []string{"conflict.md", "crlf.md", "mine.md", "ours.md", "over.md", "theirs.md", "unknown.md"}
 	if !slices.Equal(got, []string{"mine.md", "edited.md"}) || !slices.Equal(gaps, append(waiting, pathGaps([]string{"theirs.md"}, causeMerged)...)) ||
-		!slices.Equal(asked, []string{"c1..m1 theirs " + strings.Join(read, ",")}) {
+		!slices.Equal(asked, []string{"c1..m1  " + strings.Join(read, ","), "c1..m1 theirs mine.md"}) {
 		t.Fatalf("judged %v, gaps %+v after %q", got, gaps, asked)
 	}
 	asked = nil
@@ -139,5 +140,61 @@ func TestResolutionsJudgeWhatTheCommandWrote(t *testing.T) {
 		if len(written) != 0 || !slices.Equal(waited, pathGaps(unmerged, causeUnmerged)) || len(asked) != 0 {
 			t.Fatalf("%s: written %v, gaps %+v after %q", name, written, waited, asked)
 		}
+	}
+}
+
+// optionConflicts answer, at each path asked, the conflict the merge of c1
+// and m1 holds without an option, in its markers, and the bytes the merge
+// with an option holds, recording each question; failing makes the merge
+// with an option fail.
+func optionConflicts(asked *[]string, failing bool) func(context.Context, Repository, string, string, []string, []string) (map[string]Conflict, error) {
+	return func(_ context.Context, _ Repository, _, _ string, options, paths []string) (map[string]Conflict, error) {
+		*asked = append(*asked, strings.Join(options, ",")+" "+strings.Join(paths, ","))
+		if len(options) > 0 && failing {
+			return nil, model.ErrUnreadable
+		}
+		merged := "<<<<<<< c1\nlocal\n=======\nmate \u2014 line\n>>>>>>> m1\n"
+		if len(options) > 0 {
+			merged = "as the option resolved it\n"
+		}
+		conflicts := map[string]Conflict{}
+		for _, path := range paths {
+			conflicts[path] = Conflict{Merged: []byte(merged), Theirs: []byte("mate \u2014 line\n"), Ours: []byte("local\n")}
+		}
+		return conflicts, nil
+	}
+}
+
+// TestResolutionsCompareEveryMergeTheTextMayHaveMade compares the bytes of
+// an unmerged path with the merge without an option and with each strategy
+// option of the command apart, because the text does not tell which of its
+// merges stopped: the conflict of the merge without an option waits though
+// the text names -X theirs, as when a git merge -X theirs after it failed,
+// the bytes the merge with -X theirs holds wait too, asked only for the
+// bytes the first merge left unmatched, bytes neither holds are judged, and
+// when git cannot make the merge with the option they wait.
+func TestResolutionsCompareEveryMergeTheTextMayHaveMade(t *testing.T) {
+	t.Parallel()
+	run := execution{repository: Repository{Head: "c1"}}
+	before := Baseline{Files: map[string]string{}, Head: "c1", Options: []string{"theirs"}}
+	changes := Changes{
+		Head: "c1", Merge: "m1", Unmerged: map[string]bool{"mine.md": true, "option.md": true, "plain.md": true},
+		Snapshot: proof.NewTree(map[string][]byte{
+			"mine.md":   []byte("mine \u2014 resolved\n"),
+			"option.md": []byte("as the option resolved it\n"),
+			"plain.md":  []byte("<<<<<<< HEAD\nlocal\n=======\nmate \u2014 line\n>>>>>>> side\n"),
+		}),
+	}
+	unmerged := []string{"mine.md", "option.md", "plain.md"}
+	var asked []string
+	written, gaps := run.resolutions(t.Context(), Dependencies{Conflicts: optionConflicts(&asked, false)}, before, changes, unmerged)
+	if !slices.Equal(written, []string{"mine.md"}) || !slices.Equal(gaps, pathGaps([]string{"option.md", "plain.md"}, causeUnmerged)) ||
+		!slices.Equal(asked, []string{" mine.md,option.md,plain.md", "theirs mine.md,option.md"}) {
+		t.Fatalf("written %v, gaps %+v after %q", written, gaps, asked)
+	}
+	asked = nil
+	written, gaps = run.resolutions(t.Context(), Dependencies{Conflicts: optionConflicts(&asked, true)}, before, changes, unmerged)
+	if len(written) != 0 || !slices.Equal(gaps, pathGaps(unmerged, causeUnmerged)) || len(asked) != 2 {
+		t.Fatalf("the merge with the option failed: written %v, gaps %+v after %q", written, gaps, asked)
 	}
 }

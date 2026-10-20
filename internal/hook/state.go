@@ -35,7 +35,8 @@ type Store struct {
 // empty when no merge was in progress, or the reason they could not be
 // taken, and, as Load answers it, the time the pre event started. Options
 // are the strategy options -X ours and -X theirs the command text gives a
-// merge, which the post event makes the merges of the command again with.
+// merge, each once, which the post event makes the merges of the command
+// again with, one option at a time.
 // Amend says the command text runs git commit --amend, which alone makes a
 // commit on the parents of that HEAD a rewrite of it.
 type Baseline struct {

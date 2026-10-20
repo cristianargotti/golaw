@@ -199,8 +199,8 @@ func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 		"so a command that leaves HEAD in place asks git nothing more, unless it starts a merge it leaves in progress",
 		"A path git status reports unmerged after the command that it did not name before holds the conflict git wrote from both sides",
 		"it is named in a notice and judged by the event that writes its resolution",
-		"When the command started the merge, its bytes are first compared with that conflict, the merge git makes by itself with the strategy options of the command",
-		"one git cat-file --batch-check that sizes the blobs and one git cat-file --batch that reads those within the read bound asked once for every such path whose bytes on disk are within that bound, so a path over it waits without a merge made for it",
+		"When the command started the merge, its bytes are first compared with that conflict, the merge git makes by itself, and bytes it does not hold with the merge git makes with each strategy option of the command alone, because the text does not tell which of its merges stopped",
+		"one git cat-file --batch-check that sizes the blobs and one git cat-file --batch that reads those within the read bound asked once for each such merge, only for the paths no merge before it holds and whose bytes on disk are within that bound, so a path over it waits without a merge made for it",
 		"bytes HEAD holds whole are unchanged and report nothing",
 		"any other bytes, a resolution the command wrote without git add, are judged in the same event",
 		"a resolution the command writes for a conflict a rebase, a cherry-pick, a revert or a stash left, which no MERGE_HEAD names, waits for a later event, a stated limit",
@@ -215,6 +215,7 @@ func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 		"A merge git cannot make by itself to compare, an octopus merge, one under a git older than 2.38, which has no merge-tree --write-tree, or one git fails, leaves each file the merge staged to a notice naming it",
 		"A merge made with the strategy option -X ours or -X theirs, left in progress or committed, is also compared with the merge git makes with that option",
 		"which the pre event reads from a git merge or git pull the text of the command runs plainly, in each spelling git takes",
+		"A text that names both options, as a merge -X theirs with a fallback -X ours after ||, has each merge made apart, the second only for the files the first leaves, because the text does not tell which of its merges ran, so a file whose bytes either merge holds is named in the notice",
 		"Another strategy option, an -X of another program or after the git command ends, and an option an alias, a script or the configuration gives, is not read, so a file such an option resolved hunk by hunk is judged as the command's resolution, a stated limit",
 	)
 	requireText(t, "docs/security.md",
