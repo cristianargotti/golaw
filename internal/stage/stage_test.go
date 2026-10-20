@@ -207,17 +207,21 @@ func goFunc(n int) string {
 
 // A goast message carries a count ("file has 321 lines", "function long has
 // 44 statements"), so an edit that leaves a finding the base held changes
-// its message; the staged comparison reads every count as one mark.
+// its message; the staged comparison reads every count as one mark, and
+// any other digit, as one of a name, as itself.
 func TestScanKeepsAFindingWhoseCountOnlyChanged(t *testing.T) {
 	t.Parallel()
+	held := "package a\n\ntype Auth1 struct{ Token string }\n\ntype Auth2 struct{ TokenID string }\n"
+	moved := "package a\n\ntype Auth1 struct{ TokenID string }\n\ntype Auth2 struct{ Token string }\n"
 	cases := map[string]struct {
 		base, staged string
 		want         []string
 	}{
-		"a 320-line file grown to 321":       {goFile(320), goFile(321), nil},
-		"a 320-line file shortened to 310":   {goFile(320), goFile(310), nil},
-		"a 45-line function shortened to 44": {goFunc(45), goFunc(44), nil},
-		"a 300-line file grown to 301":       {goFile(300), goFile(301), []string{"a.go"}},
+		"a 320-line file grown to 321":             {goFile(320), goFile(321), nil},
+		"a 320-line file shortened to 310":         {goFile(320), goFile(310), nil},
+		"a 45-line function shortened to 44":       {goFunc(45), goFunc(44), nil},
+		"a 300-line file grown to 301":             {goFile(300), goFile(301), []string{"a.go"}},
+		"a credential moved to a name a digit off": {held, moved, []string{"a.go"}},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

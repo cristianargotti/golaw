@@ -12,8 +12,11 @@ import (
 	"github.com/cristianargotti/golaw/internal/source"
 )
 
-// digitRun is a run of digits, a count a message carries.
-var digitRun = regexp.MustCompile(`\d+`)
+// countRun is a count a goast message carries, the digits before the unit
+// they count ("file has 321 lines", "function long has 44 statements", "a
+// string literal appears 4 times", "13 non-test files in one adapter
+// package"); any other digit, as one of a name, tells two findings apart.
+var countRun = regexp.MustCompile(`\b\d+( lines| statements| times| non-test files)\b`)
 
 // introducedOnly keeps, in each outcome of the run over the index, the
 // findings the same files at the base do not hold, compared as a multiset
@@ -68,12 +71,11 @@ func keyed(findings []model.Finding) []model.Finding {
 	return out
 }
 
-// stagedKey is model.Fingerprint with every run of digits in the message
-// read as one mark: a goast message carries a count ("file has 321 lines",
-// "a string literal appears 4 times") that an edit changes while the
-// finding stays the one the base held, so a count never makes it new.
+// stagedKey is model.Fingerprint with every count of the message read as
+// one mark: an edit changes the count while the finding stays the one the
+// base held, so a count never makes it new.
 func stagedKey(f model.Finding) string {
-	f.Message = digitRun.ReplaceAllString(f.Message, "#")
+	f.Message = countRun.ReplaceAllString(f.Message, "#$1")
 	return model.Fingerprint(f)
 }
 
