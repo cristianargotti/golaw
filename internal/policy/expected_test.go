@@ -21,9 +21,6 @@ func expectedInput(dir string, d policy.Dirs, e policy.Expected) policy.Input {
 // resolves on a runner.
 var errNoConfig = errors.New("neither XDG_CONFIG_HOME nor HOME is set")
 
-// TestLoadReadsTheConfigDirectoryOnlyForAProfile loads a policy without a
-// profile where no config directory resolves, and refuses one that names a
-// profile with the reason, naming the profile.
 func TestLoadReadsTheConfigDirectoryOnlyForAProfile(t *testing.T) {
 	t.Parallel()
 	root := initRepo(t)

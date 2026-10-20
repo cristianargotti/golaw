@@ -24,7 +24,6 @@ func stagedApp(t *testing.T) testApp {
 // file holds none.
 func stagedDash() string { return string(rune(0x2014)) }
 
-// stageFiles writes files under root and stages them.
 func stageFiles(t *testing.T, root string, files map[string]string) {
 	t.Helper()
 	writeFiles(t, root, files)

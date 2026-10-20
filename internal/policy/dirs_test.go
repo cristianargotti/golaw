@@ -45,8 +45,6 @@ func TestDefaultDirs(t *testing.T) {
 	}
 }
 
-// TestConfigDirNeedsNoStateDirectory resolves the config directory of
-// DefaultDirs where no state directory resolves.
 func TestConfigDirNeedsNoStateDirectory(t *testing.T) {
 	t.Parallel()
 	roaming := `C:\R`
