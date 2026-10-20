@@ -84,10 +84,12 @@ func gitPaths(ctx context.Context, dir string, env []string, args ...string) []s
 	return lines
 }
 
-// realPath is a path with its links resolved, or the clean path when it
-// cannot be resolved.
+// realPath is a path with its links resolved, so a receipt that names a
+// directory through a link, as /var names /private/var on macOS, matches
+// what git answers; a path that does not resolve, a hooks directory not
+// made yet, compares by its clean form.
 func realPath(path string) string {
-	if resolved, err := filepath.EvalSymlinks(path); err == nil { // fallback: a hooks directory not made yet compares by its clean form
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
 		return resolved
 	}
 	return filepath.Clean(path)

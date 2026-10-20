@@ -8,13 +8,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// hookCommand is one command of a lefthook hook.
+// hookCommand holds the two fields of a lefthook command the pin compares:
+// the line lefthook runs, and whether it hands the command the stdin of
+// git, which carries the ref lines of a push.
 type hookCommand struct {
 	Run      string `yaml:"run"`
 	UseStdin bool   `yaml:"use_stdin"`
 }
 
-// lefthookConfig is the part of lefthook.yml the rungs are made of.
+// lefthookConfig decodes only the keys the rungs depend on, so a key
+// lefthook adds or a comment of the file never moves the pin.
 type lefthookConfig struct {
 	MinVersion string `yaml:"min_version"`
 	PreCommit  struct {
