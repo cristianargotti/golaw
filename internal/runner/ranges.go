@@ -71,12 +71,16 @@ func (g rangeGit) resolve(ctx context.Context, remote string, update RefUpdate) 
 }
 
 func (g rangeGit) commit(ctx context.Context, revision string) (string, error) {
+	return g.verify(ctx, revision, rangeObject)
+}
+
+func (g rangeGit) verify(ctx context.Context, revision string, judge func([]string, Output) (string, error)) (string, error) {
 	args := []string{"rev-parse", "--verify", "--quiet", "--end-of-options", revision + "^{commit}"}
 	out, err := g.run(ctx, args...)
 	if err != nil {
 		return "", err
 	}
-	return rangeObject(args, out)
+	return judge(args, out)
 }
 
 func (g rangeGit) run(ctx context.Context, args ...string) (Output, error) {

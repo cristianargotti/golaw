@@ -11,7 +11,7 @@ func (g rangeGit) defaultBase(ctx context.Context, remote, tip string) (string, 
 		return "", err
 	}
 	for _, branch := range []string{"HEAD", "main", "master"} {
-		base, lookupErr := g.commit(ctx, "refs/remotes/"+remote+"/"+branch)
+		base, lookupErr := g.verify(ctx, "refs/remotes/"+remote+"/"+branch, trackingObject)
 		if lookupErr != nil {
 			return "", lookupErr
 		}
@@ -20,6 +20,17 @@ func (g rangeGit) defaultBase(ctx context.Context, remote, tip string) (string, 
 		}
 	}
 	return "", nil
+}
+
+// trackingObject takes an exit 1 without an object as an absent default
+// whatever stderr says: git answers a dangling or broken tracking ref as it
+// answers a missing one, with a warning in the user's language, and the
+// next candidate or an empty base is what a missing default gives.
+func trackingObject(args []string, out Output) (string, error) {
+	if out.Code == 1 && len(out.Stdout) == 0 {
+		return "", nil
+	}
+	return rangeObject(args, out)
 }
 
 func (g rangeGit) trackingNamespace(ctx context.Context, remote string) (bool, error) {

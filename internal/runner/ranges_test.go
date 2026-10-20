@@ -49,14 +49,19 @@ func TestRangesDefaultFallbacks(t *testing.T) {
 		name   string
 		remote string
 		ref    string
+		head   string
 		base   bool
 	}{
-		{"near-main", "origin", "refs/remotes/origin/main", true},
-		{"near-master", "origin", "refs/remotes/origin/master", true},
-		{"red-no-default", "origin", "", false},
+		{"near-main", "origin", "refs/remotes/origin/main", "", true},
+		{"near-master", "origin", "refs/remotes/origin/master", "", true},
+		{"red-no-default", "origin", "", "", false},
 		{
 			"near-url-remote", "https://example.test/repository.git",
-			"refs/remotes/origin/main", false,
+			"refs/remotes/origin/main", "", false,
+		},
+		{
+			"near-dangling-head", "origin", "refs/remotes/origin/main",
+			"refs/remotes/origin/master", true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -67,6 +72,7 @@ func TestRangesDefaultFallbacks(t *testing.T) {
 			if tc.ref != "" {
 				repo.Git("update-ref", tc.ref, base)
 			}
+			pointRemoteHead(repo, tc.head)
 			update := runner.RefUpdate{
 				LocalRef: "HEAD", LocalSHA: tip,
 				RemoteRef: "refs/heads/new", RemoteSHA: runner.ZeroSHA,
@@ -86,6 +92,15 @@ func TestRangesDefaultFallbacks(t *testing.T) {
 				t.Fatalf("range = %+v", got[0])
 			}
 		})
+	}
+}
+
+// pointRemoteHead leaves origin/HEAD naming target whether or not target
+// exists, as git leaves it after a prune once the remote renamed its
+// default branch.
+func pointRemoteHead(repo *gittest.Repo, target string) {
+	if target != "" {
+		repo.Git("symbolic-ref", "refs/remotes/origin/HEAD", target)
 	}
 }
 
