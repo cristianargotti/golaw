@@ -36,7 +36,7 @@ func readHook(path string) ([]byte, bool, error) {
 		return nil, false, fmt.Errorf("inspect setup hook %q: %w", path, err)
 	}
 	if !info.Mode().IsRegular() {
-		return nil, false, fmt.Errorf("setup hook %q is not a regular file: %w", path, install.ErrPath)
+		return nil, false, fmt.Errorf("setup hook %q is not a regular file; move it aside, then run golaw setup again: %w", path, install.ErrPath)
 	}
 	data, err := os.ReadFile(path) //nolint:gosec // Only the three resolved hook paths and their backups are read.
 	if err != nil {

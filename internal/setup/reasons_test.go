@@ -66,3 +66,43 @@ func failGitHooks(
 	}
 	return plan, deps
 }
+
+// TestSetupNamesTheFixForAHookThatIsNotARegularFile links a hook to a
+// versioned script, or leaves a directory in its place: the refusal names
+// moving it aside, and setup arms once it is aside.
+//
+//nolint:paralleltest // The fixture changes PATH for executable resolution.
+func TestSetupNamesTheFixForAHookThatIsNotARegularFile(t *testing.T) {
+	for _, kind := range []string{"link", "directory"} {
+		t.Run(kind, func(t *testing.T) {
+			options, deps, probe := setupFixture(t)
+			path := filepath.Join(probe.hooks, "pre-commit")
+			occupyHook(t, path, kind)
+			_, err := setup.PlanInstall(t.Context(), options, deps)
+			if !errors.Is(err, install.ErrPath) || !strings.Contains(err.Error(), "move it aside, then run golaw setup again") {
+				t.Fatalf("hook that is not a regular file = %v", err)
+			}
+			if renameErr := os.Rename(path, path+".aside"); renameErr != nil {
+				t.Fatal(renameErr)
+			}
+			setupSafetyArm(t, options, deps)
+		})
+	}
+}
+
+// occupyHook puts a link to a versioned script, or a directory, where
+// setup reads a hook.
+func occupyHook(t *testing.T, path, kind string) {
+	t.Helper()
+	if kind == "directory" {
+		if err := os.Mkdir(path, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	script := filepath.Join(t.TempDir(), "pre-commit")
+	setupWrite(t, script, foreignHook)
+	if err := os.Symlink(script, path); err != nil {
+		t.Fatal(err)
+	}
+}
