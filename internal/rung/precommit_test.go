@@ -156,3 +156,48 @@ func TestPreCommitLeavesToThePipelineAFileOverTheReadBound(t *testing.T) {
 		t.Errorf("a staged file over the read bound = %+v", out)
 	}
 }
+
+// A base over the read bound cannot disprove a finding the staged file
+// keeps, so the rung names the file and lets the commit go, whether or not
+// another staged file is over the bound too: the second file must not turn
+// the doubt into a refusal.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPreCommitLeavesToThePipelineWhatAnUnreadBaseMayHold(t *testing.T) {
+	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks})
+	big := strings.Repeat("a\n", 4<<20+1)
+	kept := "old " + dash + " line\n"
+	for named, staged := range map[string]map[string]string{
+		"a.md":       {"a.md": kept},
+		"a.md, b.md": {"a.md": kept, "b.md": big},
+	} {
+		r := armedRepo(t, armedPolicy)
+		r.Commit("chore: add the dump", map[string]string{"a.md": kept + big})
+		r.Stage(staged)
+		out := rung.RunPreCommit(t.Context(), deps(t, r))
+		if out.Code != 0 || !contains(out, "golaw pre-commit: over the read bound, not judged here: "+named+"; the pipeline judges them") || contains(out, "deny text.dashes") {
+			t.Errorf("a shortened dump that keeps its old dash, staged with %s = %+v", named, out)
+		}
+	}
+}
+
+// The staged comparison masks the counts of a message and never the digits
+// of a name, so a new long function named like an old one but for a digit
+// is refused as one named apart is.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPreCommitRefusesANewFindingNamedLikeAnOldOne(t *testing.T) {
+	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks, "golangci-lint": linter})
+	long := func(name string) string {
+		return "// " + name + " counts.\nfunc " + name + "() int {\n\tx := 0\n" + strings.Repeat("\tx++\n", 45) + "\treturn x\n}\n"
+	}
+	for _, added := range []string{"Step2", "StepB"} {
+		r := armedRepo(t, armedPolicy+"capabilities: [go]\n")
+		r.Commit("feat: add the step", map[string]string{"a/a.go": "package a\n\n" + long("Step1")})
+		r.Stage(map[string]string{"a/a.go": "package a\n\n// Step1 counts.\nfunc Step1() int { return 1 }\n\n" + long(added)})
+		out := rung.RunPreCommit(t.Context(), deps(t, r))
+		if out.Code != 1 || !contains(out, "deny goast.function-length function "+added+" has 47 statements") {
+			t.Errorf("Step1 shortened and a new long function %s = %+v", added, out)
+		}
+	}
+}
