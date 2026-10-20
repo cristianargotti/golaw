@@ -57,7 +57,8 @@ type Input struct {
 	// Uncommitted is set by the hook: while HEAD holds no golaw.yml yet,
 	// the policy in force is the enrolled one the index or the checkout
 	// holds, when its bytes mean the policy the record enrolled, so an
-	// agent works in a repository init --apply just enrolled.
+	// agent works in a repository init --apply just enrolled. Expected
+	// ignores it, because a pipeline enrolls the policy HEAD holds.
 	Uncommitted bool
 	// Expected, when set, is the enrollment CI provisions (A3): the state
 	// directory is not consulted, the location is enrolled with these
@@ -93,7 +94,7 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 		return nil, err
 	}
 	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas, expect: in.Expected != nil}
-	data, err := l.inForce(ctx, in.Uncommitted)
+	data, err := l.inForce(ctx, in.Uncommitted && in.Expected == nil)
 	if err != nil {
 		return nil, err
 	}

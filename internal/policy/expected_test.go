@@ -93,3 +93,32 @@ func TestLoadUnderAnExpectedEnrollmentRefusesAMissingPolicy(t *testing.T) {
 		}
 	}
 }
+
+// TestLoadUnderAnExpectedEnrollmentTakesNoUncommittedPolicy holds the
+// enrollment the pipeline provisions to HEAD when the fallback of the hook
+// is asked for too: a golaw.yml HEAD lacks, staged or only in the
+// checkout, is the missing policy on a branch with a history and on an
+// unborn one, even when its bytes are the policy the pipeline expects.
+func TestLoadUnderAnExpectedEnrollmentTakesNoUncommittedPolicy(t *testing.T) {
+	t.Parallel()
+	d := dirs(t)
+	e := policy.Expected{PolicyDigest: policy.Digest(decode(t, minimalPolicy))}
+	for _, history := range []bool{true, false} {
+		for _, staged := range []bool{true, false} {
+			root := initRepo(t)
+			if history {
+				write(t, root, "a.txt", "a\n")
+				commitAll(t, root, "one")
+			}
+			write(t, root, "golaw.yml", minimalPolicy)
+			if staged {
+				gitRun(t, root, "add", "golaw.yml")
+			}
+			in := expectedInput(root, d, e)
+			in.Uncommitted = true
+			if _, err := policy.Load(t.Context(), in); !errors.Is(err, model.ErrEnrollment) || !errors.Is(err, policy.ErrNotAtHead) {
+				t.Errorf("history %v, staged %v: %v, want the missing policy", history, staged, err)
+			}
+		}
+	}
+}
