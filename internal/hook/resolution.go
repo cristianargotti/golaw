@@ -200,7 +200,10 @@ func sameMarker(a, b []byte) bool {
 }
 
 // markerRun is the length of the run of <, |, = or > a line opens with when
-// the run ends the line or a space follows it, and 0 for any other line.
+// the run ends the line or, for <, | and >, a space follows it, and 0 for
+// any other line: git writes the name of a side or of the base after those,
+// and nothing after the run of = that parts the sides, so text there is the
+// command's.
 func markerRun(line []byte) int {
 	if len(line) == 0 || !strings.ContainsRune("<|=>", rune(line[0])) {
 		return 0
@@ -209,7 +212,7 @@ func markerRun(line []byte) int {
 	for n < len(line) && line[n] == line[0] {
 		n++
 	}
-	if n < len(line) && line[n] != ' ' {
+	if n < len(line) && (line[0] == '=' || line[n] != ' ') {
 		return 0
 	}
 	return n

@@ -13,8 +13,9 @@ import (
 
 // resolutionCases are the commands that leave a conflict of a teammate's
 // dash unmerged: the red cases, a resolution holding a dash the command
-// writes without git add and a dash it writes into its own side of a
-// conflict it wrote again in the diff3 style; the near misses, the
+// writes without git add, a dash it writes after the separator of the
+// conflict and one it writes into its own side of a conflict it wrote
+// again in the diff3 style; the near misses, the
 // teammate's side taken whole without git add and the conflict left as git
 // wrote it, with the line ends of core.autocrlf, in the style of
 // merge.conflictStyle diff3, and written again by the command in the diff3
@@ -49,6 +50,13 @@ func resolutionCases(t *testing.T) []mergeCase {
 		}
 		writeFiles(t, root, map[string]string{"shared.md": strings.Replace(string(data), "local line", "local \u2014 edited", 1)})
 	}
+	separator := func(root string) {
+		data, err := os.ReadFile(filepath.Join(root, "shared.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		writeFiles(t, root, map[string]string{"shared.md": strings.Replace(string(data), "=======\n", "======= \u2014 word\n", 1)})
+	}
 	legacy := func(root string) {
 		commitFiles(t, root, map[string]string{"shared.md": "start\n"})
 		sideBranch(t, root, mate(earlier), map[string]string{"shared.md": "mate line\n"})
@@ -62,6 +70,7 @@ func resolutionCases(t *testing.T) []mergeCase {
 		{"a conflict the command writes again in the diff3 style", fromSide, then(stops("merge", "-q", "side"), restyle("diff3")), "", []string{unmerged}},
 		{"a conflict the command writes again in the zdiff3 style", fromSide, then(stops("merge", "-q", "side"), restyle("zdiff3")), "", []string{unmerged}},
 		{"a conflict of a merge under a git -c merge.conflictStyle=diff3", fromSide, stops("-c", "merge.conflictStyle=diff3", "merge", "-q", "side"), "", []string{unmerged}},
+		{"a dash the command writes after the separator of a conflict", fromSide, then(stops("merge", "-q", "side"), separator), "shared.md:3", nil},
 		{"a dash the command writes into its side of a diff3 conflict", fromSide, then(then(stops("merge", "-q", "side"), restyle("diff3")), editOwn), "shared.md:2", nil},
 		{"the local side taken whole without git add over a dash HEAD held", legacy, then(stops("merge", "-q", "side"), keep), "", nil},
 		{"a resolution of a rebase conflict, the stated limit", fromSide, then(stops("rebase", "side"), resolve), "", []string{unmerged}},

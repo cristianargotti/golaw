@@ -15,8 +15,8 @@ import (
 // one git made: the same lines with another line end, and conflict markers
 // whose sides git named otherwise, are the same; another line, another
 // count of lines, a marker of another length or character, a quote line
-// that only looks like a marker, and names compared without markers are
-// not.
+// that only looks like a marker, a separator followed by text, which git
+// never writes, and names compared without markers are not.
 func TestSameLinesIgnoresTheNamesOfTheSides(t *testing.T) {
 	t.Parallel()
 	git := "<<<<<<< c1\nmine\n||||||| base\nstart\n=======\ntheirs\n>>>>>>> m1\n"
@@ -35,6 +35,7 @@ func TestSameLinesIgnoresTheNamesOfTheSides(t *testing.T) {
 		{"<<<<<<< HEAD\nmine\n||||||| base\nstart\n=======\ntheirs\n<<<<<<< side\n", git, true, false},
 		{"> mine\n", "> theirs\n", true, false},
 		{"<<<<<<<<x\n", "<<<<<<<<y\n", true, false},
+		{"<<<<<<< HEAD\nmine\n||||||| base\nstart\n======= \u2014 word\ntheirs\n>>>>>>> side\n", git, true, false},
 		{"one\n", "one\ntwo\n", true, false},
 	} {
 		if got := sameLines([]byte(tc.disk), []byte(tc.git), tc.markers); got != tc.same {
