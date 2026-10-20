@@ -19,7 +19,7 @@ func resolveRouting(ctx context.Context, options Options, deps Dependencies) (st
 	if err := requireLocalRouting(ctx, options, deps); err != nil {
 		return "", "", err
 	}
-	hooks, err := gitDirectory(ctx, options, deps, []string{"rev-parse", "--path-format=absolute", "--git-path", "hooks"})
+	hooks, err := hooksDirectory(ctx, options, deps)
 	if err != nil {
 		return "", "", err
 	}
@@ -28,6 +28,10 @@ func resolveRouting(ctx context.Context, options Options, deps Dependencies) (st
 	}
 	golaw, err := resolveGolaw(options.Version)
 	return hooks, golaw, err
+}
+
+func hooksDirectory(ctx context.Context, options Options, deps Dependencies) (string, error) {
+	return gitDirectory(ctx, options, deps, []string{"rev-parse", "--path-format=absolute", "--git-path", "hooks"})
 }
 
 func runCommand(ctx context.Context, options Options, deps Dependencies, name string, args, env []string) (runner.Output, error) {

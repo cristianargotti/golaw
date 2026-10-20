@@ -7,13 +7,19 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"slices"
 
 	"github.com/cristianargotti/golaw/internal/install"
 	"github.com/cristianargotti/golaw/internal/runner"
 )
 
+const lefthookTool = "lefthook"
+
 // Apply records ownership only after installation and output both succeed.
 func Apply(ctx context.Context, plan Plan, out io.Writer, deps Dependencies) error {
+	if plan.Uninstall {
+		return applyUninstall(ctx, plan, out, deps)
+	}
 	if err := checkPlan(ctx, plan, deps); err != nil {
 		return err
 	}
@@ -39,9 +45,6 @@ func checkPlan(ctx context.Context, plan Plan, deps Dependencies) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if plan.Uninstall {
-		return fmt.Errorf("setup installation plan required: %w", install.ErrPath)
-	}
 	hooks, golaw, err := resolveRouting(ctx, plan.Options, deps)
 	if err != nil {
 		return fmt.Errorf("recheck setup routing: %w: %w", install.ErrChanged, err)
@@ -66,7 +69,7 @@ func armHooks(ctx context.Context, plan Plan, deps Dependencies) error {
 	if err := checkPlan(ctx, plan, deps); err != nil {
 		return err
 	}
-	output, err := runCommand(ctx, plan.Options, deps, "lefthook", []string{"install"}, runner.UserEnv(plan.Options.Env))
+	output, err := runCommand(ctx, plan.Options, deps, lefthookTool, []string{"install"}, runner.UserEnv(plan.Options.Env))
 	if err != nil {
 		return err
 	}
@@ -89,4 +92,54 @@ func finishInstall(ctx context.Context, plan Plan, out io.Writer) error {
 	}
 	plan.Receipt.Hooks = artifacts
 	return WriteReceipt(plan.ReceiptPath, plan.Receipt)
+}
+
+func applyUninstall(ctx context.Context, plan Plan, out io.Writer, deps Dependencies) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if plan.Receipt.Schema == 0 && plan.ReceiptPath == "" {
+		return nil
+	}
+	if len(plan.Receipt.Hooks) == 0 || slices.ContainsFunc(plan.Changes, func(change install.Change) bool { return !change.Remove }) {
+		return fmt.Errorf("setup receipt-owned uninstall plan required: %w", install.ErrPath)
+	}
+	current, err := recheckUninstall(ctx, plan, deps)
+	if err != nil {
+		return err
+	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return ctxErr
+	}
+	if err := install.WriteDiff(out, current.Changes); err != nil {
+		return fmt.Errorf("write setup removal diff: %w", err)
+	}
+	return runUninstall(ctx, current, deps)
+}
+
+func runUninstall(ctx context.Context, plan Plan, deps Dependencies) error {
+	if err := verifyUninstallTool(ctx, plan.Options, deps); err != nil {
+		return err
+	}
+	if _, err := recheckUninstall(ctx, plan, deps); err != nil {
+		return err
+	}
+	output, err := runCommand(ctx, plan.Options, deps, lefthookTool, []string{"uninstall"}, runner.UserEnv(plan.Options.Env))
+	if err != nil {
+		return err
+	}
+	if output.Code != 0 {
+		return fmt.Errorf("lefthook uninstall exited %d: %s%s: %w", output.Code, output.Stdout, output.Stderr, install.ErrHooks)
+	}
+	return removeCompletedReceipt(ctx, plan.ReceiptPath)
+}
+
+func verifyUninstallTool(ctx context.Context, options Options, deps Dependencies) error {
+	for _, tool := range runner.Toolchain() {
+		if tool.Name == lefthookTool {
+			_, err := verifyTool(ctx, options, deps, tool)
+			return err
+		}
+	}
+	return fmt.Errorf("lefthook pin unavailable; install a complete golaw binary: %w", runner.ErrToolMissing)
 }
