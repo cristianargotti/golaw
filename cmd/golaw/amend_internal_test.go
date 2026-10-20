@@ -24,9 +24,10 @@ func amendable(t *testing.T, root string) {
 // amend that checks notes.md out of the parent, one that writes the
 // parent's bytes back and one that writes a dash of its own; the near
 // misses, an amend that keeps the fix, a reset to the parent and a reset
-// followed by a commit on the same parent, where the reset brought
-// notes.md and the notice names it; and the stated limit, an amend a script
-// runs, which the hook does not read as an amend.
+// followed by a commit on the same parent, its message naming --amend or
+// not, where the reset brought notes.md and the notice names it; and the
+// stated limit, an amend a script runs, which the hook does not read as an
+// amend.
 func amendCases(t *testing.T) []lineCase {
 	t.Helper()
 	amend := func(files map[string]string) func(string) {
@@ -40,9 +41,11 @@ func amendCases(t *testing.T) []lineCase {
 		gitRun(t, root, "commit", "-q", "--amend", "--no-edit")
 	}
 	reset := func(root string) { gitRun(t, root, "reset", "-q", "--hard", "HEAD~1") }
-	resetCommit := func(root string) {
-		reset(root)
-		gitRun(t, root, "commit", "-q", "--allow-empty", "-m", "docs: again")
+	resetCommit := func(message string) func(string) {
+		return func(root string) {
+			reset(root)
+			gitRun(t, root, "commit", "-q", "--allow-empty", "-m", message)
+		}
 	}
 	before := func(root string) { amendable(t, root) }
 	named := []string{"brought from commits this command did not create, which ask for no fix: notes.md"}
@@ -54,7 +57,11 @@ func amendCases(t *testing.T) []lineCase {
 		{"an amend that writes a dash of its own", amending, before, amend(map[string]string{"notes.md": "start\nnew \u2014 text\n"}), "notes.md:2", nil},
 		{"an amend that keeps the fix", amending, before, amend(map[string]string{"keep.md": "kept\n"}), "", nil},
 		{"a reset to the parent", "git reset -q --hard HEAD~1", before, reset, "", named},
-		{"a reset and a commit on the same parent", "git reset -q --hard HEAD~1 && git commit -q --allow-empty -m 'docs: again'", before, resetCommit, "", named},
+		{"a reset and a commit on the same parent", "git reset -q --hard HEAD~1 && git commit -q --allow-empty -m 'docs: again'", before, resetCommit("docs: again"), "", named},
+		{
+			"a reset and a commit whose message names --amend", "git reset -q --hard HEAD~1 && git commit -q --allow-empty -m 'docs: explain --amend behavior'",
+			before, resetCommit("docs: explain --amend behavior"), "", named,
+		},
 		{"an amend a script runs, the stated limit", "sh amend.sh", before, restore, "", named},
 	}
 }

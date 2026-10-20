@@ -103,8 +103,11 @@ func TestUnrewrittenLeavesWhatNoAmendChanged(t *testing.T) {
 }
 
 // TestAmendsReadsTheAmendOfAGitCommit reads --amend only in a git commit
-// the command text runs plainly: a reset followed by a commit, an amend a
-// script runs and an echo of the words are not amends.
+// the command text runs plainly, outside every quoted span: a reset
+// followed by a commit, whose message may name --amend in single or double
+// quotes, an amend a script runs and an echo of the words are not amends,
+// while an amend after a quoted message, a separator or a backslash inside
+// quotes, a quoted global option or a quoted --amend itself is one.
 func TestAmendsReadsTheAmendOfAGitCommit(t *testing.T) {
 	t.Parallel()
 	for command, want := range map[string]bool{
@@ -115,6 +118,15 @@ func TestAmendsReadsTheAmendOfAGitCommit(t *testing.T) {
 		"sh amend.sh":             false,
 		"echo git commit --amend": false,
 		"git commit -q -m again":  false,
+		"git reset -q --hard HEAD~1 && git commit -q --allow-empty -m 'docs: explain --amend behavior'": false,
+		`git reset -q --hard HEAD~1 && git commit -q --allow-empty -m "docs: explain --amend behavior"`: false,
+		`git commit -m "fix; git commit --amend"`:                                                       false,
+		`git commit -m "say \"it\" --amend"`:                                                            false,
+		"git commit -m 'it is; done' --amend":                                                           true,
+		`git commit -m "say \"it\"" --amend`:                                                            true,
+		"git -c 'user.name=A B' commit --amend":                                                         true,
+		"git commit '--amend'":                                                                          true,
+		"git commit \\\n  --amend":                                                                      true,
 	} {
 		if got := amends(command); got != want {
 			t.Errorf("%q: amends %v, want %v", command, got, want)

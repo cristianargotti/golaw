@@ -13,8 +13,9 @@ import (
 // TestStrategyOptionsReadsOursAndTheirs reads -X ours and -X theirs from a
 // command text in the four spellings git takes, quoted or before the
 // separator of the next command, and nothing else: another value, the -X
-// of another program, an -X after the git command ends and a word that
-// only starts like one.
+// of another program, an -X after the git command ends, a word that only
+// starts like one and an -X inside a quoted message, a separator in it
+// included.
 func TestStrategyOptionsReadsOursAndTheirs(t *testing.T) {
 	t.Parallel()
 	for command, want := range map[string][]string{
@@ -34,6 +35,9 @@ func TestStrategyOptionsReadsOursAndTheirs(t *testing.T) {
 		"git log -X theirs":                               nil,
 		"git -C repo merge -X theirs side":                {"theirs"},
 		"git -c merge.ff=false pull -Xours origin main":   {"ours"},
+		"git merge -m 'take -X theirs' side":              nil,
+		`git merge -m "x; git merge -X theirs y" side`:    nil,
+		"git merge -m 'note; more' -X theirs side":        {"theirs"},
 	} {
 		if got := strategyOptions(command); !slices.Equal(got, want) {
 			t.Errorf("%q: options %q, want %q", command, got, want)

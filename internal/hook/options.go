@@ -1,6 +1,9 @@
 package hook
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 // The strategy options the hook reads from a command text: the two that
 // decide which side resolves a conflict hunk, so a merge they made can be
@@ -38,12 +41,13 @@ func strategyOptions(command string) []string {
 // part between two separators of the shell (;, &, | or a line break) whose
 // first word is git, its subcommand and the words after it, the global
 // options of git before the subcommand skipped with the value of -C and -c.
-// A git a variable, a wrapper, an alias or a script runs is not one, a
-// stated limit, because a reader widened to them would guess.
+// The words are read as the shell reads quotes (shellParts), so no word of
+// a quoted commit message or value reads as an option. A git a variable, a
+// wrapper, an alias or a script runs is not one, a stated limit, because a
+// reader widened to them would guess.
 func gitInvocations(command string) [][]string {
 	var out [][]string
-	for _, part := range strings.FieldsFunc(command, func(r rune) bool { return strings.ContainsRune(";&|\n", r) }) {
-		words := strings.Fields(part)
+	for _, words := range shellParts(command) {
 		if len(words) < 2 || bare(words[0]) != "git" {
 			continue
 		}
@@ -52,6 +56,77 @@ func gitInvocations(command string) [][]string {
 		}
 	}
 	return out
+}
+
+// shellParts are the words of each part of a command text between two
+// separators of the shell. A span from a quote to the same quote stays in
+// one word with its quotes, a separator or a space in it included, a
+// backslash outside single quotes keeps the character after it in the word
+// and joins two lines before a line break, and a quote left open runs to
+// the end of the text, which the shell would refuse to run.
+func shellParts(command string) [][]string {
+	var scan shellScan
+	for _, r := range command {
+		scan.next(r)
+	}
+	scan.endPart()
+	return scan.parts
+}
+
+// shellScan is what shellParts has read of a command text: the parts it
+// ended, the words of the part it reads, the word it reads, the quote of
+// the span it is in and whether a backslash escapes the next character.
+type shellScan struct {
+	parts   [][]string
+	words   []string
+	word    []rune
+	open    bool
+	quote   rune
+	escaped bool
+}
+
+func (s *shellScan) next(r rune) {
+	switch {
+	case s.escaped:
+		s.escaped = false
+		if r == '\n' {
+			return
+		}
+		s.write('\\')
+	case r == '\\' && s.quote != '\'':
+		s.escaped = true
+		return
+	case s.quote != 0:
+		if r == s.quote {
+			s.quote = 0
+		}
+	case r == '\'' || r == '"':
+		s.quote = r
+	case strings.ContainsRune(";&|\n", r):
+		s.endPart()
+		return
+	case unicode.IsSpace(r):
+		s.endWord()
+		return
+	}
+	s.write(r)
+}
+
+func (s *shellScan) write(r rune) {
+	s.word, s.open = append(s.word, r), true
+}
+
+func (s *shellScan) endWord() {
+	if s.open {
+		s.words, s.word, s.open = append(s.words, string(s.word)), nil, false
+	}
+}
+
+func (s *shellScan) endPart() {
+	s.endWord()
+	if len(s.words) > 0 {
+		s.parts, s.words = append(s.parts, s.words), nil
+	}
 }
 
 // subcommand is the subcommand of a git command and the words after it,
