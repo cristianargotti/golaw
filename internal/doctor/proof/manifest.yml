@@ -47,3 +47,23 @@ checks:
     code: dispatch-unobserved
     red: testdata/dispatch/red
     near: testdata/dispatch/near
+  - id: doctor.setup-receipt
+    code: setup-receipt-invalid
+    red: testdata/setup-receipt/red
+    near: testdata/setup-receipt/near
+  - id: doctor.setup-hooks
+    code: setup-hook-drift
+    red: testdata/setup-hooks/red
+    near: testdata/setup-hooks/near
+  - id: doctor.setup-routing
+    code: setup-routing-drift
+    red: testdata/setup-routing/red
+    near: testdata/setup-routing/near
+  - id: doctor.setup-tools
+    code: setup-tool-unavailable
+    red: testdata/setup-tools/red
+    near: testdata/setup-tools/near
+  - id: doctor.managed
+    code: managed-drift
+    red: testdata/managed/red
+    near: testdata/managed/near
