@@ -153,6 +153,9 @@ func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 		"Git log and git var run only when the move brought such a path",
 		"A move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed",
 		"reads as a commit it did not create, a stated limit",
+		"through a git -c user.name or -c user.email of its own or GIT_COMMITTER_NAME or GIT_COMMITTER_EMAIL set for that command alone, which the git var of the hook does not see",
+		"A commit of the same identity made before the pre event within the second it started, git recording whole seconds, reads as a commit of the command, so a move over it judges its files, a stated limit",
+		"A file the command changed is judged whole, so a line a merge brought into a file that the command's own commit or resolution also changed is judged with it, a stated limit",
 		"a move of HEAD git cannot compare, a file git cannot convert to compare and the deadline each leave a notice the agent reads",
 		"the paths of one cause in one sentence that names twenty and counts the rest, for the agent and in the language of the policy for the person, so a pull git cannot classify, when git var cannot name the committer, is one bounded sentence",
 	)
