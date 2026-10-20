@@ -18,6 +18,10 @@ const (
 	m2MeasureKey        = "GOLAW_M2_MEASURE"
 	m2CompleteMarker    = "M2_MEASUREMENTS_COMPLETE"
 	m2SetupCleanCase    = "setup-clean"
+	// A passing M2 row ran the candidate of this run, whose build falls
+	// back to the public module proxy, with the tools setup-clean installed
+	// from it, so the M1 detail "verified offline" would misstate it.
+	m2Verified = "verified against the candidate"
 )
 
 func (s *suite) collectM2(ctx context.Context) ([]row, map[string]rowEvidence) {
@@ -56,9 +60,9 @@ func (s *suite) m2CollectedRow(ctx context.Context, category, name string) row {
 	scope := s.m2Scope(name)
 	switch category {
 	case m2StagedCategory:
-		return measured(category, name, scope.stagedM2(ctx, name))
+		return measuredM2(category, name, scope.stagedM2(ctx, name))
 	case m2LifecycleCategory:
-		return measured(category, name, scope.lifecycleM2(ctx, name))
+		return measuredM2(category, name, scope.lifecycleM2(ctx, name))
 	default:
 		item := scope.nativeM2(ctx, name)
 		item.category = category
@@ -67,7 +71,7 @@ func (s *suite) m2CollectedRow(ctx context.Context, category, name string) row {
 }
 
 func (s *suite) m2PreparationFailure(name string, err error) ([]row, map[string]rowEvidence) {
-	item := measured(m2Preparation, name, err)
+	item := measuredM2(m2Preparation, name, err)
 	return []row{item}, map[string]rowEvidence{
 		item.category + "/" + name: {Agent: m2GitCommand, Binary: s.digest},
 	}
@@ -87,7 +91,17 @@ func (s *suite) measurementM2(ctx context.Context) row {
 	if err == nil && !m2MeasureComplete(got.stdout) {
 		err = fmt.Errorf("native measurements lack their completion marker: %w", ErrAcceptance)
 	}
-	return measured("m2-timing", "native", err)
+	return measuredM2("m2-timing", "native", err)
+}
+
+// measuredM2 is the row measured builds, with the detail of a passing M2
+// row.
+func measuredM2(category, name string, err error) row {
+	got := measured(category, name, err)
+	if err == nil {
+		got.detail = m2Verified
+	}
+	return got
 }
 
 func m2MeasureComplete(output string) bool {

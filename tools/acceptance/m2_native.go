@@ -26,7 +26,7 @@ func (s *suite) nativeM2(ctx context.Context, name string) row {
 	if name == m2WindowsOnly && s.m2OS != goosWindows {
 		return row{"m2-native", name, statusSkip, "requires native Windows", false}
 	}
-	return measured("m2-native", name, s.m2NativeCase(ctx, name))
+	return measuredM2("m2-native", name, s.m2NativeCase(ctx, name))
 }
 
 func m2NativeNames() []string {
