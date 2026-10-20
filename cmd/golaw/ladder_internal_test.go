@@ -2,7 +2,9 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -58,6 +60,62 @@ const Value = leaf.Value
 	entries, err := os.ReadDir(filepath.Join(dirs.State, "runner", "trees"))
 	if err != nil || len(entries) != 0 {
 		t.Fatalf("resources remain = %v, %v", entries, err)
+	}
+}
+
+// goStandIn writes a POSIX script named go that refuses to run when a hook
+// variable reached it and otherwise runs the real go, so the test reads the
+// environment of the process that lists the packages; it answers its
+// directory.
+func goStandIn(t *testing.T) string {
+	t.Helper()
+	goPath, err := exec.LookPath("go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := runner.HookVariables()
+	lines := make([]string, 0, len(names)+3)
+	lines = append(lines, "#!/bin/sh")
+	for _, name := range names {
+		lines = append(lines, `[ -z "${`+name+`+set}" ] || { echo "hook variable inherited: `+
+			name+`" >&2; exit 3; }`)
+	}
+	lines = append(lines, "exec '"+goPath+"' \"$@\"", "")
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(strings.Join(lines, "\n")), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return bin
+}
+
+// The stand-in for go is on PATH for this test alone; the plumbing keeps
+// the five hook variables, which name this repository.
+func TestAffectedCommandHandsGoNoHookVariable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a shell script stands in for go, and Windows runs none named go")
+	}
+	t.Setenv("PATH", goStandIn(t)+string(os.PathListSeparator)+os.Getenv("PATH"))
+	repo := gittest.New(t)
+	repo.Commit("chore: seed", map[string]string{
+		"go.mod":        "module example.test/hooked\n\ngo 1.24\n",
+		"leaf/value.go": "package leaf\nconst Value = 1\n",
+	})
+	repo.Stage(map[string]string{"leaf/value.go": "package leaf\nconst Value = 2\n"})
+	gitDir := repo.GitDir()
+	ta := ladderApp(t)
+	b := ta.bind()
+	b.environ = func() []string {
+		return append(gittest.Isolated(), "GOWORK=off", "GOPROXY=off",
+			"GIT_DIR="+gitDir, "GIT_WORK_TREE="+repo.Root, "GIT_COMMON_DIR="+gitDir,
+			"GIT_INDEX_FILE="+filepath.Join(gitDir, "index"), "GIT_PREFIX=",
+		)
+	}
+	ta.bind = func() binding { return b }
+	if code := ta.run(t.Context(), []string{"affected", repo.Root}); code != exitClean {
+		t.Fatalf("exit = %d, stderr = %q", code, ta.stderr.String())
+	}
+	if got := ta.stdout.String(); got != "./leaf\n" {
+		t.Fatalf("patterns = %q", got)
 	}
 }
 
