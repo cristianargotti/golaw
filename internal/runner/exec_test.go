@@ -3,8 +3,12 @@ package runner_test
 import (
 	"context"
 	"errors"
+	"os"
+	"runtime"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/gittest"
 	"github.com/cristianargotti/golaw/internal/runner"
@@ -16,6 +20,35 @@ func git(r *gittest.Repo, stdin string, args ...string) runner.Command {
 		c.Stdin = strings.NewReader(stdin)
 	}
 	return c
+}
+
+// shell plays a process that runs on, or leaves a descendant behind, with
+// the POSIX shell, which a Windows runner may not carry.
+func shell(t *testing.T, script string) runner.Command {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("the long process is a POSIX shell script")
+	}
+	return runner.Command{Name: "sh", Args: []string{"-c", script}, Dir: t.TempDir()}
+}
+
+// reap kills the descendants whose pids a script printed, because they
+// outlive the process Run waited for and would hold on after the test.
+func reap(t *testing.T, stdout []byte) {
+	t.Helper()
+	for field := range strings.FieldsSeq(string(stdout)) {
+		pid, err := strconv.Atoi(field)
+		if err != nil {
+			continue
+		}
+		p, err := os.FindProcess(pid)
+		if err != nil {
+			continue
+		}
+		if err := p.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			t.Logf("kill the descendant %d: %v", pid, err)
+		}
+	}
 }
 
 func TestRunAnswersTheOutputAndTheStatus(t *testing.T) {
@@ -65,6 +98,31 @@ func TestRunStopsWhenTheContextEnds(t *testing.T) {
 	_, err := runner.Run(ctx, git(gittest.New(t), "", "version"))
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("err = %v, want the context's error", err)
+	}
+}
+
+func TestRunStopsARunningProcessWhenTheContextEnds(t *testing.T) {
+	t.Parallel()
+	scripts := map[string]string{
+		"the process alone":                 "exec sleep 10",
+		"a descendant that holds the pipes": "sleep 10 & echo $!; exec sleep 10",
+	}
+	for name, script := range scripts {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
+			defer cancel()
+			out, err := runner.Run(ctx, shell(t, script))
+			deadline, _ := ctx.Deadline()
+			late := time.Since(deadline)
+			reap(t, out.Stdout)
+			if !errors.Is(err, context.DeadlineExceeded) {
+				t.Errorf("err = %v, want the context's error", err)
+			}
+			if late > 2*time.Second {
+				t.Errorf("Run answered %s after the context ended, want at most a second for the pipes", late)
+			}
+		})
 	}
 }
 
