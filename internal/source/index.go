@@ -49,7 +49,9 @@ type Index struct {
 // worktree and an alternate index are read as git reads them. An
 // intent-to-add entry is not part of the universe (the next commit does
 // not record it), and a path a merge left at stages 1 to 3 is unmerged,
-// outside the universe and the changes.
+// outside the universe and the changes. An index another process stages
+// in between the listing and the changes is ErrGit, so a snapshot never
+// holds two states of the index.
 func NewIndex(ctx context.Context, repo Repo, opts IndexOptions) (*Index, error) {
 	var env []string
 	if opts.IndexFile != "" {
@@ -71,6 +73,9 @@ func NewIndex(ctx context.Context, repo Repo, opts IndexOptions) (*Index, error)
 	f := newFrozen(ctx, repo.Root, env, entries)
 	merge, err := mergeHead(repo.GitDir)
 	if err != nil {
+		return nil, err
+	}
+	if err := unchanged(f, changes); err != nil {
 		return nil, err
 	}
 	first, _, _ := strings.Cut(merge, "\n")

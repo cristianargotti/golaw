@@ -172,6 +172,24 @@ func changeOf(meta, paths []string) (model.Change, bool) {
 	}
 }
 
+// unchanged checks that every path the changes add, modify or rename to is
+// an entry of the frozen listing with the mode and the object id the change
+// names, as the two reads of one index always agree. A process that stages
+// between them leaves them apart, and the snapshot is refused rather than
+// made of two states of the index.
+func unchanged(f *frozen, changes []model.Change) error {
+	for _, c := range changes {
+		if c.NewPath == "" {
+			continue
+		}
+		if i, listed := f.index[c.NewPath]; !listed || f.entries[i].mode != c.Mode || f.entries[i].oid != c.After {
+			return fmt.Errorf("%w: the index changed while it was read, so its listing and its changes disagree about %s: run the command again once no other process writes the index",
+				ErrGit, c.NewPath)
+		}
+	}
+	return nil
+}
+
 // changeKey is the path a change is ordered by: its new path, or the old
 // path of a deletion.
 func changeKey(c model.Change) string {

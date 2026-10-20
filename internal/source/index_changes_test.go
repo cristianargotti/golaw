@@ -2,7 +2,10 @@ package source_test
 
 import (
 	"errors"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -170,5 +173,40 @@ func TestIndexNamesTheMergeInProgress(t *testing.T) {
 	want := []model.Change{{Op: model.ChangeAdd, NewPath: "theirs.md", Mode: "100644", After: blobAt(r, ":theirs.md")}}
 	if got := x.Changes(); !slices.Equal(got, want) {
 		t.Errorf("changes = %+v, want %+v", got, want)
+	}
+}
+
+// TestNewIndexRefusesAnIndexThatChangedWhileItWasRead stands a git on PATH
+// that stages when the changes are asked for, as a process that writes the
+// index between the listing and the changes would: a path the listing
+// lacks and a new blob at a listed path are each ErrGit naming the path,
+// never a snapshot that holds two states of the index at once.
+func TestNewIndexRefusesAnIndexThatChangedWhileItWasRead(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a shell script stands in for git, and Windows runs none named git")
+	}
+	gitPath, lookErr := exec.LookPath("git")
+	if lookErr != nil {
+		t.Fatal(lookErr)
+	}
+	bin := t.TempDir()
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	for _, staged := range []string{"late.txt", "b.txt"} {
+		script := "#!/bin/sh\nif [ \"$1\" = diff-index ]; then '" + gitPath + "' add " + staged + " || exit 1; fi\nexec '" + gitPath + "' \"$@\"\n"
+		if err := os.WriteFile(filepath.Join(bin, "git"), []byte(script), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		r := gittest.New(t)
+		r.Commit("feat: base", map[string]string{"a.txt": "a\n", "b.txt": "b0\n"})
+		r.StageOnly("b.txt", "b1\n", "b2\n")
+		r.Write("late.txt", "late\n")
+		repo, err := source.Discover(t.Context(), r.Root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = source.NewIndex(t.Context(), repo, source.IndexOptions{})
+		if !errors.Is(err, source.ErrGit) || !strings.Contains(err.Error(), "changed while it was read") || !strings.Contains(err.Error(), staged) {
+			t.Errorf("%s staged between the two reads: %v", staged, err)
+		}
 	}
 }
