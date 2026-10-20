@@ -96,8 +96,9 @@ func (p *precommit) copied(ctx context.Context, t goTree) (goTree, Outcome, bool
 // through in a Go input anywhere in the module: a file changed or deleted
 // after it was staged, or a file git would add, that is a Go file, go.mod,
 // go.sum, a file of a package directory of the index, an importer and a
-// forward dependency alike, or the golangci-lint configuration at the root,
-// or a staged Go file whose worktree bytes are not the bytes of the index.
+// forward dependency alike, a file a package of the index embeds from a
+// subdirectory, or the golangci-lint configuration at the root, or a
+// staged Go file whose worktree bytes are not the bytes of the index.
 // The tools read all of them, so the worktree is read in place only when it
 // holds what the commit records for every one.
 func (p *precommit) dirty(ctx context.Context) (bool, error) {
@@ -108,9 +109,9 @@ func (p *precommit) dirty(ctx context.Context) (bool, error) {
 	if out.Code != 0 {
 		return false, fmt.Errorf("%w: git status: %s", source.ErrGit, strings.TrimSpace(string(out.Stderr)))
 	}
-	dirs := p.goDirs()
+	dirs, patterns := p.goDirs(), map[string][]string{}
 	for record := range strings.SplitSeq(string(out.Stdout), "\x00") {
-		if len(record) >= 4 && record[1] != ' ' && (touchesGo(record[3:], dirs) || lintConfig(record[3:])) {
+		if len(record) >= 4 && record[1] != ' ' && (touchesGo(record[3:], dirs) || lintConfig(record[3:]) || p.embedded(record[3:], dirs, patterns)) {
 			return true, nil
 		}
 	}
