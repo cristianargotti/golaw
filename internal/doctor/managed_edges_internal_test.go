@@ -67,6 +67,44 @@ func TestManagedLinesReadOnlyRegularFilesUnderTheRoot(t *testing.T) {
 	}
 }
 
+// TestManagedLinesKeepTheErrorOfAnUnreadableFile covers a regular file the
+// permissions keep doctor from reading, and a directory on the way doctor
+// cannot search: each keeps the error of the system as an unknown line.
+func TestManagedLinesKeepTheErrorOfAnUnreadableFile(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, path, locked string
+		mode               os.FileMode
+	}{
+		{"unreadable file", "golaw.mk", "golaw.mk", 0o000},
+		{"unsearchable directory on the way", "tools/go.mod", "tools", 0o600},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			writeManagedFile(t, filepath.Join(root, filepath.FromSlash(tc.path)))
+			locked := filepath.Join(root, tc.locked)
+			if err := os.Chmod(locked, tc.mode); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := os.Chmod(locked, 0o700); err != nil {
+					t.Error(err)
+				}
+			})
+			if _, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(tc.path))); err == nil {
+				t.Skip("the permissions do not keep this user from reading the file")
+			}
+			facts := CollectManaged(root, map[string]string{tc.path: install.Digest([]byte(managedEdgeBytes))})
+			line := AssessManaged(facts)[0]
+			if facts[0].Error == "" || facts[0].Current != "" || facts[0].Missing || line.State != "unknown" ||
+				line.Code != "managed-unreadable" || line.Detail != tc.path+": "+facts[0].Error {
+				t.Fatalf("unreadable entry = %+v, line %+v", facts[0], line)
+			}
+		})
+	}
+}
+
 // TestManagedDriftNamesLineEndingsAlone covers a checkout that converts
 // line endings, as core.autocrlf does on Windows without eol=lf: the LF
 // file init wrote reads back with CRLF, golaw init --update keeps it as a
