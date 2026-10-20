@@ -147,6 +147,7 @@ func boundApp(t *testing.T) testApp {
 	t.Helper()
 	b, _ := testBinding(t)
 	ta := newTestApp(t)
+	ta.bind = func() binding { return b }
 	ta.buildInfo = func() buildinfo.Info { return b.info }
 	ta.registry = func() (*engine.Registry, error) { return checks.Registry() }
 	ta.snapshot, ta.load, ta.render = b.snapshot, b.load, b.render

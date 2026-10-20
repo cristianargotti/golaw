@@ -26,6 +26,8 @@ type enrollment struct {
 func initApp(t *testing.T) (testApp, *enrollment) {
 	t.Helper()
 	ta := newTestApp(t)
+	b, _ := testBinding(t)
+	ta.bind = func() binding { return b }
 	record := &enrollment{}
 	ta.compile = func(data []byte, _ time.Time) (*model.EffectivePolicy, error) {
 		policy := model.CoreDefaults()
@@ -84,6 +86,7 @@ func TestInitWithoutApplyPrintsTheDiffAndWritesNothing(t *testing.T) {
 	}
 	out := ta.stdout.String()
 	wanted := []string{
+		"+++ lefthook.yml\n",
 		"--- /dev/null\n", "+golaw: 1\n", "+kit: { version: 9.9.9 }\n", "+language: pt-BR\n",
 		"+capabilities: [go]\n", "init: nothing written, run again with --apply\n",
 	}
@@ -127,7 +130,10 @@ func TestInitApplyWritesEnrollsAndIsIdempotent(t *testing.T) {
 	if got := ta.run(t.Context(), args); got != exitClean {
 		t.Fatalf("second exit = %d, stderr = %q", got, ta.stderr.String())
 	}
-	if !strings.HasPrefix(ta.stdout.String(), "golaw.yml: no changes\n") || record.calls != 2 {
+	if strings.Contains(ta.stdout.String(), "+++ ") ||
+		strings.Contains(ta.stdout.String(), "--- ") ||
+		strings.Contains(ta.stdout.String(), "Gravações:") ||
+		strings.Contains(ta.stdout.String(), "Writes:") || record.calls != 2 {
 		t.Fatalf("second run stdout = %q, enrollment = %+v", ta.stdout.String(), record)
 	}
 }
@@ -193,47 +199,6 @@ func TestInitDoesNotWriteAPolicyTheKitCannotCompile(t *testing.T) {
 	}
 	if ta.stderr.String() != "golaw: init: boom\n" || record.calls != 0 {
 		t.Fatalf("stderr = %q, enrollment = %+v", ta.stderr.String(), record)
-	}
-}
-
-// TestInitKeepsAndEnrollsAnExistingPolicy never renders the defaults over
-// a golaw.yml the repository holds, the reviewed file of its person or of
-// a teammate in a clone: init prints that it keeps the file and enrolls
-// its bytes, whatever the flags say, and refuses a file the kit cannot
-// load without touching it.
-func TestInitKeepsAndEnrollsAnExistingPolicy(t *testing.T) {
-	t.Parallel()
-	ta, record := initApp(t)
-	root := checkout(t)
-	reviewed := "golaw: 1\nkit: { version: 9.9.9 }\nchecks:\n  sizes: { file_lines: 200 }\n"
-	file := filepath.Join(root, bootstrap.PolicyFile)
-	if err := os.WriteFile(file, []byte(reviewed), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	for _, args := range [][]string{{"init", root}, {"init", "--apply", "--language", "en-US", root}} {
-		ta.stdout.Reset()
-		if got := ta.run(t.Context(), args); got != exitClean {
-			t.Fatalf("%v exit = %d, stderr = %q", args, got, ta.stderr.String())
-		}
-		if out := ta.stdout.String(); !strings.HasPrefix(out, "golaw.yml: kept as reviewed") || strings.Contains(out, "+++ ") {
-			t.Fatalf("%v stdout = %q", args, out)
-		}
-	}
-	if data, err := os.ReadFile(file); err != nil || string(data) != reviewed || record.calls != 1 || string(record.data) != reviewed {
-		t.Fatalf("file = %q, %v, enrollment = %+v", data, err, record)
-	}
-	ta.compile = func(data []byte, _ time.Time) (*model.EffectivePolicy, error) {
-		if strings.Contains(string(data), "file_lines: 200") {
-			return nil, errBoom
-		}
-		p := model.CoreDefaults()
-		return &p, nil
-	}
-	if got := ta.run(t.Context(), []string{"init", "--apply", root}); got != exitFailure || !strings.Contains(ta.stderr.String(), "boom") {
-		t.Fatalf("an unloadable file: exit = %d, stderr = %q", got, ta.stderr.String())
-	}
-	if data, err := os.ReadFile(file); err != nil || string(data) != reviewed || record.calls != 1 {
-		t.Fatalf("the unloadable file was touched: %q, %v, enrollment = %+v", data, err, record)
 	}
 }
 

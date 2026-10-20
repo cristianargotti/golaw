@@ -12,4 +12,6 @@ var (
 	ErrSymlink = errors.New("symbolic link refused")
 	// ErrTooLarge marks a policy file longer than the agent hooks read.
 	ErrTooLarge = errors.New("over the 1 MiB the agent hooks read before its first commit")
+	// ErrModule marks module metadata the local Go tool cannot read.
+	ErrModule = errors.New("cannot read module metadata")
 )
