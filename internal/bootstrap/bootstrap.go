@@ -1,8 +1,5 @@
-// Package bootstrap renders the first golaw.yml of a repository and the
-// diff init prints before writing it (specification section 4.3, A2, A24).
-// It writes no template and arms no hook: in M1 the policy file and the
-// enrollment record are the whole of init, and nothing is written without
-// --apply. The package never reads the clock and never runs git.
+// Package bootstrap prepares reviewed policy and template changes before init writes them.
+// It never arms a git hook or reads the clock.
 package bootstrap
 
 import (
@@ -60,18 +57,42 @@ func Root(path string) (string, error) {
 // decision records directory (decision 5: an existing one is reused, two
 // is an error) and whether the repository is a Go module.
 func Detect(root string) (Layout, error) {
-	layout := Layout{Main: MainRoot, Decisions: defaultDecisions, Go: exists(root, goModule)}
+	return ResolveLayout(root, nil, nil)
+}
+
+// ResolveLayout detects only absent choices so reviewed settings resolve ambiguity.
+func ResolveLayout(root string, main, decisions *string) (Layout, error) {
+	directory, err := resolveDecisions(root, decisions)
+	if err != nil {
+		return Layout{}, err
+	}
+	return Layout{
+		Main: resolveMain(root, main), Decisions: directory, Go: exists(root, goModule),
+	}, nil
+}
+
+func resolveMain(root string, reviewed *string) string {
+	if reviewed != nil {
+		return *reviewed
+	}
 	if !exists(root, rootMain) && exists(root, cmdDir) {
-		layout.Main = MainCmd
+		return MainCmd
+	}
+	return MainRoot
+}
+
+func resolveDecisions(root string, reviewed *string) (string, error) {
+	if reviewed != nil {
+		return *reviewed, nil
 	}
 	adr, legacy := exists(root, defaultDecisions), exists(root, legacyDecisions)
 	if adr && legacy {
-		return Layout{}, ErrDecisions
+		return "", ErrDecisions
 	}
 	if legacy {
-		layout.Decisions = legacyDecisions
+		return legacyDecisions, nil
 	}
-	return layout, nil
+	return defaultDecisions, nil
 }
 
 // exists reports whether a slash separated relative path exists under root.

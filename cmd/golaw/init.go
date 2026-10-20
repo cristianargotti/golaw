@@ -16,80 +16,58 @@ import (
 
 type initOptions struct {
 	apply        bool
+	update       bool
 	language     string
 	capabilities []string
 }
 
-// initCommand writes the policy file and the enrollment record of a
-// repository (specification section 4.3, A2, A3, A24). Without --apply it
-// prints the complete diff and writes nothing; with it, twice yields no
-// diff. No template is written in M1 and no git hook is armed, ever.
+// initCommand previews policy and template changes before an explicit apply
+// writes and enrolls them. Git hooks remain unarmed until setup.
 func (a *app) initCommand() *cobra.Command {
 	var opts initOptions
 	cmd := &cobra.Command{
 		Use:   "init [path]",
-		Short: "Write golaw.yml and enroll the repository; without --apply only print the diff",
+		Short: "Prepare golaw.yml and templates; without --apply print only the diff",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return a.initialize(cmd.Context(), cmd.OutOrStdout(), rootArg(args), opts)
 		},
 	}
-	cmd.Flags().BoolVar(&opts.apply, "apply", false, "write the policy file and the enrollment record")
+	cmd.Flags().BoolVar(&opts.apply, "apply", false, "write the policy file, the templates and the enrollment record")
+	cmd.Flags().BoolVar(&opts.update, "update", false, "re-render the managed files golaw.yml records and move the kit pin to this binary")
 	cmd.Flags().StringVar(&opts.language, "language", model.DefaultLanguage, "language of the human channel")
 	cmd.Flags().StringSliceVar(&opts.capabilities, "capabilities", nil,
 		"capabilities to enable: "+strings.Join(model.Capabilities(), ", "))
 	return cmd
 }
 
-// initialize renders the policy, prints the diff against the file in the
-// checkout and, with --apply, publishes the file and enrolls the root with
-// the digest of the policy it compiled. A file the checkout already holds
-// is kept and enrolled instead (keepPolicy).
 func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts initOptions) error {
-	root, data, policy, err := a.prepareInit(path, opts)
+	if opts.update {
+		return a.initializeUpdate(ctx, out, path, opts.apply)
+	}
+	root, current, data, err := a.prepareInitSnapshot(path, opts)
 	if err != nil {
 		return err
 	}
-	current, err := bootstrap.Current(root)
+	plan, err := a.planInit(ctx, root, current, data, opts.apply)
 	if err != nil {
 		return initFailed(err)
 	}
-	if current != nil {
-		return a.keepPolicy(ctx, out, root, current, data, opts.apply)
-	}
-	if err := writeLines(out, diffLines(bootstrap.Diff(current, data))); err != nil {
-		return initFailed(err)
-	}
-	if !opts.apply {
-		return initFailed(writeLines(out, []string{"init: nothing written, run again with --apply"}))
-	}
-	if err := bootstrap.Write(root, data); err != nil {
-		return initFailed(err)
-	}
-	return a.enrollInit(ctx, out, root, data, policy)
+	plan.status = a.unchangedPolicyStatus(root, opts, plan)
+	return a.finishInit(ctx, out, root, plan, opts.apply)
 }
 
-// keepPolicy enrolls the golaw.yml a checkout already holds instead of
-// rendering over it: the file is the reviewed policy of its person, or of
-// a teammate in a clone, and the defaults would weaken it, so the flags
-// that shape a render do not apply. A file the kit cannot load is refused
-// and left as it is.
-func (a *app) keepPolicy(ctx context.Context, out io.Writer, root string, current, rendered []byte, apply bool) error {
-	policy, err := a.compile(current, a.now())
-	if err != nil {
-		return initFailed(fmt.Errorf("%s of %s cannot be loaded, so init neither replaces nor enrolls it: %w", bootstrap.PolicyFile, root, err))
-	}
-	line := bootstrap.PolicyFile + ": no changes"
-	if !bytes.Equal(current, rendered) {
-		line = bootstrap.PolicyFile + ": kept as reviewed, init enrolls it and renders nothing over it"
-	}
-	if err := writeLines(out, []string{line}); err != nil {
+func (a *app) finishInit(ctx context.Context, out io.Writer, root string, plan initPlan, apply bool) error {
+	if err := printInitPolicy(out, plan); err != nil {
 		return initFailed(err)
 	}
 	if !apply {
-		return initFailed(writeLines(out, []string{"init: nothing written, run again with --apply"}))
+		return initFailed(previewInit(out, plan))
 	}
-	return a.enrollInit(ctx, out, root, current, policy)
+	if err := applyInit(root, plan, out); err != nil {
+		return initFailed(err)
+	}
+	return a.enrollInit(ctx, out, root, plan.data, plan.policy)
 }
 
 // enrollInit writes the enrollment record of the policy init settled on
@@ -116,36 +94,46 @@ func commitLine(language string) string {
 	return "Commit golaw.yml to fix the policy at HEAD."
 }
 
-// prepareInit resolves the root, detects the layout, renders the policy and
-// compiles it, so a policy the kit itself cannot load is never written.
+// prepareInit preserves reviewed settings before flags can supply defaults.
 func (a *app) prepareInit(path string, opts initOptions) (string, []byte, *model.EffectivePolicy, error) {
 	root, err := bootstrap.Root(path)
 	if err != nil {
 		return "", nil, nil, initFailed(err)
 	}
-	layout, err := bootstrap.Detect(root)
-	if err != nil {
-		return "", nil, nil, initFailed(err)
-	}
-	in := bootstrap.Inputs{
-		KitVersion:   pinOf(a.buildInfo()),
-		Language:     opts.language,
-		Capabilities: opts.capabilities,
-		Layout:       layout,
-	}
-	in, err = in.Normalize()
-	if err != nil {
-		return "", nil, nil, initFailed(err)
-	}
-	data, err := bootstrap.Render(in)
+	data, existing, err := initialPolicy(root, pinOf(a.buildInfo()), opts)
 	if err != nil {
 		return "", nil, nil, initFailed(err)
 	}
 	policy, err := a.compile(data, a.now())
 	if err != nil {
+		if existing {
+			err = fmt.Errorf("%s of %s cannot be loaded, so init neither replaces nor enrolls it: %w", bootstrap.PolicyFile, root, err)
+		}
 		return "", nil, nil, initFailed(err)
 	}
 	return root, data, policy, nil
+}
+
+func (a *app) unchangedPolicyStatus(root string, opts initOptions, plan initPlan) string {
+	if plan.current == nil || !bytes.Equal(plan.current, plan.data) {
+		return ""
+	}
+	kept := "golaw.yml: kept as reviewed, init enrolls it and renders nothing over it"
+	// Hypothetical defaults must not invalidate a policy already reviewed.
+	defaults, err := renderInitialPolicy(root, pinOf(a.buildInfo()), opts)
+	if err != nil {
+		return kept
+	}
+	if plan.notice == "" {
+		defaults, err = initManagedPolicy(defaults, plan.templates)
+		if err != nil {
+			return kept
+		}
+	}
+	if bytes.Equal(plan.data, defaults) {
+		return "golaw.yml: no changes"
+	}
+	return kept
 }
 
 // developmentPin is the kit version a development build writes: a released
