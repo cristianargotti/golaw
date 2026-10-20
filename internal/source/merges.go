@@ -60,16 +60,17 @@ func withScratch(repo Repo, work func(env []string) error) error {
 }
 
 // mergeTree is the tree git merge-tree --write-tree writes for the merge of
-// two commits with the strategy options, the first field it prints; its
-// exit status 1 is a merge with conflicts, whose tree holds them in their
-// markers.
-func mergeTree(ctx context.Context, dir string, env []string, ours, theirs string, options []string) (string, error) {
+// two commits with the strategy options, the first field it prints, git
+// reading config before the subcommand, as -c merge.conflictStyle=diff3;
+// its exit status 1 is a merge with conflicts, whose tree holds them in
+// their markers.
+func mergeTree(ctx context.Context, dir string, env []string, ours, theirs string, options []string, config ...string) (string, error) {
 	strategy := make([]string, 0, 2*len(options))
 	for _, option := range options {
 		strategy = append(strategy, "-X", option)
 	}
 	args := []string{"merge-tree", "--write-tree", "--no-messages", "-z", "--allow-unrelated-histories"}
-	out, err := gitWith(ctx, dir, env, nil, slices.Concat(args, strategy, []string{ours, theirs})...)
+	out, err := gitWith(ctx, dir, env, nil, slices.Concat(config, args, strategy, []string{ours, theirs})...)
 	if failure, failed := errors.AsType[*gitError](err); failed && failure.status == gitAbsent {
 		err = nil
 	}

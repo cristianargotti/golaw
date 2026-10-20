@@ -35,20 +35,60 @@ func Conflicts(ctx context.Context, repo Repo, ours, theirs string, options, pat
 	var conflicts map[string]Conflict
 	err := withScratch(repo, func(env []string) error {
 		tree, err := mergeTree(ctx, repo.Root, env, ours, theirs, options)
-		if err == nil {
-			conflicts, err = conflictBytes(ctx, repo.Root, env, tree, theirs, ours, paths)
+		if err != nil {
+			return err
 		}
-		return err
+		read, err := revisionBytes(ctx, repo.Root, env, []string{tree, theirs, ours}, paths)
+		if err != nil {
+			return err
+		}
+		conflicts = make(map[string]Conflict, len(read))
+		for path, blobs := range read {
+			conflicts[path] = Conflict{Merged: blobs[0], Theirs: blobs[1], Ours: blobs[2]}
+		}
+		return nil
 	})
 	return conflicts, err
 }
 
-// conflictBytes reads the blob the tree of a merge, the commit merged and
-// the commit merged into hold at each path, in that order. The sizes come
-// first because git cat-file --batch prints a whole object before its
-// reader can drop it, so a blob over the bound is never printed at all.
-func conflictBytes(ctx context.Context, dir string, env []string, tree, theirs, ours string, paths []string) (map[string]Conflict, error) {
-	revisions := []string{tree, theirs, ours}
+// The conflict styles that write the base of a conflict between its
+// markers, which a command picks for a conflict it writes again, through
+// git checkout --conflict or a git -c merge.conflictStyle of its own.
+const (
+	styleDiff3  = "diff3"
+	styleZdiff3 = "zdiff3"
+)
+
+// StyledConflicts answers, for a merge of the commit theirs into the commit
+// ours that git makes by itself, the bytes the merge holds at each path in
+// the diff3 style and in the zdiff3 style, in that order, nil where it
+// holds no blob or one over model.MaxReadBytes: git merge-tree --write-tree
+// makes the merge once in each style, and git cat-file sizes and reads the
+// blobs of both, with the temporary object directory of
+// AutomaticMergeWith. A name one line of input cannot carry is left out.
+func StyledConflicts(ctx context.Context, repo Repo, ours, theirs string, paths []string) (map[string][][]byte, error) {
+	var styled map[string][][]byte
+	err := withScratch(repo, func(env []string) error {
+		trees := make([]string, 0, 2)
+		for _, style := range []string{styleDiff3, styleZdiff3} {
+			tree, err := mergeTree(ctx, repo.Root, env, ours, theirs, nil, "-c", "merge.conflictStyle="+style)
+			if err != nil {
+				return err
+			}
+			trees = append(trees, tree)
+		}
+		var err error
+		styled, err = revisionBytes(ctx, repo.Root, env, trees, paths)
+		return err
+	})
+	return styled, err
+}
+
+// revisionBytes reads the blob each revision holds at each path, in the
+// order of the revisions. The sizes come first because git cat-file
+// --batch prints a whole object before its reader can drop it, so a blob
+// over the bound is never printed at all.
+func revisionBytes(ctx context.Context, dir string, env, revisions, paths []string) (map[string][][]byte, error) {
 	var input []byte
 	asked := make([]string, 0, len(paths))
 	for _, path := range paths {
@@ -60,9 +100,9 @@ func conflictBytes(ctx context.Context, dir string, env []string, tree, theirs, 
 			input = append(input, revision+":"+path+"\n"...)
 		}
 	}
-	conflicts := make(map[string]Conflict, len(asked))
+	read := make(map[string][][]byte, len(asked))
 	if len(asked) == 0 {
-		return conflicts, nil
+		return read, nil
 	}
 	names, err := boundedNames(ctx, dir, env, input, len(revisions)*len(asked))
 	if err != nil {
@@ -73,10 +113,12 @@ func conflictBytes(ctx context.Context, dir string, env []string, tree, theirs, 
 		return nil, err
 	}
 	for i, path := range asked {
-		at := len(revisions) * i
-		conflicts[path] = Conflict{Merged: blobs[names[at]], Theirs: blobs[names[at+1]], Ours: blobs[names[at+2]]}
+		read[path] = make([][]byte, len(revisions))
+		for j := range revisions {
+			read[path][j] = blobs[names[len(revisions)*i+j]]
+		}
 	}
-	return conflicts, nil
+	return read, nil
 }
 
 // boundedNames are the objects git cat-file --batch-check names for count

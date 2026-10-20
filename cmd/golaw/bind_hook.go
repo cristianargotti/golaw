@@ -60,7 +60,7 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 		Home: b.processHome(), Begin: h.cache.Reset,
 		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Moved: h.moved, Hashes: h.hashes, Overlay: h.overlay,
 		Commits: h.commits, Committer: h.committer, Automatic: h.automatic, Remerged: h.remerged,
-		AutomaticWith: h.automaticWith, RemergedWith: h.remergedWith, Conflicts: h.conflicts, Parents: h.parents,
+		AutomaticWith: h.automaticWith, RemergedWith: h.remergedWith, Conflicts: h.conflicts, Restyled: h.restyled, Parents: h.parents,
 		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
 	}, nil
 }

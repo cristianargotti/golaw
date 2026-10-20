@@ -10,8 +10,11 @@ import (
 // environment or git -c, reads as a commit it did not create, so its file
 // is named in the notice; a commit of the same identity made before the pre
 // event within the second it started reads as the command's, so a move
-// over it judges its file; and a file the command's own commit changed is
-// judged whole, a teammate's line a merge brought into it included.
+// over it judges its file; a file the command's own commit changed is
+// judged whole, a teammate's line a merge brought into it included; and a
+// conflict a later command writes again in the diff3 style, a path git
+// status named before it, is judged like any other, the teammate's side of
+// the conflict included.
 func limitCases(t *testing.T) []moveCase {
 	t.Helper()
 	dash := "one \u2014 two\n"
@@ -40,6 +43,12 @@ func limitCases(t *testing.T) []moveCase {
 			gitRun(t, root, "commit", "-q", "-a", "-m", "docs: mine")
 			gitRun(t, root, "merge", "-q", "--no-commit", "--no-ff", "side")
 		}, "shared.md:7", ""},
+		{"a conflict a later command writes again in the diff3 style", func(root string) {
+			conflicting(t, root, false)
+			gitStops(t, root, "merge", "-q", "side")
+		}, func(root string) {
+			gitRun(t, root, "checkout", "--conflict=diff3", "--", "shared.md")
+		}, "shared.md:6", ""},
 	}
 }
 

@@ -104,3 +104,37 @@ func batchReads(t *testing.T, trace string) int {
 	}
 	return count
 }
+
+// TestStyledConflictsWriteTheConflictInTheBaseStyles reads, for the merge
+// of main and a side that changed shared.md apart from it on two lines, the
+// bytes of the merge git makes by itself in the diff3 style and in the
+// zdiff3 style, the base of each conflict between its markers as git
+// checkout --conflict writes it but for the names of the sides, nil for a
+// path no merge holds; the repository receives no object, and a commit git
+// does not hold is an error.
+func TestStyledConflictsWriteTheConflictInTheBaseStyles(t *testing.T) {
+	t.Parallel()
+	r := gittest.New(t)
+	r.Commit("docs: start", map[string]string{"shared.md": "a\nstart\nc\nd\n"})
+	side := r.Branch("side", map[string]string{"shared.md": "a\nmate line\nc\nd\nside end\n"})
+	r.Commit("docs: main", map[string]string{"shared.md": "a\nlocal line\nc\nd\nmain end\n"})
+	repo, err := source.Discover(t.Context(), r.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	objects := looseObjects(t, r.Root)
+	styled, err := source.StyledConflicts(t.Context(), repo, repo.Head, side, []string{"shared.md", "gone.md"})
+	base := r.Git("rev-parse", "--short", "HEAD~1")
+	want := "a\n<<<<<<< " + repo.Head + "\nlocal line\n||||||| " + base + "\nstart\n=======\nmate line\n>>>>>>> " + side + "\nc\nd\n" +
+		"<<<<<<< " + repo.Head + "\nmain end\n||||||| " + base + "\n=======\nside end\n>>>>>>> " + side + "\n"
+	if err != nil || len(styled["shared.md"]) != 2 || string(styled["shared.md"][0]) != want || !strings.Contains(string(styled["shared.md"][1]), "||||||| ") ||
+		len(styled["gone.md"]) != 2 || styled["gone.md"][0] != nil || styled["gone.md"][1] != nil {
+		t.Fatalf("styled %q, %v", styled, err)
+	}
+	if after := looseObjects(t, r.Root); after != objects {
+		t.Fatalf("the merges wrote %d objects into the repository", after-objects)
+	}
+	if _, unknownErr := source.StyledConflicts(t.Context(), repo, repo.Head, strings.Repeat("0", 40), []string{"shared.md"}); unknownErr == nil {
+		t.Fatal("a commit git does not hold answered a merge")
+	}
+}

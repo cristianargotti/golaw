@@ -88,8 +88,8 @@ func readUnmerged(snapshot model.Snapshot, unmerged []string) (map[string][]byte
 // first, then the merge with each strategy option of the command alone,
 // asked only for the paths whose bytes no merge before it holds, because
 // the text does not tell which of its merges stopped, so bytes any of them
-// holds are git's. A path git cannot answer for waits, as does every path
-// not read.
+// holds are git's, and last that merge in the base styles (restyled). A
+// path git cannot answer for waits, as does every path not read.
 func (run execution) conflictKinds(ctx context.Context, dependencies Dependencies, ours, theirs string, options []string, contents map[string][]byte, read []string) map[string]resolution {
 	kinds := map[string]resolution{}
 	candidates := make([][]string, 1, 1+len(options))
@@ -117,7 +117,44 @@ func (run execution) conflictKinds(ctx context.Context, dependencies Dependencie
 		}
 		left = unmatched
 	}
+	run.restyled(ctx, dependencies, ours, theirs, contents, left, kinds)
 	return kinds
+}
+
+// restyled has wait, of the paths whose bytes no merge holds, those whose
+// bytes are the conflict git writes for the merge by itself in the diff3 or
+// the zdiff3 style: a command that writes a conflict again picks the style
+// through git checkout --conflict or a git -c of its own, which the
+// configuration the merges before read does not name. Git is asked once,
+// only for bytes that carry the base marker of those styles; when it cannot
+// answer or no binding asks it, each such path waits too.
+func (run execution) restyled(ctx context.Context, dependencies Dependencies, ours, theirs string, contents map[string][]byte, left []string, kinds map[string]resolution) {
+	marked := slices.DeleteFunc(slices.Clone(left), func(path string) bool { return !baseMarked(contents[path]) })
+	if len(marked) == 0 {
+		return
+	}
+	var styled map[string][][]byte
+	err := model.ErrUnreadable
+	if dependencies.Restyled != nil {
+		styled, err = dependencies.Restyled(ctx, run.repository, ours, theirs, marked)
+	}
+	for _, path := range marked {
+		if err != nil || slices.ContainsFunc(styled[path], func(merged []byte) bool { return merged != nil && sameLines(contents[path], merged, true) }) {
+			kinds[path] = waiting
+		}
+	}
+}
+
+// baseMarked reports whether bytes hold the base marker of the diff3 and
+// the zdiff3 styles, a line that opens with a run of seven or more |.
+func baseMarked(content []byte) bool {
+	for line := range bytes.SplitSeq(content, []byte("\n")) {
+		line = bytes.TrimSuffix(line, []byte("\r"))
+		if markerRun(line) >= markerSize && line[0] == '|' {
+			return true
+		}
+	}
+	return false
 }
 
 // resolutionOf is what the bytes on disk of an unmerged path are, against

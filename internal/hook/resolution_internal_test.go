@@ -198,3 +198,63 @@ func TestResolutionsCompareEveryMergeTheTextMayHaveMade(t *testing.T) {
 		t.Fatalf("the merge with the option failed: written %v, gaps %+v after %q", written, gaps, asked)
 	}
 }
+
+// styledConflicts answer, at each path asked, the conflict the merge of c1
+// and m1 holds in the diff3 and in the zdiff3 style, recording each
+// question; failing makes git fail.
+func styledConflicts(asked *[]string, failing bool) func(context.Context, Repository, string, string, []string) (map[string][][]byte, error) {
+	return func(_ context.Context, _ Repository, _, _ string, paths []string) (map[string][][]byte, error) {
+		*asked = append(*asked, "styled "+strings.Join(paths, ","))
+		if failing {
+			return nil, model.ErrUnreadable
+		}
+		styled := []byte("<<<<<<< c1\nlocal\n||||||| 5cd13f6\nstart\n=======\nmate \u2014 line\n>>>>>>> m1\n")
+		answers := map[string][][]byte{}
+		for _, path := range paths {
+			answers[path] = [][]byte{styled, styled}
+		}
+		return answers, nil
+	}
+}
+
+// TestResolutionsTakeTheConflictInTheBaseStyles leaves to the event of its
+// resolution a conflict the command wrote again in the diff3 style, which
+// the merge in the style of the configuration does not hold, asking git the
+// merge in the base styles once, only for the bytes that carry the base
+// marker of those styles and that no other merge holds; bytes with the
+// marker that no style holds are judged, as are bytes without it, and each
+// path with the marker waits when git cannot answer or no binding asks it.
+func TestResolutionsTakeTheConflictInTheBaseStyles(t *testing.T) {
+	t.Parallel()
+	diff3 := "<<<<<<< ours\nlocal\n||||||| base\nstart\n=======\nmate \u2014 line\n>>>>>>> theirs\n"
+	changes := Changes{
+		Head: "c1", Merge: "m1", Unmerged: map[string]bool{"diff3.md": true, "edited.md": true, "mine.md": true, "plain.md": true},
+		Snapshot: proof.NewTree(map[string][]byte{
+			"diff3.md":  []byte(diff3),
+			"edited.md": []byte(strings.Replace(diff3, "local", "local \u2014 edited", 1)),
+			"mine.md":   []byte("mine \u2014 resolved\n"),
+			"plain.md":  []byte("<<<<<<< HEAD\nlocal\n=======\nmate \u2014 line\n>>>>>>> side\n"),
+		}),
+	}
+	run := execution{repository: Repository{Head: "c1"}}
+	before := Baseline{Files: map[string]string{}, Head: "c1"}
+	unmerged := []string{"diff3.md", "edited.md", "mine.md", "plain.md"}
+	var asked []string
+	deps := Dependencies{Conflicts: optionConflicts(&asked, false), Restyled: styledConflicts(&asked, false)}
+	written, gaps := run.resolutions(t.Context(), deps, before, changes, unmerged)
+	if !slices.Equal(written, []string{"edited.md", "mine.md"}) || !slices.Equal(gaps, pathGaps([]string{"diff3.md", "plain.md"}, causeUnmerged)) ||
+		!slices.Equal(asked, []string{" diff3.md,edited.md,mine.md,plain.md", "styled diff3.md,edited.md"}) {
+		t.Fatalf("written %v, gaps %+v after %q", written, gaps, asked)
+	}
+	unbound := deps
+	unbound.Restyled = nil
+	for name, deps := range map[string]Dependencies{
+		"git cannot answer": {Conflicts: optionConflicts(&asked, false), Restyled: styledConflicts(&asked, true)},
+		"no binding":        unbound,
+	} {
+		written, gaps = run.resolutions(t.Context(), deps, before, changes, unmerged)
+		if !slices.Equal(written, []string{"mine.md"}) || !slices.Equal(gaps, pathGaps([]string{"diff3.md", "edited.md", "plain.md"}, causeUnmerged)) {
+			t.Fatalf("%s: written %v, gaps %+v", name, written, gaps)
+		}
+	}
+}
