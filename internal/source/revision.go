@@ -25,12 +25,9 @@ func NewRevision(ctx context.Context, repo Repo, rev string) (*Revision, error) 
 	if rev == "" {
 		return &Revision{frozen: newFrozen(ctx, repo.Root, nil, nil), identity: emptyRevision}, nil
 	}
-	commit, err := query(ctx, repo.Root, "rev-parse", "--verify", "-q", "--end-of-options", rev+"^{commit}")
+	commit, err := resolveCommit(ctx, repo.Root, rev)
 	if err != nil {
 		return nil, err
-	}
-	if commit == "" {
-		return nil, fmt.Errorf("%w: %q names no commit", ErrGit, rev)
 	}
 	out, err := git(ctx, repo.Root, "ls-tree", "-r", "-z", "--full-tree", commit)
 	if err != nil {
@@ -49,3 +46,17 @@ func NewRevision(ctx context.Context, repo Repo, rev string) (*Revision, error) 
 // Identity names the tree a report describes: "tree:" followed by the
 // commit id, "tree:empty" for the empty tree.
 func (r *Revision) Identity() string { return r.identity }
+
+// resolveCommit is the commit a name resolves to. A name that resolves to
+// no commit, a tree included, is ErrGit, and so is a name git would read
+// as an option, which reaches git only as a revision.
+func resolveCommit(ctx context.Context, root, rev string) (string, error) {
+	commit, err := query(ctx, root, "rev-parse", "--verify", "-q", "--end-of-options", rev+"^{commit}")
+	if err != nil {
+		return "", err
+	}
+	if commit == "" {
+		return "", fmt.Errorf("%w: %q names no commit", ErrGit, rev)
+	}
+	return commit, nil
+}

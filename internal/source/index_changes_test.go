@@ -74,7 +74,7 @@ func TestIndexChangesOfAnUnbornBranchAndAgainstABase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, base := range []string{"no-such-revision", "--cached"} {
+	for _, base := range []string{"no-such-revision", "--cached", "HEAD^{tree}"} {
 		if _, err := source.NewIndex(t.Context(), repo, source.IndexOptions{Base: base}); !errors.Is(err, source.ErrGit) {
 			t.Errorf("base %s: %v, want ErrGit", base, err)
 		}

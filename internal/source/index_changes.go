@@ -29,16 +29,17 @@ func (x *Index) Unmerged() []string { return slices.Clone(x.unmerged) }
 func (x *Index) MergeHead() string { return x.mergeHead }
 
 // indexChanges takes the changes the next commit records against the base
-// and names the intent-to-add entries of the listing. The base is the one
-// named, else HEAD, else on an unborn branch the empty tree, and the
-// changes are one git diff-index --cached -z -M --ita-invisible-in-index
-// against it, which reads the index as the commit writes it: an intent to
-// add is no addition, and the deletion of a path the base holds. On an
-// unborn branch where no entry holds the empty blob, no entry can be an
-// intent, every entry is an addition and git is not asked.
+// and names the intent-to-add entries of the listing. The base is the
+// commit named, else HEAD, else on an unborn branch the empty tree. One git
+// diff-index --cached -z -M --ita-invisible-in-index against it answers
+// the changes as the commit writes them: an intent to add is no addition,
+// and the deletion of a path the base holds. On an unborn branch where no
+// entry holds the empty blob, no entry can be an intent, every entry is an
+// addition and git is not asked.
 func indexChanges(ctx context.Context, repo Repo, env []string, base string, entries []treeEntry) ([]model.Change, map[string]bool, error) {
-	if base == "" {
-		base = repo.Head
+	base, err := baseCommit(ctx, repo, base)
+	if err != nil {
+		return nil, nil, err
 	}
 	empty := slices.IndexFunc(entries, holdsEmptyBlob)
 	if base == "" && empty < 0 {
@@ -64,6 +65,16 @@ func indexChanges(ctx context.Context, repo Repo, env []string, base string, ent
 		return nil, nil, err
 	}
 	return changes, intents, nil
+}
+
+// baseCommit is the commit the changes are taken against: the commit an
+// explicit base resolves to, because git diff-index would also take a
+// tree, which is no commit; HEAD otherwise, empty on an unborn branch.
+func baseCommit(ctx context.Context, repo Repo, base string) (string, error) {
+	if base == "" {
+		return repo.Head, nil
+	}
+	return resolveCommit(ctx, repo.Root, base)
 }
 
 // intentsToAdd names the entries git add -N recorded, from the index alone
