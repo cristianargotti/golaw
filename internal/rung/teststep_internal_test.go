@@ -11,18 +11,26 @@ import (
 )
 
 // On a host whose cgo is off, as go leaves it without a C compiler, -race
-// needs cgo everywhere but macOS: what go answers then is no finding of the
-// commit, so the step names the remedy and leaves the tests to the
-// pipeline. The fake go is found through PATH, so the test is serial.
+// needs cgo everywhere but macOS, and on a platform the race detector does
+// not cover, Windows on ARM among them, go refuses -race outright: what go
+// answers then is no finding of the commit, so the step names the remedy
+// and leaves the tests to the pipeline.
+//
+//nolint:paralleltest // the fake go is found through PATH
 func TestTestStepNamesARaceDetectorThisHostLacks(t *testing.T) {
-	dir := t.TempDir()
-	runnertest.Install(t, dir, "go", runnertest.Behavior{Probe: []string{"version"}, Stderr: "go: -race requires cgo; enable cgo by setting CGO_ENABLED=1\n", Code: 2})
-	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	p := &precommit{ladder: model.Ladder{TestStaged: true}}
-	tree := goTree{set: runner.AffectedSet{Packages: []string{"example.test/m/a"}, Patterns: []string{"./a"}}, dir: t.TempDir()}
-	out := p.test(t.Context(), tree)
-	if out.Code != codeClean || len(out.Lines) != 1 || !strings.Contains(out.Lines[0], "install a C compiler or switch test_staged off in golaw.yml") {
-		t.Errorf("a race detector this host lacks = %+v", out)
+	for answer, remedy := range map[string]string{
+		"go: -race requires cgo; enable cgo by setting CGO_ENABLED=1\n": "install a C compiler or switch test_staged off in golaw.yml",
+		"go: -race is not supported on windows/arm64\n":                 "go test -race is not supported on this host: switch test_staged off in golaw.yml; the pipeline runs the tests",
+	} {
+		dir := t.TempDir()
+		runnertest.Install(t, dir, "go", runnertest.Behavior{Probe: []string{"version"}, Stderr: answer, Code: 2})
+		t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+		p := &precommit{ladder: model.Ladder{TestStaged: true}}
+		tree := goTree{set: runner.AffectedSet{Packages: []string{"example.test/m/a"}, Patterns: []string{"./a"}}, dir: t.TempDir()}
+		out := p.test(t.Context(), tree)
+		if out.Code != codeClean || len(out.Lines) != 1 || !strings.Contains(out.Lines[0], remedy) {
+			t.Errorf("a race detector this host lacks, %q = %+v", answer, out)
+		}
 	}
 }
 

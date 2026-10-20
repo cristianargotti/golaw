@@ -10,11 +10,13 @@ import (
 	"github.com/cristianargotti/golaw/internal/runner"
 )
 
-// testStep names the go test step test_staged arms, and raceNeedsCgo is
-// what go prints when -race meets a host whose cgo is off.
+// testStep names the go test step test_staged arms, raceNeedsCgo is what go
+// prints when -race meets a host whose cgo is off, and raceUnsupported what
+// it prints on a platform the race detector does not cover.
 const (
-	testStep     = "test"
-	raceNeedsCgo = "-race requires cgo"
+	testStep        = "test"
+	raceNeedsCgo    = "-race requires cgo"
+	raceUnsupported = "-race is not supported on"
 )
 
 // test runs go test -race over the affected packages when the ladder arms
@@ -37,6 +39,8 @@ func (p *precommit) test(ctx context.Context, t goTree) Outcome {
 		return passed(testStep, fmt.Sprintf("go test -race passes in %d affected packages", len(t.set.Packages)))
 	case bytes.Contains(out.Stderr, []byte(raceNeedsCgo)):
 		return passed(testStep, "go test -race needs cgo and a C compiler this host lacks: install a C compiler or switch test_staged off in golaw.yml; the pipeline runs the tests")
+	case bytes.Contains(out.Stderr, []byte(raceUnsupported)):
+		return passed(testStep, "go test -race is not supported on this host: switch test_staged off in golaw.yml; the pipeline runs the tests")
 	}
 	failed := failedPackages(out)
 	if slices.ContainsFunc(failed, p.touches) {
