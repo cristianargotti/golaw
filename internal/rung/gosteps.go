@@ -23,7 +23,7 @@ func (p *precommit) goSteps(ctx context.Context) Outcome {
 	if !ok {
 		return out
 	}
-	for _, step := range []func(context.Context, goTree) Outcome{p.golangci, p.vet} {
+	for _, step := range []func(context.Context, goTree) Outcome{p.golangci, p.vet, p.test} {
 		out = join(out, step(ctx, t))
 	}
 	if err := t.close(); err != nil {
