@@ -91,30 +91,53 @@ func TestSetupGovulncheckUsesReceiptVersionWithoutStarting(t *testing.T) {
 	path := runnertest.Install(t, bin, tool.Name, runnertest.Behavior{
 		Probe: tool.Probe, Version: "99.0.0",
 	})
+	elsewhere := filepath.Join(t.TempDir(), filepath.Base(path))
+	unclean := bin + string(filepath.Separator) + "." + string(filepath.Separator) + filepath.Base(path)
 	for _, tc := range []struct {
-		name, version, state string
-		recorded             bool
+		name, version, state, at string
+		recorded                 bool
 	}{
-		{"previous pin", "1.6.0", "version", true},
-		{"current pin", tool.Version, "ok", true},
-		{"empty recorded version", "", "version", true},
-		{"absent record", "", "version", false},
+		{"previous pin", "1.6.0", "version", path, true},
+		{"current pin", tool.Version, "ok", path, true},
+		{"current pin at an unclean spelling of the path", tool.Version, "ok", unclean, true},
+		{"empty recorded version", "", "version", path, true},
+		{"absent record", "", "version", "", false},
+		{"current pin recorded at another path", tool.Version, "unknown", elsewhere, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("PATH", bin)
 			var recorded []setup.ToolRecord
 			if tc.recorded {
-				recorded = []setup.ToolRecord{{Name: tool.Name, Path: "previous/tool/location", Version: tc.version}}
+				recorded = []setup.ToolRecord{{Name: tool.Name, Path: tc.at, Version: tc.version}}
 			}
 			status := collectSetupTool(t.Context(), tool, os.Environ(), recorded)
-			if status.Path != path || status.Version != tc.version || status.Error != "" {
-				t.Fatalf("recorded scanner evidence = %+v", status)
-			}
+			requireSetupRecordedEvidence(t, status, path, tc.at, tc.version, tc.state)
 			if calls := runnertest.Calls(t, bin, tool.Name); len(calls) != 0 {
 				t.Fatalf("scanner was started: %v", calls)
 			}
 			requireSetupRecordedLine(t, status, tool, tc.state)
 		})
+	}
+}
+
+// requireSetupRecordedEvidence requires the path PATH resolved, with the
+// version setup recorded only when setup recorded that same path: the
+// version of another recorded path describes another binary, so that
+// evidence keeps no version and its line names both paths.
+func requireSetupRecordedEvidence(t *testing.T, status ToolStatus, path, at, version, state string) {
+	t.Helper()
+	if status.Path != path {
+		t.Fatalf("recorded scanner evidence = %+v", status)
+	}
+	if state != "unknown" {
+		if status.Version != version || status.Error != "" {
+			t.Fatalf("recorded scanner evidence = %+v", status)
+		}
+		return
+	}
+	detail := setupToolLine(status).Detail
+	if status.Version != "" || !strings.Contains(detail, path) || !strings.Contains(detail, at) {
+		t.Fatalf("scanner recorded at %s, resolved at %s: %+v, detail %q", at, path, status, detail)
 	}
 }
 

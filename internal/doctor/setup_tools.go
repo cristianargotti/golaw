@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -32,15 +33,28 @@ func collectSetupTool(ctx context.Context, tool runner.Tool, env []string, recor
 	status.Path = path
 	if tool.Name == setupVulnTool {
 		// Its version probe contacts the vulnerability database.
-		if index := slices.IndexFunc(recorded, func(item setup.ToolRecord) bool { return item.Name == tool.Name }); index >= 0 {
-			status.Version = recorded[index].Version
-		}
-		return status
+		return setupRecordedTool(status, recorded)
 	}
 	if _, err := runner.Verify(ctx, tool, env); err != nil {
 		return collectSetupProbe(ctx, tool, env, status)
 	}
 	status.Version = tool.Version
+	return status
+}
+
+// setupRecordedTool takes the version setup recorded for a tool doctor
+// never starts. That version describes only the path setup verified, so
+// another path PATH resolves now is a binary doctor cannot vouch for.
+func setupRecordedTool(status ToolStatus, recorded []setup.ToolRecord) ToolStatus {
+	index := slices.IndexFunc(recorded, func(item setup.ToolRecord) bool { return item.Name == status.Name })
+	if index < 0 {
+		return status
+	}
+	if filepath.Clean(recorded[index].Path) != filepath.Clean(status.Path) {
+		status.Error = fmt.Sprintf("PATH resolves %s at %s, setup recorded it at %s", status.Name, status.Path, recorded[index].Path)
+		return status
+	}
+	status.Version = recorded[index].Version
 	return status
 }
 
