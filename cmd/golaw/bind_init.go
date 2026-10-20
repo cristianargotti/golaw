@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"go/version"
+	"strings"
 
 	"github.com/cristianargotti/golaw"
 	"github.com/cristianargotti/golaw/internal/assets"
@@ -44,6 +46,9 @@ func (b binding) initTemplateContext(ctx context.Context, root string, config po
 		return inputs, moduleInstruction(values.Language, false), nil
 	}
 	module, err := bootstrap.ReadModule(ctx, root, b.environ())
+	if err != nil && ctx.Err() == nil && errors.Is(err, bootstrap.ErrModule) {
+		return inputs, unreadableModule(values.Language, err), nil
+	}
 	if err != nil {
 		return assets.Context{}, "", initOperation("read the module", err)
 	}
@@ -107,6 +112,18 @@ func moduleInstruction(language string, older bool) string {
 		return "Raise the go directive of go.mod to 1.24 or newer before generating templates."
 	}
 	return "Run go mod init <module path> before generating templates."
+}
+
+// unreadableModule keeps init to the policy and the enrollment of M1 when
+// the go command cannot read go.mod, and names the cause on one line.
+func unreadableModule(language string, err error) string {
+	cause := strings.Join(strings.Fields(strings.TrimPrefix(err.Error(), bootstrap.ErrModule.Error()+": ")), " ")
+	if language == model.DefaultLanguage {
+		return "O comando go não leu go.mod (" + cause +
+			"); coloque go no PATH ou corrija go.mod e execute golaw init de novo antes de gerar os templates."
+	}
+	return "The go command could not read go.mod (" + cause +
+		"); put go on PATH or repair go.mod, then run golaw init again before generating templates."
 }
 
 // checkInitEnrollment refuses a weakening before any template is published.

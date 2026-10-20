@@ -99,6 +99,62 @@ func initOlderModule(t *testing.T, language, message string) {
 	}
 }
 
+func TestInitOfAnUnreadableModuleOnlyWritesPolicyAndEnrollment(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ language, prefix, suffix string }{
+		{
+			"pt-BR", "O comando go não leu go.mod (",
+			"); coloque go no PATH ou corrija go.mod e execute golaw init de novo antes de gerar os templates.\n",
+		},
+		{
+			"en", "The go command could not read go.mod (",
+			"); put go on PATH or repair go.mod, then run golaw init again before generating templates.\n",
+		},
+	} {
+		t.Run(tc.language, func(t *testing.T) {
+			t.Parallel()
+			initUnreadableModule(t, tc.language, tc.prefix, tc.suffix)
+		})
+	}
+}
+
+// initUnreadableModule applies init to a module the go command cannot
+// read and requires the policy and the enrollment of M1, one line naming
+// the cause and the fix, and no template or change to go.mod.
+func initUnreadableModule(t *testing.T, language, prefix, suffix string) {
+	t.Helper()
+	const module = "module example.test/service\n\ngo 1.27\n\nbogus directive\n"
+	repo := gittest.New(t)
+	repo.Write("go.mod", module)
+	ta := initBindApp(t)
+	if code := ta.run(t.Context(), []string{"init", "--apply", "--language", language, repo.Root}); code != exitClean {
+		t.Fatalf("exit = %d: %s", code, ta.stderr.String())
+	}
+	line := ""
+	for candidate := range strings.SplitSeq(ta.stdout.String(), "\n") {
+		if strings.HasPrefix(candidate, prefix) {
+			line = candidate
+		}
+	}
+	if !strings.HasSuffix(line+"\n", suffix) || !strings.Contains(line, "unknown directive: bogus") {
+		t.Fatalf("unreadable module line missing: %q", ta.stdout.String())
+	}
+	entries, err := os.ReadDir(repo.Root)
+	if err != nil || len(entries) != 3 {
+		t.Fatalf("a template was written for an unreadable module: %+v, %v", entries, err)
+	}
+	if got, readErr := os.ReadFile(filepath.Join(repo.Root, "go.mod")); readErr != nil || string(got) != module {
+		t.Fatalf("go.mod changed: %q, %v", got, readErr)
+	}
+	dirs, err := ta.bind().dirs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, found, readErr := policy.ReadRecord(dirs.State, repo.Root); readErr != nil || !found {
+		t.Fatalf("enrollment = %v, %v", found, readErr)
+	}
+}
+
 func TestInitOutputFailureDoesNotWritePolicyOrTemplates(t *testing.T) {
 	t.Parallel()
 	repo := gittest.New(t)

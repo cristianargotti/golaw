@@ -17,12 +17,17 @@ import (
 
 func TestInitUpdateKeepsReviewedSettingsAndUnrenderableRecords(t *testing.T) {
 	t.Parallel()
-	for _, directive := range []string{"", "1.23", "1.27"} {
-		t.Run("go "+directive, func(t *testing.T) {
+	for _, tc := range []struct{ name, module string }{
+		{"no module", ""},
+		{"go 1.23", "go 1.23\n"},
+		{"go 1.27", "go 1.27\n"},
+		{"unreadable module", "go 1.27\n\nbogus directive\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			repo := gittest.New(t)
-			if directive != "" {
-				repo.Write("go.mod", "module example.test/service\n\ngo "+directive+"\n")
+			if tc.module != "" {
+				repo.Write("go.mod", "module example.test/service\n\n"+tc.module)
 			}
 			ta := initBindApp(t)
 			hash := install.Digest([]byte("retired template\n"))

@@ -17,7 +17,6 @@ func TestInitUpdateRejectsInvalidInputsWithoutWriting(t *testing.T) {
 		{"policy directory", "read policy to update"},
 		{"module directory", "read module input"},
 		{"invalid policy", "decode update settings"},
-		{"invalid module", "cannot read module metadata"},
 		{"ambiguous layout", "both docs/adr and docs/decisions"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -56,8 +55,6 @@ func invalidUpdateInput(t *testing.T, repo *gittest.Repo, name string) string {
 		mkdirUpdateInput(t, repo.Root, "go.mod")
 	case "invalid policy":
 		repo.Write(bootstrap.PolicyFile, "golaw: 1\nunknown: true\n")
-	case "invalid module":
-		repo.Write("go.mod", "invalid directive\n")
 	case "ambiguous layout":
 		mkdirUpdateInput(t, repo.Root, "docs/adr")
 		mkdirUpdateInput(t, repo.Root, "docs/decisions")
