@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -152,6 +153,25 @@ func TestLockedWaitsOnDemandPastTheRungWait(t *testing.T) {
 	if calls := runnertest.Calls(t, dir, "probe"); elapsed < deadline || len(calls) != 0 {
 		t.Fatalf("waited %s of %s, calls = %v", elapsed, deadline, calls)
 	}
+}
+
+// A shell that kills itself is a child that leaves no status to pass on.
+//
+//nolint:paralleltest // The command resolves the repository from the process cwd.
+func TestLockCommandNamesTheSignalThatEndedTheChild(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the child is a POSIX shell that kills itself with a signal")
+	}
+	repo := gittest.New(t)
+	t.Chdir(repo.Root)
+	ta := ladderApp(t)
+	got := ta.run(t.Context(), []string{"lock", "measure", "--", "sh", "-c", "kill -9 $$"})
+	want := "golaw: lock: run locked command: sh ended by signal: killed\n"
+	if got != exitFailure || ta.stderr.String() != want {
+		t.Fatalf("exit = %d, stderr = %q, want %d and %q",
+			got, ta.stderr.String(), exitFailure, want)
+	}
+	requireLockReleased(t, repo.GitDir())
 }
 
 func TestLockedStartFailureReleasesTheLock(t *testing.T) {

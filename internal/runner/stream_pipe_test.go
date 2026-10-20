@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -82,6 +84,18 @@ func TestStreamCancellationBoundsTheWaitForHeldPipes(t *testing.T) {
 	if late := returned.Sub(output.canceled); late > pipeWait+margin {
 		t.Fatalf("Stream answered %s after the cancellation, want at most %s",
 			late, pipeWait+margin)
+	}
+}
+
+// A shell that kills itself leaves no exit status to pass through, so the
+// error has to name the signal.
+func TestStreamNamesTheSignalThatEndedTheChild(t *testing.T) {
+	t.Parallel()
+	code, err := runner.Stream(t.Context(), shell(t, "kill -9 $$"), io.Discard, io.Discard)
+	var exit *exec.ExitError
+	if code != 0 || !errors.As(err, &exit) ||
+		!strings.Contains(err.Error(), "sh ended by signal: killed") {
+		t.Fatalf("signal death = %d, %v", code, err)
 	}
 }
 

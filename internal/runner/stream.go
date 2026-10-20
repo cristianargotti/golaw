@@ -86,6 +86,11 @@ func streamResult(ctx context.Context, name string, writeErr, runErr error) (int
 		return 0, nil
 	}
 	if exit, exited := errors.AsType[*exec.ExitError](runErr); exited {
+		// A signal leaves no status to pass through, and -1 would reach the
+		// shell as 255 with nothing that names the cause.
+		if exit.ExitCode() < 0 {
+			return 0, fmt.Errorf("%s ended by %w", name, runErr)
+		}
 		return exit.ExitCode(), nil
 	}
 	return 0, fmt.Errorf("%w: %s: %w", ErrStart, name, runErr)
