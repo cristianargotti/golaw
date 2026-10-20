@@ -74,7 +74,7 @@ func armHooks(ctx context.Context, plan Plan, deps Dependencies) error {
 		return err
 	}
 	if output.Code != 0 {
-		return fmt.Errorf("lefthook install exited %d: %s%s: %w", output.Code, output.Stdout, output.Stderr, install.ErrHooks)
+		return fmt.Errorf("lefthook install exited %d: %s%s: %w", output.Code, output.Stdout, output.Stderr, ErrGitHooks)
 	}
 	return nil
 }
@@ -129,7 +129,7 @@ func runUninstall(ctx context.Context, plan Plan, deps Dependencies) error {
 		return err
 	}
 	if output.Code != 0 {
-		return fmt.Errorf("lefthook uninstall exited %d: %s%s: %w", output.Code, output.Stdout, output.Stderr, install.ErrHooks)
+		return fmt.Errorf("lefthook uninstall exited %d: %s%s: %w", output.Code, output.Stdout, output.Stderr, ErrGitHooks)
 	}
 	return removeCompletedReceipt(ctx, plan.ReceiptPath)
 }

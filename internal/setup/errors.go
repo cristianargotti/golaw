@@ -9,6 +9,10 @@ import (
 // ErrReceipt prevents corrupt ownership evidence from authorizing changes.
 var ErrReceipt = errors.New("invalid setup receipt")
 
+// ErrGitHooks names the git hooks setup arms when lefthook fails on them,
+// apart from install.ErrHooks, which is about the agent plugin's hooks.
+var ErrGitHooks = errors.New("git hook change incomplete")
+
 func receiptError(path string, err error) error {
 	return fmt.Errorf("setup receipt %q: %w", path, err)
 }

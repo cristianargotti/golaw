@@ -67,7 +67,7 @@ func completedHooks(changes []install.Change) ([]install.Change, []install.Artif
 			return nil, nil, err
 		}
 		if !exists {
-			return nil, nil, fmt.Errorf("lefthook did not create %q: %w", change.Path, install.ErrHooks)
+			return nil, nil, fmt.Errorf("lefthook did not create %q: %w", change.Path, ErrGitHooks)
 		}
 		artifacts = append(artifacts, install.Artifact{Path: change.Path, SHA256: install.Digest(data)})
 		if !change.Existed || !bytes.Equal(change.Before, data) {

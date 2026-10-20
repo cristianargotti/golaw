@@ -155,7 +155,7 @@ func TestSetupPreservesLefthookFailureReason(t *testing.T) {
 				t.Fatal(err)
 			}
 			err = setup.Apply(t.Context(), plan, io.Discard, deps)
-			if !errors.Is(err, install.ErrHooks) || !strings.Contains(err.Error(), fix) {
+			if !errors.Is(err, setup.ErrGitHooks) || !strings.Contains(err.Error(), fix) {
 				t.Fatalf("lefthook failure lost its remedy: %v", err)
 			}
 			if _, readErr := setup.ReadReceipt(plan.ReceiptPath); !errors.Is(readErr, fs.ErrNotExist) {
