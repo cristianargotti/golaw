@@ -186,3 +186,24 @@ func TestPrePushScansEachDistinctTipOfOnePush(t *testing.T) {
 		t.Error("the copy of the side tip stays after the push")
 	}
 }
+
+// The object of an annotated tag is never HEAD, so a release push of a
+// branch and its tag names one commit: it is scanned once, in place.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPrePushScansABranchAndItsTagOnce(t *testing.T) {
+	dir := fakes(t, map[string]runnertest.Behavior{"govulncheck": scanned("v1.7.0")})
+	r := armedRepo(t, armedPolicy)
+	r.Git("tag", "-a", "-m", "release", "v1.0.0")
+	tag := strings.TrimSpace(r.Git("rev-parse", "v1.0.0"))
+	d := pushing(t, r, update(r.Head()), "refs/tags/v1.0.0 "+tag+" refs/tags/v1.0.0 "+runner.ZeroSHA)
+	if out := rung.RunPrePush(t.Context(), d, "origin", ""); out.Code != 0 || len(out.Lines) != 1 || !contains(out, "golaw pre-push: "+r.Head()[:12]+": ") {
+		t.Errorf("a branch and its annotated tag = %+v", out)
+	}
+	if calls := runnertest.Calls(t, dir, "govulncheck"); len(calls) != 1 {
+		t.Errorf("govulncheck ran %d times", len(calls))
+	}
+	if _, err := os.Stat(filepath.Join(d.State, "runner")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("the tag of HEAD is read in place: %v", err)
+	}
+}

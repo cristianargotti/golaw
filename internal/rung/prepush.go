@@ -45,7 +45,7 @@ func RunPrePush(ctx context.Context, deps Dependencies, remote, _ string) Outcom
 	}
 	push := prepush{deps: deps, waivers: a.loaded.Policy.Waivers}
 	result := Outcome{}
-	for _, tip := range tips(ranges) {
+	for _, tip := range push.commits(ctx, tips(ranges)) {
 		result = join(result, push.scan(ctx, tip))
 	}
 	if result.Code != codeClean {
@@ -66,6 +66,24 @@ func tips(ranges []runner.PushRange) []string {
 	for _, r := range ranges {
 		if !r.Delete && !slices.Contains(out, r.Tip) {
 			out = append(out, r.Tip)
+		}
+	}
+	return out
+}
+
+// commits resolves each pushed tip to the commit it names, each commit
+// once, in order: the object of an annotated tag is never HEAD, so a
+// release push of a branch and its tag would scan one tree twice, once in a
+// copy. A tip git cannot resolve stays as it is and its scan names why.
+func (p prepush) commits(ctx context.Context, tips []string) []string {
+	var out []string
+	for _, tip := range tips {
+		commit := tip
+		if res, err := plumbing(ctx, p.deps, "rev-parse", "--verify", "--quiet", "--end-of-options", tip+"^{commit}"); err == nil && res.Code == 0 {
+			commit = strings.TrimSpace(string(res.Stdout))
+		}
+		if !slices.Contains(out, commit) {
+			out = append(out, commit)
 		}
 	}
 	return out
