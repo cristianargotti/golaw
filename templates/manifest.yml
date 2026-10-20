@@ -1,4 +1,20 @@
 templates:
+  - source: templates/.editorconfig.tmpl
+    destination: .editorconfig
+    ownership: merged
+    when: []
+  - source: templates/.gitattributes.tmpl
+    destination: .gitattributes
+    ownership: merged
+    when: []
+  - source: templates/.github/dependabot.yml.tmpl
+    destination: .github/dependabot.yml
+    ownership: kit
+    when: []
+  - source: templates/.gitleaks.toml.tmpl
+    destination: .gitleaks.toml
+    ownership: kit
+    when: []
   - source: templates/.golangci.yml.tmpl
     destination: .golangci.yml
     ownership: kit
