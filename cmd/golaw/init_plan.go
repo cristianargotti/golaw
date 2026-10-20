@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/cristianargotti/golaw/internal/bootstrap"
 	"github.com/cristianargotti/golaw/internal/install"
@@ -56,7 +57,11 @@ func (a *app) planInit(ctx context.Context, root string, current, data []byte, a
 	if err != nil {
 		return initPlan{}, err
 	}
-	if notice == "" {
+	// A protected golaw.yml keeps its bytes, so init keeps and enrolls it
+	// as M1 did and only names the records it would add.
+	if current != nil && slices.Contains(templates.Ownership.Protected, bootstrap.PolicyFile) {
+		templates.HoldRecords()
+	} else if notice == "" {
 		data, err = initManagedPolicy(data, templates)
 		if err != nil {
 			return initPlan{}, err
@@ -68,15 +73,18 @@ func (a *app) planInit(ctx context.Context, root string, current, data []byte, a
 }
 
 func (a *app) compileInitPlan(root string, plan initPlan, apply bool) (initPlan, error) {
-	if err := checkInitOwnership(plan); err != nil {
-		return initPlan{}, err
+	// A preview mutates nothing, so it prints its diff and names the refusal.
+	refusal := checkInitOwnership(plan)
+	if refusal != nil && apply {
+		return initPlan{}, refusal
 	}
 	compiled, err := a.compile(plan.data, a.now())
 	if err != nil {
 		return initPlan{}, err
 	}
-	// A preview mutates nothing, so it prints its diff and names the refusal.
-	refusal := a.bind().checkInitEnrollment(root, plan.data)
+	if refusal == nil {
+		refusal = a.bind().checkInitEnrollment(root, plan.data)
+	}
 	if refusal != nil && apply {
 		return initPlan{}, refusal
 	}

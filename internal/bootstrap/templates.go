@@ -25,9 +25,11 @@ type TemplatePlan struct {
 	LocalEdits []LocalEdit
 	Ownership  Ownership
 	Irregular  []string
+	Held       []policy.ManagedFile
 	Language   string
 	root       string
 	inputs     []install.Change
+	baselines  []policy.ManagedFile
 }
 
 // PlanTemplates preserves existing ownership before any output or mutation.
@@ -45,7 +47,7 @@ func PlanTemplates(root string, rendered []assets.Rendered) (TemplatePlan, error
 		return TemplatePlan{}, err
 	}
 	plan := TemplatePlan{
-		root: resolved, Managed: managed,
+		root: resolved, Managed: managed, baselines: slices.Clone(managed),
 		inputs: []install.Change{{Path: PolicyFile, Before: current, Existed: current != nil}},
 	}
 	for i := range rendered {

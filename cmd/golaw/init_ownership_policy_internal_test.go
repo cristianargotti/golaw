@@ -62,38 +62,77 @@ func requireUnchangedProtectedPolicy(t *testing.T, mode string) {
 
 func TestInitOwnershipRefusesChangedProtectedPolicy(t *testing.T) {
 	t.Parallel()
-	for _, mode := range []string{"managed entry", "pin"} {
-		t.Run(mode, func(t *testing.T) {
+	for _, apply := range []bool{true, false} {
+		t.Run(map[bool]string{true: "apply", false: "preview"}[apply], func(t *testing.T) {
 			t.Parallel()
-			requireChangedProtectedPolicyRefused(t, mode)
+			requireChangedProtectedPolicyRefused(t, apply)
 		})
 	}
 }
 
-func requireChangedProtectedPolicyRefused(t *testing.T, mode string) {
+// requireChangedProtectedPolicyRefused requires an update that would move
+// the pin of a protected golaw.yml to refuse --apply with a remedy its
+// owners can follow, and its preview to name that refusal, neither of
+// them writing or enrolling.
+func requireChangedProtectedPolicyRefused(t *testing.T, apply bool) {
 	t.Helper()
 	repo, original := protectedPolicyFixture(t)
-	before := changeProtectedPolicy(t, original, mode)
+	before := changeProtectedPolicy(t, original, "pin")
 	repo.Write(bootstrap.PolicyFile, string(before))
 	repo.Remove(".editorconfig")
 	snapshot := ownershipTree(t, repo.Root)
 	ta := initBindApp(t)
-	args, recovery := []string{"init", "--apply", repo.Root}, "golaw init --apply"
-	if mode == "pin" {
-		args, recovery = []string{"init", "--update", "--apply", repo.Root}, "golaw init --update --apply"
+	args, code := []string{"init", "--update", repo.Root}, exitClean
+	if apply {
+		args, code = []string{"init", "--update", "--apply", repo.Root}, exitFailure
 	}
-	if code := ta.run(t.Context(), args); code != exitFailure {
-		t.Fatalf("changed protected policy accepted: exit=%d: %s", code, ta.stderr.String())
+	if got := ta.run(t.Context(), args); got != code {
+		t.Fatalf("changed protected policy: exit=%d: %s", got, ta.stderr.String())
 	}
-	for _, want := range []string{"CODEOWNERS", "golaw.yml", "owners", recovery, "commit golaw.yml"} {
-		if !strings.Contains(ta.stderr.String(), want) {
-			t.Errorf("refusal omits %q: %s", want, ta.stderr.String())
+	said := ta.stderr.String()
+	if !apply {
+		out := strings.TrimSuffix(ta.stdout.String(), "\n")
+		said = out[strings.LastIndex(out, "\n")+1:]
+	}
+	for _, want := range []string{"CODEOWNERS", "golaw.yml", "owners", "golaw init --update --apply", "commit golaw.yml"} {
+		if !strings.Contains(said, want) {
+			t.Errorf("refusal omits %q: %s", want, said)
 		}
 	}
-	if ta.stdout.Len() != 0 || !maps.Equal(snapshot, ownershipTree(t, repo.Root)) {
+	if apply && ta.stdout.Len() != 0 || !apply && !strings.HasPrefix(said, "init: nothing written; --apply would refuse: ") ||
+		!maps.Equal(snapshot, ownershipTree(t, repo.Root)) {
 		t.Fatalf("refused initialization wrote output or files: %q", ta.stdout.String())
 	}
 	requireOwnershipEnrollment(t, ta, repo.Root, before, false)
+	requireUnarmed(t, repo.GitDir())
+}
+
+// A protected golaw.yml that does not record a kit template keeps its
+// bytes: init holds the record back, names it with its hash, and keeps and
+// enrolls the policy as M1 did.
+func TestInitOwnershipHoldsTheRecordsOfAProtectedPolicy(t *testing.T) {
+	t.Parallel()
+	repo, original := protectedPolicyFixture(t)
+	before := changeProtectedPolicy(t, original, "managed entry")
+	repo.Write(bootstrap.PolicyFile, string(before))
+	repo.Remove(".editorconfig")
+	ta := initBindApp(t)
+	if code := ta.run(t.Context(), []string{"init", "--apply", repo.Root}); code != exitClean {
+		t.Fatalf("protected policy with an unrecorded template refused: exit=%d: %s", code, ta.stderr.String())
+	}
+	config, err := policy.Decode(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dropped := config.Managed[0]
+	if !strings.Contains(ta.stdout.String(), heldRecordPrefix+dropped.Path+" sha256="+dropped.SHA256+";") {
+		t.Fatalf("held record not named: %q", ta.stdout.String())
+	}
+	if got, readErr := bootstrap.Current(repo.Root); readErr != nil || !bytes.Equal(got, before) {
+		t.Fatalf("protected policy changed: %q, %v", got, readErr)
+	}
+	requireTemplatePresence(t, repo.Root, ".editorconfig", true)
+	requireOwnershipEnrollment(t, ta, repo.Root, before, true)
 	requireUnarmed(t, repo.GitDir())
 }
 

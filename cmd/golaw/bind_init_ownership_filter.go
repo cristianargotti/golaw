@@ -29,15 +29,18 @@ func filterInitOwnership(rendered []assets.Rendered, codeowners []byte) ([]asset
 	return allowed, ownership, nil
 }
 
-// checkInitOwnership waits for final bytes so enrollment alone cannot be refused.
+// checkInitOwnership waits for final bytes so enrollment alone cannot be
+// refused. golaw cannot tell who runs it, so the remedy names what the
+// owners commit by hand: the bytes the preview prints.
 func checkInitOwnership(plan initPlan) error {
 	if !slices.Contains(plan.templates.Ownership.Protected, bootstrap.PolicyFile) ||
 		plan.current != nil && bytes.Equal(plan.current, plan.data) {
 		return nil
 	}
-	command := "golaw init --apply"
+	preview, apply := "golaw init", "golaw init --apply"
 	if plan.update {
-		command = "golaw init --update --apply"
+		preview, apply = "golaw init --update", "golaw init --update --apply"
 	}
-	return fmt.Errorf("%w: CODEOWNERS protects golaw.yml; ask the assigned owners to run %s and commit golaw.yml", model.ErrUsage, command)
+	return fmt.Errorf("%w: CODEOWNERS protects golaw.yml; one of its owners must commit golaw.yml and the files %s previews, then %s enrolls it",
+		model.ErrUsage, preview, apply)
 }
