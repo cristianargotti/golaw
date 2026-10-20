@@ -87,6 +87,32 @@ func TestLockCommandStripsEveryHookVariable(t *testing.T) {
 	}
 }
 
+// A subdirectory as cwd tells the discovered worktree root from the
+// directory the command was started in.
+//
+//nolint:paralleltest // The command resolves the repository from the process cwd.
+func TestLockCommandRunsTheChildInTheWorktreeRoot(t *testing.T) {
+	repo := gittest.New(t)
+	repo.Write("sub/keep.txt", "keep\n")
+	t.Chdir(filepath.Join(repo.Root, "sub"))
+	program, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ta := ladderApp(t)
+	b := ta.bind()
+	b.environ = func() []string { return append(gittest.Isolated(), "LANG=C.UTF-8") }
+	ta.bind = func() binding { return b }
+	args := []string{
+		"lock", "probe", "--", program,
+		"-test.run=^TestLadderEnvironmentProbe$", "--", "golaw-probe", repo.Root,
+	}
+	if got := ta.run(t.Context(), args); got != exitClean {
+		t.Fatalf("exit = %d, stdout=%q stderr=%q",
+			got, ta.stdout.String(), ta.stderr.String())
+	}
+}
+
 func TestLockedInputChild(t *testing.T) {
 	t.Parallel()
 	if os.Getenv("GOLAW_LOCK_CHILD") != "1" {
