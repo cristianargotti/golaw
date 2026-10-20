@@ -41,8 +41,8 @@ func TestKitRungsCallTheBinaryOnly(t *testing.T) {
 	}
 	want := map[string]map[string]hookCommand{
 		"pre-commit": {"golaw": {Run: "golaw hook pre-commit"}},
-		"commit-msg": {"golaw": {Run: "golaw hook commit-msg {1}"}},
-		"pre-push":   {"golaw": {Run: "golaw hook pre-push {1} {2}", UseStdin: true}},
+		"commit-msg": {"golaw": {Run: "golaw hook commit-msg '{1}'"}},
+		"pre-push":   {"golaw": {Run: "golaw hook pre-push '{1}' '{2}'", UseStdin: true}},
 	}
 	got := map[string]map[string]hookCommand{
 		"pre-commit": config.PreCommit.Commands, "commit-msg": config.CommitMsg.Commands, "pre-push": config.PrePush.Commands,

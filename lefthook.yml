@@ -6,6 +6,8 @@
 # tree, so a commit never judges itself with the checker it changes; make
 # ci validates the tree with go run ./cmd/golaw. A rung never depends on a
 # shell, awk or make being present.
+# Each git argument sits in single quotes, so a path with a space reaches
+# golaw whole; double quotes would break the line lefthook runs on Windows.
 min_version: 2.1.0
 
 pre-commit:
@@ -16,10 +18,10 @@ pre-commit:
 commit-msg:
   commands:
     golaw:
-      run: golaw hook commit-msg {1}
+      run: golaw hook commit-msg '{1}'
 
 pre-push:
   commands:
     golaw:
-      run: golaw hook pre-push {1} {2}
+      run: golaw hook pre-push '{1}' '{2}'
       use_stdin: true

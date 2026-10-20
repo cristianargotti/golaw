@@ -51,8 +51,8 @@ func setupFixture(t *testing.T) (setup.Options, setup.Dependencies, *setupProbe)
 	repo := gittest.New(t)
 	repo.Write("lefthook.yml", "min_version: 2.1.0\n"+
 		"pre-commit:\n  commands:\n    golaw:\n      run: golaw hook pre-commit\n"+
-		"commit-msg:\n  commands:\n    golaw:\n      run: golaw hook commit-msg {1}\n"+
-		"pre-push:\n  commands:\n    golaw:\n      run: golaw hook pre-push {1} {2}\n      use_stdin: true\n")
+		"commit-msg:\n  commands:\n    golaw:\n      run: golaw hook commit-msg '{1}'\n"+
+		"pre-push:\n  commands:\n    golaw:\n      run: golaw hook pre-push '{1}' '{2}'\n      use_stdin: true\n")
 	git, err := exec.LookPath("git")
 	if err != nil {
 		t.Fatal(err)
