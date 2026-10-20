@@ -107,13 +107,23 @@ func TestScanEnrolledRefusesAMissingPolicyAndAMalformedValue(t *testing.T) {
 	}
 }
 
+// The index and the worktree hold opposite bytes, so only a scan of the
+// index answers both cases.
 func TestScanStagedEnrolledJudgesTheIndexUnderTheProvisionedDigests(t *testing.T) {
 	t.Parallel()
+	digest := digestOf(renderedPolicy(t))
 	ta := enrolledApp(t)
 	root := repository(t, true)
 	stageFiles(t, root, map[string]string{"notes.md": "a " + stagedDash() + " b\n"})
-	if got := ta.run(t.Context(), []string{"scan", "--staged", "--enrolled", digestOf(renderedPolicy(t)), root}); got != exitFindings {
-		t.Errorf("exit = %d, stdout = %q, stderr = %q", got, ta.stdout.String(), ta.stderr.String())
+	writeFiles(t, root, map[string]string{"notes.md": "a b\n"})
+	if got := ta.run(t.Context(), []string{"scan", "--staged", "--enrolled", digest, root}); got != exitFindings || !strings.Contains(ta.stdout.String(), "notes.md:1:3 deny text.dashes") {
+		t.Errorf("a dash only in the index: exit %d, stdout %q, stderr %q", got, ta.stdout.String(), ta.stderr.String())
+	}
+	clean := enrolledApp(t)
+	cleanRoot := repository(t, true)
+	writeFiles(t, cleanRoot, map[string]string{"draft.md": "c " + stagedDash() + " d\n"})
+	if got := clean.run(t.Context(), []string{"scan", "--staged", "--enrolled", digest, cleanRoot}); got != exitClean || !strings.Contains(clean.stdout.String(), "verdict clean") {
+		t.Errorf("a dash only in an untracked worktree file: exit %d, stdout %q, stderr %q", got, clean.stdout.String(), clean.stderr.String())
 	}
 	other := enrolledApp(t)
 	if got := other.run(t.Context(), []string{"scan", "--staged", "--enrolled", otherDigest(), root}); got != exitFailure {
