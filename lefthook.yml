@@ -1,10 +1,25 @@
 # The kit's own rungs, opt-in: nothing here runs until a developer arms the
-# hooks with lefthook install, and remote CI (make ci) is the only gate.
-# Every rung is one call of the binary built from this tree, so a rung never
-# depends on a shell, awk or make being present.
+# hooks with golaw setup, each rung switches off in the ladder of golaw.yml
+# without a finding, and remote CI (make ci) is the only gate. Every rung
+# is one call of the golaw binary on PATH at the version golaw.yml pins,
+# the released and verified one (section 10.5, A10), never a build of this
+# tree, so a commit never judges itself with the checker it changes; make
+# ci validates the tree with go run ./cmd/golaw. A rung never depends on a
+# shell, awk or make being present.
 min_version: 2.1.0
 
 pre-commit:
   commands:
-    scan:
-      run: go run ./cmd/golaw scan .
+    golaw:
+      run: golaw hook pre-commit
+
+commit-msg:
+  commands:
+    golaw:
+      run: golaw hook commit-msg {1}
+
+pre-push:
+  commands:
+    golaw:
+      run: golaw hook pre-push {1} {2}
+      use_stdin: true
