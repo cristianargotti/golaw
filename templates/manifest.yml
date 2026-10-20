@@ -19,6 +19,14 @@ templates:
     destination: .golangci.yml
     ownership: kit
     when: []
+  - source: templates/.gremlins.yaml.tmpl
+    destination: .gremlins.yaml
+    ownership: kit
+    when: []
+  - source: templates/.mockery.yaml.tmpl
+    destination: .mockery.yaml
+    ownership: kit
+    when: []
   - source: templates/Makefile.tmpl
     destination: Makefile
     ownership: merged
@@ -31,7 +39,15 @@ templates:
     destination: lefthook.yml
     ownership: kit
     when: []
+  - source: templates/test/deadcode/reachability_test.go.tmpl
+    destination: test/deadcode/reachability_test.go
+    ownership: developer
+    when: []
   - source: templates/tools/go.mod.tmpl
     destination: tools/go.mod
     ownership: kit
+    when: []
+  - source: templates/decisions/0001-inherited-baseline.md.tmpl
+    destination: "{{.Decisions}}/0001-inherited-baseline.md"
+    ownership: developer
     when: []

@@ -1,0 +1,21 @@
+//go:build deadcode
+
+package deadcode_test
+
+import (
+	"os/exec"
+	"path/filepath"
+	"testing"
+)
+
+// TestModuleRequirementsHaveConsumers keeps unused dependencies out of the graph.
+func TestModuleRequirementsHaveConsumers(t *testing.T) {
+	t.Parallel()
+	command := exec.CommandContext(t.Context(), "go", "mod", "tidy", "-diff")
+	command.Dir = filepath.Join("..", "..")
+	command.Env = append(command.Environ(), "GOTOOLCHAIN=local")
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("module graph requires an explicit tidy change: %s: %v", output, err)
+	}
+}
