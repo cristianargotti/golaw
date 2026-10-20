@@ -3,9 +3,12 @@ package doctor
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/cristianargotti/golaw/internal/runner"
 	"github.com/cristianargotti/golaw/internal/runnertest"
 )
 
@@ -71,14 +74,27 @@ func TestSetupRoutingFailuresStayOnOneTextLine(t *testing.T) {
 
 //nolint:paralleltest // The collected fixtures replace PATH through collectRow.
 func TestSetupTextReportsCollectedEvidence(t *testing.T) {
-	for _, tc := range []collectCase{
-		{name: "armed", receipt: "present", version: "8.30.1"},
-		{name: "missing tool", receipt: "present", missing: true},
+	hooks := []string{"doctor.setup-hooks ok", "doctor.setup-hooks ok", "doctor.setup-hooks ok"}
+	for _, tc := range []struct {
+		row  collectCase
+		want []string
+	}{
+		{collectCase{name: "armed", receipt: "present", version: "8.30.1"}, slices.Concat(
+			[]string{"doctor.setup-receipt ok"}, hooks, []string{"doctor.setup-routing ok"},
+			setupToolStates("gitleaks ok"),
+		)},
+		// Without git on PATH the routing is unknown and the rest stays.
+		{collectCase{name: "missing tool", receipt: "present", missing: true}, slices.Concat(
+			[]string{"doctor.setup-receipt ok"}, hooks, []string{"doctor.setup-routing unknown"},
+			setupToolStates("gitleaks missing"),
+		)},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			f := newCollectFixture(t, tc)
-			facts := collectRow(t, f, tc)
-			report := Report{Schema: 1, Lines: AssessSetup(facts)}
+		t.Run(tc.row.name, func(t *testing.T) {
+			f := newCollectFixture(t, tc.row)
+			report := Report{Schema: 1, Lines: AssessSetup(collectRow(t, f, tc.row))}
+			if got := setupLineStates(report.Lines); !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("collected diagnostics = %v, want %v", got, tc.want)
+			}
 			var out bytes.Buffer
 			if err := Print(&out, report, false); err != nil {
 				t.Fatal(err)
@@ -86,7 +102,34 @@ func TestSetupTextReportsCollectedEvidence(t *testing.T) {
 			if strings.Count(out.String(), "\n") != len(report.Lines)+1 {
 				t.Fatalf("diagnostic escaped its text line: %s", out.String())
 			}
-			t.Logf("collected text report:\n%s", out.String())
 		})
 	}
+}
+
+// setupLineStates is the id and state of each line, with the key of a tool
+// line, whose key names the tool where the other keys are paths of a run.
+func setupLineStates(lines []Line) []string {
+	states := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if line.ID == "doctor.setup-tools" {
+			states = append(states, line.ID+" "+line.Key+" "+line.State)
+			continue
+		}
+		states = append(states, line.ID+" "+line.State)
+	}
+	return states
+}
+
+// setupToolStates is one tool line per pinned tool, in toolchain order: the
+// gitleaks state of a row and every other tool ok.
+func setupToolStates(gitleaks string) []string {
+	states := make([]string, 0, len(runner.Toolchain()))
+	for _, tool := range runner.Toolchain() {
+		state := tool.Name + " ok"
+		if tool.Name == "gitleaks" {
+			state = gitleaks
+		}
+		states = append(states, "doctor.setup-tools "+state)
+	}
+	return states
 }
