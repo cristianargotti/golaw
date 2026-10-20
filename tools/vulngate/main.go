@@ -5,7 +5,8 @@
 // the advisory, the day it expires and the decision record that justifies
 // it; the lane prints every waiver it applied, and an expired waiver is red
 // again so the list only shrinks. The tool reads no clock: the lane passes
-// the date, so a run is reproducible.
+// the date, so a run is reproducible. The judgment is internal/vuln, the
+// one the pre-push rung applies.
 package main
 
 import (
@@ -14,6 +15,8 @@ import (
 	"io"
 	"os"
 	"time"
+
+	"github.com/cristianargotti/golaw/internal/vuln"
 )
 
 // The exit codes: nothing reachable or every reachable advisory waived, a
@@ -46,11 +49,11 @@ func execute(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if err != nil {
 		return fail(stderr, err)
 	}
-	reachable, err := readReachable(stdin)
+	reachable, err := vuln.Reachable(stdin)
 	if err != nil {
 		return fail(stderr, err)
 	}
-	lines, red := judge(reachable, waivers, day)
+	lines, red := verdictLines(reachable, waivers, day)
 	for _, line := range lines {
 		if _, err := fmt.Fprintln(stdout, "vulngate:", line); err != nil {
 			return exitFailure

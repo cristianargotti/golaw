@@ -3,9 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // waiver is one entry of vulnerability_waivers in golaw.yml (A6).
@@ -21,17 +25,11 @@ type policy struct {
 	Waivers []waiver `yaml:"vulnerability_waivers"`
 }
 
-// entry keeps the day parsed, so a bad day fails the load before any
-// verdict and judge only compares days.
-type entry struct {
-	until  time.Time
-	record string
-}
-
 // loadWaivers fails on the first incomplete entry: a waiver counts only
 // with its advisory, its expiry and its decision record, so an entry
-// missing one must stop the lane, not waive or vanish in silence.
-func loadWaivers(path string) (map[string]entry, error) {
+// missing one must stop the lane, not waive or vanish in silence. The
+// waivers come back sorted by advisory id, as the policy compiles them.
+func loadWaivers(path string) ([]model.Waiver, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // the policy path is a flag of this tool
 	if err != nil {
 		return nil, fmt.Errorf("read waivers: %w", err)
@@ -40,16 +38,16 @@ func loadWaivers(path string) (map[string]entry, error) {
 	if err := yaml.Unmarshal(data, &p); err != nil {
 		return nil, fmt.Errorf("decode waivers: %w", err)
 	}
-	out := make(map[string]entry, len(p.Waivers))
+	out := make([]model.Waiver, 0, len(p.Waivers))
 	for _, w := range p.Waivers {
 		if w.ID == "" || w.Record == "" {
 			return nil, fmt.Errorf("%w: every waiver needs an id and a record", ErrWaiver)
 		}
-		until, err := time.Parse(time.DateOnly, w.Until)
-		if err != nil {
+		if _, err := time.Parse(time.DateOnly, w.Until); err != nil {
 			return nil, fmt.Errorf("%w: %s: until: %w", ErrWaiver, w.ID, err)
 		}
-		out[w.ID] = entry{until: until, record: w.Record}
+		out = append(out, model.Waiver{ID: w.ID, Until: w.Until, Record: w.Record})
 	}
+	slices.SortFunc(out, func(a, b model.Waiver) int { return strings.Compare(a.ID, b.ID) })
 	return out, nil
 }

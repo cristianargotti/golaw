@@ -29,20 +29,6 @@ func waiversFile(t *testing.T, body string) string {
 	return path
 }
 
-func TestReadReachableKeepsOnlyFunctionLevelFindings(t *testing.T) {
-	t.Parallel()
-	got, err := readReachable(strings.NewReader(stream))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 2 || got["GO-2026-0002"] != "v1.27.2" || got["GO-2026-0003"] != "" {
-		t.Fatalf("reachable = %v", got)
-	}
-	if _, err := readReachable(strings.NewReader("{")); err == nil {
-		t.Fatal("a truncated stream must fail")
-	}
-}
-
 type executeCase struct {
 	waivers string
 	args    []string

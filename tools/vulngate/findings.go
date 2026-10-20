@@ -1,96 +1,45 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
-	"maps"
 	"slices"
 	"time"
+
+	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/vuln"
 )
 
-// message is one object of the govulncheck JSON stream; only the config and
-// the findings matter here, every other kind is decoded into nothing.
-type message struct {
-	Config  *struct{} `json:"config"`
-	Finding *finding  `json:"finding"`
-}
-
-type finding struct {
-	OSV          string  `json:"osv"`
-	FixedVersion string  `json:"fixed_version"`
-	Trace        []frame `json:"trace"`
-}
-
-// frame is one step of a trace; a function means the code reaches the
-// vulnerable symbol, a module or package alone means it only depends on it.
-type frame struct {
-	Module   string `json:"module"`
-	Package  string `json:"package"`
-	Function string `json:"function"`
-}
-
-// readReachable requires the config message because govulncheck writes it
-// before anything else: a stream without it comes from a scan that never
-// started, and reading no finding there as clean would pass a failed scan.
-func readReachable(r io.Reader) (map[string]string, error) {
-	out := map[string]string{}
-	configured := false
-	decoder := json.NewDecoder(r)
-	for {
-		var m message
-		err := decoder.Decode(&m)
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("decode govulncheck stream: %w", err)
-		}
-		configured = configured || m.Config != nil
-		if m.Finding != nil && m.Finding.reachable() {
-			out[m.Finding.OSV] = m.Finding.FixedVersion
-		}
-	}
-	if !configured {
-		return nil, ErrNoConfig
-	}
-	return out, nil
-}
-
-// reachable looks at the first frame alone because govulncheck orders a
-// trace from the vulnerable symbol to the entry point, so that frame names
-// a function only when the code calls the symbol.
-func (f *finding) reachable() bool {
-	return len(f.Trace) > 0 && f.Trace[0].Function != ""
-}
-
-// judge renders one line per reachable advisory and per expired waiver and
-// reports whether anything is red: a reachable advisory without an
-// unexpired waiver, or a waiver past its day.
-func judge(reachable map[string]string, waivers map[string]entry, today time.Time) ([]string, bool) {
+// verdictLines renders one line per reachable advisory and per expired
+// waiver and reports whether anything is red: a reachable advisory without
+// an unexpired waiver, or a waiver past its day. The judgment is the one
+// the pre-push rung applies (internal/vuln); only the lane refuses an
+// expired waiver of an advisory the code no longer reaches.
+func verdictLines(found []vuln.Finding, waivers []model.Waiver, today time.Time) ([]string, bool) {
+	verdict := vuln.Judge(found, waivers, today)
 	var lines []string
-	red := false
-	for _, id := range slices.Sorted(maps.Keys(reachable)) {
-		w, ok := waivers[id]
-		switch {
-		case ok && !today.After(w.until):
-			lines = append(lines, id+" waived until "+w.until.Format(time.DateOnly)+" ("+w.record+")")
-		default:
-			lines = append(lines, id+" reachable, fixed in "+fixedOr(reachable[id]))
-			red = true
+	for _, f := range found {
+		if w, ok := waiverOf(waivers, verdict, f); ok {
+			lines = append(lines, f.ID+" waived until "+w.Until+" ("+w.Record+")")
+			continue
 		}
+		lines = append(lines, f.ID+" reachable, fixed in "+fixedOr(f.Fixed))
 	}
-	for _, id := range slices.Sorted(maps.Keys(waivers)) {
-		if today.After(waivers[id].until) {
-			lines = append(lines, "waiver "+id+" expired on "+waivers[id].until.Format(time.DateOnly)+", remove it")
-			red = true
-		}
+	expired := vuln.Expired(waivers, today)
+	for _, w := range expired {
+		lines = append(lines, "waiver "+w.ID+" expired on "+w.Until+", remove it")
 	}
-	if len(reachable) == 0 {
+	if len(found) == 0 {
 		lines = append([]string{"no reachable vulnerability"}, lines...)
 	}
-	return lines, red
+	return lines, len(verdict.Refused) > 0 || len(expired) > 0
+}
+
+// waiverOf answers the waiver in force of a waived advisory.
+func waiverOf(waivers []model.Waiver, verdict vuln.Verdict, f vuln.Finding) (model.Waiver, bool) {
+	if !slices.Contains(verdict.Waived, f) {
+		return model.Waiver{}, false
+	}
+	i := slices.IndexFunc(waivers, func(w model.Waiver) bool { return w.ID == f.ID })
+	return waivers[i], true
 }
 
 // fixedOr still renders an advisory without a fix, because that is the
