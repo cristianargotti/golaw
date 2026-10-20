@@ -83,14 +83,33 @@ func requireLocalRouting(ctx context.Context, options Options, deps Dependencies
 }
 
 func requireLefthook(root string) error {
-	info, err := os.Lstat(filepath.Join(root, "lefthook.yml"))
+	path := filepath.Join(root, "lefthook.yml")
+	info, err := os.Lstat(path)
 	if err != nil {
 		return fmt.Errorf("lefthook.yml: run golaw init --apply: %w", err)
 	}
 	if !info.Mode().IsRegular() {
 		return fmt.Errorf("%w: lefthook.yml must be a regular file; run golaw init --apply", install.ErrPath)
 	}
-	return nil
+	data, err := os.ReadFile(path) //nolint:gosec // The lefthook.yml of the root setup arms, a regular file.
+	if err != nil {
+		return fmt.Errorf("read lefthook.yml: %w", err)
+	}
+	return requireRoutes(data, localLefthook(root))
+}
+
+// localLefthook answers the lefthook-local.yml lefthook merges over
+// lefthook.yml, nothing when the root holds no such regular file.
+func localLefthook(root string) []byte {
+	path := filepath.Join(root, "lefthook-local.yml")
+	if info, err := os.Lstat(path); err != nil || !info.Mode().IsRegular() {
+		return nil
+	}
+	data, err := os.ReadFile(path) //nolint:gosec // The local lefthook file of the root setup arms, a regular file.
+	if err != nil {
+		return nil // fallback: an unreadable local file adds no route
+	}
+	return data
 }
 
 func resolveGolaw(version string) (string, error) {

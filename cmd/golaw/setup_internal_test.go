@@ -146,13 +146,15 @@ func TestSetupAppliesThroughTheBinding(t *testing.T) {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	repo := gittest.New(t)
 	repo.Commit("chore: establish policy", map[string]string{
-		"golaw.yml":    string(renderedPolicy(t)),
-		"go.mod":       "module example.test/service\n\ngo 1.27\n",
-		"lefthook.yml": "pre-commit:\n  commands:\n    golaw:\n      run: golaw hook pre-commit\n",
+		"golaw.yml": string(renderedPolicy(t)),
+		"go.mod":    "module example.test/service\n\ngo 1.27\n",
+		"lefthook.yml": "pre-commit:\n  commands:\n    golaw:\n      run: golaw hook pre-commit\n" +
+			"commit-msg:\n  commands:\n    golaw:\n      run: golaw hook commit-msg '{1}'\n" +
+			"pre-push:\n  commands:\n    golaw:\n      run: golaw hook pre-push '{1}' '{2}'\n",
 	})
 	ta := bindApp(t)
 	if code := ta.run(t.Context(), []string{"setup", repo.Root}); code != exitFailure ||
-		!strings.Contains(ta.stderr.String(), "lefthook") {
+		!strings.Contains(ta.stderr.String(), "lefthook install exited 1") {
 		t.Fatalf("exit = %d, stderr = %q", code, ta.stderr.String())
 	}
 	dirs, err := ta.bind().dirs()

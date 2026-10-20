@@ -64,11 +64,10 @@ func inspectUninstall(ctx context.Context, plan Plan, deps Dependencies) ([]inst
 }
 
 func uninstallOwnership(plan Plan) error {
-	names := []string{"pre-commit", "commit-msg", "pre-push"}
-	if len(plan.Receipt.Hooks) != len(names) {
+	if len(plan.Receipt.Hooks) != len(rungs()) {
 		return fmt.Errorf("receipt %q has incomplete hook ownership; inspect it before uninstalling: %w", plan.ReceiptPath, install.ErrChanged)
 	}
-	for _, name := range names {
+	for _, name := range rungs() {
 		path := filepath.Join(plan.Receipt.HooksPath, name)
 		if !slices.ContainsFunc(plan.Receipt.Hooks, func(hook install.Artifact) bool { return hook.Path == path }) {
 			return fmt.Errorf("receipt %q does not own %q; inspect it before uninstalling: %w", plan.ReceiptPath, path, install.ErrChanged)

@@ -22,6 +22,12 @@ import (
 const (
 	fakeHook    = "owned hook\n"
 	foreignHook = "foreign hook\n"
+	// routedLefthook is the lefthook.yml init writes, which routes each
+	// rung to golaw.
+	routedLefthook = "min_version: 2.1.0\n" +
+		"pre-commit:\n  commands:\n    golaw:\n      run: golaw hook pre-commit\n" +
+		"commit-msg:\n  commands:\n    golaw:\n      run: golaw hook commit-msg '{1}'\n" +
+		"pre-push:\n  commands:\n    golaw:\n      run: golaw hook pre-push '{1}' '{2}'\n      use_stdin: true\n"
 )
 
 // errUnexpected is the answer of the fake toolchain to a command it does
@@ -49,10 +55,7 @@ type setupProbe struct {
 func setupFixture(t *testing.T) (setup.Options, setup.Dependencies, *setupProbe) {
 	t.Helper()
 	repo := gittest.New(t)
-	repo.Write("lefthook.yml", "min_version: 2.1.0\n"+
-		"pre-commit:\n  commands:\n    golaw:\n      run: golaw hook pre-commit\n"+
-		"commit-msg:\n  commands:\n    golaw:\n      run: golaw hook commit-msg '{1}'\n"+
-		"pre-push:\n  commands:\n    golaw:\n      run: golaw hook pre-push '{1}' '{2}'\n      use_stdin: true\n")
+	repo.Write("lefthook.yml", routedLefthook)
 	git, err := exec.LookPath("git")
 	if err != nil {
 		t.Fatal(err)

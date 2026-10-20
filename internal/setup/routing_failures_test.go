@@ -22,7 +22,7 @@ func TestSetupDefaultRunnerResolvesLinkedGlobalRouting(t *testing.T) {
 	options, _, probe := setupFixture(t)
 	probe.repo.Commit("chore: prepare linked repository", nil)
 	linked := probe.repo.Worktree("linked")
-	linked.Write("lefthook.yml", "min_version: 2.1.0\n")
+	linked.Write("lefthook.yml", routedLefthook)
 	options.Root = linked.Root
 	hooks := filepath.Join(linked.Root, "global hooks")
 	global := filepath.Join(t.TempDir(), "gitconfig")

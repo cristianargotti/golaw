@@ -14,9 +14,8 @@ import (
 )
 
 func snapshotHooks(directory string) ([]install.Change, error) {
-	names := []string{"pre-commit", "commit-msg", "pre-push"}
-	changes := make([]install.Change, 0, len(names))
-	for _, name := range names {
+	changes := make([]install.Change, 0, len(rungs()))
+	for _, name := range rungs() {
 		path := filepath.Join(directory, name)
 		data, exists, err := readHook(path)
 		if err != nil {
