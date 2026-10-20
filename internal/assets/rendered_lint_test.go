@@ -14,6 +14,9 @@ import (
 // a module with one clean Go file: the strict configuration loads and finds
 // nothing, and the module graph asks for no requirement the adopter lacks,
 // so make lint and the deadcode asset are green the day init writes them.
+// golangci-lint takes a lock in the temporary directory that every instance
+// on the machine shares and gives up on it after five seconds, so the test
+// allows parallel runners and an editor or another checkout cannot fail it.
 func TestRenderedRepositoryLintsAndTidiesClean(t *testing.T) {
 	t.Parallel()
 	tool, ok := runner.LookupTool("golangci-lint")
@@ -45,7 +48,7 @@ func TestRenderedRepositoryLintsAndTidiesClean(t *testing.T) {
 	}
 	for _, c := range []runner.Command{
 		{Name: "go", Args: []string{"mod", "tidy", "-diff"}, Dir: root, Env: env},
-		{Name: linter, Args: []string{"run", "./..."}, Dir: root, Env: env},
+		{Name: linter, Args: []string{"run", "--allow-parallel-runners", "./..."}, Dir: root, Env: env},
 	} {
 		out, err := runner.Run(t.Context(), c)
 		if err != nil || out.Code != 0 {
