@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 )
 
@@ -37,7 +38,7 @@ func ParseRefUpdates(r io.Reader) ([]RefUpdate, error) {
 		}
 		fields := strings.Fields(text)
 		if len(fields) != 0 {
-			update, err := parseRefLine(fields)
+			update, err := parseRefLine(text, fields)
 			if err != nil {
 				return nil, fmt.Errorf("line %d %q: %w", line, strings.TrimRight(text, "\r\n"), err)
 			}
@@ -49,11 +50,20 @@ func ParseRefUpdates(r io.Reader) ([]RefUpdate, error) {
 	}
 }
 
-func parseRefLine(fields []string) (RefUpdate, error) {
-	if len(fields) != refFieldCount {
-		return RefUpdate{}, fmt.Errorf("%w: expected four fields", ErrRefUpdate)
+// parseRefLine reads the objects and the remote ref from the end of the
+// line, since none of them holds a space, and keeps the text before them as
+// the local ref: git writes a source expression as it was typed, so
+// HEAD@{1 minute ago} reaches the hook as one ref with its spaces.
+func parseRefLine(text string, fields []string) (RefUpdate, error) {
+	if len(fields) < refFieldCount {
+		return RefUpdate{}, fmt.Errorf("%w: expected at least four fields", ErrRefUpdate)
 	}
-	update := RefUpdate{fields[0], fields[1], fields[2], fields[3]}
+	tail := fields[len(fields)-refFieldCount+1:]
+	local := strings.TrimSpace(text)
+	for _, field := range slices.Backward(tail) {
+		local = strings.TrimSpace(strings.TrimSuffix(local, field))
+	}
+	update := RefUpdate{local, tail[0], tail[1], tail[2]}
 	if err := validateUpdate(update); err != nil {
 		return RefUpdate{}, err
 	}

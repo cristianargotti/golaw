@@ -39,6 +39,9 @@ func TestParseRefUpdates(t *testing.T) {
 		{"near-sha256", "HEAD " + long + " refs/heads/new " + zeroLong, []runner.RefUpdate{
 			{LocalRef: "HEAD", LocalSHA: long, RemoteRef: "refs/heads/new", RemoteSHA: zeroLong},
 		}, false},
+		{"near-spaced-expression", "HEAD@{1 minute ago} " + a + " refs/heads/x " + runner.ZeroSHA + "\n", []runner.RefUpdate{
+			{LocalRef: "HEAD@{1 minute ago}", LocalSHA: a, RemoteRef: "refs/heads/x", RemoteSHA: runner.ZeroSHA},
+		}, false},
 		{"red-three-fields", "HEAD " + a + " refs/heads/new\n", nil, true},
 		{"red-five-fields", line + " extra\n", nil, true},
 		{"red-short-object", "HEAD abc refs/heads/new " + runner.ZeroSHA, nil, true},
