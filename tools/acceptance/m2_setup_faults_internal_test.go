@@ -14,6 +14,7 @@ import (
 func TestM2SetupPathFailures(t *testing.T) {
 	t.Parallel()
 	s := m2TestSuite(t)
+	s.m2Prerequisites = nil
 	if _, err := s.m2StateDir(nil); err == nil {
 		t.Fatal("missing state environment accepted")
 	}

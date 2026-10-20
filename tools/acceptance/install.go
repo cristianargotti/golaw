@@ -31,20 +31,21 @@ const (
 )
 
 type suite struct {
-	root     string
-	base     string
-	home     string
-	binary   string
-	git      string
-	goTool   string
-	env      []string
-	hookFile string
-	hooks    map[string][]hookGroup
-	digest   string
-	execute  executor
-	lookup   locator
-	m2       *m2Shared
-	m2OS     string
+	root            string
+	base            string
+	home            string
+	binary          string
+	git             string
+	goTool          string
+	env             []string
+	hookFile        string
+	hooks           map[string][]hookGroup
+	digest          string
+	execute         executor
+	lookup          locator
+	m2              *m2Shared
+	m2OS            string
+	m2Prerequisites func(*suite, string, string) ([]string, error)
 }
 
 func newSuite(root, base string, execute executor, lookup locator) *suite {

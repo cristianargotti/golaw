@@ -43,6 +43,7 @@ func m2PrerequisiteSuite(t *testing.T, system string) (*suite, string) {
 		}
 	}
 	s := m2TestSuite(t).m2Scope("prerequisites")
+	s.m2Prerequisites = nil
 	s.m2OS = system
 	root := t.TempDir()
 	s.goTool = filepath.Join(root, "go-bin", executable("go"))

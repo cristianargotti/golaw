@@ -43,6 +43,9 @@ func (s *suite) m2PrerequisiteEnvironment(env []string, bin string) ([]string, e
 }
 
 func (s *suite) m2PrerequisiteDirectories(shell, bin string) ([]string, error) {
+	if s.m2Prerequisites != nil {
+		return s.m2Prerequisites(s, shell, bin)
+	}
 	if s.m2OS == goosWindows {
 		dirs := []string{filepath.Dir(s.binary), bin, filepath.Dir(s.goTool), filepath.Dir(s.git), filepath.Dir(shell)}
 		return m2DistinctDirectories(dirs), nil

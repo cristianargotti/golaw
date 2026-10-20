@@ -24,6 +24,7 @@ func (s *suite) m2Scope(name string) *suite {
 		root: s.root, base: base, home: home, binary: s.binary,
 		git: s.git, goTool: s.goTool, digest: s.digest,
 		execute: s.execute, lookup: s.lookup, m2: s.m2, m2OS: s.m2OS,
-		env: m2Environment(s.env, home, filepath.Dir(s.binary), s.m2.Base),
+		m2Prerequisites: s.m2Prerequisites,
+		env:             m2Environment(s.env, home, filepath.Dir(s.binary), s.m2.Base),
 	}
 }

@@ -68,6 +68,7 @@ func m2TestSuite(t *testing.T) *suite {
 		return filepath.Join(simulated, executable(name)), nil
 	}
 	s := newSuite(testRoot(t), base, nil, lookup)
+	s.m2Prerequisites = m2SimulatedPrerequisites
 	s.git, s.goTool = git, filepath.Join(simulated, executable("go"))
 	s.m2 = &m2Shared{Base: s.base, Bin: filepath.Join(s.base, "tools"), Ready: true}
 	s.m2OS = runtime.GOOS
@@ -96,6 +97,8 @@ func m2FixtureExecutor(t *testing.T, s *suite) executor {
 			return simulatedBuild(t, c)
 		case c.program == s.binary && slices.Equal(c.args, []string{commandInit, flagApply}):
 			return m2Init(t, s, c)
+		case c.program == s.binary && slices.Equal(c.args, []string{"doctor", "--json"}):
+			return m2Doctor(t, s, c)
 		}
 		return result{err: ErrAcceptance}
 	}
