@@ -1,8 +1,10 @@
 package runner_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -39,6 +41,47 @@ func TestStreamCancellationStopsBlockedNativeOutput(t *testing.T) {
 	if elapsed > deadline+pipeWait+margin {
 		t.Fatalf("blocked output returned after %s, want at most %s",
 			elapsed, deadline+pipeWait+margin)
+	}
+}
+
+// pidOutput cancels on the first write, the pid the shell prints once the
+// descendant that holds the pipes has started.
+type pidOutput struct {
+	output   bytes.Buffer
+	cancel   context.CancelFunc
+	canceled time.Time
+}
+
+func (w *pidOutput) Write(data []byte) (int, error) {
+	n, err := w.output.Write(data)
+	if err != nil {
+		return n, fmt.Errorf("keep the shell output: %w", err)
+	}
+	if w.canceled.IsZero() {
+		w.canceled = time.Now()
+		w.cancel()
+	}
+	return n, nil
+}
+
+// A writer that is no file makes exec copy through a pipe the descendant
+// keeps open, so only the bounded wait for the pipes lets Stream return.
+func TestStreamCancellationBoundsTheWaitForHeldPipes(t *testing.T) {
+	t.Parallel()
+	const pipeWait, margin = time.Second, 2 * time.Second
+	command := shell(t, "sleep 30 & echo $!; exec sleep 30")
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	output := &pidOutput{cancel: cancel}
+	_, err := runner.Stream(ctx, command, output, io.Discard)
+	returned := time.Now()
+	reap(t, output.output.Bytes())
+	if !errors.Is(err, context.Canceled) || output.canceled.IsZero() {
+		t.Fatalf("held pipes = %v, canceled at %v", err, output.canceled)
+	}
+	if late := returned.Sub(output.canceled); late > pipeWait+margin {
+		t.Fatalf("Stream answered %s after the cancellation, want at most %s",
+			late, pipeWait+margin)
 	}
 }
 
