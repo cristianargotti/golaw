@@ -95,7 +95,8 @@ func uninstallChanges(receipt Receipt) ([]install.Change, error) {
 			continue
 		}
 		if install.Digest(data) != hook.SHA256 {
-			return nil, fmt.Errorf("hook %q changed; preserve your edits and restore the recorded hook before uninstalling: %w", hook.Path, install.ErrChanged)
+			return nil, fmt.Errorf("hook %q changed; copy your edits elsewhere, run golaw setup to re-arm the hook, then run golaw setup --uninstall: %w",
+				hook.Path, install.ErrChanged)
 		}
 		changes = append(changes, install.Change{Path: hook.Path, Before: data, Existed: true, Remove: true})
 	}

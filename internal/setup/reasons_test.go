@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,5 +105,31 @@ func occupyHook(t *testing.T, path, kind string) {
 	setupWrite(t, script, foreignHook)
 	if err := os.Symlink(script, path); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestUninstallNamesTheStepsForAnEditedHook edits an owned hook after setup
+// armed it: the receipt keeps only the hook's hash, so the reason names
+// re-arming before the uninstall, and those steps uninstall.
+//
+//nolint:paralleltest // The fixture changes PATH for executable resolution.
+func TestUninstallNamesTheStepsForAnEditedHook(t *testing.T) {
+	options, deps, probe := setupFixture(t)
+	receiptPath, _ := armedReceipt(t, options, deps)
+	setupWrite(t, filepath.Join(probe.hooks, "pre-commit"), "local hook\n")
+	const steps = "copy your edits elsewhere, run golaw setup to re-arm the hook, then run golaw setup --uninstall"
+	if _, err := setup.PlanUninstall(t.Context(), options, deps); !errors.Is(err, install.ErrChanged) || !strings.Contains(err.Error(), steps) {
+		t.Fatalf("edited hook = %v", err)
+	}
+	setupSafetyArm(t, options, deps)
+	plan, err := setup.PlanUninstall(t.Context(), options, deps)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if applyErr := setup.Apply(t.Context(), plan, io.Discard, deps); applyErr != nil {
+		t.Fatal(applyErr)
+	}
+	if _, readErr := setup.ReadReceipt(receiptPath); !errors.Is(readErr, fs.ErrNotExist) {
+		t.Fatalf("receipt after the steps = %v", readErr)
 	}
 }
