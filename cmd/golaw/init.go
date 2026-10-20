@@ -33,7 +33,7 @@ func (a *app) initCommand() *cobra.Command {
 			return a.initialize(cmd.Context(), cmd.OutOrStdout(), rootArg(args), opts)
 		},
 	}
-	cmd.Flags().BoolVar(&opts.apply, "apply", false, "write the policy file and the enrollment record")
+	cmd.Flags().BoolVar(&opts.apply, "apply", false, "write the policy file, the templates and the enrollment record")
 	cmd.Flags().BoolVar(&opts.update, "update", false, "re-render the managed files golaw.yml records and move the kit pin to this binary")
 	cmd.Flags().StringVar(&opts.language, "language", model.DefaultLanguage, "language of the human channel")
 	cmd.Flags().StringSliceVar(&opts.capabilities, "capabilities", nil,

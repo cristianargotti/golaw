@@ -100,3 +100,14 @@ func requireUnchangedPolicyStatus(t *testing.T, language, status string, tighten
 		}
 	}
 }
+
+func TestInitApplyHelpNamesTheTemplates(t *testing.T) {
+	t.Parallel()
+	ta := newTestApp(t)
+	if code := ta.run(t.Context(), []string{"init", "--help"}); code != exitClean {
+		t.Fatalf("help exit = %d: %s", code, ta.stderr.String())
+	}
+	if !strings.Contains(ta.stdout.String(), "write the policy file, the templates and the enrollment record") {
+		t.Fatalf("apply help = %q", ta.stdout.String())
+	}
+}
