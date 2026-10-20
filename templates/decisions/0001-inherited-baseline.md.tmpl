@@ -1,0 +1,25 @@
+---
+record: 1
+title: inherited dependency baseline
+status: inherited
+modules:
+{{- range .DirectRequires}}
+  - {{.Path}}
+{{- else}}
+  []
+{{- end}}
+---
+
+{{if eq .Language "pt-BR"}}# Dependências herdadas
+
+Esta lista registra as dependências diretas existentes. Uma entrada negada exige substituição ou remoção.
+
+| Módulo | Versão | Estado |
+{{else}}# Inherited dependencies
+
+This list records existing direct dependencies. A denied entry requires replacement or removal.
+
+| Module | Version | Status |
+{{end}}| --- | --- | --- |
+{{range .DirectRequires}}| {{.Path}} | {{.Version}} | {{if or (eq .Path "github.com/sirupsen/logrus") (hasPrefix .Path "github.com/sirupsen/logrus/") (eq .Path "github.com/swaggo") (hasPrefix .Path "github.com/swaggo/")}}denied{{else}}inherited{{end}} |
+{{end}}

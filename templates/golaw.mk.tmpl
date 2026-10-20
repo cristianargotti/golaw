@@ -1,0 +1,47 @@
+export GOTOOLCHAIN=local
+
+PKG ?= .
+FUZZ ?= Fuzz
+FUZZTIME ?= 30s
+
+.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration
+
+mod:
+	go mod verify
+
+fmt:
+	golaw lock format -- golangci-lint fmt ./...
+
+lint:
+	golangci-lint run ./...
+
+vet:
+	go vet ./...
+
+test:
+	go test -race -shuffle=on -count=1 -timeout=10m -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...
+
+coverage-check:
+	golaw coverage --input coverage.out
+
+build:
+	go build ./...
+
+scan:
+	golaw scan .
+
+secrets:
+	gitleaks dir --redact --no-banner .
+	gitleaks git --redact --no-banner .
+
+deadcode:
+	go test -tags=deadcode ./test/deadcode/
+
+bench:
+	go test -run=^$$ -bench=. -benchmem ./...
+
+fuzz:
+	go test -run=^$$ -fuzz=$(FUZZ) -fuzztime=$(FUZZTIME) $(PKG)
+
+test-integration:
+	go test -race -tags=integration ./...

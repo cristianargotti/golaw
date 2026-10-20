@@ -1,0 +1,222 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  default: standard
+  enable:
+    [asasalint, bidichk, bodyclose, canonicalheader, containedctx, contextcheck, copyloopvar,
+     depguard, dupl, dupword, durationcheck, err113, embeddedstructfieldcheck, errchkjson,
+     errname, errorlint, exhaustive, exptostd, fatcontext, forbidigo, forcetypeassert,
+     funcorder, funlen, gocheckcompilerdirectives, gochecknoglobals, gochecknoinits,
+     gochecksumtype, gocognit, goconst, gocritic, godoclint, godot, godox, gomoddirectives,
+     goprintffuncname, gosec, gosmopolitan, iface, inamedparam, interfacebloat, intrange,
+     maintidx, makezero, mirror, misspell, mnd, modernize, musttag, nakedret, nestif, nilerr,
+     nilnesserr, nilnil, noctx, nolintlint, nonamedreturns, nosprintfhostport, paralleltest,
+     perfsprint, prealloc, predeclared, promlinter, reassign, recvcheck, revive, rowserrcheck,
+     sloglint, spancheck, sqlclosecheck, tagliatelle,
+     testableexamples, testifylint, testpackage, thelper, tparallel, unconvert, unparam, unqueryvet, usestdlibvars,
+     usetesting, wastedassign, whitespace, wrapcheck]
+  settings:
+    wrapcheck:
+      # Every error that crosses a package boundary carries the package and
+      # the action it failed at, so a hook reason names the layer without a
+      # stack trace; %w keeps errors.Is working on the sentinels underneath.
+      ignore-sigs: [.Errorf(, errors.New(, errors.Unwrap(, errors.Join(, context.Context).Err(]
+    depguard:
+      rules:
+{{if has .Capabilities "hexagonal"}}
+        domain:
+          list-mode: strict
+          files: ["!$test", "**/internal/domain/**"]
+          allow: [$gostd, "{{.ModulePath}}/internal/domain"]
+        application:
+          list-mode: strict
+          files: ["!$test", "**/internal/application/**"]
+          allow:
+            - $gostd
+            - "{{.ModulePath}}/internal/domain"
+            - "{{.ModulePath}}/internal/application"
+{{end}}
+        main:
+          list-mode: lax
+          deny:
+            - pkg: io/ioutil
+              desc: deprecated since Go 1.16, use io and os
+            - pkg: github.com/pkg/errors
+              desc: use fmt.Errorf with %w and the standard errors package
+            - pkg: math/rand$
+              desc: use math/rand/v2 or crypto/rand
+            - pkg: github.com/sirupsen/logrus
+              desc: use log/slog
+    godot:
+      scope: toplevel
+      capital: false
+    iface:
+      enable: [identical, unused, opaque]
+    paralleltest:
+      # t.Setenv, t.Chdir and shared fixtures are the only reasons a test is serial.
+      ignore-missing: false
+    usetesting:
+      context-background: true
+      context-todo: true
+      os-setenv: true
+      os-temp-dir: true
+    testpackage:
+      # White-box tests live in *_internal_test.go; everything else is black box.
+      skip-regexp: (export|internal)_test\.go
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+      exclude-functions: [(io.Closer).Close, (io.ReadCloser).Close, (io/fs.File).Close, (*os.File).Close]
+    dupl:
+      threshold: 80
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+      ignore-calls: false
+      ignore-string-values:
+        - '^(%[a-z]|[\s:,()])+$'
+    mnd:
+      ignored-numbers: ["0", "1", "2", "10", "100", "1000", "1024"]
+    nestif:
+      min-complexity: 4
+    nakedret:
+      max-func-lines: 0
+    funlen:
+      # Function size law: 40 lines and 40 statements, comments excluded.
+      lines: 40
+      statements: 40
+      ignore-comments: true
+    gocognit:
+      min-complexity: 15
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+    forbidigo:
+      # goast.wall-clock owns time in domain and application so adapters can read it.
+      forbid:
+        - pattern: ^float32$
+          msg: a float32 loses precision the standard forbids; use float64
+      analyze-types: true
+    gosmopolitan:
+      allow-time-local: false
+    gocritic:
+      enabled-tags: [diagnostic, style, performance]
+      disabled-checks: [hugeParam, unnamedResult]
+    govet:
+      enable-all: true
+      disable: [fieldalignment]
+    misspell:
+      locale: US
+      # Comments only: the human channel strings are in the configured language.
+      mode: restricted
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        - name: defer
+        - name: datarace
+        - name: atomic
+        - name: waitgroup-by-value
+        - name: time-equal
+        - name: identical-branches
+        - name: unconditional-recursion
+        - name: modifies-value-receiver
+        - name: deep-exit
+        - name: import-shadowing
+        - name: struct-tag
+        - name: unhandled-error
+        - name: range-val-address
+        - name: string-of-int
+        - name: use-errors-new
+        - name: redundant-build-tag
+        - name: file-length-limit
+          arguments:
+            - max: 300
+              skipComments: false
+              skipBlankLines: false
+        - name: function-length
+          arguments: [0, 40]
+    sloglint:
+      no-mixed-args: true
+      attr-only: true
+      static-msg: true
+      context: scope
+      key-naming-case: snake
+    tagliatelle:
+      case:
+        rules:
+          json: camel
+    testifylint:
+      enable-all: true
+    staticcheck:
+      checks: [all]
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - noctx
+          - bodyclose
+          # Table-driven tests are one function by design; the file limit still applies.
+          - funlen
+          # Fixtures and expected values are literals by nature.
+          - mnd
+          - goconst
+          - dupl
+          - gochecknoglobals
+          - musttag
+      # Section 3: a test file keeps the file limit and loses the function
+      # limit, which revive's function-length holds beside funlen.
+      - path: _test\.go
+        text: function-length
+        linters: [revive]
+
+formatters:
+  enable: [gofumpt, gci]
+  settings:
+    gci:
+      sections: [standard, default, prefix({{.ModulePath}})]
+    gofumpt:
+      module-path: {{.ModulePath}}
+      extra:
+        group-params: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  formats:
+    text:
+      path: stdout
+      colors: false
+  show-stats: true

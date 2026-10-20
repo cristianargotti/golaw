@@ -1,1 +1,53 @@
-templates: []
+templates:
+  - source: templates/.editorconfig.tmpl
+    destination: .editorconfig
+    ownership: merged
+    when: []
+  - source: templates/.gitattributes.tmpl
+    destination: .gitattributes
+    ownership: merged
+    when: []
+  - source: templates/.github/dependabot.yml.tmpl
+    destination: .github/dependabot.yml
+    ownership: kit
+    when: []
+  - source: templates/.gitleaks.toml.tmpl
+    destination: .gitleaks.toml
+    ownership: kit
+    when: []
+  - source: templates/.golangci.yml.tmpl
+    destination: .golangci.yml
+    ownership: kit
+    when: []
+  - source: templates/.gremlins.yaml.tmpl
+    destination: .gremlins.yaml
+    ownership: kit
+    when: []
+  - source: templates/.mockery.yaml.tmpl
+    destination: .mockery.yaml
+    ownership: kit
+    when: []
+  - source: templates/Makefile.tmpl
+    destination: Makefile
+    ownership: merged
+    when: []
+  - source: templates/golaw.mk.tmpl
+    destination: golaw.mk
+    ownership: kit
+    when: []
+  - source: templates/lefthook.yml.tmpl
+    destination: lefthook.yml
+    ownership: kit
+    when: []
+  - source: templates/test/deadcode/reachability_test.go.tmpl
+    destination: test/deadcode/reachability_test.go
+    ownership: developer
+    when: []
+  - source: templates/tools/go.mod.tmpl
+    destination: tools/go.mod
+    ownership: kit
+    when: []
+  - source: templates/decisions/0001-inherited-baseline.md.tmpl
+    destination: "{{.Decisions}}/0001-inherited-baseline.md"
+    ownership: developer
+    when: []

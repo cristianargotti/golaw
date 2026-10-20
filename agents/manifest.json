@@ -6,6 +6,19 @@
     "agents/claude/skills/golaw/SKILL.md",
     "agents/manifest.json",
     "agents/marketplace.json",
-    "templates/manifest.yml"
+    "templates/.editorconfig.tmpl",
+    "templates/.gitattributes.tmpl",
+    "templates/.github/dependabot.yml.tmpl",
+    "templates/.gitleaks.toml.tmpl",
+    "templates/.golangci.yml.tmpl",
+    "templates/.gremlins.yaml.tmpl",
+    "templates/.mockery.yaml.tmpl",
+    "templates/Makefile.tmpl",
+    "templates/decisions/0001-inherited-baseline.md.tmpl",
+    "templates/golaw.mk.tmpl",
+    "templates/lefthook.yml.tmpl",
+    "templates/manifest.yml",
+    "templates/test/deadcode/reachability_test.go.tmpl",
+    "templates/tools/go.mod.tmpl"
   ]
 }
