@@ -38,7 +38,6 @@ func readText(t *testing.T, s model.Snapshot, rel string) string {
 	return string(data)
 }
 
-// pathsOf lists the paths of files in their order.
 func pathsOf(files []model.File) []string {
 	out := make([]string, 0, len(files))
 	for _, f := range files {

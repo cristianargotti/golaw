@@ -15,7 +15,6 @@ const (
 	missingKind = "missing"
 )
 
-// catFile is the plumbing that shows objects.
 const catFile = "cat-file"
 
 // describedFields are the fields git cat-file prints for an object it
@@ -89,7 +88,6 @@ func readBlobs(ctx context.Context, root string, env, ids []string) (map[string]
 	return contents, nil
 }
 
-// idLines is the standard input of a cat-file batch: one id per line.
 func idLines(ids []string) []byte {
 	return []byte(strings.Join(ids, "\n") + "\n")
 }
