@@ -56,6 +56,7 @@ func TestDoctorProof(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	registerSetupProof(t, builder)
 	registry, err := builder.Build(engine.WithProofs(manifest.Names()))
 	if err != nil {
 		t.Fatal(err)

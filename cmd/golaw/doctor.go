@@ -8,8 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cristianargotti/golaw/internal/doctor"
-	"github.com/cristianargotti/golaw/internal/hook/agents"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
@@ -48,19 +46,12 @@ func (a *app) doctor(ctx context.Context, out io.Writer, path, scope string, asJ
 			return doctorFailed(fmt.Errorf("resolve %s: %w", path, err))
 		}
 	}
-	for _, agent := range agents.All() {
-		report, err := a.doctorReport(ctx, agent, root, scope, a.now())
-		if err != nil {
-			return doctorFailed(err)
-		}
-		if !asJSON {
-			if err := writeLines(out, []string{"agent: " + agent.ID}); err != nil {
-				return doctorFailed(err)
-			}
-		}
-		if err := doctor.Print(out, report, asJSON); err != nil {
-			return doctorFailed(fmt.Errorf("print the report: %w", err))
-		}
+	reports, err := a.doctorReports(ctx, root, scope)
+	if err != nil {
+		return doctorFailed(err)
+	}
+	if err := printDoctorReports(out, reports, asJSON); err != nil {
+		return doctorFailed(err)
 	}
 	return nil
 }

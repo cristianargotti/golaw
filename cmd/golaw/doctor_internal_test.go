@@ -17,10 +17,18 @@ import (
 func doctorApp(t *testing.T) (testApp, *[]string) {
 	t.Helper()
 	ta := newTestApp(t)
+	b, _ := testBinding(t)
+	ta.bind = func() binding { return b }
 	asked := &[]string{}
 	ta.doctorReport = func(_ context.Context, _ agents.Agent, root, scope string, _ time.Time) (doctor.Report, error) {
 		*asked = append(*asked, root, scope)
-		return doctor.Report{Schema: 1, Lines: []doctor.Line{{ID: "doctor.plugin", State: "ok", Code: "plugin-enabled", Detail: "configured"}}}, nil
+		return doctor.Report{
+			Schema: 1,
+			Lines: []doctor.Line{{
+				ID: "doctor.plugin", State: "ok",
+				Code: "plugin-enabled", Detail: "configured",
+			}},
+		}, nil
 	}
 	return ta, asked
 }
@@ -41,7 +49,9 @@ func TestDoctorPrintsOneReportPerAgent(t *testing.T) {
 		t.Fatalf("json exit = %d, stderr = %q", got, ta.stderr.String())
 	}
 	var report doctor.Report
-	if err := json.Unmarshal(ta.stdout.Bytes(), &report); err != nil || report.Schema != 1 || len(report.Lines) != 1 || (*asked)[3] != scopeProject {
+	if err := json.Unmarshal(ta.stdout.Bytes(), &report); err != nil ||
+		report.Schema != 1 || len(report.Lines) < 2 ||
+		report.Lines[0].ID != "doctor.plugin" || (*asked)[3] != scopeProject {
 		t.Fatalf("json = %q, %v", ta.stdout.String(), err)
 	}
 }

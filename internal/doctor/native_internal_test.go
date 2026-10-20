@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/cristianargotti/golaw/internal/runnertest"
 )
 
 // TestMain lets the test binary stand in for the agent executable: asked
@@ -17,7 +19,7 @@ func TestMain(m *testing.M) {
 		}
 		return
 	}
-	m.Run()
+	os.Exit(runnertest.Main(m))
 }
 
 // doubleOnPath puts a copy of the test binary on a search path under the
