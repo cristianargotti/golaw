@@ -39,7 +39,7 @@ type Commit struct {
 // second, so the history of a far checkout is not read; the walk stops at
 // the first older commit of each line, as git log --since does.
 func Commits(ctx context.Context, repo Repo, since, now string, from int64) ([]Commit, error) {
-	args := []string{"log", "-z", "--root", noRenames, "--cc", "--no-color", "--no-show-signature", commitFormat, "--name-only"}
+	args := []string{"log", "-z", "--root", noRenames, "--cc", "--no-color", "--no-show-signature", commitFormat, nameOnly}
 	if from > 0 {
 		args = append(args, "--since=@"+strconv.FormatInt(from, 10))
 	}

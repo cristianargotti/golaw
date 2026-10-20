@@ -36,3 +36,32 @@ func (h hookBinding) remerged(ctx context.Context, repo hook.Repository, merges 
 	}
 	return remerged, nil
 }
+
+// automaticWith is automatic for the merge git makes with the strategy
+// options of the command, in one git merge-tree and one git cat-file.
+func (h hookBinding) automaticWith(ctx context.Context, repo hook.Repository, ours, theirs string, options, paths []string) (map[string][]string, error) {
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	blobs, err := source.AutomaticMergeWith(ctx, found, ours, theirs, options, paths)
+	if err != nil {
+		return nil, fmt.Errorf("merge %s into %s in %s with the options %v: %w", theirs, ours, found.Root, options, err)
+	}
+	return blobs, nil
+}
+
+// remergedWith is, for each merge commit, the paths it holds apart from the
+// merge git makes of its parents with the strategy options of the command,
+// in one git merge-tree and one git diff-tree for every merge.
+func (h hookBinding) remergedWith(ctx context.Context, repo hook.Repository, merges, options []string) (map[string][]string, error) {
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	remerged, err := source.RemergedWith(ctx, found, merges, options)
+	if err != nil {
+		return nil, fmt.Errorf("remerge the merges of %s with the options %v: %w", found.Root, options, err)
+	}
+	return remerged, nil
+}

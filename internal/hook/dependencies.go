@@ -47,7 +47,10 @@ type Repository struct {
 // held. Automatic answers, for a merge of the commit theirs into the
 // commit ours that a command left in progress, the blob the merge git
 // makes of the two by itself and the blob theirs hold at each path, empty
-// where one holds none.
+// where one holds none. AutomaticWith answers as Automatic for the merge
+// git makes with the strategy options the command text gave, and
+// RemergedWith as Remerged for the merges of the command made again with
+// them, each asked only for the paths the merge without them leaves apart.
 type Dependencies struct {
 	Home      string
 	Begin     func()
@@ -65,6 +68,9 @@ type Dependencies struct {
 	Registry  *engine.Registry
 	State     Store
 	Budget    time.Duration
+
+	AutomaticWith func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string][]string, error)
+	RemergedWith  func(ctx context.Context, repository Repository, merges, options []string) (map[string][]string, error)
 }
 
 // Commit is a commit git log named between two HEADs: its name, its

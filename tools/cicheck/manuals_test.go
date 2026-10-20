@@ -199,7 +199,9 @@ func TestContractsLeaveWhatAMergeBrought(t *testing.T) {
 		"a file whose staged blob is neither, the command's resolution of a conflict or its own edit, a file only the local side added or changed since the fork included, is judged",
 		"a merge already in progress before the command leaves the files the command writes judged as any other",
 		"A merge git cannot make by itself to compare, an octopus merge, one under a git older than 2.38, which has no merge-tree --write-tree, or one git fails, leaves each file the merge staged to a notice naming it",
-		"A merge made with a strategy option, such as -X theirs, left in progress or committed, differs from the merge git makes by itself in each file where the option resolved a conflict hunk by hunk, so such a file is judged as the command's resolution, a stated limit",
+		"A merge made with the strategy option -X ours or -X theirs, left in progress or committed, is also compared with the merge git makes with that option",
+		"which the pre event reads from a git merge or git pull the text of the command runs plainly, in each spelling git takes",
+		"Another strategy option, an -X of another program or after the git command ends, and an option an alias, a script or the configuration gives, is not read, so a file such an option resolved hunk by hunk is judged as the command's resolution, a stated limit",
 	)
 	requireText(t, "docs/security.md",
 		"A merge the command starts and leaves in progress is read the same way: a file it staged whose bytes are those of the merge git makes by itself or of the commit it merges is named in that notice",

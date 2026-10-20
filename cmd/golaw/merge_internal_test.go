@@ -169,18 +169,10 @@ func mergeCases(t *testing.T) []mergeCase {
 }
 
 // mergeLimits are the stated limits of a merge the command leaves in
-// progress: a merge -X theirs that resolves a conflict with the teammate's
-// line while keeping a local line elsewhere differs from the merge git
-// makes by itself and from each side, so the file is judged as the
-// command's resolution; an octopus merge, which git merge-tree cannot make,
-// leaves each file it staged to a notice.
+// progress: an octopus merge, which git merge-tree cannot make, leaves each
+// file it staged to a notice.
 func mergeLimits(t *testing.T) []mergeCase {
 	t.Helper()
-	mixed := func(root string) {
-		commitFiles(t, root, map[string]string{"shared.md": "1\n2\n3\n4\n5\n6\n7\n"})
-		sideBranch(t, root, mate(earlier), map[string]string{"shared.md": "theirs \u2014 1\n2\n3\ntheirs 4\n5\n6\n7\n"})
-		commitFiles(t, root, map[string]string{"shared.md": "ours 1\n2\n3\n4\n5\n6\nours 7\n"})
-	}
 	branches := func(root string) {
 		start := gitOutput(t, root, "rev-parse", "--abbrev-ref", "HEAD")
 		for _, name := range []string{"one", "two"} {
@@ -191,9 +183,6 @@ func mergeLimits(t *testing.T) []mergeCase {
 	}
 	octopus := "golaw did not measure one.md, two.md: git could not make the merge in progress by itself to compare it; the pipeline judges them."
 	return []mergeCase{
-		{"a merge -X theirs that mixes both sides, the stated limit", mixed, func(root string) {
-			gitRun(t, root, "merge", "-q", "--no-commit", "-X", "theirs", "side")
-		}, "shared.md:1", nil},
 		{"an octopus merge left in progress, the stated limit", branches, func(root string) {
 			gitRun(t, root, "merge", "-q", "--no-commit", "one", "two")
 		}, "", []string{octopus}},

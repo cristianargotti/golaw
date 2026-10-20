@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -18,29 +19,57 @@ import (
 // names the blobs of every path in one more question. Both run with a
 // temporary object directory in front of the objects of the repository,
 // removed after, so the objects of the merge never reach the repository.
-// merge-tree --write-tree needs git 2.38; an older git is an error.
+// merge-tree --write-tree needs git 2.38; an older git is an error. It is
+// AutomaticMergeWith without a strategy option.
 func AutomaticMerge(ctx context.Context, repo Repo, ours, theirs string, paths []string) (map[string][]string, error) {
+	return AutomaticMergeWith(ctx, repo, ours, theirs, nil, paths)
+}
+
+// AutomaticMergeWith is AutomaticMerge with each strategy option passed to
+// git merge-tree as -X <option>, so the merge is the one git merge makes
+// when its command line gives it those options: with ours or theirs, a
+// conflict hunk resolved with that side. An option git does not know is an
+// error.
+func AutomaticMergeWith(ctx context.Context, repo Repo, ours, theirs string, options, paths []string) (map[string][]string, error) {
+	var blobs map[string][]string
+	err := withScratch(repo, func(env []string) error {
+		tree, err := mergeTree(ctx, repo.Root, env, ours, theirs, options)
+		if err == nil {
+			blobs, err = mergeBlobs(ctx, repo.Root, env, tree, theirs, paths)
+		}
+		return err
+	})
+	return blobs, err
+}
+
+// withScratch runs work with the environment that puts a temporary object
+// directory in front of the objects of the repository, and removes the
+// directory after, so the objects git makes for a merge never reach the
+// repository.
+func withScratch(repo Repo, work func(env []string) error) error {
 	scratch, err := os.MkdirTemp("", "golaw-merge-")
 	if err != nil {
-		return nil, fmt.Errorf("%w: a temporary object directory: %w", ErrGit, err)
+		return fmt.Errorf("%w: a temporary object directory: %w", ErrGit, err)
 	}
 	defer os.RemoveAll(scratch) //nolint:errcheck // a temporary directory left behind changes no answer
 	env, err := scratchObjects(repo.GitDir, scratch)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	tree, err := mergeTree(ctx, repo.Root, env, ours, theirs)
-	if err != nil {
-		return nil, err
-	}
-	return mergeBlobs(ctx, repo.Root, env, tree, theirs, paths)
+	return work(env)
 }
 
 // mergeTree is the tree git merge-tree --write-tree writes for the merge of
-// two commits, the first field it prints; its exit status 1 is a merge
-// with conflicts, whose tree holds them in their markers.
-func mergeTree(ctx context.Context, dir string, env []string, ours, theirs string) (string, error) {
-	out, err := gitWith(ctx, dir, env, nil, "merge-tree", "--write-tree", "--no-messages", "-z", "--allow-unrelated-histories", ours, theirs)
+// two commits with the strategy options, the first field it prints; its
+// exit status 1 is a merge with conflicts, whose tree holds them in their
+// markers.
+func mergeTree(ctx context.Context, dir string, env []string, ours, theirs string, options []string) (string, error) {
+	strategy := make([]string, 0, 2*len(options))
+	for _, option := range options {
+		strategy = append(strategy, "-X", option)
+	}
+	args := []string{"merge-tree", "--write-tree", "--no-messages", "-z", "--allow-unrelated-histories"}
+	out, err := gitWith(ctx, dir, env, nil, slices.Concat(args, strategy, []string{ours, theirs})...)
 	if failure, failed := errors.AsType[*gitError](err); failed && failure.status == gitAbsent {
 		err = nil
 	}
@@ -126,7 +155,7 @@ func scratchObjects(gitDir, scratch string) ([]string, error) {
 // none reaches the repository. --remerge-diff needs git 2.36; an older git
 // is an error.
 func Remerged(ctx context.Context, repo Repo, merges []string) (map[string][]string, error) {
-	args := []string{"log", "-z", "--no-walk", noRenames, "--remerge-diff", "--no-color", "--no-show-signature", commitFormat, "--name-only"}
+	args := []string{"log", "-z", "--no-walk", noRenames, "--remerge-diff", "--no-color", "--no-show-signature", commitFormat, nameOnly}
 	out, err := git(ctx, repo.Root, append(append(args, merges...), "--")...)
 	if err != nil {
 		return nil, err
@@ -140,4 +169,52 @@ func Remerged(ctx context.Context, repo Repo, merges []string) (map[string][]str
 		remerged[commit.Name] = commit.Paths
 	}
 	return remerged, nil
+}
+
+// nameOnly has git log and git diff-tree name the paths of a change alone.
+const nameOnly = "--name-only"
+
+// RemergedWith answers, for each merge commit, the paths it holds apart
+// from the merge git makes of its first two parents by itself with each
+// strategy option passed as -X <option>: git merge-tree --write-tree makes
+// that merge and git diff-tree names the paths the commit holds apart from
+// it, two questions for every merge, with the temporary object directory of
+// AutomaticMergeWith, so no object reaches the repository. A merge git
+// cannot make, such as one of a commit it does not hold, is an error.
+func RemergedWith(ctx context.Context, repo Repo, merges, options []string) (map[string][]string, error) {
+	remerged := make(map[string][]string, len(merges))
+	err := withScratch(repo, func(env []string) error {
+		for _, merge := range merges {
+			paths, err := apartFrom(ctx, repo.Root, env, merge, options)
+			if err != nil {
+				return err
+			}
+			remerged[merge] = paths
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return remerged, nil
+}
+
+// apartFrom names the paths a merge commit holds apart from the merge git
+// makes of its first two parents with the strategy options.
+func apartFrom(ctx context.Context, dir string, env []string, merge string, options []string) ([]string, error) {
+	tree, err := mergeTree(ctx, dir, env, merge+"^1", merge+"^2", options)
+	if err != nil {
+		return nil, err
+	}
+	out, err := gitWith(ctx, dir, env, nil, "diff-tree", "-r", "-z", noRenames, nameOnly, tree, merge)
+	if err != nil {
+		return nil, err
+	}
+	var paths []string
+	for path := range strings.SplitSeq(string(out), "\x00") {
+		if path != "" {
+			paths = append(paths, path)
+		}
+	}
+	return paths, nil
 }
