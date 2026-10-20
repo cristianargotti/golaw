@@ -38,7 +38,7 @@ func (m Measure) Percent() float64 {
 }
 
 // Report separates failures from small measured units so missing sources cannot pass unnoticed.
-type Report struct {
+type Report struct { //nolint:recvcheck // The public Lines method reads a value while evaluation helpers mutate the report.
 	Total    Measure
 	Packages []Measure
 	Files    []Measure
