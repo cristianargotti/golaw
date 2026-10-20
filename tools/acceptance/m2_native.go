@@ -17,6 +17,9 @@ const (
 	m2DashCheck   = "text.dashes"
 	m2SamplePath  = "cmd/sample/main.go"
 	m2SampleBody  = "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"sample\")\n}\n"
+	// The blank line keeps the sample as gofmt writes it, and the period
+	// satisfies godot, so the lint step finds nothing on the staged lines.
+	m2SampleComment = "\n// This staged line starts the Go steps of the installed pre-commit.\n"
 )
 
 func (s *suite) nativeM2(ctx context.Context, name string) row {
@@ -139,6 +142,9 @@ func (s *suite) m2WindowsRungs(ctx context.Context, repo string) error {
 	if err != nil {
 		return err
 	}
+	if err := s.m2StageSampleChange(ctx, repo); err != nil {
+		return err
+	}
 	got := s.m2RunInstalled(ctx, repo, rung.PreCommit, "", nil, env)
 	if err := m2JudgeNative(got, false, m2DashCheck, true); err != nil {
 		return err
@@ -150,6 +156,18 @@ func (s *suite) m2WindowsRungs(ctx context.Context, repo string) error {
 		return err
 	}
 	return m2WindowsRecordersQuiet(env)
+}
+
+// m2StageSampleChange stages a Go change for the Windows pre-commit: with
+// nothing staged lefthook skips the rung, and the rung itself answers
+// gitleaks, golangci-lint and go vet without starting them, which would
+// leave them out of what the recorder PATH proves.
+func (s *suite) m2StageSampleChange(ctx context.Context, repo string) error {
+	path := filepath.Join(repo, m2SamplePath)
+	if err := writeFile(path, []byte(m2SampleBody+m2SampleComment), fileMode); err != nil {
+		return err
+	}
+	return s.gitSteps(ctx, repo, []string{gitAdd, "--", m2SamplePath})
 }
 
 func m2NativeTestsDisabled(repo string) error {
