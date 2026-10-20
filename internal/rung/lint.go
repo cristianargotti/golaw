@@ -101,9 +101,11 @@ func linted(packages int, out runner.Output, err error) Outcome {
 
 // patch writes the staged diff of the index git commits through beside the
 // lock of the rung, where only the holder of the lock writes and the next
-// run replaces it, and answers its path.
+// run replaces it, and answers its path. The prefixes are named because
+// golangci-lint places the staged lines of a file through the a/ and b/ of
+// the patch, which diff.noprefix drops and diff.mnemonicPrefix renames.
 func (p *precommit) patch(ctx context.Context) (string, error) {
-	out, err := plumbing(ctx, p.deps, "diff", "--cached", "--no-color", "--no-ext-diff", "-M")
+	out, err := plumbing(ctx, p.deps, "diff", "--cached", "--no-color", "--no-ext-diff", "-M", "--src-prefix=a/", "--dst-prefix=b/")
 	if err != nil {
 		return "", err
 	}
