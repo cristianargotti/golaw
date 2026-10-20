@@ -150,3 +150,23 @@ checks:
     code: pr
     red: testdata/shell.pr/red
     near: testdata/shell.pr/near
+  - id: commit.conventional
+    code: conventional-subject
+    red: testdata/commit.conventional/red
+    near: testdata/commit.conventional/near
+  - id: commit.no-trailers
+    code: trailer
+    red: testdata/commit.no-trailers/red
+    near: testdata/commit.no-trailers/near
+  - id: commit.no-dashes
+    code: em-dash
+    red: testdata/commit.no-dashes/red
+    near: testdata/commit.no-dashes/near
+  - id: commit.body-width
+    code: body-width
+    red: testdata/commit.body-width/red
+    near: testdata/commit.body-width/near
+  - id: commit.shape
+    code: commit-shape
+    red: testdata/commit.shape/red
+    near: testdata/commit.shape/near

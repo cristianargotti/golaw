@@ -33,9 +33,9 @@ func TestHumanRendersPortugueseAndFallsBackToEnglish(t *testing.T) {
 func TestHumanNamesUnknownCodesAndUnmeasuredChecks(t *testing.T) {
 	t.Parallel()
 	unknown := engine.Decision{Mode: model.ModeHook, Verdict: engine.VerdictDeny, Findings: []model.Finding{
-		{Check: "commit.conventional", Path: "internal/a.go", Code: "conventional-subject", Message: "subject is not conventional", Severity: model.SeverityFail},
+		{Check: "future.rule", Path: "internal/a.go", Code: "future-code", Message: "a code no family emits yet", Severity: model.SeverityFail},
 	}}
-	if got := report.Human(report.Portuguese, unknown); got != "golaw bloqueou a operação: violação de regra (verificação commit.conventional, arquivo internal/a.go)." {
+	if got := report.Human(report.Portuguese, unknown); got != "golaw bloqueou a operação: violação de regra (verificação future.rule, arquivo internal/a.go)." {
 		t.Errorf("unknown code = %q", got)
 	}
 	notes := engine.Decision{
@@ -53,12 +53,12 @@ func TestHumanNamesUnknownCodesAndUnmeasuredChecks(t *testing.T) {
 }
 
 // TestHumanRendersPortugueseForEveryCode spells the sentence of every
-// finding code the M1 checks emit, so a row deleted from the table or a
+// finding code the checks emit, so a row deleted from the table or a
 // sentence changed by mistake turns red instead of passing as the generic
 // sentence.
 func TestHumanRendersPortugueseForEveryCode(t *testing.T) {
 	t.Parallel()
-	for _, family := range []map[string]string{fileSentences(), goastSentences(), shellSentences()} {
+	for _, family := range []map[string]string{fileSentences(), goastSentences(), shellSentences(), commitSentences()} {
 		for code, want := range family {
 			decision := engine.Decision{Mode: model.ModeHook, Verdict: engine.VerdictDeny, Findings: []model.Finding{
 				{Check: "family.sample", Path: "internal/a.go", Code: code, Message: "english message", Severity: model.SeverityDeny},
@@ -123,5 +123,11 @@ func shellSentences() map[string]string {
 		"credential-print": "o comando imprime uma credencial; segredos nunca entram no contexto",
 		"push":             "git push negado pela política; a pessoa faz o push",
 		"pr":               "criação de pull request ou de repositório negada pela política; a pessoa abre",
+	}
+}
+
+func commitSentences() map[string]string {
+	return map[string]string{
+		"conventional-subject": "assunto do commit fora do padrão convencional; escreva tipo(escopo): descrição, com a descrição começando em letra minúscula",
 	}
 }

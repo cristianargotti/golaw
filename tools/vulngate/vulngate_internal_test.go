@@ -29,20 +29,6 @@ func waiversFile(t *testing.T, body string) string {
 	return path
 }
 
-func TestReadReachableKeepsOnlyFunctionLevelFindings(t *testing.T) {
-	t.Parallel()
-	got, err := readReachable(strings.NewReader(stream))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 2 || got["GO-2026-0002"] != "v1.27.2" || got["GO-2026-0003"] != "" {
-		t.Fatalf("reachable = %v", got)
-	}
-	if _, err := readReachable(strings.NewReader("{")); err == nil {
-		t.Fatal("a truncated stream must fail")
-	}
-}
-
 type executeCase struct {
 	waivers string
 	args    []string
@@ -55,6 +41,9 @@ type executeCase struct {
 func executeCases() map[string]executeCase {
 	waived := "vulnerability_waivers:\n  - { id: GO-2026-0002, until: 2026-12-31, record: docs/adr/0003-serve.md }\n  - { id: GO-2026-0003, until: 2027-01-31, record: docs/adr/0004-dep.md }\n"
 	expired := "vulnerability_waivers:\n  - { id: GO-2026-0002, until: 2026-10-01, record: docs/adr/0003-serve.md }\n"
+	old := "  - { id: GO-2026-0002, until: 2026-01-01, record: docs/adr/0001-old.md }\n"
+	extended := "  - { id: GO-2026-0002, until: 2026-12-31, record: docs/adr/0002-extended.md }\n"
+	dep := "  - { id: GO-2026-0003, until: 2027-01-31, record: docs/adr/0004-dep.md }\n"
 	today := []string{"-today", "2026-10-14"}
 	return map[string]executeCase{
 		"all waived": {waived, today, exitClean, []string{
@@ -78,6 +67,15 @@ func executeCases() map[string]executeCase {
 			"vulngate: GO-2026-0002 reachable, fixed in v1.27.2",
 			"vulngate: GO-2026-0003 waived until 2027-01-31 (docs/adr/0004-dep.md)",
 			"vulngate: waiver GO-2026-0002 expired on 2026-12-31, remove it",
+		}},
+		"an id listed twice, the last entry in force": {"vulnerability_waivers:\n" + old + extended + dep, today, exitClean, []string{
+			"vulngate: GO-2026-0002 waived until 2026-12-31 (docs/adr/0002-extended.md)",
+			"vulngate: GO-2026-0003 waived until 2027-01-31 (docs/adr/0004-dep.md)",
+		}},
+		"an id listed twice, the last entry expired": {"vulnerability_waivers:\n" + extended + old + dep, today, exitReachable, []string{
+			"vulngate: GO-2026-0002 reachable, fixed in v1.27.2",
+			"vulngate: GO-2026-0003 waived until 2027-01-31 (docs/adr/0004-dep.md)",
+			"vulngate: waiver GO-2026-0002 expired on 2026-01-01, remove it",
 		}},
 		"no id":      {"vulnerability_waivers:\n  - { until: 2026-12-31, record: r }\n", today, exitFailure, nil},
 		"no date":    {waived, nil, exitFailure, nil},
@@ -120,6 +118,21 @@ func TestExecuteWithoutReachableFindingsIsClean(t *testing.T) {
 	missing := []string{"-waivers", filepath.Join(t.TempDir(), "none.yml"), "-today", "2026-10-14"}
 	if got := execute(missing, strings.NewReader(""), &stdout, &stderr); got != exitFailure {
 		t.Fatalf("missing waivers exit = %d", got)
+	}
+}
+
+// The fix of an advisory govulncheck reports in two modules is the one of
+// its last report, as the lane always named it.
+func TestExecuteNamesTheFixOfTheLastReportOfAnAdvisory(t *testing.T) {
+	t.Parallel()
+	twice := `{"config": {"scanner_name": "govulncheck"}}
+{"finding": {"osv": "GO-2026-0002", "fixed_version": "v0.30.0", "trace": [{"module": "golang.org/x/net", "package": "golang.org/x/net/http2", "function": "ServeConn"}]}}
+{"finding": {"osv": "GO-2026-0002", "fixed_version": "v1.27.3", "trace": [{"module": "stdlib", "package": "net/http", "function": "Serve"}]}}
+`
+	var stdout, stderr bytes.Buffer
+	args := []string{"-waivers", waiversFile(t, ""), "-today", "2026-10-14"}
+	if got := execute(args, strings.NewReader(twice), &stdout, &stderr); got != exitReachable || stdout.String() != "vulngate: GO-2026-0002 reachable, fixed in v1.27.3\n" {
+		t.Fatalf("exit = %d, stdout = %q, stderr = %q", got, stdout.String(), stderr.String())
 	}
 }
 
