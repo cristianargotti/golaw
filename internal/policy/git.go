@@ -33,7 +33,7 @@ func ReadIndex(ctx context.Context, root string) ([]byte, bool, error) {
 		return nil, false, err
 	}
 	if unmerged(listing) {
-		return nil, false, fmt.Errorf("%w: %s is unresolved in the index: finish the merge before the policy is judged", model.ErrPolicy, FileName)
+		return nil, false, unresolved()
 	}
 	return readListed(ctx, root, listing, 1)
 }

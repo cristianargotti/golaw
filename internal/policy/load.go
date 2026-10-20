@@ -224,22 +224,7 @@ func Propose(ctx context.Context, inForce *Loaded, schemas Schemas) (Proposal, e
 	if staged.err != nil || !staged.found {
 		return Proposal{}, staged.err
 	}
-	next, err := Decode(staged.data)
-	if err != nil {
-		return Proposal{Staged: true}, err
-	}
-	if err := next.Validate(schemas); err != nil {
-		return Proposal{Staged: true}, err
-	}
-	if Digest(next) == inForce.Policy.Digest {
-		return Proposal{Staged: true}, nil
-	}
-	if inForce.Origin != OriginCore {
-		if err := CheckTightening(inForce.File, next, schemas); err != nil {
-			return Proposal{Staged: true}, err
-		}
-	}
-	return Proposal{File: next, Found: true, Staged: true}, nil
+	return inForce.judge(staged.data, schemas)
 }
 
 // reads is the memo of the git answers about golaw.yml under the root,

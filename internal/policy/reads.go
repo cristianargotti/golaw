@@ -61,7 +61,7 @@ func (r *reads) staged(ctx context.Context) blobRead {
 		return blobRead{err: err}
 	}
 	if unmerged(listing) {
-		return blobRead{err: fmt.Errorf("%w: %s is unresolved in the index: finish the merge before the policy is judged", model.ErrPolicy, FileName)}
+		return blobRead{err: unresolved()}
 	}
 	line, _, _ := strings.Cut(strings.TrimRight(string(listing), "\x00"), "\x00")
 	if line == "" {
