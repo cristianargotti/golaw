@@ -5,7 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -200,14 +202,19 @@ func (f *Fixture) addEvent(content []byte) error {
 	return nil
 }
 
-// addCommit decodes the commit strictly, so a misspelled key fails the
-// fixture instead of proving a commit with an empty field.
+// addCommit decodes the commit strictly, so a misspelled key or anything
+// after the one commit fails the fixture instead of proving a commit with
+// an empty field or the first commit of a broken file.
 func (f *Fixture) addCommit(content []byte) error {
 	decoder := json.NewDecoder(bytes.NewReader(content))
 	decoder.DisallowUnknownFields()
 	var c model.Commit
 	if err := decoder.Decode(&c); err != nil {
 		return fmt.Errorf("decode: %w", err)
+	}
+	var rest json.RawMessage
+	if err := decoder.Decode(&rest); !errors.Is(err, io.EOF) {
+		return errTrailing
 	}
 	if err := c.Validate(); err != nil {
 		return fmt.Errorf("validate: %w", err)

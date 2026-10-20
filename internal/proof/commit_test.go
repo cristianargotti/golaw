@@ -43,10 +43,16 @@ func TestLoadFixtureRefusesABrokenCommit(t *testing.T) {
 	write(t, root, "bad-json/"+proof.CommitFile, "{")
 	write(t, root, "unknown-key/"+proof.CommitFile, `{"message":"x","body":"y"}`)
 	write(t, root, "unresolved/"+proof.CommitFile, `{"message":"x","cleanup":"default"}`)
-	for _, name := range []string{"bad-json", "unknown-key", "unresolved"} {
+	write(t, root, "trailing-garbage/"+proof.CommitFile, `{"message":"fix: x"} garbage`)
+	write(t, root, "second-object/"+proof.CommitFile, `{"message":"fix: x"}`+"\n"+`{"message":"fix: y"}`)
+	for _, name := range []string{"bad-json", "unknown-key", "unresolved", "trailing-garbage", "second-object"} {
 		if _, err := proof.LoadFixture(filepath.Join(root, name)); !errors.Is(err, proof.ErrFixture) {
 			t.Errorf("%s: %v, want ErrFixture", name, err)
 		}
+	}
+	write(t, root, "line-break/"+proof.CommitFile, `{"message":"fix: x"}`+"\n")
+	if _, err := proof.LoadFixture(filepath.Join(root, "line-break")); err != nil {
+		t.Errorf("a line break after the commit is no data after it: %v", err)
 	}
 }
 

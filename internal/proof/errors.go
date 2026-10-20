@@ -8,4 +8,7 @@ var (
 	ErrManifest = errors.New("invalid proof manifest")
 	// ErrFixture marks a fixture tree that cannot be loaded or is empty.
 	ErrFixture = errors.New("invalid proof fixture")
+	// errTrailing marks a commit file that holds more than its one commit;
+	// LoadFixture answers it inside ErrFixture.
+	errTrailing = errors.New("data after the commit")
 )
