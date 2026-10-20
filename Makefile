@@ -25,7 +25,7 @@ test:
 	go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
 coverage:
-	go run ./tools/coverage -profile coverage.out -root . -min 80 -min-statements 20
+	go run ./cmd/golaw coverage --input coverage.out
 
 build:
 	go build ./...
