@@ -40,9 +40,10 @@ type Result struct {
 // out what a merge in progress brought (Brought), dispatches the registry in
 // ModeStaged over the staged files under the policy in force, dispatches it
 // again over the same paths at the base (source.NewRevision of Base, the old
-// path of a rename), and keeps the findings report.Introduced names. A
-// refused proposal is its error (ErrPolicy or ErrEnrollment of model), so
-// the command exits 2.
+// path of a rename) and apart over the files beside a target whose
+// directory those paths miss, and keeps the findings report.Introduced
+// names. A refused proposal is its error (ErrPolicy or ErrEnrollment of
+// model), so the command exits 2.
 func Scan(ctx context.Context, in Input) (Result, error) {
 	index, err := source.NewIndex(ctx, in.Repo, in.Index)
 	if err != nil {

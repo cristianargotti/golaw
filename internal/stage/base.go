@@ -3,6 +3,7 @@ package stage
 import (
 	"context"
 	"fmt"
+	"path"
 	"regexp"
 	"slices"
 
@@ -24,25 +25,89 @@ var countRun = regexp.MustCompile(`\b\d+( lines| statements| times| non-test fil
 // on an unborn branch, and a renamed file is read at its old path there, so
 // a finding the commit only carries along is never its own.
 func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *engine.Run) error {
-	base, err := source.NewRevision(ctx, in.Repo, baseOf(in))
-	if err != nil {
-		return fmt.Errorf("freeze the base of %s: %w", in.Repo.Root, err)
-	}
 	moved := renames(candidate.Changes)
-	paths := basePaths(candidate.Targets, moved)
-	before := model.Input{
-		Mode: model.ModeStaged, Policy: candidate.Policy, Snapshot: base,
-		Targets: base.Select(func(path string) bool { return paths[path] }),
-	}
-	held, err := engine.Dispatch(ctx, in.Registry, before)
+	held, err := judgeBase(ctx, in, candidate, baseOf(in), moved)
 	if err != nil {
-		return fmt.Errorf("judge the base of %s: %w", in.Repo.Root, err)
+		return err
 	}
 	for i := range run.Outcomes {
-		got, was := &run.Outcomes[i].Result, held.Outcomes[i].Result
-		got.Findings = provable(got, introduced(got.Findings, rekeyed(was.Findings, moved)), was, moved)
+		got, was := &run.Outcomes[i].Result, held.staged.Outcomes[i].Result
+		got.Findings = provable(got, introduced(got.Findings, held.findings(i)), was, moved)
 	}
 	return nil
+}
+
+// baseRun is the base judged in two runs: over the paths the targets had
+// there, and over the files beside a target whose directory the first run
+// holds no file of.
+type baseRun struct {
+	staged *engine.Run
+	beside *engine.Run // nil when the first run holds a file of every directory a target sits in
+	moved  map[string]string
+}
+
+// findings answers what the base holds for outcome i, as the index names
+// its paths.
+func (b *baseRun) findings(i int) []model.Finding {
+	found := b.staged.Outcomes[i].Result.Findings
+	if b.beside != nil {
+		found = slices.Concat(found, b.beside.Outcomes[i].Result.Findings)
+	}
+	return rekeyed(found, b.moved)
+}
+
+// judgeBase freezes the base at rev and judges the paths the targets had
+// there, then, in a run of their own, the other files of every directory a
+// target joins that the first run holds no file of: a rule that judges a
+// directory through one of its files, as the file count of an adapter
+// package, is asked about a directory the commit only adds to. Only the
+// first run can hold a finding back (provable), so a file beside that no
+// check can judge never makes a staged finding unmeasured.
+func judgeBase(ctx context.Context, in Input, candidate model.Input, rev string, moved map[string]string) (*baseRun, error) {
+	base, err := source.NewRevision(ctx, in.Repo, rev)
+	if err != nil {
+		return nil, fmt.Errorf("freeze the base of %s: %w", in.Repo.Root, err)
+	}
+	paths := basePaths(candidate.Targets, moved)
+	targets := base.Select(func(p string) bool { return paths[p] })
+	held := &baseRun{moved: moved}
+	if held.staged, err = judge(ctx, in, base, targets); err != nil {
+		return nil, err
+	}
+	dirs := joined(candidate.Targets, targets)
+	if len(dirs) == 0 {
+		return held, nil
+	}
+	if beside := base.Select(func(p string) bool { return dirs[path.Dir(p)] }); len(beside) > 0 {
+		if held.beside, err = judge(ctx, in, base, beside); err != nil {
+			return nil, err
+		}
+	}
+	return held, nil
+}
+
+// judge dispatches the registry over files of the base in ModeStaged,
+// under the policy in force, as the index is judged.
+func judge(ctx context.Context, in Input, base model.Snapshot, targets []model.File) (*engine.Run, error) {
+	run, err := engine.Dispatch(ctx, in.Registry, model.Input{Mode: model.ModeStaged, Policy: in.Loaded.Policy, Snapshot: base, Targets: targets})
+	if err != nil {
+		return nil, fmt.Errorf("judge the base of %s: %w", in.Repo.Root, err)
+	}
+	return run, nil
+}
+
+// joined names the directories the targets of the index sit in where the
+// targets of the base hold no file, the ones a directory rule would
+// otherwise never be asked about at the base.
+func joined(targets, base []model.File) map[string]bool {
+	dirs := map[string]bool{}
+	for _, f := range targets {
+		dirs[path.Dir(f.Path)] = true
+	}
+	for _, f := range base {
+		delete(dirs, path.Dir(f.Path))
+	}
+	return dirs
 }
 
 // introduced is report.Introduced under stagedKey: the index findings the
