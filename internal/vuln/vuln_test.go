@@ -39,6 +39,22 @@ func TestReachableKeepsTheAdvisoriesTheCodeReaches(t *testing.T) {
 	}
 }
 
+// An advisory govulncheck reports in two modules keeps its last report, the
+// one whose fix the lane always named.
+func TestReachableKeepsTheLastReportOfAnAdvisory(t *testing.T) {
+	t.Parallel()
+	twice := `{"config": {"scanner_version": "v1.7.0"}}
+{"finding": {"osv": "GO-2026-0002", "fixed_version": "v0.30.0", "trace": [{"module": "golang.org/x/net", "function": "ServeConn"}]}}
+{"finding": {"osv": "GO-2026-0002", "fixed_version": "v1.27.3", "trace": [{"module": "stdlib", "function": "Serve"}]}}
+{"finding": {"osv": "GO-2026-0002", "fixed_version": "v0.31.0", "trace": [{"module": "golang.org/x/net"}]}}
+`
+	found, err := vuln.Reachable(strings.NewReader(twice))
+	want := []vuln.Finding{{ID: "GO-2026-0002", Module: "stdlib", Fixed: "v1.27.3"}}
+	if err != nil || !slices.Equal(found, want) {
+		t.Errorf("Reachable = %+v, %v, want %+v", found, err, want)
+	}
+}
+
 // A scanner that stops before its config line leaves the pipe empty, a
 // stream without that line never came from a scan, and one cut short lost
 // what came after the cut; none may read as clean.

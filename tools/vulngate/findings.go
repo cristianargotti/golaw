@@ -33,7 +33,8 @@ func verdictLines(found []vuln.Finding, waivers []model.Waiver, today time.Time)
 	return lines, len(verdict.Refused) > 0 || len(expired) > 0
 }
 
-// waiverOf answers the waiver in force of a waived advisory.
+// waiverOf answers the waiver in force of a waived advisory: loadWaivers
+// keeps one entry per id, so the entry of its id is the one Judge held.
 func waiverOf(waivers []model.Waiver, verdict vuln.Verdict, f vuln.Finding) (model.Waiver, bool) {
 	if !slices.Contains(verdict.Waived, f) {
 		return model.Waiver{}, false

@@ -78,10 +78,10 @@ func read(r io.Reader) (string, []Finding, error) {
 		if m.Config != nil {
 			version, configured = m.Config.ScannerVersion, true
 		}
+		// A later report of an advisory replaces an earlier one, so the
+		// lane names the fix of the last report as it always did.
 		if f := m.Finding; f != nil && len(f.Trace) > 0 && f.Trace[0].Function != "" {
-			if _, seen := byID[f.OSV]; !seen {
-				byID[f.OSV] = Finding{ID: f.OSV, Module: f.Trace[0].Module, Fixed: f.FixedVersion}
-			}
+			byID[f.OSV] = Finding{ID: f.OSV, Module: f.Trace[0].Module, Fixed: f.FixedVersion}
 		}
 	}
 	if !configured {

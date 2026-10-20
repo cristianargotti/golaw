@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -27,8 +28,10 @@ type policy struct {
 
 // loadWaivers fails on the first incomplete entry: a waiver counts only
 // with its advisory, its expiry and its decision record, so an entry
-// missing one must stop the lane, not waive or vanish in silence. The
-// waivers come back sorted by advisory id, as the policy compiles them.
+// missing one must stop the lane, not waive or vanish in silence. An id
+// listed twice keeps its last entry, the one the lane always judged, so
+// the lane never names an entry a later one replaced. The waivers come
+// back sorted by advisory id, as the policy compiles them.
 func loadWaivers(path string) ([]model.Waiver, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // the policy path is a flag of this tool
 	if err != nil {
@@ -38,7 +41,7 @@ func loadWaivers(path string) ([]model.Waiver, error) {
 	if err := yaml.Unmarshal(data, &p); err != nil {
 		return nil, fmt.Errorf("decode waivers: %w", err)
 	}
-	out := make([]model.Waiver, 0, len(p.Waivers))
+	byID := make(map[string]model.Waiver, len(p.Waivers))
 	for _, w := range p.Waivers {
 		if w.ID == "" || w.Record == "" {
 			return nil, fmt.Errorf("%w: every waiver needs an id and a record", ErrWaiver)
@@ -46,8 +49,7 @@ func loadWaivers(path string) ([]model.Waiver, error) {
 		if _, err := time.Parse(time.DateOnly, w.Until); err != nil {
 			return nil, fmt.Errorf("%w: %s: until: %w", ErrWaiver, w.ID, err)
 		}
-		out = append(out, model.Waiver{ID: w.ID, Until: w.Until, Record: w.Record})
+		byID[w.ID] = model.Waiver{ID: w.ID, Until: w.Until, Record: w.Record}
 	}
-	slices.SortFunc(out, func(a, b model.Waiver) int { return strings.Compare(a.ID, b.ID) })
-	return out, nil
+	return slices.SortedFunc(maps.Values(byID), func(a, b model.Waiver) int { return strings.Compare(a.ID, b.ID) }), nil
 }
