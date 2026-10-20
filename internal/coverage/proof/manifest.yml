@@ -1,0 +1,5 @@
+checks:
+  - id: coverage.floors
+    code: coverage-floor
+    red: testdata/coverage.floors/red
+    near: testdata/coverage.floors/near

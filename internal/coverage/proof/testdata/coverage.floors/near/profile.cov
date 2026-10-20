@@ -1,0 +1,3 @@
+mode: atomic
+example.test/sample/value.go:4.2,19.5 16 1
+example.test/sample/value.go:20.2,23.10 4 0
