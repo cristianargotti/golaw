@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/install"
 )
@@ -37,19 +38,51 @@ type ManagedFact struct {
 func CollectManaged(root string, recorded map[string]string) []ManagedFact {
 	facts := make([]ManagedFact, 0, len(recorded))
 	for _, path := range slices.Sorted(maps.Keys(recorded)) {
-		fact := ManagedFact{Path: path, Recorded: recorded[path]}
-		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path))) //nolint:gosec // a path the committed policy records under the repository root
-		switch {
-		case errors.Is(err, fs.ErrNotExist):
-			fact.Missing = true
-		case err != nil:
-			fact.Error = err.Error()
-		default:
-			fact.Current = install.Digest(data)
-		}
-		facts = append(facts, fact)
+		facts = append(facts, collectManaged(root, path, recorded[path]))
 	}
 	return facts
+}
+
+// collectManaged reads a managed file only as init writes one, a regular
+// file reached through directories under root: a link on the way would
+// hash bytes the repository does not hold, and a device or a pipe could be
+// read without end.
+func collectManaged(root, path, recorded string) ManagedFact {
+	fact := ManagedFact{Path: path, Recorded: recorded}
+	name := root
+	parts := strings.Split(path, "/")
+	for index, part := range parts {
+		name = filepath.Join(name, part)
+		info, err := os.Lstat(name)
+		if err != nil {
+			return managedFailure(fact, err)
+		}
+		switch last := index == len(parts)-1; {
+		case !last && !info.IsDir():
+			fact.Error = strings.Join(parts[:index+1], "/") + " is not a directory"
+			return fact
+		case last && !info.Mode().IsRegular():
+			fact.Error = "not a regular file"
+			return fact
+		}
+	}
+	data, err := os.ReadFile(name) //nolint:gosec // every component under the repository root was checked above
+	if err != nil {
+		return managedFailure(fact, err)
+	}
+	fact.Current = install.Digest(data)
+	return fact
+}
+
+// managedFailure keeps an absent file as missing and any other failure as
+// the error its line names.
+func managedFailure(fact ManagedFact, err error) ManagedFact {
+	if errors.Is(err, fs.ErrNotExist) {
+		fact.Missing = true
+		return fact
+	}
+	fact.Error = err.Error()
+	return fact
 }
 
 // AssessManaged reads no file: a file whose hash is the recorded one is
