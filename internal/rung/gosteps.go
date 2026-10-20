@@ -33,9 +33,19 @@ func (p *precommit) goSteps(ctx context.Context) Outcome {
 }
 
 // goCommand is a go command over the affected packages, in the tree, with
-// the user environment.
+// the user environment and the tree named by PWD (treeEnv).
 func (p *precommit) goCommand(t goTree, args ...string) runner.Command {
-	return runner.Command{Name: "go", Args: slices.Concat(args, t.set.Patterns), Dir: t.dir, Env: runner.UserEnv(p.deps.Environ)}
+	return runner.Command{Name: "go", Args: slices.Concat(args, t.set.Patterns), Dir: t.dir, Env: p.treeEnv(t)}
+}
+
+// treeEnv is the environment of a tool that reads the tree: the user
+// environment with PWD naming the tree by its real path, the last value of
+// a name winning. A tool takes PWD for its working directory when it names
+// the same directory, so a worktree a person reached through a linked
+// directory would read as a path through a link, where golangci-lint 2.14.0
+// drops every issue of --new-from-patch.
+func (p *precommit) treeEnv(t goTree) []string {
+	return append(runner.UserEnv(p.deps.Environ), "PWD="+t.dir)
 }
 
 // vet runs go vet over the affected packages; a package that does not

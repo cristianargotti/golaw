@@ -35,7 +35,7 @@ func (p *precommit) golangci(ctx context.Context, t goTree) Outcome {
 	if len(t.set.Patterns) == 0 {
 		return join(passed(fmtStep, noGoFile), passed(lintStep, noPackage))
 	}
-	env := runner.UserEnv(p.deps.Environ)
+	env := p.treeEnv(t)
 	path, err := verified(ctx, linter, env)
 	if err != nil {
 		return stepFailed(fmtStep+" and "+lintStep, err)
