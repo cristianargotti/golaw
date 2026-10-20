@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -193,5 +194,61 @@ func TestPreCommitLeavesToThePipelineTheGoFilesGitIgnores(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(inPlace.State, "runner")); !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("ignored files go never reads keep the worktree read in place: %v", err)
+	}
+}
+
+// A rung refuses only what the commit introduces: a problem go vet reports
+// on a line the staged patch adds, as golangci-lint keeps the issues of the
+// staged lines. A problem HEAD already holds is named and left to the
+// pipeline, so a clean staged file beside it lets the commit go, while the
+// commit that adds a problem of its own, or edits the line of the old one,
+// is refused.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPreCommitRefusesOnlyTheVetProblemsTheCommitAdds(t *testing.T) {
+	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks, "golangci-lint": linter})
+	r := armedRepo(t, armedPolicy)
+	r.Commit("feat: add the formatter", map[string]string{"a/a.go": vetBroken})
+	inherited := "golaw pre-commit: vet: go vet reports problems on lines the commit does not add, which the pipeline judges"
+	r.Stage(map[string]string{"a/b.go": "package a\n\n// B answers one.\nfunc B() int { return 1 }\n"})
+	out := rung.RunPreCommit(t.Context(), deps(t, r))
+	if out.Code != 0 || !contains(out, inherited) || !contains(out, "a/a.go:6:39: fmt.Sprintf format %d has arg") || contains(out, "fix it before the commit") {
+		t.Errorf("a vet problem HEAD holds beside a clean staged file = %+v", out)
+	}
+	r.Stage(map[string]string{"a/b.go": "package a\n\nimport \"fmt\"\n\n// B formats a value.\nfunc B() string { return fmt.Sprintf(\"%d\", \"y\") }\n"})
+	out = rung.RunPreCommit(t.Context(), deps(t, r))
+	refusal := slices.Index(out.Lines, "golaw pre-commit: vet: go vet reports what the affected packages break; fix it before the commit")
+	if out.Code != 1 || refusal < 0 || refusal+1 >= len(out.Lines) || !strings.HasPrefix(out.Lines[refusal+1], "a/b.go:6:39: ") || !contains(out, inherited) {
+		t.Errorf("a staged vet problem beside the one HEAD holds = %+v", out)
+	}
+	r.Remove("a/b.go")
+	r.Git("rm", "-q", "--cached", "a/b.go")
+	r.Stage(map[string]string{"a/a.go": strings.Replace(vetBroken, "\"x\"", "\"z\"", 1)})
+	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 1 || !contains(out, "a/a.go:6:39: ") || contains(out, inherited) {
+		t.Errorf("a staged edit of the line of the old problem = %+v", out)
+	}
+}
+
+// While a merge is in progress the staged patch also holds what the merge
+// brought, so a line is the commit's own only when the index adds it
+// against the other parent too: a vet problem the merge brought into a
+// staged package is left to the pipeline, one the person writes is refused.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPreCommitRefusesOnlyTheVetProblemsAMergeAddsItself(t *testing.T) {
+	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks, "golangci-lint": linter})
+	r := armedRepo(t, armedPolicy)
+	r.Commit("feat: add the formatter", map[string]string{"a/a.go": vetClean})
+	r.Branch("side", map[string]string{"a/c.go": "package a\n\nimport \"fmt\"\n\n// C formats a value.\nfunc C() string { return fmt.Sprintf(\"%d\", \"c\") }\n"})
+	r.Commit("docs: say why", map[string]string{"notes.md": "why\n"})
+	r.MergeInProgress("side")
+	r.Stage(map[string]string{"a/a.go": strings.Replace(vetClean, "\"x\"", "\"z\"", 1)})
+	out := rung.RunPreCommit(t.Context(), deps(t, r))
+	if out.Code != 0 || !contains(out, "vet: go vet reports problems on lines the commit does not add, which the pipeline judges") || !contains(out, "a/c.go:6:39: ") {
+		t.Errorf("a vet problem the merge brought beside a clean edit = %+v", out)
+	}
+	r.Stage(map[string]string{"a/a.go": vetBroken})
+	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 1 || !contains(out, "vet: go vet reports what the affected packages break; fix it before the commit") || !contains(out, "a/a.go:6:39: ") {
+		t.Errorf("a vet problem the merge commit adds itself = %+v", out)
 	}
 }

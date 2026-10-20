@@ -101,22 +101,34 @@ func linted(packages int, out runner.Output, err error) Outcome {
 
 // patch writes the staged diff of the index git commits through beside the
 // lock of the rung, where only the holder of the lock writes and the next
-// run replaces it, and answers its path. The prefixes are named because
-// golangci-lint places the staged lines of a file through the a/ and b/ of
-// the patch, which diff.noprefix drops and diff.mnemonicPrefix renames.
+// run replaces it, and answers its path.
 func (p *precommit) patch(ctx context.Context) (string, error) {
-	out, err := plumbing(ctx, p.deps, "diff", "--cached", "--no-color", "--no-ext-diff", "-M", "--src-prefix=a/", "--dst-prefix=b/")
+	diff, err := p.stagedDiff(ctx)
 	if err != nil {
 		return "", err
 	}
-	if out.Code != 0 {
-		return "", fmt.Errorf("%w: git diff: %s", source.ErrGit, strings.TrimSpace(string(out.Stderr)))
-	}
 	path := filepath.Join(p.repo.GitDir, "golaw", patchName)
-	if err := os.WriteFile(path, out.Stdout, patchMode); err != nil {
+	if err := os.WriteFile(path, diff, patchMode); err != nil {
 		return "", fmt.Errorf("write the staged patch: %w", err)
 	}
 	return path, nil
+}
+
+// stagedDiff is the diff of the index git commits through against HEAD,
+// renames found, so a renamed file adds only the lines it changed. The
+// prefixes are named because golangci-lint places the staged lines of a
+// file through the a/ and b/ of the patch, which diff.noprefix drops and
+// diff.mnemonicPrefix renames.
+func (p *precommit) stagedDiff(ctx context.Context, extra ...string) ([]byte, error) {
+	args := slices.Concat([]string{"diff", "--cached", "--no-color", "--no-ext-diff", "-M", "--src-prefix=a/", "--dst-prefix=b/"}, extra)
+	out, err := plumbing(ctx, p.deps, args...)
+	if err != nil {
+		return nil, err
+	}
+	if out.Code != 0 {
+		return nil, fmt.Errorf("%w: git diff: %s", source.ErrGit, strings.TrimSpace(string(out.Stderr)))
+	}
+	return out.Stdout, nil
 }
 
 // stagedGo lists the staged Go files in the form of the operating system,

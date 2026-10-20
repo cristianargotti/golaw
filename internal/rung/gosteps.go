@@ -48,8 +48,9 @@ func (p *precommit) treeEnv(t goTree) []string {
 	return append(runner.UserEnv(p.deps.Environ), "PWD="+t.dir)
 }
 
-// vet runs go vet over the affected packages; a package that does not
-// build is refused as go vet refuses it.
+// vet runs go vet over the affected packages and refuses what it reports
+// on a line the commit adds, a build error there included; the rest a
+// parent may already hold, so it is named and left to the pipeline.
 func (p *precommit) vet(ctx context.Context, t goTree) Outcome {
 	if len(t.set.Patterns) == 0 {
 		return passed(vetStep, noPackage)
@@ -60,7 +61,18 @@ func (p *precommit) vet(ctx context.Context, t goTree) Outcome {
 		return stepFailed(vetStep, err)
 	case out.Code == 0:
 		return passed(vetStep, fmt.Sprintf("go vet found nothing in %d affected packages", len(t.set.Packages)))
-	default:
-		return refusedBy(vetStep, "go vet reports what the affected packages break; fix it before the commit", out)
 	}
+	added, err := p.introduced(ctx)
+	if err != nil {
+		return stepFailed(vetStep, err)
+	}
+	kept, inherited := attributed(out, added)
+	result := Outcome{}
+	if len(kept) > 0 {
+		result = Outcome{Code: codeFindings, Lines: slices.Concat([]string{stepLine(vetStep, "go vet reports what the affected packages break; fix it before the commit")}, kept)}
+	}
+	if len(inherited) > 0 || len(kept) == 0 {
+		result = join(result, Outcome{Lines: slices.Concat([]string{stepLine(vetStep, "go vet reports problems on lines the commit does not add, which the pipeline judges")}, inherited)})
+	}
+	return result
 }

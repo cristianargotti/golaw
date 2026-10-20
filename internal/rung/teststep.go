@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/runner"
 )
@@ -35,7 +37,60 @@ func (p *precommit) test(ctx context.Context, t goTree) Outcome {
 		return passed(testStep, fmt.Sprintf("go test -race passes in %d affected packages", len(t.set.Packages)))
 	case bytes.Contains(out.Stderr, []byte(raceNeedsCgo)):
 		return passed(testStep, "go test -race needs cgo and a C compiler this host lacks: install a C compiler or switch test_staged off in golaw.yml; the pipeline runs the tests")
-	default:
+	}
+	failed := failedPackages(out)
+	if slices.ContainsFunc(failed, p.touches) {
 		return refusedBy(testStep, "go test -race fails in the affected packages; fix the tests before the commit", out)
 	}
+	text := "go test -race fails in packages the commit does not touch, which the pipeline judges: " + strings.Join(failed, ", ")
+	if len(failed) == 0 {
+		text = "go test -race fails without naming a package, which the pipeline judges"
+	}
+	return Outcome{Lines: slices.Concat([]string{stepLine(testStep, text)}, toolLines(out))}
+}
+
+// failedPackages are the import paths go test names in a FAIL line, a
+// package that did not build included, each once and in order.
+func failedPackages(out runner.Output) []string {
+	var failed []string
+	for _, line := range toolLines(out) {
+		rest, ok := strings.CutPrefix(line, "FAIL\t")
+		if !ok {
+			continue
+		}
+		pkg, _, _ := strings.Cut(rest, "\t")
+		pkg, _, _ = strings.Cut(pkg, " ")
+		if !slices.Contains(failed, pkg) {
+			failed = append(failed, pkg)
+		}
+	}
+	return failed
+}
+
+// touches reports whether the commit changes a file of the package of an
+// import path, its test data included: a test that fails anywhere else, in
+// an importer of a staged package, failed before the commit as far as the
+// rung can know, because nothing of the commit lies in that package.
+func (p *precommit) touches(pkg string) bool {
+	module := p.modulePath()
+	dir, ok := strings.CutPrefix(pkg, module+"/")
+	if pkg == module {
+		dir, ok = ".", true
+	}
+	return ok && module != "" && slices.ContainsFunc(changedPaths(p.scan.Input.Changes), func(path string) bool { return packageDir(path) == dir })
+}
+
+// modulePath is the module the go.mod of the index names, as the import
+// paths go test prints start with it.
+func (p *precommit) modulePath() string {
+	data, err := p.scan.Index.Read(goMod)
+	if err != nil {
+		return ""
+	}
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if fields := strings.Fields(line); len(fields) >= 2 && fields[0] == "module" {
+			return strings.Trim(fields[1], "\"`")
+		}
+	}
+	return ""
 }

@@ -1,6 +1,7 @@
 package rung_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/policy"
@@ -61,5 +62,30 @@ func TestPreCommitTestsTheStagedPackagesOnlyWhenTheLadderSaysSo(t *testing.T) {
 	docs.Stage(map[string]string{"docs/notes.md": "why\n"})
 	if out := rung.RunPreCommit(t.Context(), deps(t, docs)); out.Code != 0 || !contains(out, "golaw pre-commit: test: skipped, the commit touches no Go package") {
 		t.Errorf("test_staged over a commit of documents = %+v", out)
+	}
+}
+
+// A test that fails in a package the commit does not touch, a reverse
+// dependent of a staged package, failed before the commit as far as the
+// rung can know: it is named and left to the pipeline, while a failure in a
+// package the commit touches refuses the commit.
+//
+//nolint:paralleltest // the fake tools are found through PATH
+func TestPreCommitLeavesToThePipelineTheTestsOfUntouchedPackages(t *testing.T) {
+	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks, "golangci-lint": linter})
+	r := armedRepo(t, armedPolicy+"ladder: {test_staged: true}\n")
+	r.Commit("test: add the importer", map[string]string{
+		"a/a.go":      vetClean,
+		"b/b.go":      "package b\n\nimport \"example.test/m/a\"\n\n// B is the value of a.\nfunc B() string { return a.A() }\n",
+		"b/b_test.go": "package b\n\nimport \"testing\"\n\nfunc TestFails(t *testing.T) { t.Fatal(\"inherited failure reached\") }\n",
+	})
+	inherited := "golaw pre-commit: test: go test -race fails in packages the commit does not touch, which the pipeline judges: example.test/m/b"
+	r.Stage(map[string]string{"a/a.go": strings.Replace(vetClean, "\"x\"", "\"z\"", 1)})
+	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 0 || !contains(out, inherited) || !contains(out, "inherited failure reached") {
+		t.Errorf("a failing test of an untouched importer = %+v", out)
+	}
+	r.Stage(map[string]string{"a/a_test.go": failing})
+	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 1 || !contains(out, "golaw pre-commit: test: go test -race fails in the affected packages; fix the tests before the commit") || !contains(out, "staged failure reached") {
+		t.Errorf("a failing test of a staged package beside it = %+v", out)
 	}
 }
