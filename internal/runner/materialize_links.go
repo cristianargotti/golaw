@@ -26,8 +26,9 @@ const errWindowsLinkPrivilege syscall.Errno = 1314
 // can no longer make the walk grow without end.
 const maxLinkExpansions = 64
 
-// linkWalk is the state of the validation of one link: the links being
-// expanded, which recognize a true cycle, and the expansions left.
+// linkWalk bounds the validation of one link: its active links recognize a
+// true cycle, and its budget stops links that name each other from growing
+// the walk without end.
 type linkWalk struct {
 	active map[string]bool
 	left   int

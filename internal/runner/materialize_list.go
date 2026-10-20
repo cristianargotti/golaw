@@ -196,8 +196,8 @@ func leaveIntents(ctx context.Context, in MaterializeInput, entries []treeEntry)
 	}), nil
 }
 
-// readRecordedPaths keeps, of the NUL separated paths the diff names, those
-// that hold the empty blob.
+// readRecordedPaths marks only the empty-blob paths: only such an entry can
+// be an intent to add, so no other path the diff names needs an answer.
 func readRecordedPaths(reader io.Reader, empty, recorded map[string]bool) error {
 	buffer := bufio.NewReaderSize(reader, maxTreeRecord)
 	for {
