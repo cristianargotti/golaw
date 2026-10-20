@@ -25,6 +25,7 @@ func TestMaterializeSymlinkBoundary(t *testing.T) {
 	for _, tc := range []linkCase{
 		{"red-escaping-link", "../../outside.txt", true},
 		{"near-contained-link", "target.txt", false},
+		{"near-nested-link", "dir/target.txt", false},
 		{"near-dangling-link", "missing.txt", false},
 		{"near-cyclic-link", "link.txt", false},
 	} {
@@ -55,7 +56,7 @@ func TestMaterializeSymlinkBoundary(t *testing.T) {
 func linkRepo(t *testing.T, target string) *gittest.Repo {
 	t.Helper()
 	repo := gittest.New(t)
-	repo.Commit("chore: seed", map[string]string{"target.txt": "safe\n"})
+	repo.Commit("chore: seed", map[string]string{"target.txt": "safe\n", "dir/target.txt": "safe\n"})
 	repo.Write("link-source.txt", target)
 	blob := repo.Git("hash-object", "-w", "--", "link-source.txt")
 	repo.Git("update-index", "--add", "--cacheinfo",
@@ -82,7 +83,7 @@ func requireLinkKept(t *testing.T, tree *runner.Tree, err error, want string) {
 	}
 	link := filepath.Join(tree.Dir, "link.txt")
 	target, err := os.Readlink(link)
-	if err != nil || target != want {
+	if err != nil || target != filepath.FromSlash(want) {
 		t.Fatalf("link target = %q, %v", target, err)
 	}
 	requireLinkResolution(t, link, want)
@@ -97,7 +98,7 @@ func requireLinkKept(t *testing.T, tree *runner.Tree, err error, want string) {
 func requireLinkResolution(t *testing.T, link, target string) {
 	t.Helper()
 	switch target {
-	case "target.txt":
+	case "target.txt", "dir/target.txt":
 		data, err := os.ReadFile(link)
 		if err != nil || string(data) != "safe\n" {
 			t.Fatalf("link content = %q, %v", data, err)

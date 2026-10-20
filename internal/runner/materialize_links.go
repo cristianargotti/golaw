@@ -64,7 +64,9 @@ func exactTreeLink(root *os.Root, name, want string) error {
 	if err != nil {
 		return fmt.Errorf("read created symlink %q: %w", name, err)
 	}
-	if got != want {
+	// os.Root.Symlink turns each slash of a target into a backslash on
+	// Windows, as os.Symlink does, so that form names the same target.
+	if got != filepath.FromSlash(want) {
 		return fmt.Errorf("%w: host transforms the target text of symlink %q", model.ErrCannotJudge, name)
 	}
 	return nil
