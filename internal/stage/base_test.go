@@ -40,10 +40,11 @@ func goFunc(n int) string {
 	return "package a\n\nfunc long() {\n\tx := 0\n" + strings.Repeat("\tx++\n", n-2) + "\t_ = x\n}\n"
 }
 
-// at is one file of a case.
+// at keeps a row of one file on one line.
 func at(name, content string) map[string]string { return map[string]string{name: content} }
 
-// adapter is an adapter package of n non-test Go files.
+// adapter builds an adapter package of n non-test Go files, so a case
+// stands on either side of the limit of goast.adapter-package-size.
 func adapter(n int) map[string]string {
 	files := make(map[string]string, n)
 	for i := 1; i <= n; i++ {
@@ -52,8 +53,8 @@ func adapter(n int) map[string]string {
 	return files
 }
 
-// goRepo is a repository whose base commit holds goPolicy beside the base
-// files, with the staged files in its index.
+// goRepo commits goPolicy beside the base files, so the goast checks judge
+// both sides, and stages the files of the case.
 func goRepo(t *testing.T, base, staged map[string]string) *gittest.Repo {
 	t.Helper()
 	r := gittest.New(t)
@@ -193,7 +194,8 @@ func TestScanHoldsBackWhatAnUnreadBaseCannotDisprove(t *testing.T) {
 	}
 }
 
-// outcomeOf is the result of one check in the run of a staged scan.
+// outcomeOf finds one check in the run, because a finding held back shows
+// in its status and its unread files, never among the findings.
 func outcomeOf(t *testing.T, res stage.Result, check string) model.Result {
 	t.Helper()
 	for i := range res.Run.Outcomes {

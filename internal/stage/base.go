@@ -61,9 +61,9 @@ func heldAt(bases []*baseRun, i int) []model.Finding {
 	return held
 }
 
-// baseRun is the base judged in two runs: over the paths the targets had
-// there, and over the files beside a target whose directory the first run
-// holds no file of.
+// baseRun keeps the two runs of a base apart: the files beside a target
+// only add the findings a directory rule makes there, while the run over
+// the paths the targets had decides what the base cannot disprove.
 type baseRun struct {
 	staged *engine.Run
 	beside *engine.Run       // nil when the first run holds a file of every directory a target sits in
@@ -71,8 +71,9 @@ type baseRun struct {
 	moved  map[string]string
 }
 
-// findings answers what the base holds for outcome i, as the index names
-// its paths.
+// findings joins what both runs of the base hold for outcome i, under the
+// paths of the index, so a directory finding of the files beside a target
+// counts like any other.
 func (b *baseRun) findings(i int) []model.Finding {
 	found := b.staged.Outcomes[i].Result.Findings
 	if b.beside != nil {
@@ -114,8 +115,8 @@ func judgeBase(ctx context.Context, in Input, candidate model.Input, rev string,
 	return held, nil
 }
 
-// judge dispatches the registry over files of the base in ModeStaged,
-// under the policy in force, as the index is judged.
+// judge runs the registry over files of a base in the mode and under the
+// policy the index is judged in, so the findings of both sides compare.
 func judge(ctx context.Context, in Input, base model.Snapshot, targets []model.File) (*engine.Run, error) {
 	run, err := engine.Dispatch(ctx, in.Registry, model.Input{Mode: model.ModeStaged, Policy: in.Loaded.Policy, Snapshot: base, Targets: targets})
 	if err != nil {
@@ -156,7 +157,10 @@ func introduced(candidate, held []model.Finding) []model.Finding {
 	return kept
 }
 
-// keyed copies findings with their staged key in place of the fingerprint.
+// keyed hands report.Introduced, which compares fingerprints, copies that
+// carry the staged key instead, so a finding whose count alone changed
+// matches the one the base held while the run keeps the fingerprints the
+// engine gave.
 func keyed(findings []model.Finding) []model.Finding {
 	out := slices.Clone(findings)
 	for i := range out {
@@ -182,7 +186,9 @@ func baseOf(in Input) string {
 	return in.Repo.Head
 }
 
-// renames maps the old path of every renamed file to its new path.
+// renames maps the old path of every renamed file to its new path, so a
+// moved file is read at its old path at the base and its findings there
+// meet the ones the index reports at the new path.
 func renames(changes []model.Change) map[string]string {
 	moved := map[string]string{}
 	for _, c := range changes {
@@ -227,8 +233,8 @@ func rekeyed(findings []model.Finding, moved map[string]string) []model.Finding 
 	return out
 }
 
-// renamedTo names a path of the base as the index names it: the new path
-// of a renamed file.
+// renamedTo names a path of the base by its path in the index, so what a
+// rung names after a rename is a file the developer has.
 func renamedTo(p string, moved map[string]string) string {
 	if renamed, ok := moved[p]; ok {
 		return renamed
