@@ -43,12 +43,18 @@ func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *e
 }
 
 // introduced is report.Introduced under stagedKey: the index findings the
-// base does not hold, each kept finding answered with its own fingerprint,
-// which every finding carries as model.Fingerprint makes it.
+// base does not hold, each kept finding answered with the fingerprint the
+// engine gave it, which an exception that names its record in the message
+// afterwards does not change. report.Introduced keeps the candidate order,
+// so the kept findings are found again in order among the keyed ones.
 func introduced(candidate, base []model.Finding) []model.Finding {
-	kept := report.Introduced(keyed(candidate), keyed(base))
-	for i := range kept {
-		kept[i].Fingerprint = model.Fingerprint(kept[i])
+	keys := keyed(candidate)
+	kept := report.Introduced(keys, keyed(base))
+	for i, j := 0, 0; i < len(keys) && j < len(kept); i++ {
+		if keys[i] == kept[j] {
+			kept[j].Fingerprint = candidate[i].Fingerprint
+			j++
+		}
 	}
 	return kept
 }

@@ -269,3 +269,27 @@ func TestScanHoldsBackWhatAnUnreadBaseCannotDisprove(t *testing.T) {
 		})
 	}
 }
+
+// An exception makes a finding a note and names its record in the message
+// after the engine fingerprinted it, so a kept finding keeps the
+// fingerprint the engine gave it, the one golaw scan reports.
+func TestScanKeepsTheFingerprintTheEngineGaveAFinding(t *testing.T) {
+	t.Parallel()
+	r := gittest.New(t)
+	excepted := "golaw: 1\nkit: {version: 0.1.0}\nexceptions: [{check: text.dashes, path: b.md, record: r.md, until: 2026-12-31}]\n"
+	r.Commit("docs: base", map[string]string{"golaw.yml": excepted, "a.md": "a " + dash + " a\n"})
+	r.Stage(map[string]string{"a.md": "a " + dash + " a\nmore\n", "b.md": "b " + dash + " b\n", "c.md": "c " + dash + " c\n"})
+	in := input(t, r, source.IndexOptions{})
+	res, err := stage.Scan(t.Context(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	direct, err := engine.Dispatch(t.Context(), in.Registry, res.Input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := engine.Decide(direct).Findings
+	if len(all) != 3 || all[1].Severity != model.SeverityNote || !slices.Equal(res.Decision.Findings, all[1:]) {
+		t.Errorf("findings %+v, want the engine's %+v after the one a.md carries along", res.Decision.Findings, all)
+	}
+}
