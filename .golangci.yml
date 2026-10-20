@@ -71,6 +71,40 @@ linters:
             - github.com/cristianargotti/golaw/internal/model
             - github.com/cristianargotti/golaw/internal/engine
             - gopkg.in/yaml.v3
+        # The rungs: runner, coverage and vuln speak model alone, the staged scan, a rung
+        # and setup compose the layers below them, and the two test helpers use the stdlib.
+        runner:
+          list-mode: strict
+          files: ["!$test", "**/internal/runner/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
+        coverage:
+          list-mode: strict
+          files: ["!$test", "**/internal/coverage/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
+        vuln:
+          list-mode: strict
+          files: ["!$test", "**/internal/vuln/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
+        stage:
+          list-mode: strict
+          files: ["!$test", "**/internal/stage/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/engine, github.com/cristianargotti/golaw/internal/source, github.com/cristianargotti/golaw/internal/policy, github.com/cristianargotti/golaw/internal/report]
+        rung:
+          list-mode: strict
+          files: ["!$test", "**/internal/rung/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/engine, github.com/cristianargotti/golaw/internal/policy, github.com/cristianargotti/golaw/internal/source, github.com/cristianargotti/golaw/internal/stage, github.com/cristianargotti/golaw/internal/runner, github.com/cristianargotti/golaw/internal/report, github.com/cristianargotti/golaw/internal/vuln]
+        setup:
+          list-mode: strict
+          files: ["!$test", "**/internal/setup/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/runner, github.com/cristianargotti/golaw/internal/install]
+        gittest:
+          list-mode: strict
+          files: ["!$test", "**/internal/gittest/**"]
+          allow: [$gostd]
+        runnertest:
+          list-mode: strict
+          files: ["!$test", "**/internal/runnertest/**"]
+          allow: [$gostd]
         cmd:
           list-mode: strict
           files: ["**/cmd/**"]
@@ -229,6 +263,11 @@ linters:
           - dupl
           - gochecknoglobals
           - musttag
+      # Section 3: a test file keeps the file limit and loses the function
+      # limit, which revive's function-length holds beside funlen.
+      - path: _test\.go
+        text: function-length
+        linters: [revive]
       # The model declares the interfaces every other package implements or
       # consumes; by design nothing inside the model uses them.
       - path: internal/model/

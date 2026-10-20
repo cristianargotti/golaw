@@ -3,7 +3,7 @@
 # feature, no awk, no tar. Remote CI runs make ci; nothing here is a gate on
 # a developer's machine.
 
-.PHONY: mod deps-age fmt lint test coverage build scan secrets ci
+.PHONY: mod deps-age fmt lint lint-pkg test coverage build scan secrets ci
 
 mod:
 	go mod verify
@@ -16,6 +16,10 @@ fmt:
 
 lint:
 	golangci-lint run ./...
+
+# One package, for a change that touched only it: make lint-pkg PKG=./internal/model/...
+lint-pkg:
+	golangci-lint run $(PKG)
 
 test:
 	go test -race -coverprofile=coverage.out -covermode=atomic ./...

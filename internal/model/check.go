@@ -163,14 +163,15 @@ type Check interface {
 }
 
 // Input is what the engine hands to every applicable check. The caller fills
-// Mode, Policy, Snapshot, Changes, Targets and Event; the engine fills
-// Options per check. A check never mutates it.
+// Mode, Policy, Snapshot, Changes, Targets, Event and Commit; the engine
+// fills Options per check. A check never mutates it.
 type Input struct {
 	Mode     Mode
 	Policy   *EffectivePolicy // immutable, carries its digest; never nil
 	Snapshot Snapshot         // frozen universe; a hook overlay is read through it; never nil
-	Changes  []Change         // the staged changes in staged mode, empty otherwise
+	Changes  []Change         // the staged changes in staged and commit mode, empty otherwise
 	Targets  []File           // the files a file or commit scope check measures
 	Event    *Event           // the normalized event in hook mode, nil otherwise
+	Commit   *Commit          // the commit in commit mode, nil otherwise
 	Options  Options          // the check's resolved options
 }

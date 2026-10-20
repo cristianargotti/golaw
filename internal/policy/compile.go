@@ -17,8 +17,9 @@ const (
 
 // Compile builds the effective policy of a file over the core defaults:
 // the floors as written, the terms sorted, the exceptions that have not
-// expired by now and the options per check id, with the digest of the
-// file. The enrollment is left unenrolled; Load fills it from the record.
+// expired by now, the options per check id, the ladder and every waiver,
+// with the digest of the file. The enrollment is left unenrolled; Load
+// fills it from the record.
 func Compile(f File, now time.Time, schemas Schemas) (*model.EffectivePolicy, error) {
 	if err := f.Validate(schemas); err != nil {
 		return nil, err
@@ -38,6 +39,8 @@ func Compile(f File, now time.Time, schemas Schemas) (*model.EffectivePolicy, er
 	p.Shell = f.Checks.Shell.policy()
 	p.Exceptions = f.exceptions(now)
 	p.Options = f.Checks.options(schemas)
+	p.Ladder = f.Ladder.ladder()
+	p.Waivers = f.waivers()
 	return &p, nil
 }
 

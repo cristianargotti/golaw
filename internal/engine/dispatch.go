@@ -105,6 +105,8 @@ func validate(reg *Registry, in model.Input) error {
 		return fmt.Errorf("%w: nil policy", model.ErrUsage)
 	case in.Snapshot == nil:
 		return fmt.Errorf("%w: nil snapshot", model.ErrUsage)
+	case in.Commit != nil && in.Mode != model.ModeCommit:
+		return fmt.Errorf("%w: a commit in %s mode", model.ErrUsage, in.Mode)
 	case in.Mode == model.ModeHook:
 		if err := in.Event.Validate(); err != nil {
 			return fmt.Errorf("dispatch: %w", err)
@@ -112,6 +114,8 @@ func validate(reg *Registry, in model.Input) error {
 		return nil
 	case in.Event != nil:
 		return fmt.Errorf("%w: an event in %s mode", model.ErrUsage, in.Mode)
+	case in.Mode == model.ModeCommit:
+		return validateCommit(in.Commit)
 	default:
 		return nil
 	}
@@ -174,4 +178,16 @@ func normalize(spec model.Spec, policy *model.EffectivePolicy, res model.Result)
 	}
 	model.SortFindings(res.Findings)
 	return res
+}
+
+// validateCommit refuses a commit mode without its commit or with one git
+// never makes, the way an event is validated in hook mode.
+func validateCommit(commit *model.Commit) error {
+	if commit == nil {
+		return fmt.Errorf("%w: commit mode without a commit", model.ErrUsage)
+	}
+	if err := commit.Validate(); err != nil {
+		return fmt.Errorf("dispatch: %w", err)
+	}
+	return nil
 }
