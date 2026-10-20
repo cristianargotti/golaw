@@ -6,6 +6,7 @@
     "agents/claude/skills/golaw/SKILL.md",
     "agents/manifest.json",
     "agents/marketplace.json",
+    "templates/lefthook.yml.tmpl",
     "templates/manifest.yml"
   ]
 }

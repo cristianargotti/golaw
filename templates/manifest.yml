@@ -1,1 +1,5 @@
-templates: []
+templates:
+  - source: templates/lefthook.yml.tmpl
+    destination: lefthook.yml
+    ownership: kit
+    when: []
