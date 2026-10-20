@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // recordFields are the fields of a record of git ls-files --stage, and of
@@ -33,18 +35,21 @@ type IndexOptions struct {
 type Index struct {
 	*frozen
 
-	identity string
-	unmerged []string
+	identity  string
+	unmerged  []string
+	changes   []model.Change
+	mergeHead string
 }
 
 // NewIndex lists the index universe of repo with git ls-files -z --stage,
-// freezes the object id of every entry before any blob is read, and reads
+// freezes the object id of every entry before any blob is read, takes the
+// changes against the base with git diff-index --cached -z -M, and reads
 // no blob yet. Every git command runs in repo.Root with the environment of
 // the process plus GIT_INDEX_FILE when IndexFile is set, so a linked
 // worktree and an alternate index are read as git reads them. An
 // intent-to-add entry is not part of the universe (the next commit does
 // not record it), and a path a merge left at stages 1 to 3 is unmerged,
-// outside the universe.
+// outside the universe and the changes.
 func NewIndex(ctx context.Context, repo Repo, opts IndexOptions) (*Index, error) {
 	var env []string
 	if opts.IndexFile != "" {
@@ -64,7 +69,17 @@ func NewIndex(ctx context.Context, repo Repo, opts IndexOptions) (*Index, error)
 	}
 	entries = slices.DeleteFunc(entries, func(e treeEntry) bool { return intents[e.path] })
 	f := newFrozen(ctx, repo.Root, env, entries)
-	return &Index{frozen: f, identity: "index:" + ledger(f.entries), unmerged: unmerged}, nil
+	changes, err := indexChanges(ctx, repo, env, opts.Base, f.entries, intents)
+	if err != nil {
+		return nil, err
+	}
+	merge, err := mergeHead(repo.GitDir)
+	if err != nil {
+		return nil, err
+	}
+	first, _, _ := strings.Cut(merge, "\n")
+	x := &Index{frozen: f, identity: "index:" + ledger(f.entries), unmerged: unmerged, changes: changes, mergeHead: first}
+	return x, nil
 }
 
 // Root is the real path of the worktree root.
