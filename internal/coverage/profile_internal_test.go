@@ -71,12 +71,29 @@ func TestProfileRejectsOnlyMalformedNumericSpans(t *testing.T) {
 	}
 }
 
-func TestProfileKeepsColonInTheSourceName(t *testing.T) {
+func TestProfileKeepsTheSourceName(t *testing.T) {
 	t.Parallel()
-	name := "C:/source/file.go"
-	files, err := parseProfile(strings.NewReader(name + ":1.1,2.2 1 1\n"))
-	if err != nil || files[name] == nil || len(files) != 1 {
-		t.Fatalf("source identity=%v error=%v", files, err)
+	for _, name := range []string{
+		"C:/source/file.go",
+		"example.test/sp/p/my file.go",
+		"example.test/sp/a dir/two  spaces.go",
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			files, err := parseProfile(strings.NewReader("mode: set\n" + name + ":3.16,3.26 1 1\n"))
+			if err != nil || files[name] == nil || len(files) != 1 {
+				t.Fatalf("source identity=%v error=%v", files, err)
+			}
+			total, err := files[name].totals()
+			if err != nil || total != (tally{stmts: 1, covered: 1}) {
+				t.Fatalf("total=%+v error=%v", total, err)
+			}
+		})
+	}
+	for _, line := range []string{"file.go:1.1,2.2 1", "file.go:1.1,2.2 1 1 1", "my file.go 1 1"} {
+		if _, err := parseProfile(strings.NewReader(line + "\n")); !errors.Is(err, ErrProfile) {
+			t.Fatalf("malformed block %q accepted: %v", line, err)
+		}
 	}
 }
 

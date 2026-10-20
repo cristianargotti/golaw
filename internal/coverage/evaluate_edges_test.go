@@ -115,3 +115,16 @@ func TestThresholdUsesUnroundedPercent(t *testing.T) {
 		t.Fatalf("report = %+v, error = %v", report, err)
 	}
 }
+
+func TestEvaluateMeasuresASourceNameWithSpaces(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	writeCoverageFile(t, root, "go.mod", "module "+moduleName+"\n")
+	writeCoverageFile(t, root, "p/my file.go", "package sample\nfunc Value() int { return 1 }\n")
+	profile := "mode: set\n" + moduleName + "/p/my file.go:2.1,2.36 20 1\n"
+	report, err := coverage.Evaluate(strings.NewReader(profile), root, coverage.DefaultFloors())
+	want := []coverage.Measure{{Name: "p/my file.go", Statements: 20, Covered: 20}}
+	if err != nil || !reflect.DeepEqual(report.Files, want) || len(report.Failures) != 0 {
+		t.Fatalf("report = %+v, error = %v", report, err)
+	}
+}

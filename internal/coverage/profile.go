@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -69,23 +70,39 @@ func parseProfile(r io.Reader) (map[string]*fileCoverage, error) {
 }
 
 func addBlock(files map[string]*fileCoverage, text string) error {
-	fields := strings.Fields(text)
-	if len(fields) != blockFields {
-		return fmt.Errorf("%w: expected %d fields, got %d", ErrProfile, blockFields, len(fields))
-	}
-	name, span, err := profileLocation(fields[0])
+	location, counts, err := splitBlock(text)
 	if err != nil {
 		return err
 	}
-	stmts, err := profileNumber(fields[1], "statements")
+	name, span, err := profileLocation(location)
 	if err != nil {
 		return err
 	}
-	count, err := profileNumber(fields[2], "count")
+	stmts, err := profileNumber(counts[0], "statements")
+	if err != nil {
+		return err
+	}
+	count, err := profileNumber(counts[1], "count")
 	if err != nil {
 		return err
 	}
 	return mergeBlock(files, name, span, stmts, count)
+}
+
+// splitBlock reads the two counts from the end of the line and keeps the
+// text before them as the location: go test writes a source name as it is,
+// so a name may hold a space.
+func splitBlock(text string) (string, []string, error) {
+	fields := strings.Fields(text)
+	if len(fields) < blockFields {
+		return "", nil, fmt.Errorf("%w: expected at least %d fields, got %d", ErrProfile, blockFields, len(fields))
+	}
+	counts := fields[len(fields)-blockFields+1:]
+	location := strings.TrimSpace(text)
+	for _, field := range slices.Backward(counts) {
+		location = strings.TrimSpace(strings.TrimSuffix(location, field))
+	}
+	return location, counts, nil
 }
 
 func mergeBlock(files map[string]*fileCoverage, name, span string, stmts, count int) error {
