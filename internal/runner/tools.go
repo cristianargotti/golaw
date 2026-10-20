@@ -42,10 +42,23 @@ func LookupTool(name string) (Tool, bool) {
 	return tools[i], true
 }
 
+// versionVariables names, per tool, the variable its release build sets
+// through the linker: a go install build leaves it at its default, which
+// for gitleaks prints "version is set by build process" and never names the
+// pin Verify reads, so InstallArgs sets it the way the release does.
+func versionVariables() map[string]string {
+	return map[string]string{"gitleaks": "github.com/zricethezav/gitleaks/v8/version.Version"}
+}
+
 // InstallArgs are the arguments of the go command that installs the pinned
-// tool: install, then Module@vVersion.
+// tool: install, the linker flag that sets the version of a tool whose
+// release build sets it that way, then Module@vVersion.
 func (t Tool) InstallArgs() []string {
-	return []string{"install", t.Module + "@v" + t.Version}
+	args := []string{"install"}
+	if variable, ok := versionVariables()[t.Name]; ok {
+		args = append(args, "-ldflags=-X="+variable+"=v"+t.Version)
+	}
+	return append(args, t.Module+"@v"+t.Version)
 }
 
 // Matches reports whether a probe output names the pinned version as a

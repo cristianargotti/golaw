@@ -35,6 +35,11 @@ func TestToolchainPinsEveryToolOfTheRungs(t *testing.T) {
 	if args := vuln.InstallArgs(); !slices.Equal(args, []string{"install", "golang.org/x/vuln/cmd/govulncheck@v1.7.0"}) {
 		t.Errorf("InstallArgs() = %v", args)
 	}
+	leaks, _ := runner.LookupTool("gitleaks")
+	linked := []string{"install", "-ldflags=-X=github.com/zricethezav/gitleaks/v8/version.Version=v8.30.1", "github.com/zricethezav/gitleaks/v8@v8.30.1"}
+	if args := leaks.InstallArgs(); !slices.Equal(args, linked) {
+		t.Errorf("gitleaks InstallArgs() = %v, want the linker flag that sets its version", args)
+	}
 }
 
 func TestMatchesNamesThePinAsAWholeToken(t *testing.T) {
