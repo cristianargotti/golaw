@@ -6,7 +6,6 @@
 package runnertest
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -155,7 +154,10 @@ func record(base string, args []string) error {
 	return nil
 }
 
-// readCalls reads the call record of the fake at base.
+// readCalls decodes the record as a stream of JSON values rather than as
+// lines, so a call of any length, a tool handed many staged paths among
+// them, stays one call, and a record it cannot decode fails the test
+// instead of hiding the calls after it.
 func readCalls(tb testing.TB, base string) [][]string {
 	tb.Helper()
 	data, err := os.ReadFile(base + callsSuffix) //nolint:gosec // the record of a fake the test installed
@@ -166,15 +168,18 @@ func readCalls(tb testing.TB, base string) [][]string {
 		tb.Fatalf("read the calls of %s: %v", base, err)
 	}
 	var calls [][]string
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	for scanner.Scan() {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	for {
 		var args []string
-		if err := json.Unmarshal(scanner.Bytes(), &args); err != nil {
+		switch err := decoder.Decode(&args); {
+		case errors.Is(err, io.EOF):
+			return calls
+		case err != nil:
 			tb.Fatalf("decode a call of %s: %v", base, err)
+			return calls
 		}
 		calls = append(calls, args)
 	}
-	return calls
 }
 
 // copyExecutable copies the running test binary to path, executable.

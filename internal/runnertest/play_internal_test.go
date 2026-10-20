@@ -37,6 +37,23 @@ func TestPlayAnswersTheProbeAndEveryOtherCall(t *testing.T) {
 	}
 }
 
+func TestCallsKeepACallOfAnyLength(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	base := filepath.Join(dir, "gitleaks")
+	writeBehavior(t, base, "{}")
+	want := [][]string{{"git", strings.Repeat("a", 70000)}, {"run", "./..."}}
+	var stdout, stderr bytes.Buffer
+	for _, args := range want {
+		if code, fake := play(base, args, &stdout, &stderr); !fake || code != 0 {
+			t.Fatalf("play = %d, %v, %q", code, fake, stderr.String())
+		}
+	}
+	if calls := Calls(t, dir, "gitleaks"); !slices.EqualFunc(calls, want, slices.Equal) {
+		t.Errorf("read %d calls, want the call over 64 KiB and the one after it", len(calls))
+	}
+}
+
 func TestPlayIsNoFakeWithoutABehavior(t *testing.T) {
 	t.Parallel()
 	var stdout, stderr bytes.Buffer
