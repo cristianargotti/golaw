@@ -60,16 +60,24 @@ func (a *app) planInit(ctx context.Context, root string, current, data []byte) (
 			return initPlan{}, err
 		}
 	}
-	compiled, err := a.compile(data, a.now())
+	return a.compileInitPlan(root, initPlan{
+		current: current, data: data, templates: templates, module: module, notice: notice,
+	})
+}
+
+func (a *app) compileInitPlan(root string, plan initPlan) (initPlan, error) {
+	compiled, err := a.compile(plan.data, a.now())
 	if err != nil {
 		return initPlan{}, err
 	}
-	if err := a.bind().checkInitEnrollment(root, data); err != nil {
+	if err := a.bind().checkInitEnrollment(root, plan.data); err != nil {
 		return initPlan{}, err
 	}
-	return initPlan{
-		current: current, data: data, templates: templates, module: module, policy: compiled, notice: notice,
-	}, unchangedInitModule(root, module)
+	if err := unchangedInitPolicy(root, plan.current); err != nil {
+		return initPlan{}, err
+	}
+	plan.policy = compiled
+	return plan, unchangedInitModule(root, plan.module)
 }
 
 func initManagedPolicy(data []byte, plan bootstrap.TemplatePlan) ([]byte, error) {

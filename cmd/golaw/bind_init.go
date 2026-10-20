@@ -17,26 +17,33 @@ func (b binding) initTemplates(ctx context.Context, root string, data []byte) (b
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", initOperation("decode template settings", err)
 	}
+	inputs, notice, err := b.initTemplateContext(ctx, root, config)
+	if err != nil || notice != "" {
+		return bootstrap.TemplatePlan{}, notice, err
+	}
+	plan, err := renderInitTemplates(root, inputs)
+	return plan, "", err
+}
+
+func (b binding) initTemplateContext(ctx context.Context, root string, config policy.File) (assets.Context, string, error) {
 	layout, err := initLayout(root, config)
 	if err != nil {
-		return bootstrap.TemplatePlan{}, "", err
+		return assets.Context{}, "", err
 	}
 	values := initValues(config, layout)
+	inputs := assets.Context{Values: values, CIBackend: "none"}
 	if !layout.Go {
-		return bootstrap.TemplatePlan{}, moduleInstruction(values.Language, false), nil
+		return inputs, moduleInstruction(values.Language, false), nil
 	}
 	module, err := bootstrap.ReadModule(ctx, root, b.environ())
 	if err != nil {
-		return bootstrap.TemplatePlan{}, "", initOperation("read the module", err)
+		return assets.Context{}, "", initOperation("read the module", err)
 	}
 	if version.Compare("go"+module.GoVersion, "go1.24") < 0 {
-		return bootstrap.TemplatePlan{}, moduleInstruction(values.Language, true), nil
+		return inputs, moduleInstruction(values.Language, true), nil
 	}
-	values.ModulePath, values.GoVersion = module.Path, module.GoVersion
-	plan, err := renderInitTemplates(root, assets.Context{
-		Values: values, DirectRequires: module.Direct, CIBackend: "none",
-	})
-	return plan, "", err
+	inputs.ModulePath, inputs.GoVersion, inputs.DirectRequires = module.Path, module.GoVersion, module.Direct
+	return inputs, "", nil
 }
 
 func renderInitTemplates(root string, inputs assets.Context) (bootstrap.TemplatePlan, error) {

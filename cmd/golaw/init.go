@@ -16,6 +16,7 @@ import (
 
 type initOptions struct {
 	apply        bool
+	update       bool
 	language     string
 	capabilities []string
 }
@@ -33,6 +34,7 @@ func (a *app) initCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&opts.apply, "apply", false, "write the policy file and the enrollment record")
+	cmd.Flags().BoolVar(&opts.update, "update", false, "re-render the managed files golaw.yml records and move the kit pin to this binary")
 	cmd.Flags().StringVar(&opts.language, "language", model.DefaultLanguage, "language of the human channel")
 	cmd.Flags().StringSliceVar(&opts.capabilities, "capabilities", nil,
 		"capabilities to enable: "+strings.Join(model.Capabilities(), ", "))
@@ -40,6 +42,9 @@ func (a *app) initCommand() *cobra.Command {
 }
 
 func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts initOptions) error {
+	if opts.update {
+		return a.initializeUpdate(ctx, out, path, opts.apply)
+	}
 	root, current, data, err := a.prepareInitSnapshot(path, opts)
 	if err != nil {
 		return err
@@ -49,10 +54,14 @@ func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts i
 		return initFailed(err)
 	}
 	plan.status = a.unchangedPolicyStatus(root, opts, plan)
+	return a.finishInit(ctx, out, root, plan, opts.apply)
+}
+
+func (a *app) finishInit(ctx context.Context, out io.Writer, root string, plan initPlan, apply bool) error {
 	if err := printInitPolicy(out, plan); err != nil {
 		return initFailed(err)
 	}
-	if !opts.apply {
+	if !apply {
 		return initFailed(previewInit(out, plan))
 	}
 	if err := applyInit(root, plan, out); err != nil {
