@@ -77,9 +77,11 @@ func readUnmerged(snapshot model.Snapshot, unmerged []string) (map[string][]byte
 	contents := map[string][]byte{}
 	var read []string
 	for _, path := range unmerged {
-		if content, err := snapshot.Read(path); err == nil {
-			contents[path], read = content, append(read, path)
+		content, err := snapshot.Read(path)
+		if err != nil {
+			continue
 		}
+		contents[path], read = content, append(read, path)
 	}
 	return contents, read
 }
