@@ -87,6 +87,8 @@ type EffectivePolicy struct {
 	Enrollment   Enrollment         // what the enrollment record says
 	Exceptions   []Exception        // committed, unexpired exceptions
 	Options      map[string]Options // resolved options per check id
+	Ladder       Ladder             // the optional local rungs this checkout arms; never a floor
+	Waivers      []Waiver           // every committed vulnerability waiver, sorted by id; the push rung judges their expiry
 }
 
 // CoreDefaults is the policy every repository gets before its golaw.yml
@@ -95,6 +97,7 @@ type EffectivePolicy struct {
 func CoreDefaults() EffectivePolicy {
 	return EffectivePolicy{
 		Language: DefaultLanguage,
+		Ladder:   DefaultLadder(),
 		Sizes:    SizeFloors{FileLines: DefaultFileLines, FunctionLines: DefaultFunctionLines},
 		Enrollment: Enrollment{
 			State: EnrollmentNone,
