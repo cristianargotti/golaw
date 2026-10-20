@@ -20,6 +20,7 @@ type initPlan struct {
 	notice        string
 	status        string
 	update        bool
+	refusal       error
 }
 
 func initialPolicy(root, pin string, opts initOptions) ([]byte, bool, error) {
@@ -46,7 +47,7 @@ func renderInitialPolicy(root, pin string, opts initOptions) ([]byte, error) {
 	return data, initOperation("render initial policy", err)
 }
 
-func (a *app) planInit(ctx context.Context, root string, current, data []byte) (initPlan, error) {
+func (a *app) planInit(ctx context.Context, root string, current, data []byte, apply bool) (initPlan, error) {
 	module, err := readInitModule(root)
 	if err != nil {
 		return initPlan{}, err
@@ -63,10 +64,10 @@ func (a *app) planInit(ctx context.Context, root string, current, data []byte) (
 	}
 	return a.compileInitPlan(root, initPlan{
 		current: current, data: data, templates: templates, module: module, notice: notice,
-	})
+	}, apply)
 }
 
-func (a *app) compileInitPlan(root string, plan initPlan) (initPlan, error) {
+func (a *app) compileInitPlan(root string, plan initPlan, apply bool) (initPlan, error) {
 	if err := checkInitOwnership(plan); err != nil {
 		return initPlan{}, err
 	}
@@ -74,13 +75,15 @@ func (a *app) compileInitPlan(root string, plan initPlan) (initPlan, error) {
 	if err != nil {
 		return initPlan{}, err
 	}
-	if err := a.bind().checkInitEnrollment(root, plan.data); err != nil {
-		return initPlan{}, err
+	// A preview mutates nothing, so it prints its diff and names the refusal.
+	refusal := a.bind().checkInitEnrollment(root, plan.data)
+	if refusal != nil && apply {
+		return initPlan{}, refusal
 	}
 	if err := unchangedInitPolicy(root, plan.current); err != nil {
 		return initPlan{}, err
 	}
-	plan.policy = compiled
+	plan.policy, plan.refusal = compiled, refusal
 	return plan, unchangedInitModule(root, plan.module)
 }
 
@@ -113,7 +116,11 @@ func previewInit(out io.Writer, plan initPlan) error {
 	if err := bootstrap.WriteTemplateDiff(out, plan.templates); err != nil {
 		return initOperation("preview templates", err)
 	}
-	return writeLines(out, []string{"init: nothing written, run again with --apply"})
+	line := "init: nothing written, run again with --apply"
+	if plan.refusal != nil {
+		line = "init: nothing written; --apply would refuse: " + plan.refusal.Error()
+	}
+	return writeLines(out, []string{line})
 }
 
 func applyInit(root string, plan initPlan, out io.Writer) error {

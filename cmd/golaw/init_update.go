@@ -14,7 +14,7 @@ func (a *app) initializeUpdate(ctx context.Context, out io.Writer, path string, 
 	if err != nil {
 		return initFailed(err)
 	}
-	plan, err := a.planUpdate(ctx, root, current)
+	plan, err := a.planUpdate(ctx, root, current, apply)
 	if err != nil {
 		return initFailed(err)
 	}
@@ -36,7 +36,7 @@ func currentUpdatePolicy(path string) (string, []byte, error) {
 	return root, current, nil
 }
 
-func (a *app) planUpdate(ctx context.Context, root string, current []byte) (initPlan, error) {
+func (a *app) planUpdate(ctx context.Context, root string, current []byte, apply bool) (initPlan, error) {
 	module, err := readInitModule(root)
 	if err != nil {
 		return initPlan{}, err
@@ -52,5 +52,5 @@ func (a *app) planUpdate(ctx context.Context, root string, current []byte) (init
 	}
 	return a.compileInitPlan(root, initPlan{
 		current: current, data: data, templates: templates, module: module, notice: notice, update: true,
-	})
+	}, apply)
 }

@@ -49,7 +49,7 @@ func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts i
 	if err != nil {
 		return err
 	}
-	plan, err := a.planInit(ctx, root, current, data)
+	plan, err := a.planInit(ctx, root, current, data, opts.apply)
 	if err != nil {
 		return initFailed(err)
 	}

@@ -20,6 +20,19 @@ import (
 
 func TestInitRefusesReenrollmentBeforeWritingTemplates(t *testing.T) {
 	t.Parallel()
+	for _, apply := range []bool{true, false} {
+		t.Run(map[bool]string{true: "apply", false: "preview"}[apply], func(t *testing.T) {
+			t.Parallel()
+			requireReenrollmentRefused(t, apply)
+		})
+	}
+}
+
+// requireReenrollmentRefused requires init --apply to refuse a weakening
+// before any output or write, and the preview to print the diff and name
+// the refusal --apply gives, as M1 printed its diff.
+func requireReenrollmentRefused(t *testing.T, apply bool) {
+	t.Helper()
 	repo := gittest.New(t)
 	ta := initBindApp(t)
 	if code := ta.run(t.Context(), []string{"init", "--apply", repo.Root}); code != exitClean {
@@ -51,16 +64,38 @@ func TestInitRefusesReenrollmentBeforeWritingTemplates(t *testing.T) {
 	}
 	repo.Write("go.mod", "module example.test/service\n\ngo 1.27\n")
 	ta.stdout.Reset()
-	if code := ta.run(t.Context(), []string{"init", "--apply", repo.Root}); code != exitFailure {
-		t.Fatalf("weakening exit = %d", code)
-	}
-	if !strings.Contains(ta.stderr.String(), "weakens") || ta.stdout.Len() != 0 {
-		t.Fatalf("refusal: %q, %q", ta.stdout.String(), ta.stderr.String())
+	if apply {
+		requireWeakeningRefused(t, ta, repo.Root)
+	} else {
+		requireWeakeningPreviewed(t, ta, repo.Root)
 	}
 	requireNoInitTemplates(t, repo.Root)
 	after, err := bootstrap.Current(repo.Root)
 	if err != nil || !bytes.Equal(after, data) {
 		t.Fatalf("policy changed: %q, %v", after, err)
+	}
+}
+
+func requireWeakeningRefused(t *testing.T, ta testApp, root string) {
+	t.Helper()
+	if code := ta.run(t.Context(), []string{"init", "--apply", root}); code != exitFailure {
+		t.Fatalf("weakening exit = %d", code)
+	}
+	if !strings.Contains(ta.stderr.String(), "weakens") || ta.stdout.Len() != 0 {
+		t.Fatalf("refusal: %q, %q", ta.stdout.String(), ta.stderr.String())
+	}
+}
+
+func requireWeakeningPreviewed(t *testing.T, ta testApp, root string) {
+	t.Helper()
+	if code := ta.run(t.Context(), []string{"init", root}); code != exitClean {
+		t.Fatalf("preview of a weakening exit = %d: %s", code, ta.stderr.String())
+	}
+	out := strings.TrimSuffix(ta.stdout.String(), "\n")
+	last := out[strings.LastIndex(out, "\n")+1:]
+	if !strings.Contains(out, "+++ lefthook.yml\n") || !strings.Contains(last, "weakens") ||
+		!strings.HasPrefix(last, "init: nothing written; --apply would refuse: ") {
+		t.Fatalf("preview of a weakening = %q", ta.stdout.String())
 	}
 }
 
