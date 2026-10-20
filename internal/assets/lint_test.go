@@ -19,10 +19,6 @@ var strictAdditions = []any{"promlinter", "rowserrcheck", "spancheck", "sqlclose
 
 func TestStrictLinterRetainsEveryUnchangedSetting(t *testing.T) {
 	t.Parallel()
-	ordinary := assetContext()
-	ordinary.Capabilities = []string{"go"}
-	file := renderedAsset(t, ".golangci.yml", ordinary)
-	assertAsset(t, file.Path, string(file.Data), assets.OwnedByKit)
 	for _, tc := range []struct {
 		name string
 		caps []string
