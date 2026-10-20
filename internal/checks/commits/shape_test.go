@@ -87,6 +87,22 @@ func shaped(t *testing.T, snap model.Snapshot, changes ...model.Change) model.Re
 	return res
 }
 
+// wantShape requires no finding at all when want is empty, so a near case
+// that yields two false findings fails too, and otherwise exactly one
+// commit-shape finding whose text holds want.
+func wantShape(t *testing.T, name string, res model.Result, want string) {
+	t.Helper()
+	if want == "" {
+		if len(res.Findings) != 0 {
+			t.Errorf("%s: findings %+v, want none", name, res.Findings)
+		}
+		return
+	}
+	if len(res.Findings) != 1 || res.Findings[0].Code != "commit-shape" || !strings.Contains(res.Findings[0].Message, want) {
+		t.Errorf("%s: findings %+v, want one commit-shape finding with %q", name, res.Findings, want)
+	}
+}
+
 func TestShapeCountsTheFilesOfACommitThatIsNotFeat(t *testing.T) {
 	t.Parallel()
 	cases := map[string]struct {
@@ -108,13 +124,7 @@ func TestShapeCountsTheFilesOfACommitThatIsNotFeat(t *testing.T) {
 		if err != nil || res.Status.Kind != model.StatusMeasured {
 			t.Fatalf("%s: %+v, %v", name, res, err)
 		}
-		got := ""
-		if len(res.Findings) == 1 && res.Findings[0].Code == "commit-shape" {
-			got = res.Findings[0].Message
-		}
-		if (c.want == "") != (got == "") || !strings.Contains(got, c.want) {
-			t.Errorf("%s: finding %q, want %q", name, got, c.want)
-		}
+		wantShape(t, name, res, c.want)
 	}
 }
 
@@ -129,12 +139,16 @@ func TestShapeCountsTheNewLinesOfEveryChange(t *testing.T) {
 	for i := range 41 {
 		files[fmt.Sprintf("m%02d.txt", i+1)] = []byte(old + "added\n")
 	}
-	snap := staged{Tree: proof.NewTree(files), blobs: map[string][]byte{"old": []byte(old)}}
+	files["copied.txt"], files["copied-near.txt"] = []byte(strings.Repeat("x\n", 402)), []byte(strings.Repeat("x\n", 401))
+	snap := staged{Tree: proof.NewTree(files), blobs: map[string][]byte{"old": []byte(old), "x": []byte("x\n")}}
 	add := func(path string) model.Change {
 		return model.Change{Op: model.ChangeAdd, NewPath: path, Mode: "100644", After: "new"}
 	}
 	modify := func(path string) model.Change {
 		return model.Change{Op: model.ChangeModify, OldPath: path, NewPath: path, Mode: "100644", Before: "old", After: "new"}
+	}
+	copied := func(path string) model.Change {
+		return model.Change{Op: model.ChangeModify, OldPath: path, NewPath: path, Mode: "100644", Before: "x", After: "new"}
 	}
 	touched := make([]model.Change, 0, 41)
 	for i := range 41 {
@@ -149,6 +163,8 @@ func TestShapeCountsTheNewLinesOfEveryChange(t *testing.T) {
 		"a modified file over the lines":     {[]model.Change{modify("grown.txt")}, "stages 401 new lines"},
 		"41 modified files are no new files": {touched, ""},
 		"moved lines are no new lines":       {[]model.Change{modify("moved.txt")}, ""},
+		"a line copied 401 more times":       {[]model.Change{copied("copied.txt")}, "stages 401 new lines"},
+		"a line copied 400 more times":       {[]model.Change{copied("copied-near.txt")}, ""},
 		"a binary file has no lines":         {[]model.Change{add("image.png")}, ""},
 		"an empty file has no lines":         {[]model.Change{add("empty.txt")}, ""},
 		"a link and a submodule":             {[]model.Change{{Op: model.ChangeAdd, NewPath: "big.txt", Mode: "120000"}, {Op: model.ChangeAdd, NewPath: "full.txt", Mode: "160000"}}, ""},
@@ -157,13 +173,10 @@ func TestShapeCountsTheNewLinesOfEveryChange(t *testing.T) {
 	}
 	for name, c := range cases {
 		res := shaped(t, snap, c.changes...)
-		got := ""
-		if len(res.Findings) == 1 {
-			got = res.Findings[0].Message
+		if res.Status.Kind != model.StatusMeasured {
+			t.Errorf("%s: %+v, want it measured", name, res)
 		}
-		if res.Status.Kind != model.StatusMeasured || (c.lines == "") != (got == "") || !strings.Contains(got, c.lines) {
-			t.Errorf("%s: %+v, want %q", name, res, c.lines)
-		}
+		wantShape(t, name, res, c.lines)
 	}
 }
 
@@ -195,6 +208,25 @@ func TestShapeLeavesUnmeasuredWhatItCannotRead(t *testing.T) {
 	if huge.Status.Kind != model.StatusMeasured || !slices.Equal(huge.Unread, []string{"huge.txt"}) || len(huge.Findings) != 0 {
 		t.Errorf("a file over the read bound = %+v", huge)
 	}
+}
+
+// A commit over the file limit is refused on its files alone, before any
+// blob is read, so a blob it cannot read never leaves it unmeasured.
+func TestShapeCountsTheFilesBeforeReadingABlob(t *testing.T) {
+	t.Parallel()
+	files := map[string][]byte{}
+	changes := make([]model.Change, 0, 41)
+	for i := range 41 {
+		path := fmt.Sprintf("f%02d.txt", i+1)
+		files[path] = []byte("line\n")
+		changes = append(changes, model.Change{Op: model.ChangeAdd, NewPath: path, Mode: "100644", After: "new"})
+	}
+	snap := staged{Tree: proof.NewTree(files), classes: map[string]model.FileClass{"f01.txt": model.ClassUnreadable}}
+	res := shaped(t, snap, changes...)
+	if res.Status.Kind != model.StatusMeasured {
+		t.Fatalf("41 new files, one of them unreadable: %+v, want it measured", res)
+	}
+	wantShape(t, "41 new files, one of them unreadable", res, "a chore commit adds 41 new files")
 }
 
 func TestShapeAgreesWithTheShellFamily(t *testing.T) {
