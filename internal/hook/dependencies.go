@@ -117,4 +117,5 @@ type execution struct {
 	base        *deferredSnapshot
 	request     Request
 	stateReason string
+	own         *commitMemory
 }

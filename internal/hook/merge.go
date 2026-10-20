@@ -17,7 +17,8 @@ import (
 // git makes by itself holds there, with the strategy options the command
 // text gave when the merge without them leaves it, or the one the merged
 // commit holds, is named as brought by the merge, because none of its
-// bytes is the command's; a path whose staged blob is neither, the
+// bytes is the command's, unless a commit the command created before the
+// merge changed it (notOwn); a path whose staged blob is neither, the
 // command's resolution or its own edit, a file only the local side changed
 // included, one the command wrote after the merge and one git status named
 // before stay judged.
@@ -40,8 +41,9 @@ func (run execution) fromMerge(ctx context.Context, dependencies Dependencies, b
 		return changed, gaps
 	}
 	merged, unknown := run.mergeBrought(ctx, dependencies, changes, staged, before.Options)
-	changed = slices.DeleteFunc(changed, among(append(slices.Clone(merged), unknown...)))
-	return changed, append(append(gaps, pathGaps(unknown, causeMergeUnknown)...), pathGaps(merged, causeMerged)...)
+	merged, untold := run.notOwn(ctx, dependencies, before, changes, merged)
+	changed = slices.DeleteFunc(changed, among(slices.Concat(merged, unknown, untold)))
+	return changed, slices.Concat(gaps, pathGaps(unknown, causeMergeUnknown), pathGaps(untold, causeCommits), pathGaps(merged, causeMerged))
 }
 
 // mergeBrought are the staged paths whose staged blob is one the merge git

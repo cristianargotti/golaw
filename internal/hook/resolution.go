@@ -3,6 +3,7 @@ package hook
 import (
 	"bytes"
 	"context"
+	"slices"
 	"strings"
 )
 
@@ -36,8 +37,8 @@ const markerSize = 7
 
 // resolutions sorts the paths git left unmerged after the command that git
 // status did not name before it, when the command started the merge: a path
-// whose bytes are those HEAD holds is kept, unchanged since the command
-// started, and judged no more than any unchanged file; one whose bytes are
+// whose bytes are those HEAD holds is kept, judged when a commit the command
+// created changed it (notOwn) and left as unchanged otherwise; one whose bytes are
 // those of the merged commit is named as brought by the merge; one whose
 // bytes are the conflict git wrote, the merge git makes by itself with the
 // strategy options of the command, waits for the event that writes its
@@ -65,7 +66,9 @@ func (run execution) resolutions(ctx context.Context, dependencies Dependencies,
 		kind := resolutionOf(content, conflict, readErr == nil && known)
 		sorted[kind] = append(sorted[kind], path)
 	}
-	return sorted[written], append(pathGaps(sorted[waiting], causeUnmerged), pathGaps(sorted[taken], causeMerged)...)
+	stays, untold := run.notOwn(ctx, dependencies, before, changes, slices.Clone(sorted[kept]))
+	own := slices.DeleteFunc(slices.Clone(sorted[kept]), among(slices.Concat(stays, untold)))
+	return append(sorted[written], own...), slices.Concat(pathGaps(sorted[waiting], causeUnmerged), pathGaps(untold, causeCommits), pathGaps(sorted[taken], causeMerged))
 }
 
 // resolutionOf is what the bytes on disk of an unmerged path are, against

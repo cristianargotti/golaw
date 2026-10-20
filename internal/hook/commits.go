@@ -19,11 +19,12 @@ func (run execution) fromCommits(ctx context.Context, dependencies Dependencies,
 	if len(brought) == 0 {
 		return changed, nil
 	}
-	created, merges, ok := run.created(ctx, dependencies, before)
-	if !ok {
+	own := run.ownCommits(ctx, dependencies, before)
+	if !own.ok {
 		return slices.DeleteFunc(changed, among(brought)), pathGaps(brought, causeCommits)
 	}
-	unknown := among(run.resolved(ctx, dependencies, merges, brought, created, before.Options))
+	created := own.paths
+	unknown := among(run.resolved(ctx, dependencies, own.merges, brought, created, before.Options))
 	var arrived, untold []string
 	for _, path := range brought {
 		switch {
@@ -41,35 +42,34 @@ func (run execution) fromCommits(ctx context.Context, dependencies Dependencies,
 // created are the paths the commits the command created changed, and apart
 // the merges it made: the commits since the HEAD of the pre event,
 // committed in the whole second the pre event started or later, as git
-// records whole seconds, by the identity git commits as now. It is false
+// records whole seconds, by the identity git commits as now. It is not ok
 // when git cannot answer the commits or the identity.
-func (run execution) created(ctx context.Context, dependencies Dependencies, before Baseline) (map[string]bool, []Commit, bool) {
+func (run execution) created(ctx context.Context, dependencies Dependencies, before Baseline) commitMemory {
 	if dependencies.Commits == nil || dependencies.Committer == nil {
-		return nil, nil, false
+		return commitMemory{asked: true}
 	}
 	committer, err := dependencies.Committer(ctx, run.repository)
 	if err != nil {
-		return nil, nil, false
+		return commitMemory{asked: true}
 	}
 	from := before.At.Unix()
 	commits, err := dependencies.Commits(ctx, run.repository, before.Head, run.repository.Head, from)
 	if err != nil {
-		return nil, nil, false
+		return commitMemory{asked: true}
 	}
-	paths := map[string]bool{}
-	var merges []Commit
+	own := commitMemory{asked: true, ok: true, paths: map[string]bool{}}
 	for _, commit := range commits {
 		switch {
 		case commit.Time < from || commit.Committer != committer:
 		case commit.Merge:
-			merges = append(merges, commit)
+			own.merges = append(own.merges, commit)
 		default:
 			for _, path := range commit.Paths {
-				paths[path] = true
+				own.paths[path] = true
 			}
 		}
 	}
-	return paths, merges, true
+	return own
 }
 
 // resolved adds to created the paths the move brought that a merge of the
