@@ -204,3 +204,31 @@ func TestRenderNamesUnreadableSource(t *testing.T) {
 		t.Fatalf("read failure = %v", err)
 	}
 }
+
+// TestRenderNamesTheFailureOnce reads the reason init shows: each refusal of
+// the renderer keeps its own words and names the render failure once.
+func TestRenderNamesTheFailureOnce(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, destination, body, reason string
+		values                          func(*assets.Values)
+	}{
+		{"expanded destination", "{{.Decisions}}/record.md", "# Record\n", "invalid expanded destination", func(v *assets.Values) { v.Decisions = "../outside" }},
+		{"remaining delimiter", "a.txt", "left }}", "unresolved template delimiter", func(*assets.Values) {}},
+		{"empty input", "a.txt", "{{.ModulePath}}", "required input ModulePath is empty", func(v *assets.Values) { v.ModulePath = "" }},
+		{"missing tool", "a.txt", `{{index .Tools "absent"}}`, `required tool key "absent" is missing or empty`, func(*assets.Values) {}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			values := templateValues()
+			tc.values(&values)
+			entry := assets.Template{Source: "templates/input.tmpl", Destination: tc.destination, Ownership: assets.OwnedByKit}
+			tree := fstest.MapFS{entry.Source: {Data: []byte(tc.body)}}
+			_, err := assets.Render(tree, entry, values)
+			if !errors.Is(err, assets.ErrRender) || !strings.Contains(err.Error(), tc.reason) ||
+				strings.Count(err.Error(), assets.ErrRender.Error()) != 1 {
+				t.Fatalf("render failure = %v", err)
+			}
+		})
+	}
+}

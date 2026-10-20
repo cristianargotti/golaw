@@ -51,7 +51,7 @@ func renderContext(source fs.FS, t Template, c Context) (Rendered, error) {
 	}
 	path := string(destination)
 	if !templatePath(path) {
-		return Rendered{}, fmt.Errorf("%w: invalid expanded destination %q", ErrRender, path)
+		return Rendered{}, fmt.Errorf("%w %q", errDestination, path)
 	}
 	body, err := fs.ReadFile(source, t.Source)
 	if err != nil {
@@ -84,7 +84,7 @@ func executeTemplate(text string, c Context) ([]byte, error) {
 	}
 	data := output.Bytes()
 	if bytes.Contains(data, []byte("{{")) || bytes.Contains(data, []byte("}}")) {
-		return nil, fmt.Errorf("%w: unresolved template delimiter", ErrRender)
+		return nil, errDelimiter
 	}
 	return data, nil
 }

@@ -85,7 +85,7 @@ func validateField(name string, c Context) error {
 		"Language": c.Language, "Decisions": c.Decisions, "Main": c.Main, "CIBackend": c.CIBackend,
 	}
 	if value, ok := values[name]; ok && value == "" {
-		return fmt.Errorf("%w: required input %s is empty", ErrRender, name)
+		return fmt.Errorf("%w %s is empty", errRequiredInput, name)
 	}
 	if key, ok := strings.CutPrefix(name, "Tools."); ok {
 		return validateToolKey(c.Tools, key)
@@ -123,7 +123,7 @@ func validatePipedIndex(pipe *parse.PipeNode, c Context, scope string) error {
 
 func validateToolKey(tools map[string]string, key string) error {
 	if tools[key] == "" {
-		return fmt.Errorf("%w: required tool key %q is missing or empty", ErrRender, key)
+		return fmt.Errorf("%w %q is missing or empty", errRequiredTool, key)
 	}
 	return nil
 }
