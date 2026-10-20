@@ -12,6 +12,8 @@ func TestLefthookAssetHasExactlyTheThreeBinaryCalls(t *testing.T) {
 	const want = `# golaw rungs, opt-in: nothing here runs until a person runs golaw setup,
 # each rung switches off in the ladder of golaw.yml without a finding, and
 # remote CI or the platform pipeline is the only gate.
+# Each git argument sits in single quotes, so a path with a space reaches
+# golaw whole; double quotes would break the line lefthook runs on Windows.
 min_version: 2.1.0
 pre-commit:
   commands:
@@ -20,11 +22,11 @@ pre-commit:
 commit-msg:
   commands:
     golaw:
-      run: golaw hook commit-msg {1}
+      run: golaw hook commit-msg '{1}'
 pre-push:
   commands:
     golaw:
-      run: golaw hook pre-push {1} {2}
+      run: golaw hook pre-push '{1}' '{2}'
       use_stdin: true
 `
 	entries, err := assets.Templates(golaw.FS)
