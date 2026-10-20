@@ -135,3 +135,53 @@ func TestArmedBySetupComparesAHooksDirectoryNotMadeByItsCleanForm(t *testing.T) 
 		t.Fatal("the receipt of a hooks directory not made yet did not arm the rung")
 	}
 }
+
+// stateBinding is the test binding whose state directory sits at state
+// under its home.
+func stateBinding(t *testing.T, state string) binding {
+	t.Helper()
+	b, home := testBinding(t)
+	values := map[string]string{"HOME": home, "XDG_STATE_HOME": filepath.Join(home, state), "XDG_CONFIG_HOME": filepath.Join(home, "config")}
+	b.env = func(name string) string { return values[name] }
+	return b
+}
+
+// The receipts are read by name, so a state directory whose path holds a
+// glob character, as an XDG_STATE_HOME that ends in state[x] or state[,
+// still finds the receipt setup wrote there; only a receipt file under the
+// name setup gives it arms the rung.
+func TestArmedBySetupReadsTheReceiptsOfAStateDirectoryByName(t *testing.T) {
+	t.Parallel()
+	root := repository(t, true)
+	hooks := filepath.Join(root, ".git", "hooks")
+	for _, state := range []string{"state[x]", "state["} {
+		b := stateBinding(t, state)
+		receiptOf(t, b, root, hooks)
+		if !b.armedBySetup(t.Context(), root) {
+			t.Errorf("the receipt under %s did not arm the rung", state)
+		}
+	}
+	b := stateBinding(t, "state")
+	receiptOf(t, b, root, hooks)
+	dirs, err := b.dirs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, identity, err := install.ProjectIdentity(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	written := setup.ReceiptPath(dirs.State, identity)
+	if err := os.Rename(written, filepath.Join(filepath.Dir(written), "receipt.txt")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(filepath.Dir(written), "broken.json"), []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(filepath.Dir(written), "folder.json"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if b.armedBySetup(t.Context(), root) {
+		t.Error("a receipt under another name, a broken one or a directory armed the rung")
+	}
+}

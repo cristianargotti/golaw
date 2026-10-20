@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -28,16 +29,35 @@ func (b binding) armedBySetup(ctx context.Context, dir string) bool {
 	if len(paths) != 2 {
 		return false
 	}
-	receipts, err := filepath.Glob(filepath.Join(filepath.Dir(setup.ReceiptPath(dirs.State, "")), "*.json"))
-	if err != nil {
-		return false
-	}
-	for _, path := range receipts {
-		if r, err := setup.ReadReceipt(path); err == nil && realPath(r.HooksPath) == paths[0] && b.sameRepository(ctx, r.Root, paths[1]) {
+	found := receipts(dirs.State)
+	for i := range found {
+		if realPath(found[i].HooksPath) == paths[0] && b.sameRepository(ctx, found[i].Root, paths[1]) {
 			return true
 		}
 	}
 	return false
+}
+
+// receipts are the setup receipts of the state directory, listed by name:
+// a glob pattern would read a bracket of the state path as a character
+// class and miss the receipt setup wrote there. A file setup did not write
+// as a receipt is passed over.
+func receipts(state string) []setup.Receipt {
+	dir := filepath.Dir(setup.ReceiptPath(state, ""))
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	out := make([]setup.Receipt, 0, len(entries))
+	for _, entry := range entries {
+		if !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		if r, err := setup.ReadReceipt(filepath.Join(dir, entry.Name())); err == nil {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 // sameRepository reports whether the worktree at root, the one a receipt
