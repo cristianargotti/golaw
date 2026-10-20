@@ -20,6 +20,10 @@ const gitFatal = 128
 // an unborn HEAD under rev-parse --verify -q, an unset configuration key.
 const gitAbsent = 1
 
+// revParse is named once because the discovery, the parents of a commit
+// and the commit a revision resolves to all ask it.
+const revParse = "rev-parse"
+
 // Repo is a discovered repository: the real path of its worktree root,
 // its git directory, the HEAD commit (empty on an unborn branch) and
 // whether the filesystem folds case, as git recorded it at init.
@@ -42,7 +46,7 @@ func (r Repo) Identity() string { return filepath.ToSlash(r.Root) }
 // failing otherwise, a repository git cannot read included, is ErrGit; the
 // two outcomes of A14 stay distinct.
 func Discover(ctx context.Context, dir string) (Repo, error) {
-	out, err := git(ctx, dir, "rev-parse", "--show-toplevel", "--absolute-git-dir", "--verify", "-q", "HEAD")
+	out, err := git(ctx, dir, revParse, "--show-toplevel", "--absolute-git-dir", "--verify", "-q", "HEAD")
 	failure, failed := errors.AsType[*gitError](err)
 	if failed && failure.status == gitFatal && outsideCheckout(dir) {
 		return Repo{}, fmt.Errorf("%w: %s: %s", ErrNotRepository, dir, failure.reason)

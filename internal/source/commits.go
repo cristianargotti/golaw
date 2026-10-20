@@ -131,7 +131,7 @@ func Committer(ctx context.Context, repo Repo) (string, error) {
 // Parents answers the commits a commit was made on, in the order git
 // records them, none for a root commit, with one git rev-parse.
 func Parents(ctx context.Context, repo Repo, commit string) ([]string, error) {
-	out, err := git(ctx, repo.Root, "rev-parse", commit+"^@")
+	out, err := git(ctx, repo.Root, revParse, commit+"^@")
 	if err != nil {
 		return nil, err
 	}

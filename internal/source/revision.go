@@ -51,7 +51,7 @@ func (r *Revision) Identity() string { return r.identity }
 // no commit, a tree included, is ErrGit, and so is a name git would read
 // as an option, which reaches git only as a revision.
 func resolveCommit(ctx context.Context, root, rev string) (string, error) {
-	commit, err := query(ctx, root, "rev-parse", "--verify", "-q", "--end-of-options", rev+"^{commit}")
+	commit, err := query(ctx, root, revParse, "--verify", "-q", "--end-of-options", rev+"^{commit}")
 	if err != nil {
 		return "", err
 	}
