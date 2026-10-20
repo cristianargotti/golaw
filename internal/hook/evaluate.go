@@ -125,9 +125,10 @@ func loadExecution(ctx context.Context, repository Repository, decode func(Base,
 
 // prepare loads the policy in force of an event's repository, refuses one
 // whose policy is not enrolled, sweeps the state and defers the snapshot
-// the event's rules read.
+// the event's rules read; the event keeps what git answers about the
+// commits of its command in a memory of its own.
 func prepare(ctx context.Context, repository Repository, dependencies Dependencies) (execution, *deferredSnapshot, error) {
-	run := execution{repository: repository}
+	run := execution{repository: repository, own: &commitMemory{}}
 	policy, err := dependencies.Policy(ctx, repository)
 	if err != nil {
 		return run, nil, fmt.Errorf("load hook policy: %w", err)

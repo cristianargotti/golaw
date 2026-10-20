@@ -21,13 +21,15 @@ const commitFormat = "--format=%x00%x00%H%x00%ct%x00%cn%x00%ce%x00%P"
 // writes an identity before the time, the second it was committed, whether
 // it is a merge, and the paths it changed: against its parent, a root
 // commit against the empty tree, and a merge, the paths it holds apart from
-// every parent.
+// every parent. Parents are the commits it was made on, in the order git
+// records them, none for a root commit.
 type Commit struct {
 	Name      string
 	Committer string
 	Time      int64
 	Merge     bool
 	Paths     []string
+	Parents   []string
 }
 
 // Commits answers, in one git log, the commits reachable from now and not
@@ -39,7 +41,7 @@ type Commit struct {
 // second, so the history of a far checkout is not read; the walk stops at
 // the first older commit of each line, as git log --since does.
 func Commits(ctx context.Context, repo Repo, since, now string, from int64) ([]Commit, error) {
-	args := []string{"log", "-z", "--root", noRenames, "--cc", "--no-color", "--no-show-signature", commitFormat, "--name-only"}
+	args := []string{"log", "-z", "--root", noRenames, "--cc", "--no-color", "--no-show-signature", commitFormat, nameOnly}
 	if from > 0 {
 		args = append(args, "--since=@"+strconv.FormatInt(from, 10))
 	}
@@ -86,8 +88,9 @@ func commitOf(fields []string) (Commit, error) {
 	if err != nil {
 		return Commit{}, fmt.Errorf("%w: git log printed the time %q", ErrGit, fields[1])
 	}
+	parents := strings.Fields(fields[4])
 	return Commit{
-		Name: fields[0], Committer: fields[2] + " <" + fields[3] + ">", Time: seconds, Merge: len(strings.Fields(fields[4])) > 1,
+		Name: fields[0], Committer: fields[2] + " <" + fields[3] + ">", Time: seconds, Merge: len(parents) > 1, Parents: parents,
 	}, nil
 }
 
@@ -123,4 +126,14 @@ func Committer(ctx context.Context, repo Repo) (string, error) {
 		return "", fmt.Errorf("%w: git var printed %q", ErrGit, ident)
 	}
 	return ident[:end+1], nil
+}
+
+// Parents answers the commits a commit was made on, in the order git
+// records them, none for a root commit, with one git rev-parse.
+func Parents(ctx context.Context, repo Repo, commit string) ([]string, error) {
+	out, err := git(ctx, repo.Root, "rev-parse", commit+"^@")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(string(out)), nil
 }

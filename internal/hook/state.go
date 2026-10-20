@@ -33,13 +33,20 @@ type Store struct {
 // identities of the paths git status named, the HEAD commit they were
 // taken at, empty on an unborn branch, the commits MERGE_HEAD named then,
 // empty when no merge was in progress, or the reason they could not be
-// taken, and, as Load answers it, the time the pre event started.
+// taken, and, as Load answers it, the time the pre event started. Options
+// are the strategy options -X ours and -X theirs the command text gives a
+// merge, each once, which the post event makes the merges of the command
+// again with, one option at a time.
+// Amend says the command text runs git commit --amend, which alone makes a
+// commit on the parents of that HEAD a rewrite of it.
 type Baseline struct {
-	Files  map[string]string
-	Head   string
-	Merge  string
-	Reason string
-	At     time.Time
+	Files   map[string]string
+	Head    string
+	Merge   string
+	Reason  string
+	At      time.Time
+	Options []string
+	Amend   bool
 }
 
 type stateRecord struct {
@@ -49,6 +56,8 @@ type stateRecord struct {
 	Files      map[string]string `json:"files"`
 	Head       string            `json:"head,omitempty"`
 	Merge      string            `json:"merge,omitempty"`
+	Options    []string          `json:"options,omitempty"`
+	Amend      bool              `json:"amend,omitempty"`
 	Reason     string            `json:"reason"`
 	ReasonHash string            `json:"reason_hash"`
 	At         time.Time         `json:"at"`
@@ -72,7 +81,8 @@ func (s Store) Save(ctx context.Context, key, inputHash string, baseline Baselin
 		baseline.Files = map[string]string{}
 	}
 	data, err := stateBytes(stateRecord{
-		Key: key, Input: inputHash, Files: baseline.Files, Head: baseline.Head, Merge: baseline.Merge, Reason: baseline.Reason, At: s.Now,
+		Key: key, Input: inputHash, Files: baseline.Files, Head: baseline.Head, Merge: baseline.Merge, Options: baseline.Options, Amend: baseline.Amend,
+		Reason: baseline.Reason, At: s.Now,
 	})
 	if err != nil {
 		return err
@@ -120,7 +130,9 @@ func (s Store) Load(ctx context.Context, key string) (Baseline, error) {
 	if !found {
 		return Baseline{}, fmt.Errorf("%w: baseline absent: %w", model.ErrCannotJudge, fs.ErrNotExist)
 	}
-	return Baseline{Files: selected.Files, Head: selected.Head, Merge: selected.Merge, Reason: selected.Reason, At: selected.At}, nil
+	return Baseline{
+		Files: selected.Files, Head: selected.Head, Merge: selected.Merge, Reason: selected.Reason, At: selected.At, Options: selected.Options, Amend: selected.Amend,
+	}, nil
 }
 
 func (s Store) sweepEntry(entry fs.DirEntry) error {

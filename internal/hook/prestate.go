@@ -38,7 +38,12 @@ func (run execution) beforeCapture(ctx context.Context, dependencies Dependencie
 	if err != nil {
 		return Baseline{Reason: err.Error()}
 	}
-	return Baseline{Files: before, Head: changes.Head, Merge: changes.Merge}
+	var options []string
+	amend := false
+	if shell := run.request.Event.Shell; shell != nil {
+		options, amend = strategyOptions(shell.Command), amends(shell.Command)
+	}
+	return Baseline{Files: before, Head: changes.Head, Merge: changes.Merge, Options: options, Amend: amend}
 }
 
 func (run execution) checkWriteFresh(ctx context.Context, dependencies Dependencies) error {

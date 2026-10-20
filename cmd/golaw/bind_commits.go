@@ -9,8 +9,8 @@ import (
 )
 
 // commits are the commits between two HEADs, with the name, the
-// committer, the second, whether it is a merge and the paths of each, in
-// one question to git.
+// committer, the second, whether it is a merge, the paths and the parents
+// of each, in one question to git.
 func (h hookBinding) commits(ctx context.Context, repo hook.Repository, since, now string, from int64) ([]hook.Commit, error) {
 	found, err := h.cache.Discover(ctx, repo.Root)
 	if err != nil {
@@ -23,7 +23,7 @@ func (h hookBinding) commits(ctx context.Context, repo hook.Repository, since, n
 	commits := make([]hook.Commit, 0, len(listed))
 	for _, commit := range listed {
 		commits = append(commits, hook.Commit{
-			Name: commit.Name, Committer: commit.Committer, Time: commit.Time, Merge: commit.Merge, Paths: commit.Paths,
+			Name: commit.Name, Committer: commit.Committer, Time: commit.Time, Merge: commit.Merge, Paths: commit.Paths, Parents: commit.Parents,
 		})
 	}
 	return commits, nil
@@ -41,4 +41,17 @@ func (h hookBinding) committer(ctx context.Context, repo hook.Repository) (strin
 		return "", fmt.Errorf("name the committer of %s: %w", found.Root, err)
 	}
 	return ident, nil
+}
+
+// parents are the commits a commit was made on, in one question to git.
+func (h hookBinding) parents(ctx context.Context, repo hook.Repository, commit string) ([]string, error) {
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	parents, err := source.Parents(ctx, found, commit)
+	if err != nil {
+		return nil, fmt.Errorf("name the parents of %s in %s: %w", commit, found.Root, err)
+	}
+	return parents, nil
 }
