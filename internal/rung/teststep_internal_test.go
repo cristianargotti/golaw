@@ -2,6 +2,7 @@ package rung
 
 import (
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -36,7 +37,9 @@ func TestTestStepNamesARaceDetectorThisHostLacks(t *testing.T) {
 
 // A go test that fails without a FAIL line names no package the commit
 // touches, so nothing places its failure in the commit: it is named and
-// left to the pipeline. The fake go is found through PATH.
+// left to the pipeline. The fake go is found through PATH; under a coverage
+// build it also warns that it writes no coverage data, so only the lines
+// it answers for the test are compared.
 func TestTestStepLeavesToThePipelineAFailureNoPackageNames(t *testing.T) {
 	dir := t.TempDir()
 	runnertest.Install(t, dir, "go", runnertest.Behavior{Probe: []string{"version"}, Stderr: "go: updates to go.mod needed; to update it:\n\tgo mod tidy\n", Code: 1})
@@ -44,7 +47,9 @@ func TestTestStepLeavesToThePipelineAFailureNoPackageNames(t *testing.T) {
 	p := &precommit{ladder: model.Ladder{TestStaged: true}}
 	tree := goTree{set: runner.AffectedSet{Packages: []string{"example.test/m/a"}, Patterns: []string{"./a"}}, dir: t.TempDir()}
 	out := p.test(t.Context(), tree)
-	if out.Code != codeClean || len(out.Lines) != 3 || !strings.HasSuffix(out.Lines[0], "go test -race fails without naming a package, which the pipeline judges") {
+	answered := []string{"go: updates to go.mod needed; to update it:", "\tgo mod tidy"}
+	if out.Code != codeClean || len(out.Lines) < 3 || !strings.HasSuffix(out.Lines[0], "go test -race fails without naming a package, which the pipeline judges") ||
+		!slices.Equal(out.Lines[1:3], answered) {
 		t.Errorf("a failure no package names = %+v", out)
 	}
 }
