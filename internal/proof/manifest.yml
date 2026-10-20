@@ -150,3 +150,7 @@ checks:
     code: pr
     red: testdata/shell.pr/red
     near: testdata/shell.pr/near
+  - id: commit.conventional
+    code: conventional-subject
+    red: testdata/commit.conventional/red
+    near: testdata/commit.conventional/near

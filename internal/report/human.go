@@ -75,7 +75,7 @@ func lookup(code string) (string, bool) {
 // phrases is the message table of the human channel: one Portuguese
 // sentence per finding code of the kit, in catalog order.
 func phrases() []sentence {
-	return slices.Concat(filePhrases(), goastPhrases(), shellPhrases())
+	return slices.Concat(filePhrases(), goastPhrases(), shellPhrases(), commitPhrases())
 }
 
 // filePhrases are the sentences of the text and paths families.
@@ -134,5 +134,14 @@ func shellPhrases() []sentence {
 		{code: "credential-print", text: "o comando imprime uma credencial; segredos nunca entram no contexto"},
 		{code: "push", text: "git push negado pela política; a pessoa faz o push"},
 		{code: "pr", text: "criação de pull request ou de repositório negada pela política; a pessoa abre"},
+	}
+}
+
+// commitPhrases are the sentences of the codes only the commits family
+// emits; its dash, trailer, width and shape findings share the codes, and
+// so the sentences, of the text and shell families.
+func commitPhrases() []sentence {
+	return []sentence{
+		{code: "conventional-subject", text: "assunto do commit fora do padrão convencional; escreva tipo(escopo): descrição, com a descrição começando em letra minúscula"},
 	}
 }
