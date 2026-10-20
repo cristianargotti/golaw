@@ -6,44 +6,6 @@ import (
 	"testing"
 )
 
-func TestM1SetupSequence(t *testing.T) {
-	t.Parallel()
-	text := string(kitBytes(t, "docs/setup.md"))
-	agent := agentID(t)
-	commands := []string{
-		"go install github.com/cristianargotti/golaw/cmd/golaw@v0.1.0",
-		"golaw init\n",
-		"golaw init --apply",
-		"git add golaw.yml",
-		"git commit",
-		"golaw agent install --agent " + agent,
-		"golaw doctor",
-		"golaw scan .",
-	}
-	position := 0
-	for _, command := range commands {
-		offset := strings.Index(text[position:], command)
-		if offset < 0 {
-			t.Fatalf("setup command missing or out of order: %s", command)
-		}
-		position += offset + len(command)
-	}
-	if strings.Contains(text, "@latest") {
-		t.Fatal("setup uses an unpinned source build")
-	}
-	requireText(t, "docs/setup.md",
-		"no templates",
-		"Commit the reviewed golaw.yml before agent install",
-		"the policy in force is the golaw.yml at HEAD",
-		"never arms git hooks",
-		"source build, executable not verifiable",
-		"automatic release verification in doctor arrives in M5",
-		"only hard gate",
-		"golaw agent uninstall --agent "+agent,
-		"M1 does not provide golaw setup or scan --staged",
-	)
-}
-
 // TestSetupExplainsTheRepairAndTheEvidence pins what the setup page says
 // about a reviewed policy change, the doctor lines and a downloaded asset.
 func TestSetupExplainsTheRepairAndTheEvidence(t *testing.T) {

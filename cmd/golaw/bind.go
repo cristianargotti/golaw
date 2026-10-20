@@ -226,6 +226,11 @@ func (b binding) enroll(root string, data []byte, p *model.EffectivePolicy, now 
 		Root: root, PolicyDigest: p.Digest, ProfileDigest: profileDigest(f), KitVersion: p.KitVersion,
 		Bootstrap: string(data), WrittenBy: policy.WrittenByInit, WrittenAt: now,
 	}
+	if found && existing.Root == record.Root && existing.PolicyDigest == record.PolicyDigest &&
+		existing.ProfileDigest == record.ProfileDigest && existing.KitVersion == record.KitVersion &&
+		existing.Bootstrap == record.Bootstrap && existing.WrittenBy == record.WrittenBy {
+		return nil
+	}
 	if err := policy.WriteRecord(dirs.State, record); err != nil {
 		return fmt.Errorf("write the enrollment record: %w", err)
 	}

@@ -48,13 +48,51 @@ Codex CLI and Cursor enforcement are outside M1. Their later adapters have separ
 
 Every local check is optional. Installing an agent guard opts into its denials; agent uninstall removes that integration. Local git checks are armed only by the developer and may be disabled without a finding.
 
-M1 scans the worktree. M2 adds staged scanning and the optional git rungs. Both scans are local aids. Remote CI or the platform pipeline is the only hard gate.
+M1 scans the worktree. M2 adds staged scanning and the optional git rungs. Both scans are local aids. Remote CI or the platform pipeline is the only hard gate. Full make ci runs there; mutation, fuzz, benchmarks and integration suites run on demand.
+
+golaw setup opts a developer into the git rungs; init never arms them. Installed agent guards and developer-armed rungs are separate integrations. Each ladder switch can be false without a finding, before version checks or tool resolution. Changing these switches requires no re-enrollment and does not relax an installed agent guard. test_staged is off by default.
+
+```yaml
+ladder:
+  pre_commit: false
+  commit_msg: false
+  pre_push: false
+  test_staged: false
+```
+
+A false denial or a false finding is a defect. A rung or guard refuses only what it recognizes with certainty, and its reason must name the repair. Unsupported exotic constructs are stated limits, never a reason to widen a reader.
 
 An adopting platform must demonstrate its remote stage before claiming that the kit is enforced there. Without that stage, the kit runs only where developers choose to run or install it.
+
+## Optional git rungs
+
+| Rung | M2 work |
+|---|---|
+| pre-commit | Staged scan and separate proposed-policy validation; `golangci-lint fmt --diff`, which names a whole-file difference and refuses nothing; affected-package lint limited with `--new-from-patch`, the formatters included; affected-package vet; staged gitleaks; optional affected-package `go test -race`; a file over the read bound named and left to the pipeline |
+| commit-msg | Commit checks over the message file and staged changes |
+| pre-push | Govulncheck over every non-deleted pushed tip using committed waivers |
+
+The index git commits through is authoritative, including an alternate index in a linked worktree. Unstaged edits cannot hide a staged violation. The staged scan compares findings against the base and evaluates the proposed policy separately. For package tools, the checkout is used when git reports its relevant Go inputs unchanged and the checkout bytes of staged Go files match the index; otherwise a bounded copy of the index outside the repository supplies the bytes. The previously stated limit of files git status treats as clean still applies. A change to go.mod or go.sum affects every package; other changes include their reverse importers.
+
+The whole-file formatter diff is a notice; the lint step judges formatter issues on staged lines. A formatter that cannot execute or returns an unexpected status is a tool failure. Vet refuses diagnostics attributed to added lines and leaves inherited or unplaced diagnostics to the pipeline. During a merge in progress, the lint and staged gitleaks steps leave the combined staged diff to the pipeline because it includes changes the merge brought.
+
+Copies are bounded at 512 MiB and 50,000 entries. A copy over those bounds or containing an unsupported path leaves the Go steps to the pipeline with the reason and the remedy; it is no finding of the commit. Go files ignored by git also leave those steps to the pipeline, since tools would read them in place and a copy would lack them. A staged file over the scanner's read bound is named and left to the pipeline.
+
+Pre-commit waits at most five seconds for its worktree's operating-system lock. A busy lock names the holder PID and asks for a retry after that process finishes. Normal completion and cancellation that returns through the cleanup path remove the isolated copy and release the lock. A killed process releases its operating-system lock but can leave a copy behind; before making another copy, the runner sweeps only owned trees whose creating process is certainly gone. An uncertain owner is retained, and a failed sweep is reported.
+
+The pre-push rung runs govulncheck only. It scans every non-deleted pushed tip, using the policy's committed waivers, and refuses a reachable advisory without a valid waiver. An expired waiver does not cover that advisory. A scanner failure or unreachable database is reported as Unmeasured and does not block this rung. This exception belongs to pre-push; it does not turn a missing measurement into a clean scan. A scanner reporting a version different from its pin is refused, as is an exact kit.version mismatch in either direction for an enabled rung.
+
+User commands lose GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, GIT_COMMON_DIR and GIT_PREFIX; the kit's plumbing keeps them. A test that starts git therefore operates in its own working directory. The dedicated staged gitleaks invocation explicitly restores only the selected absolute GIT_INDEX_FILE, because gitleaks itself asks git for the staged diff.
+
+The lefthook.yml asset hands golaw hook the commit-msg file and the pre-push remote and URL in single quotes, because lefthook 2.1.12 splices Git's arguments into sh -c unescaped; a space in them stays inside its argument. An argument that holds a single quote is a stated limit of the lefthook.yml asset: the absolute message path Git gives a commit in a linked worktree of a repository whose path holds an apostrophe, or a remote name or URL that holds one, leaves the quote open, so the hook fails with a shell syntax error before golaw runs and no ladder switch reaches it; commit from the main worktree, push through a remote whose name and URL hold no apostrophe, or run golaw setup --uninstall in that clone.
+
+Migration, API and generation rung tools remain not applicable until the M3 templates.
 
 ## Untrusted repositories
 
 Agent hooks execute no repository code. They use trusted git plumbing, keep snapshots in memory, and never execute intercepted command text, make targets, generators, or repository tools. The git status and git hash-object of change detection run the clean filter driver the git configuration of the checkout names for a path, a long-running process filter included, and core.fsmonitor runs its hook, as any git command in that checkout does. The git merge-tree that compares a merge the command left in progress, and the git log --remerge-diff that compares a merge commit the command made, with the merge git makes by itself run the merge driver the git configuration of the checkout names for a path, as any merge in that checkout does, and keep the objects of that merge in a temporary object directory removed after, so none reaches the repository. A cloned repository names no such program, because git configuration is not cloned: a .gitattributes file names a driver only by its name, and the drivers are the person's own configuration and the tools they installed, such as git-lfs. A checkout copied with its .git directory keeps the configuration it was copied with, which the person's own git commands there run as well.
+
+That Git-driver boundary also applies to the plumbing the rungs use. Developer-armed rungs additionally execute their declared tools and, when test_staged is enabled, repository tests. Arming a rung does not sandbox those programs or make an untrusted checkout safe to execute.
 
 init writes only within the real repository root and refuses symlinked path components. It never arms git hooks. Templates contain no project-level agent files.
 

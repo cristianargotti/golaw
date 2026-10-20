@@ -1,0 +1,18 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+func main() {
+	name := filepath.Base(os.Args[0])
+	path := filepath.Join(os.Getenv("GOLAW_M2_RECORDERS"), name+".started")
+	if err := os.WriteFile(path, []byte(name+"\n"), 0o600); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(98)
+	}
+	fmt.Fprintln(os.Stderr, "forbidden rung executable started:", name)
+	os.Exit(97)
+}

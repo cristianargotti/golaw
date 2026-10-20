@@ -1,0 +1,81 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strconv"
+	"time"
+)
+
+func main() {
+	code := 0
+	if len(os.Args) > 1 && os.Args[1] == "interrupt" {
+		code = interruptSetup()
+	} else {
+		code = runGo()
+	}
+	os.Exit(code)
+}
+
+func runGo() int {
+	cmd := exec.Command(os.Getenv("GOLAW_M2_REAL_GO"), os.Args[1:]...)
+	cmd.Env = os.Environ()
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		return 1
+	}
+	if len(os.Args) < 2 || os.Args[1] != "install" {
+		return 0
+	}
+	marker := os.Getenv("GOLAW_M2_MARKER")
+	if err := os.WriteFile(marker, []byte(strconv.Itoa(os.Getpid())), 0o600); err != nil {
+		return 2
+	}
+	if !waitFor(marker+".release", 30*time.Second) {
+		return 3
+	}
+	if err := os.WriteFile(marker+".done", []byte("done\n"), 0o600); err != nil {
+		return 2
+	}
+	return 0
+}
+
+func interruptSetup() int {
+	cmd := exec.Command(os.Getenv("GOLAW_M2_BINARY"), "setup")
+	cmd.Env = os.Environ()
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Start(); err != nil {
+		return 4
+	}
+	marker := os.Getenv("GOLAW_M2_MARKER")
+	reached := waitFor(marker, 18*time.Minute)
+	killErr := cmd.Process.Kill()
+	waitErr := cmd.Wait()
+	if !reached || killErr != nil || waitErr == nil {
+		return 5
+	}
+	if err := os.WriteFile(marker+".release", []byte("release\n"), 0o600); err != nil {
+		return 6
+	}
+	if !waitFor(marker+".done", 30*time.Second) {
+		return 7
+	}
+	fmt.Println("M2_INSTALL_INTERRUPTED")
+	return 0
+}
+
+func waitFor(path string, limit time.Duration) bool {
+	deadline := time.Now().Add(limit)
+	for time.Now().Before(deadline) {
+		_, err := os.Stat(path)
+		if err == nil {
+			return true
+		}
+		if !os.IsNotExist(err) {
+			return false
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return false
+}

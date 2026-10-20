@@ -4,8 +4,23 @@ Every rule change is dated here with its reason. The format follows Keep a Chang
 
 ## Unreleased
 
+Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance record](docs/acceptance/m2.md) records.
+
 ### Added
 
+- 2026-10-20: scan --staged compares index findings with the base as a multiset and evaluates the proposed policy separately, so unstaged edits cannot hide a staged violation.
+- 2026-10-20: scan --enrolled accepts externally provisioned digests, because a clean CI runner must not trust enrollment supplied by its checkout.
+- 2026-10-20: the optional pre-commit, commit-msg and pre-push rungs run through the binary, because local checks must not depend on make, awk or tar.
+- 2026-10-19: the commits family, rule rules/4.12@1, adds commit.conventional, commit.no-trailers, commit.no-dashes, commit.body-width and commit.shape, because git message files need the same commit laws as supported agent commands.
+- 2026-10-20: init writes core templates without arming hooks, and setup installs pinned tools and arms the chosen rungs, because every local check remains the developer's choice.
+- 2026-10-20: init --update previews managed-file changes and the exact version pin, preserves local edits and applies reviewed updates, because differing binary versions must not govern one repository.
+- 2026-10-20: golaw coverage carries the total, package and file floors over the build universe, because the public command replaces the kit-only coverage tool.
+- 2026-10-20: M2 acceptance records staged-state adversaries, setup recovery, optional switches, version mismatches and rung measurements, because behavior and latency need reproducible evidence.
+- 2026-10-20: doctor reports managed drift, a managed file edited or gone from the checkout, because a file init manages must stay visible after a local change.
+- 2026-10-20: the runner materializes bounded index and commit trees with owned cleanup, because a rung must inspect the proposed bytes without changing the checkout or deleting another process's files.
+- 2026-10-19: the runner uses process-owned OS file locks on Unix and Windows, because concurrent rungs must serialize their work and an interrupted process must release its lock.
+- 2026-10-20: pre-push applies dated waivers to reachable advisories at each pushed tip and names the waiver in force or the expired entry, because a reviewed exception needs an explicit last day and an actionable result.
+- 2026-10-20: a pre-push scan that cannot reach a verdict reports Unmeasured and lets the push continue, while a reachable advisory without a current waiver or a scanner version mismatch refuses it, because remote CI remains the gate and a failed measurement is not proof of a violation.
 - 2026-10-14: the repository scaffold: the module, the laws, the local pipeline, the strict lint configuration and the decision records for cobra and yaml.
 - 2026-10-14: the command tree (version, scan, init, config explain, coexist), the policy of the kit itself, the coverage, publication age and vulnerability tools, the three operating system CI and the scheduled vulnerability lane.
 - 2026-10-14: the command tree over the integrated packages: `hook <agent>`, `agent install` and `agent uninstall`, `doctor`; the kit scans itself at zero and `make ci` is green on macOS.
@@ -17,6 +32,13 @@ Every rule change is dated here with its reason. The format follows Keep a Chang
 
 ### Changed
 
+- 2026-10-20: init --apply keeps an enrollment record that already holds the same root, policy and profile digests, kit version, bootstrap bytes and writer instead of rewriting its time, because a repeated init --apply must change nothing and the second apply changed only written_at.
+- 2026-10-20: the lefthook.yml asset passes the commit-msg file and the pre-push remote and URL to golaw hook in single quotes, because lefthook substitutes Git's arguments into sh -c unescaped and a path with a space, including a linked worktree's message file, split into two arguments and made the rung refuse the commit with a usage error; an argument that holds a single quote, such as the message file of a linked worktree of a repository whose path holds an apostrophe or a remote URL with one, still breaks lefthook's quoting, so the hook fails before golaw runs, a stated limit in docs/security.md.
+- 2026-10-19: runner user commands lose GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, GIT_COMMON_DIR and GIT_PREFIX while the kit's plumbing retains them, because a child Git process must use its own working directory instead of the hook's repository and index.
+- 2026-10-19: the agent hook compares a merge with the recognized -X ours and -X theirs options from its command text, in progress or committed, because a teammate's line selected by that strategy must remain an arrival notice instead of a finding attributed to the command.
+- 2026-10-19: the agent hook judges a conflict resolution written without git add in the same post event and distinguishes it from Git's conflict and either unchanged side, because an unstaged resolution is still the command's write while inherited bytes need no correction.
+- 2026-10-19: the agent hook keeps judging files changed by the command's own commit before a merge it leaves in progress, including staged merge output and an unresolved path retaining HEAD's side, because merge attribution must not hide changes the command already made.
+- 2026-10-19: the agent hook judges every changed file in a recognized amend of the initial HEAD, including a file restored to its parent's bytes, while a reset followed by a commit still names what the reset brought, because comparing only the new commit with its parent omitted changes made by the rewrite.
 - 2026-10-17: a notice names the paths of one cause in one sentence that names twenty and counts the rest, for the agent and in the human message, as the notice of the files a move brought already did, because a pull in a clone whose git var cannot name the committer, as in a container whose host name has no domain, answered one sentence for each of its 600 files, 65891 characters in the context of the agent and 5329 in the message to the person.
 - 2026-10-17: after a command that moved HEAD, a merge commit the command made is judged for the files it holds apart both from every parent, which git log --cc names in the question it already asks, and from the merge git makes of its parents by itself, which git log --remerge-diff names once more only when such a merge holds a file the move brought, while a file it took from one side whole or that git merged by itself stays in the notice, because git log --no-merges left the command's own merge out of the commits it created and the arrival notice told the agent that its resolution of a conflict and the files it wrote into the merge needed no fix.
 - 2026-10-17: when a command starts a merge it leaves in progress, a file it staged is named in the notice that asks for no fix only when its staged blob is the one the merge git makes by itself holds there, asked once of git merge-tree --write-tree with its objects kept out of the repository, or the one the merged commit holds, and every other staged file is judged, because the notice named as brought by the merge a file only the local side added or changed since the fork that the command edited and staged, a merged file the command edited and staged again, and the command's own resolution of a conflict.

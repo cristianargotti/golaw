@@ -41,3 +41,25 @@ jobs:
         # scan fails the lane.
         shell: bash
         run: govulncheck -format json ./... | go run ./tools/vulngate -waivers golaw.yml -today "$(date -u +%F)"
+
+  m2-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.0'
+          cache: true
+      - name: Use the toolchain named in go.mod
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
+      - name: Time the rungs against the live database
+        env:
+          GOLAW_M2_MEASURE: '1'
+          GOLAW_M2_LIVE_DB: '1'
+        run: go test -race -timeout=45m -run '^TestM2Measurements$' -count=1 -v ./tools/acceptance/
