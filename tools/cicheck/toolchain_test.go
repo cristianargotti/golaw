@@ -82,8 +82,15 @@ func TestAtLeastComparesEachPart(t *testing.T) {
 		version string
 		want    bool
 	}{
-		{"1.27.2", true}, {"1.27.10", true}, {"1.28.0", true}, {"2.0.0", true},
-		{"1.27.1", false}, {"1.27.0", false}, {"1.26.9", false}, {"1.27", false}, {"1.27.x", false},
+		{"1.27.2", true},
+		{"1.27.10", true},
+		{"1.28.0", true},
+		{"2.0.0", true},
+		{"1.27.1", false},
+		{"1.27.0", false},
+		{"1.26.9", false},
+		{"1.27", false},
+		{"1.27.x", false},
 	} {
 		if got := atLeast(tc.version, advisoryFloor); got != tc.want {
 			t.Errorf("atLeast(%q) = %v, want %v", tc.version, got, tc.want)
