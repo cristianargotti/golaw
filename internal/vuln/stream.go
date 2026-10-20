@@ -6,6 +6,7 @@
 package vuln
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -47,7 +48,9 @@ type frame struct {
 }
 
 // Reachable reads the JSON stream of govulncheck and answers the advisories
-// whose trace reaches a function, each once, sorted by id.
+// whose trace reaches a function, one finding per module and fix of an
+// advisory, sorted by id, module and fix: an advisory reachable in two
+// modules needs both fixes, and govulncheck reports in no fixed order.
 func Reachable(r io.Reader) ([]Finding, error) {
 	_, found, err := read(r)
 	return found, err
@@ -65,7 +68,7 @@ func Scanner(r io.Reader) (string, error) {
 // complete scan and must never read as clean.
 func read(r io.Reader) (string, []Finding, error) {
 	version, configured := "", false
-	byID := map[string]Finding{}
+	seen := map[Finding]bool{}
 	decoder := json.NewDecoder(r)
 	for {
 		var m message
@@ -79,19 +82,19 @@ func read(r io.Reader) (string, []Finding, error) {
 		if m.Config != nil {
 			version, configured = m.Config.ScannerVersion, true
 		}
-		// A later report of an advisory replaces an earlier one, so the
-		// lane names the fix of the last report as it always did.
 		if f := m.Finding; f != nil && len(f.Trace) > 0 && f.Trace[0].Function != "" {
-			byID[f.OSV] = Finding{ID: f.OSV, Module: f.Trace[0].Module, Fixed: f.FixedVersion}
+			seen[Finding{ID: f.OSV, Module: f.Trace[0].Module, Fixed: f.FixedVersion}] = true
 		}
 	}
 	if !configured {
 		return "", nil, fmt.Errorf("%w: no config message", ErrStream)
 	}
-	found := make([]Finding, 0, len(byID))
-	for _, f := range byID {
+	found := make([]Finding, 0, len(seen))
+	for f := range seen {
 		found = append(found, f)
 	}
-	slices.SortFunc(found, func(a, b Finding) int { return strings.Compare(a.ID, b.ID) })
+	slices.SortFunc(found, func(a, b Finding) int {
+		return cmp.Or(strings.Compare(a.ID, b.ID), strings.Compare(a.Module, b.Module), strings.Compare(a.Fixed, b.Fixed))
+	})
 	return version, found, nil
 }

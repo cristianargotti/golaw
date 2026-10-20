@@ -8,20 +8,23 @@ import (
 	"github.com/cristianargotti/golaw/internal/vuln"
 )
 
-// verdictLines renders one line per reachable advisory and per expired
-// waiver and reports whether anything is red: a reachable advisory without
+// verdictLines renders one line per module and fix of a reachable
+// advisory, one per waived advisory and one per expired waiver, and
+// reports whether anything is red: a reachable advisory without
 // an unexpired waiver, or a waiver past its day. The judgment is the one
 // the pre-push rung applies (internal/vuln); only the lane refuses an
 // expired waiver of an advisory the code no longer reaches.
 func verdictLines(found []vuln.Finding, waivers []model.Waiver, today time.Time) ([]string, bool) {
 	verdict := vuln.Judge(found, waivers, today)
 	var lines []string
-	for _, f := range found {
+	for i, f := range found {
 		if w, ok := waiverOf(waivers, verdict, f); ok {
-			lines = append(lines, f.ID+" waived until "+w.Until+" ("+w.Record+")")
+			if i == 0 || found[i-1].ID != f.ID {
+				lines = append(lines, f.ID+" waived until "+w.Until+" ("+w.Record+")")
+			}
 			continue
 		}
-		lines = append(lines, f.ID+" reachable, fixed in "+fixedOr(f.Fixed))
+		lines = append(lines, f.ID+" reachable in "+f.Module+", fixed in "+fixedOr(f.Fixed))
 	}
 	expired := vuln.Expired(waivers, today)
 	for _, w := range expired {

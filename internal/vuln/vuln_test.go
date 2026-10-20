@@ -39,20 +39,49 @@ func TestReachableKeepsTheAdvisoriesTheCodeReaches(t *testing.T) {
 	}
 }
 
-// An advisory govulncheck reports in two modules keeps its last report, the
-// one whose fix the lane always named.
-func TestReachableKeepsTheLastReportOfAnAdvisory(t *testing.T) {
+// An advisory govulncheck reports in two modules keeps one finding per
+// module and fix, so the refusal names every fix the person needs, and
+// govulncheck orders its findings as it pleases, so every order of one
+// stream answers the same findings.
+func TestReachableKeepsEveryModuleOfAnAdvisoryInAnyOrder(t *testing.T) {
 	t.Parallel()
-	twice := `{"config": {"scanner_version": "v1.7.0"}}
-{"finding": {"osv": "GO-2026-0002", "fixed_version": "v0.30.0", "trace": [{"module": "golang.org/x/net", "function": "ServeConn"}]}}
-{"finding": {"osv": "GO-2026-0002", "fixed_version": "v1.27.3", "trace": [{"module": "stdlib", "function": "Serve"}]}}
-{"finding": {"osv": "GO-2026-0002", "fixed_version": "v0.31.0", "trace": [{"module": "golang.org/x/net"}]}}
-`
-	found, err := vuln.Reachable(strings.NewReader(twice))
-	want := []vuln.Finding{{ID: "GO-2026-0002", Module: "stdlib", Fixed: "v1.27.3"}}
-	if err != nil || !slices.Equal(found, want) {
-		t.Errorf("Reachable = %+v, %v, want %+v", found, err, want)
+	reports := []string{
+		`{"finding": {"osv": "GO-2026-0002", "fixed_version": "v0.30.0", "trace": [{"module": "golang.org/x/net", "function": "ServeConn"}]}}`,
+		`{"finding": {"osv": "GO-2026-0002", "fixed_version": "v1.27.3", "trace": [{"module": "stdlib", "function": "Serve"}]}}`,
+		`{"finding": {"osv": "GO-2026-0002", "fixed_version": "v1.27.3", "trace": [{"module": "stdlib", "function": "ListenAndServe"}]}}`,
+		`{"finding": {"osv": "GO-2026-0002", "fixed_version": "v0.31.0", "trace": [{"module": "golang.org/x/net"}]}}`,
+		`{"finding": {"osv": "GO-2026-0001", "fixed_version": "v1.27.3", "trace": [{"module": "stdlib", "function": "Open"}]}}`,
 	}
+	want := []vuln.Finding{
+		{ID: "GO-2026-0001", Module: "stdlib", Fixed: "v1.27.3"},
+		{ID: "GO-2026-0002", Module: "golang.org/x/net", Fixed: "v0.30.0"},
+		{ID: "GO-2026-0002", Module: "stdlib", Fixed: "v1.27.3"},
+	}
+	for _, order := range permutations(len(reports)) {
+		lines := []string{`{"config": {"scanner_version": "v1.7.0"}}`}
+		for _, i := range order {
+			lines = append(lines, reports[i])
+		}
+		found, err := vuln.Reachable(strings.NewReader(strings.Join(lines, "\n")))
+		if err != nil || !slices.Equal(found, want) {
+			t.Fatalf("order %v: Reachable = %+v, %v, want %+v", order, found, err, want)
+		}
+	}
+}
+
+// permutations answers every order of the indexes 0 to n-1.
+func permutations(n int) [][]int {
+	if n == 0 {
+		return [][]int{{}}
+	}
+	var out [][]int
+	for _, rest := range permutations(n - 1) {
+		for at := 0; at <= len(rest); at++ {
+			order := slices.Insert(slices.Clone(rest), at, n-1)
+			out = append(out, order)
+		}
+	}
+	return out
 }
 
 // A scanner that stops before its config line leaves the pipe empty, a

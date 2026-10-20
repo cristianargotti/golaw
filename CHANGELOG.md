@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: pre-push and the vulnerability lane name every module and fix of a reachable advisory, sorted, and a waived advisory once, because govulncheck reports in no fixed order and an advisory reachable in the standard library and in golang.org/x/net named one of its two fixes at random.
 - 2026-10-20: the CI, release and vulnerability lanes build and gate with Go 1.27.2, because govulncheck finds GO-2026-6604, os.Root.Mkdir and MkdirAll following a junction out of the root on Windows, reachable from the tree boundary of internal/runner under Go 1.27.0.
 - 2026-10-20: init --apply keeps an enrollment record that already holds the same root, policy and profile digests, kit version, bootstrap bytes and writer instead of rewriting its time, because a repeated init --apply must change nothing and the second apply changed only written_at.
 - 2026-10-20: the lefthook.yml asset passes the commit-msg file and the pre-push remote and URL to golaw hook in single quotes, because lefthook substitutes Git's arguments into sh -c unescaped and a path with a space, including a linked worktree's message file, split into two arguments and made the rung refuse the commit with a usage error; an argument that holds a single quote, such as the message file of a linked worktree of a repository whose path holds an apostrophe or a remote URL with one, still breaks lefthook's quoting, so the hook fails before golaw runs, a stated limit in docs/security.md.

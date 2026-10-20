@@ -139,7 +139,11 @@ func (p prepush) judge(short string, found []vuln.Finding) Outcome {
 	verdict := vuln.Judge(found, p.waivers, p.deps.Now)
 	lapsed := vuln.Expired(p.waivers, p.deps.Now)
 	out := Outcome{}
-	for _, f := range verdict.Waived {
+	for i, f := range verdict.Waived {
+		// One waiver holds an advisory in every module it is reachable in.
+		if i > 0 && verdict.Waived[i-1].ID == f.ID {
+			continue
+		}
 		w := p.waivers[slices.IndexFunc(p.waivers, func(w model.Waiver) bool { return w.ID == f.ID && !slices.Contains(lapsed, w) })]
 		out.Lines = append(out.Lines, fmt.Sprintf("%s%s: %s waived until %s (%s)", prefix(PrePush), short, f.ID, w.Until, w.Record))
 	}
