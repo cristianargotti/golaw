@@ -31,8 +31,9 @@ func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *e
 		return err
 	}
 	for i := range run.Outcomes {
-		got, was := &run.Outcomes[i].Result, held.staged.Outcomes[i].Result
-		got.Findings = provable(got, introduced(got.Findings, held.findings(i)), was, moved)
+		got := &run.Outcomes[i].Result
+		got.Findings = introduced(got.Findings, held.findings(i))
+		held.provable(got, held.staged.Outcomes[i].Result)
 	}
 	return nil
 }
@@ -42,7 +43,8 @@ func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *e
 // holds no file of.
 type baseRun struct {
 	staged *engine.Run
-	beside *engine.Run // nil when the first run holds a file of every directory a target sits in
+	beside *engine.Run       // nil when the first run holds a file of every directory a target sits in
+	holds  map[string]string // the base path of each file the first run judges, by its path in the index
 	moved  map[string]string
 }
 
@@ -70,7 +72,10 @@ func judgeBase(ctx context.Context, in Input, candidate model.Input, rev string,
 	}
 	paths := basePaths(candidate.Targets, moved)
 	targets := base.Select(func(p string) bool { return paths[p] })
-	held := &baseRun{moved: moved}
+	held := &baseRun{holds: make(map[string]string, len(targets)), moved: moved}
+	for _, f := range targets {
+		held.holds[renamedTo(f.Path, moved)] = f.Path
+	}
 	if held.staged, err = judge(ctx, in, base, targets); err != nil {
 		return nil, err
 	}
@@ -144,29 +149,59 @@ func stagedKey(f model.Finding) string {
 	return model.Fingerprint(f)
 }
 
-// provable holds back the introduced findings the base cannot disprove:
-// when the base left a path over the read bound, or stopped before it
-// measured, a finding there may be one the base held, so it is neither the
-// commit's own nor clean. The outcome is then unmeasured with the base's
-// reason and those paths among its unread files, which a rung names and
+// provable holds back the findings of the index the base cannot disprove:
+// where it left a file over the read bound, or stopped before it measured,
+// a finding may be one it held, so it is neither the commit's own nor
+// clean, whatever the index measured. The outcome is then unmeasured, with
+// the reason of the base unless the index left it unmeasured already, and
+// the files behind the doubt among its unread files, which a rung names and
 // leaves to the pipeline (section 5.2).
-func provable(got *model.Result, fresh []model.Finding, base model.Result, moved map[string]string) []model.Finding {
-	if base.Status.Kind != model.StatusUnmeasured || got.Status.Kind != model.StatusMeasured {
-		return fresh
+func (b *baseRun) provable(got *model.Result, base model.Result) {
+	if base.Status.Kind != model.StatusUnmeasured {
+		return
 	}
-	unread := rekeyedPaths(base.Unread, moved)
-	doubted := func(f model.Finding) bool { return len(unread) == 0 || slices.Contains(unread, f.Path) }
-	kept := slices.DeleteFunc(slices.Clone(fresh), doubted)
-	if len(kept) == len(fresh) {
-		return fresh
+	var behind []string
+	kept := slices.DeleteFunc(slices.Clone(got.Findings), func(f model.Finding) bool {
+		unread, doubted := b.doubt(f, base.Unread)
+		behind = append(behind, unread...)
+		return doubted
+	})
+	if len(kept) == len(got.Findings) {
+		return
 	}
-	got.Status = model.Unmeasured("compare with the base: " + base.Status.Reason)
-	for _, f := range fresh {
-		if slices.Contains(unread, f.Path) && !slices.Contains(got.Unread, f.Path) {
-			got.Unread = append(got.Unread, f.Path)
+	if got.Status.Kind == model.StatusMeasured {
+		got.Status = model.Unmeasured("compare with the base: " + base.Status.Reason)
+	}
+	for _, p := range behind {
+		if !slices.Contains(got.Unread, p) {
+			got.Unread = append(got.Unread, p)
 		}
 	}
-	return kept
+	got.Findings = kept
+}
+
+// doubt answers whether a finding may be one the base held though its run
+// reports none, and the files behind the doubt as the index names them: a
+// file the base left unread in the directory of the file the finding sits
+// in, that file itself included, because a check reads its directory with
+// it (the LogValue of a struct, a test that imports goleak). A base that
+// stopped before it measured disproves no finding, and a file it does not
+// hold, such as a new one, holds none of its findings.
+func (b *baseRun) doubt(f model.Finding, unread []string) ([]string, bool) {
+	if len(unread) == 0 {
+		return nil, true
+	}
+	from, held := b.holds[f.Path]
+	if !held {
+		return nil, false
+	}
+	var behind []string
+	for _, u := range unread {
+		if path.Dir(u) == path.Dir(from) {
+			behind = append(behind, renamedTo(u, b.moved))
+		}
+	}
+	return behind, len(behind) > 0
 }
 
 // baseOf is the commit the changes were taken against: the base the input
@@ -223,15 +258,11 @@ func rekeyed(findings []model.Finding, moved map[string]string) []model.Finding 
 	return out
 }
 
-// rekeyedPaths names paths of the base as the index names them: the new
-// path of a renamed file.
-func rekeyedPaths(paths []string, moved map[string]string) []string {
-	out := make([]string, 0, len(paths))
-	for _, p := range paths {
-		if renamed, ok := moved[p]; ok {
-			p = renamed
-		}
-		out = append(out, p)
+// renamedTo names a path of the base as the index names it: the new path
+// of a renamed file.
+func renamedTo(p string, moved map[string]string) string {
+	if renamed, ok := moved[p]; ok {
+		return renamed
 	}
-	return out
+	return p
 }

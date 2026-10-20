@@ -1,6 +1,7 @@
 package stage_test
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"slices"
@@ -127,40 +128,128 @@ func TestScanJudgesTheFilesBesideANewFileApart(t *testing.T) {
 }
 
 // A base file over the read bound holds findings no check could read, so a
-// finding at its path cannot be proven new: it is held back, never reported
-// as the commit's own, and the check stays unmeasured, never clean.
+// finding at its path, or at a file beside it that a check reads with it,
+// cannot be proven new: it is held back, never reported as the commit's
+// own, and the check stays unmeasured, never clean, with the files behind
+// the doubt among its unread files as the index names them.
 func TestScanHoldsBackWhatAnUnreadBaseCannotDisprove(t *testing.T) {
 	t.Parallel()
 	big := "one " + dash + " two\n" + strings.Repeat("a\n", model.MaxReadBytes/2)
 	short := "one " + dash + " two\n"
+	cfg := "package p\n\ntype Cfg struct{ Password string }\n"
+	field := map[string]string{"golaw.yml": goPolicy, "p/a.go": cfg, "p/z.go": "package p\n" + strings.Repeat("a\n", model.MaxReadBytes/2)}
+	shortened := map[string]string{"p/z.go": "package p\n", "p/a.go": cfg + "\nvar x = 1\n"}
+	beside := maps.Clone(shortened)
+	beside["p/b.go"] = "package p\n\ntype Other struct{ Secret string }\n"
 	cases := map[string]struct {
 		base, staged map[string]string
-		want         []string
-		unmeasured   bool
+		moved        [2]string
+		check        string
+		want, unread []string
+		reason       string
 	}{
-		"an unread base shortened, its dash kept": {map[string]string{"big.md": big}, map[string]string{"big.md": short}, nil, true},
-		"beside it, a new file with a dash": {
-			map[string]string{"big.md": big}, map[string]string{"big.md": short, "new.md": "a " + dash + " b\n"}, []string{"new.md"}, true,
+		"an unread base shortened, its dash kept": {
+			base: at("big.md", big), staged: at("big.md", short), check: "text.dashes", unread: []string{"big.md"}, reason: "compare with the base: read big.md",
 		},
-		"a readable base shortened, its dash kept": {map[string]string{"big.md": short + "three\n"}, map[string]string{"big.md": short}, nil, false},
+		"beside it, a new file with a dash": {
+			base: at("big.md", big), staged: map[string]string{"big.md": short, "new.md": "a " + dash + " b\n"}, check: "text.dashes",
+			want: []string{"new.md"}, unread: []string{"big.md"}, reason: "compare with the base: read big.md",
+		},
+		"a readable base shortened, its dash kept": {base: at("big.md", short+"three\n"), staged: at("big.md", short), check: "text.dashes"},
+		"beside it, a staged file over the bound": {
+			base: at("big.md", big), staged: map[string]string{"big.md": short, "huge.md": big}, check: "text.dashes",
+			unread: []string{"big.md", "huge.md"}, reason: "read huge.md",
+		},
+		"an unread base moved and shortened, its dash kept": {
+			base: at("big.md", big), moved: [2]string{"big.md", "docs/big.md"}, staged: at("docs/big.md", short+strings.Repeat("a\n", model.MaxReadBytes/2-64)),
+			check: "text.dashes", unread: []string{"docs/big.md"}, reason: "compare with the base: read big.md",
+		},
+		"a credential beside an unread base file": {
+			base: field, staged: shortened, check: "goast.secret-fields", unread: []string{"p/z.go"}, reason: "compare with the base: read p/z.go",
+		},
+		"beside them, a new file with a credential": {
+			base: field, staged: beside, check: "goast.secret-fields", want: []string{"p/b.go"}, unread: []string{"p/z.go"}, reason: "compare with the base: read p/z.go",
+		},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			r := gittest.New(t)
 			r.Commit("docs: base", tc.base)
+			if tc.moved[0] != "" {
+				r.StageRename(tc.moved[0], tc.moved[1])
+			}
 			r.Stage(tc.staged)
 			res := scan(t, r, source.IndexOptions{})
 			if got := findingPaths(res.Decision); !slices.Equal(got, tc.want) {
 				t.Errorf("findings at %v, want %v", got, tc.want)
 			}
-			held := slices.ContainsFunc(res.Decision.Unmeasured, func(u engine.Unmeasured) bool {
-				return u.Check == "text.dashes" && strings.Contains(u.Reason, "big.md")
-			})
-			if held != tc.unmeasured {
-				t.Errorf("text.dashes held back = %v, want %v: %+v", held, tc.unmeasured, res.Decision.Unmeasured)
+			got := outcomeOf(t, res, tc.check)
+			unread, measured := slices.Sorted(slices.Values(got.Unread)), got.Status.Kind == model.StatusMeasured
+			if !slices.Equal(unread, tc.unread) || measured != (tc.reason == "") || !strings.Contains(got.Status.Reason, tc.reason) {
+				t.Errorf("%s: status %+v, unread %v; want unread %v and a reason with %q", tc.check, got.Status, unread, tc.unread, tc.reason)
 			}
 		})
+	}
+}
+
+// outcomeOf is the result of one check in the run of a staged scan.
+func outcomeOf(t *testing.T, res stage.Result, check string) model.Result {
+	t.Helper()
+	for i := range res.Run.Outcomes {
+		if res.Run.Outcomes[i].Spec.ID == check {
+			return res.Run.Outcomes[i].Result
+		}
+	}
+	t.Fatalf("no outcome of %s", check)
+	return model.Result{}
+}
+
+// stopped is a check that stops over the tree of a commit and finds every
+// target of the index, so the base of a staged scan stops for another
+// reason than the read bound.
+type stopped struct{}
+
+func (stopped) Spec() model.Spec {
+	return model.Spec{ID: "probe.stopped", Rule: "rules/1@1", Scope: model.ScopeFile, Owner: model.OwnerCore, Proof: "probe.stopped"}
+}
+
+func (stopped) Run(_ context.Context, in model.Input) (model.Result, error) {
+	if _, base := in.Snapshot.(*source.Revision); base {
+		return model.Result{Status: model.Unmeasured("the base stopped")}, nil
+	}
+	findings := make([]model.Finding, 0, len(in.Targets))
+	for _, f := range in.Targets {
+		findings = append(findings, model.Finding{Path: f.Path, Code: "probe", Message: "found", Severity: model.SeverityDeny})
+	}
+	return model.Result{Status: model.Measured(), Findings: findings}, nil
+}
+
+// A base that stopped before it measured disproves no finding, so every
+// finding of the check is held back and the check stays unmeasured with
+// the reason of the base.
+func TestScanHoldsBackWhatABaseThatStoppedCannotDisprove(t *testing.T) {
+	t.Parallel()
+	builder := engine.New()
+	if err := builder.Register(stopped{}); err != nil {
+		t.Fatal(err)
+	}
+	registry, err := builder.Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := gittest.New(t)
+	r.Commit("docs: base", map[string]string{"a.md": "a\n"})
+	r.Stage(map[string]string{"a.md": "b\n", "new.md": "c\n"})
+	in := input(t, r, source.IndexOptions{})
+	in.Registry = registry
+	res, err := stage.Scan(t.Context(), in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unmeasured := res.Decision.Unmeasured
+	if got := findingPaths(res.Decision); len(got) != 0 || len(unmeasured) != 1 || unmeasured[0].Reason != "compare with the base: the base stopped" {
+		t.Errorf("findings at %v, unmeasured %+v", got, unmeasured)
 	}
 }
 
