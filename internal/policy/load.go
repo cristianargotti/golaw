@@ -57,8 +57,14 @@ type Input struct {
 	// Uncommitted is set by the hook: while HEAD holds no golaw.yml yet,
 	// the policy in force is the enrolled one the index or the checkout
 	// holds, when its bytes mean the policy the record enrolled, so an
-	// agent works in a repository init --apply just enrolled.
+	// agent works in a repository init --apply just enrolled. Expected
+	// ignores it, because a pipeline enrolls the policy HEAD holds.
 	Uncommitted bool
+	// Expected, when set, is the enrollment CI provisions (A3): the state
+	// directory is not consulted, the location is enrolled with these
+	// digests, a HEAD without golaw.yml is ErrEnrollment and a digest that
+	// differs is ErrEnrollment naming both digests.
+	Expected *Expected
 }
 
 // Loaded is the policy in force with everything config explain reports.
@@ -72,6 +78,7 @@ type Loaded struct {
 	Stamp   *Stamp
 	Schemas Schemas // the option schemas of the catalog, whose defaults explain lists
 	git     *reads  // the answers git gave about golaw.yml, each asked once
+	expect  bool    // the record is the enrollment the pipeline provisions (Input.Expected)
 }
 
 // Load establishes the policy in force for a directory: the enrollment
@@ -82,12 +89,12 @@ type Loaded struct {
 // breaks the schema or the floors is ErrPolicy; an unenrolled repository
 // without golaw.yml gets the core defaults.
 func Load(ctx context.Context, in Input) (*Loaded, error) {
-	loc, err := Locate(ctx, in.Dirs.State, in.Dir, in.Discover)
+	loc, err := in.locate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas}
-	data, err := l.inForce(ctx, in.Uncommitted)
+	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas, expect: in.Expected != nil}
+	data, err := l.inForce(ctx, in.Uncommitted && in.Expected == nil)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +185,9 @@ func (l *Loaded) enroll(reenroll bool, schemas Schemas) error {
 	}
 	if l.Record.PolicyDigest != l.Policy.Digest || l.Record.ProfileDigest != profile {
 		l.Policy.Enrollment.State = model.EnrollmentMismatch
+		if l.expect {
+			return l.unexpected(profile)
+		}
 		if reenroll {
 			return CheckReenrollment(*l.Record, l.File, schemas)
 		}
@@ -224,22 +234,7 @@ func Propose(ctx context.Context, inForce *Loaded, schemas Schemas) (Proposal, e
 	if staged.err != nil || !staged.found {
 		return Proposal{}, staged.err
 	}
-	next, err := Decode(staged.data)
-	if err != nil {
-		return Proposal{Staged: true}, err
-	}
-	if err := next.Validate(schemas); err != nil {
-		return Proposal{Staged: true}, err
-	}
-	if Digest(next) == inForce.Policy.Digest {
-		return Proposal{Staged: true}, nil
-	}
-	if inForce.Origin != OriginCore {
-		if err := CheckTightening(inForce.File, next, schemas); err != nil {
-			return Proposal{Staged: true}, err
-		}
-	}
-	return Proposal{File: next, Found: true, Staged: true}, nil
+	return inForce.judge(staged.data, schemas)
 }
 
 // reads is the memo of the git answers about golaw.yml under the root,
