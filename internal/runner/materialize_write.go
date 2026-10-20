@@ -80,6 +80,13 @@ func writeTreeBlob(ctx context.Context, root *os.Root, reader io.Reader, entry t
 		mode = treeExecutableMode
 	}
 	file, err := root.OpenFile(entry.path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	// The tree is new and the index names each path once, so a name that
+	// already exists is an earlier entry the host stores under the same name,
+	// as one that folds case or Unicode forms does: the host cannot hold the
+	// copy, which leaves the commit unjudged rather than refused.
+	if errors.Is(err, os.ErrExist) {
+		return fmt.Errorf("%w: the host folds tree file %q onto an earlier entry: %w", model.ErrCannotJudge, entry.path, err)
+	}
 	if err != nil {
 		return fmt.Errorf("create tree file %q: %w", entry.path, err)
 	}

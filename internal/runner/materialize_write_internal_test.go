@@ -123,7 +123,7 @@ func TestTreePayloadPreservesFilesAndGitlinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	entry := treeEntry{path: "value", mode: "100755", size: 3}
-	if err := writeTreeBlob(t.Context(), root, strings.NewReader("new"), entry, copyTreeBlob); !errors.Is(err, os.ErrExist) {
+	if err := writeTreeBlob(t.Context(), root, strings.NewReader("new"), entry, copyTreeBlob); !errors.Is(err, os.ErrExist) || !errors.Is(err, model.ErrCannotJudge) {
 		t.Fatalf("existing destination = %v", err)
 	}
 	entry.path = "executable"
@@ -172,5 +172,63 @@ func TestMaterializeRejectsInvalidBoundsBeforeCreatingResources(t *testing.T) {
 	var dst bytes.Buffer
 	if err := copyTreeBlob(t.Context(), &dst, strings.NewReader(""), 0); err != nil || dst.Len() != 0 {
 		t.Fatalf("empty blob = %v, %v", dst.Bytes(), err)
+	}
+}
+
+// TestMaterializeLeavesPathsTheHostFoldsUnjudged stages two paths that
+// differ only by case, which a host that folds case stores under one name.
+func TestMaterializeLeavesPathsTheHostFoldsUnjudged(t *testing.T) {
+	t.Parallel()
+	names := []string{"A.txt", "a.txt"}
+	repo := gittest.New(t)
+	for _, name := range names {
+		repo.Write("source.txt", name+"\n")
+		blob := repo.Git("hash-object", "-w", "--", "source.txt")
+		repo.Git("update-index", "--add", "--cacheinfo", "100644", blob, name)
+	}
+	parent := t.TempDir()
+	tree, err := Materialize(t.Context(), MaterializeInput{
+		Dir: repo.Root, Env: gittest.Isolated(), Parent: parent, Bounds: DefaultBounds(),
+	})
+	if !hostFoldsCase(t) {
+		requireTreeFiles(t, tree, err, names)
+		return
+	}
+	if tree != nil || !errors.Is(err, model.ErrCannotJudge) ||
+		!strings.Contains(err.Error(), `"a.txt"`) || !strings.Contains(err.Error(), "folds") {
+		t.Fatalf("folded paths = %v, %v", tree, err)
+	}
+	if entries, readErr := os.ReadDir(parent); readErr != nil || len(entries) != 0 {
+		t.Fatalf("resources remain: %v, %v", entries, readErr)
+	}
+}
+
+// hostFoldsCase reports whether the temporary directory finds a file under
+// a name that differs from its own only by case.
+func hostFoldsCase(t *testing.T) bool {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "A.txt"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := os.Lstat(filepath.Join(dir, "a.txt"))
+	return err == nil
+}
+
+// requireTreeFiles requires every named file of the tree to hold its own
+// name, and the tree to close.
+func requireTreeFiles(t *testing.T, tree *Tree, err error, names []string) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		data, readErr := os.ReadFile(filepath.Join(tree.Dir, name))
+		if readErr != nil || string(data) != name+"\n" {
+			t.Fatalf("%s = %q, %v", name, data, readErr)
+		}
+	}
+	if closeErr := tree.Close(); closeErr != nil {
+		t.Fatal(closeErr)
 	}
 }
