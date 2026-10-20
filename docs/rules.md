@@ -1,6 +1,6 @@
-# M1 rules
+# Rules
 
-golaw separates measurable rules from engineering judgment. The production registry and internal/proof/manifest.yml identify the checks delivered by M1. Every registered check has a red fixture and a near miss.
+golaw separates measurable rules from engineering judgment. The production registry and internal/proof/manifest.yml identify the checks delivered by M1 and M2. Every registered check has a red fixture and a near miss.
 
 ## Prose mapping
 
@@ -42,6 +42,32 @@ The goast family judges Go files through the parsed syntax tree, after the capab
 | goast.sonar-empty-body | A function body with no statement and no comment (S1186) |
 | goast.sonar-literal-repeat | A literal repeated in one file (S1192) |
 | goast.sonar-identical-functions | Two functions of one file with the same body (S4144) |
+
+## Commit checks
+
+The commits family applies rule `rules/4.12@1` to the message file and staged changes at the optional commit-msg rung. The shell family retains the same rule for supported agent commands.
+
+| Check | What it refuses |
+| --- | --- |
+| commit.conventional | A subject without a recognized conventional type, an optional scope and breaking-change marker, then a colon, a space and a description starting with a lowercase ASCII letter |
+| commit.no-trailers | A trailer of any kind in the recorded message |
+| commit.no-dashes | An em dash or en dash in the recorded subject or body |
+| commit.body-width | A recorded body line longer than 100 Unicode characters |
+| commit.shape | A commit other than feat adding more than 40 new files or 400 new lines |
+
+The conventional types are `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `ci`, `perf`, `style` and `revert`. Recognized Git-generated merge, revert and reapply subjects are exempt from commit.conventional and commit.shape. The other message checks still apply. Autosquash prefixes `fixup! `, `squash! ` and `amend! ` are removed before the underlying subject and type are judged.
+
+The checks judge the message after Git cleanup. The rung reads `commit.cleanup` and the configured comment character or string. Default cleanup strips comments when an editor was used and retains them when Git disables the editor. Strip cleanup removes comments and excess whitespace; whitespace and scissors cleanup retain comments; verbatim retains the remaining bytes. The scissors separator and the text below it are excluded. Under strip cleanup with an ambiguous automatic comment choice, possible comment lines remain unjudged rather than causing a false denial.
+
+The body begins after the first nonblank subject line. A body line of exactly 100 characters passes; 101 fails. A trailing carriage return does not add a character. The shape boundaries are inclusive: 40 new files and 400 new lines pass. Modified, renamed and deleted files are not new files. A `feat` commit is exempt from both shape limits, and paths brought by a merge are excluded before the changes reach commit.shape.
+
+commit.author-noreply is deferred: M2 never infers that a repository is public.
+
+M2 does not add a remote commit-range message gate.
+
+Migration, API and generation rung tools arrive with the M3 templates.
+
+## Repository laws
 
 Files contain at most 300 lines. Functions contain at most 40 lines under funlen semantics, with comments ignored. Tests retain the file limit and lose the function limit.
 

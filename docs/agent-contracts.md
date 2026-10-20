@@ -79,6 +79,26 @@ claude plugin validate --strict is a required row. claude plugin test is the hos
 
 Offline acceptance proves the adapter and installed invocation. Only a live record proves dispatch, trust behavior, host failure behavior, and resulting target state.
 
+## M2 rung assurance
+
+M2 rung acceptance runs on Linux, macOS and Windows. This is the required native CI contract; the [M2 acceptance record](acceptance/m2.md) lists execution status and retained evidence for each system. Local simulated tests do not establish native M2 success or latency. Windows rung CI evidence does not establish live agent enforcement. The agent evidence and limitations above remain in force.
+
+Required rung rows must pass; SKIP never counts as PASS. The windows-shell-only row is required on native Windows and is an optional SKIP on Linux and macOS. Every other functional row remains required on all three systems. Each result records its category, Git identity and version, operating system, candidate binary digest, status and requiredness; a failed case remains in the report while the remaining cases run.
+
+| Evidence path | What a successful execution establishes |
+| --- | --- |
+| Direct binary rows | The candidate's staged scan, initialization, setup, doctor and direct hook commands answer the staged-state, lifecycle, optional-switch and exact-version cases. Direct hook calls exercise the binary entry point. |
+| Installed-hook rows | The installed pre-commit, commit-msg and pre-push scripts route to the candidate with the tested inputs. The receipt, hook artifact hashes and effective hook directory are checked before invocation. |
+| Synthetic advisory cases | The pinned real govulncheck reads a local fixture database through the scanner proxy. A reachable synthetic advisory and its clean control exercise scanner and rung behavior without depending on a newly published advisory. |
+| Simulated harness tests | Independent injected replies exercise collection, preparation, evidence judgments and rejection of corrupt or failed execution. They establish no actual pinned-tool execution or timing. |
+| Live-database timings | A completed scheduled or manual m2-live run records the scanner's real database source and any reported timestamp, measured outcomes and latency. Its live data stays outside the required pull request lane. |
+
+The installed-rung rows invoke the installed git hook routing. They execute the installed script with the message arguments or push input its rung receives; they do not substitute a direct golaw hook call for that routing. The direct and installed contention observations are also kept separate. The required m2 lane measures the push rung against the fixture database. A simulated tool result proves the harness path, not real tool latency.
+
+The following Windows requirements describe what a successful native row must demonstrate. With Git's shell as the only shell on the constrained PATH, the Windows row proves that the rungs never start make, awk or tar. Each name resolves to its recorder in the same shell before the rungs run, and all recorder logs remain empty afterward. Resolution to another program fails the row. All three installed hooks must succeed, and any recorder invocation fails the row. This establishes non-use in that execution; it makes no claim that those programs are absent from the machine.
+
+Functional acceptance runs through go run ./tools/acceptance -m2. The separate gated measurement test publishes native logs and job summaries; release acceptance adds the functional M2 rows to its M1 requirements without rerunning measurements. An unexecuted system remains not run, and a failed measurement attempt remains Unmeasured with its reason. Only retained native output with the completion marker can establish a completed measurement attempt. Rung execution supplies no new evidence of an agent host's dispatch, trust or failure handling.
+
 ## Live record: 2026-10-14
 
 Host: Claude Code 2.1.299 on macOS. The daily denials of 2026-10-14 came from the predecessor guard during normal use.
