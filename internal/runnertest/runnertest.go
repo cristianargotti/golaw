@@ -137,7 +137,9 @@ func complain(stderr io.Writer, what string, err error) {
 	}
 }
 
-// record appends the arguments of one call as a JSON line.
+// record appends one JSON line per call, because every start of a fake is
+// a process of its own and only an append keeps each call, in order, for
+// the test that reads them.
 func record(base string, args []string) error {
 	line, err := json.Marshal(args)
 	if err != nil {

@@ -90,12 +90,17 @@ func Verify(ctx context.Context, t Tool, env []string) (string, error) {
 	return path, nil
 }
 
-// versionRune reports whether a rune belongs to a version token.
+// versionRune draws the tokens Matches compares: letters, digits, dots,
+// hyphens and plus signs stay inside one, so "2.14.0-rc1" and "12.14.0"
+// never read as the pin 2.14.0, and any other rune, the @ of
+// "govulncheck@v1.7.0" among them, cuts the version out of its token.
 func versionRune(r rune) bool {
 	return r == '.' || r == '-' || r == '+' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 
-// firstLine is the first line a probe printed, on stdout or else on stderr.
+// firstLine is what the refusal of Verify quotes: a probe that fails says
+// why on stderr and often prints nothing on stdout, so stderr stands in for
+// an empty stdout, and one line keeps the reason short.
 func firstLine(out Output) string {
 	text := strings.TrimSpace(string(out.Stdout))
 	if text == "" {
