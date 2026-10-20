@@ -65,3 +65,22 @@ func (h hookBinding) remergedWith(ctx context.Context, repo hook.Repository, mer
 	}
 	return remerged, nil
 }
+
+// conflicts is the bytes the merge git makes of two commits with the
+// strategy options of the command and each commit hold at each path, in one
+// git merge-tree and one git cat-file.
+func (h hookBinding) conflicts(ctx context.Context, repo hook.Repository, ours, theirs string, options, paths []string) (map[string]hook.Conflict, error) {
+	found, err := h.cache.Discover(ctx, repo.Root)
+	if err != nil {
+		return nil, discoverFailed(repo.Root, err)
+	}
+	read, err := source.Conflicts(ctx, found, ours, theirs, options, paths)
+	if err != nil {
+		return nil, fmt.Errorf("read the conflicts of %s and %s in %s: %w", ours, theirs, found.Root, err)
+	}
+	conflicts := make(map[string]hook.Conflict, len(read))
+	for path, conflict := range read {
+		conflicts[path] = hook.Conflict{Merged: conflict.Merged, Theirs: conflict.Theirs, Ours: conflict.Ours}
+	}
+	return conflicts, nil
+}

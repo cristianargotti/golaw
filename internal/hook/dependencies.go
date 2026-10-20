@@ -51,6 +51,9 @@ type Repository struct {
 // git makes with the strategy options the command text gave, and
 // RemergedWith as Remerged for the merges of the command made again with
 // them, each asked only for the paths the merge without them leaves apart.
+// Conflicts answers, for the merge a command started and left in progress,
+// the bytes the merge git makes with those options and the merged commit
+// hold at each path git left unmerged.
 type Dependencies struct {
 	Home      string
 	Begin     func()
@@ -71,6 +74,7 @@ type Dependencies struct {
 
 	AutomaticWith func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string][]string, error)
 	RemergedWith  func(ctx context.Context, repository Repository, merges, options []string) (map[string][]string, error)
+	Conflicts     func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string]Conflict, error)
 }
 
 // Commit is a commit git log named between two HEADs: its name, its

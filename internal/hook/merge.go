@@ -9,8 +9,10 @@ import (
 // fromMerge leaves out of what a command changed what git wrote for it.
 // A path git left unmerged that git status did not name before the command
 // holds the conflict git wrote from both sides, so it is a gap until the
-// event that writes its resolution judges it. When the command started a
-// merge it left in progress, MERGE_HEAD present after it and not before, a
+// event that writes its resolution judges it, unless the command started
+// the merge and wrote bytes of its own there (resolutions). When the
+// command started a merge it left in progress, MERGE_HEAD present after it
+// and not before, a
 // path staged with its bytes on disk whose staged blob is the one the merge
 // git makes by itself holds there, with the strategy options the command
 // text gave when the merge without them leaves it, or the one the merged
@@ -32,8 +34,8 @@ func (run execution) fromMerge(ctx context.Context, dependencies Dependencies, b
 			staged = append(staged, path)
 		}
 	}
-	changed = slices.DeleteFunc(changed, among(unmerged))
-	gaps := pathGaps(unmerged, causeUnmerged)
+	written, gaps := run.resolutions(ctx, dependencies, before, changes, unmerged)
+	changed = slices.DeleteFunc(changed, func(path string) bool { return slices.Contains(unmerged, path) && !slices.Contains(written, path) })
 	if changes.Merge == "" || changes.Merge == before.Merge || len(staged) == 0 {
 		return changed, gaps
 	}
