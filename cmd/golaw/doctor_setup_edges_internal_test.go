@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/doctor"
+	"github.com/cristianargotti/golaw/internal/gittest"
 	"github.com/cristianargotti/golaw/internal/policy"
 )
 
@@ -37,7 +38,7 @@ func TestSetupLinesCopySpareCapacityAndReportHeaders(t *testing.T) {
 func TestSetupDoctorKeepsAnUnarmedCheckoutOptional(t *testing.T) {
 	t.Parallel()
 	b, _ := testBinding(t)
-	root := t.TempDir()
+	root := gittest.New(t).Root
 	for _, configured := range []bool{false, true} {
 		if configured {
 			data := strings.Replace(string(renderedPolicy(t)),
@@ -51,6 +52,36 @@ func TestSetupDoctorKeepsAnUnarmedCheckoutOptional(t *testing.T) {
 		if err != nil || len(lines) != 1 || lines[0].ID != "doctor.setup-receipt" || lines[0].State != "not-armed" {
 			t.Fatalf("unarmed checkout, policy present %t: %+v, %v", configured, lines, err)
 		}
+	}
+}
+
+// Setup refuses a directory outside git, so doctor names no setup line
+// there, and no policy is in force to name a managed file.
+func TestDoctorLeavesRepositoryLinesOutsideGit(t *testing.T) {
+	t.Parallel()
+	for _, asJSON := range []bool{false, true} {
+		t.Run(map[bool]string{false: "text", true: "json"}[asJSON], func(t *testing.T) {
+			t.Parallel()
+			ta, _ := doctorApp(t)
+			ta.discover = ta.bind().discover
+			root := t.TempDir()
+			writeFiles(t, root, map[string]string{
+				policy.FileName: managedDoctorPolicy(t, "recorded\n"),
+				"golaw.mk":      "edited\n",
+			})
+			args := []string{"doctor", root}
+			if asJSON {
+				args = append(args, "--json")
+			}
+			if code := ta.run(t.Context(), args); code != exitClean || ta.stderr.Len() != 0 {
+				t.Fatalf("outside git: exit = %d, stderr = %q", code, ta.stderr.String())
+			}
+			out := ta.stdout.String()
+			if !strings.Contains(out, "doctor.plugin") || strings.Contains(out, "doctor.setup-") ||
+				strings.Contains(out, "doctor.managed") {
+				t.Fatalf("outside git the report names repository lines: %q", out)
+			}
+		})
 	}
 }
 

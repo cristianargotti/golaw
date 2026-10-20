@@ -35,18 +35,20 @@ func (a *app) doctorCommand() *cobra.Command {
 
 // doctor collects and prints one report per agent. Outside git the real
 // path of the argument stands for the repository, so the installed
-// artifacts are still reported.
+// artifacts are still reported, and the lines of a repository are left
+// out.
 func (a *app) doctor(ctx context.Context, out io.Writer, path, scope string, asJSON bool) error {
 	if scope != scopeUser && scope != scopeProject {
 		return doctorFailed(fmt.Errorf("%w: --scope must be %s or %s", model.ErrUsage, scopeUser, scopeProject))
 	}
 	root, err := a.discover(ctx, path)
+	repository := err == nil
 	if err != nil {
 		if root, err = filepath.Abs(path); err != nil {
 			return doctorFailed(fmt.Errorf("resolve %s: %w", path, err))
 		}
 	}
-	reports, err := a.doctorReports(ctx, root, scope)
+	reports, err := a.doctorReports(ctx, root, scope, repository)
 	if err != nil {
 		return doctorFailed(err)
 	}

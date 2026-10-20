@@ -18,7 +18,7 @@ func withSetupLines(reports []doctor.Report, lines []doctor.Line) []doctor.Repor
 	return out
 }
 
-func (a *app) doctorReports(ctx context.Context, root, scope string) ([]doctor.Report, error) {
+func (a *app) doctorReports(ctx context.Context, root, scope string, repository bool) ([]doctor.Report, error) {
 	reports := make([]doctor.Report, 0, len(agents.All()))
 	for _, agent := range agents.All() {
 		report, err := a.doctorReport(ctx, agent, root, scope, a.now())
@@ -26,6 +26,11 @@ func (a *app) doctorReports(ctx context.Context, root, scope string) ([]doctor.R
 			return nil, err
 		}
 		reports = append(reports, report)
+	}
+	// Setup refuses a directory outside git, so a setup line there would
+	// name a fix that cannot work, and no policy is in force there.
+	if !repository {
+		return reports, nil
 	}
 	lines, err := a.bind().setupDoctor(ctx, root)
 	if err != nil {
