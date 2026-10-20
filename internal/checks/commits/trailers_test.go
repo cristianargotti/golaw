@@ -17,6 +17,10 @@ const (
 	marker   = "Gener" + "ated with [a tool](https://example.com)"
 )
 
+// robot is the emoji a tool writes in front of the marker of a generated
+// commit.
+const robot = "\U0001F916"
+
 func TestNoTrailersReadsTheTrailersOfTheLaw(t *testing.T) {
 	t.Parallel()
 	denies(t, commits.NoTrailers(), "trailer", map[string]bool{
@@ -30,6 +34,14 @@ func TestNoTrailersReadsTheTrailersOfTheLaw(t *testing.T) {
 		"fix: x\n\nreviewed by someone, thanks\n":                   false,
 		"fix: keep the reader\n":                                    false,
 		"":                                                          false,
+
+		// A tool writes its marker as a line of its own, with nothing but
+		// white space or an emoji in front of it; the same words with a link
+		// inside a sentence or after a list bullet are prose.
+		"fix: x\n\n" + robot + " " + marker + "\n":                                       true,
+		"docs: describe sources gener" + "ated with [protoc](https://example.com)\n":     false,
+		"fix: x\n\nthe sources are gener" + "ated with [protoc](https://example.com).\n": false,
+		"fix: x\n\n- " + marker + "\n":                                                   false,
 	})
 }
 
@@ -70,6 +82,10 @@ func TestNoTrailersNamesEveryTrailerLineOnce(t *testing.T) {
 			t.Errorf("finding %d = %+v, want line %d naming %s", i, f, want.line, want.key)
 		}
 	}
+	led := judge(t, commits.NoTrailers(), "fix: x\n\n"+robot+" "+marker+"\n")
+	if len(led.Findings) != 1 || !strings.Contains(led.Findings[0].Message, "(Gener"+"ated with)") {
+		t.Errorf("the marker after its emoji = %+v, want it named without the emoji", led.Findings)
+	}
 }
 
 func TestNoTrailersSkipsTheCommentsOfItsCommentString(t *testing.T) {
@@ -92,6 +108,7 @@ func TestTrailersAgreeWithTheShellFamily(t *testing.T) {
 		{"fix: x", coAuthor}:                      true,
 		{"fix: x", signOff}:                       true,
 		{"fix: x", marker}:                        true,
+		{"fix: x", robot + " " + marker}:          true,
 		{"fix: x", "reviewed by someone, thanks"}: false,
 		{"fix: keep the reader", ""}:              false,
 	})
@@ -102,9 +119,13 @@ func TestTrailersAgreeWithTheShellFamily(t *testing.T) {
 // so it leaves a phrase in prose alone and refuses a trailer of any key.
 func TestTrailersGoBeyondTheShellFamilyByDesign(t *testing.T) {
 	t.Parallel()
-	prose := message{"fix: refresh the mocks gener" + "ated with mockery", ""}
-	if !shellFinds(t, shell.Trailers(), "trailer", prose) || commitFinds(t, commits.NoTrailers(), "trailer", prose) {
-		t.Error("a trailer phrase in prose: the shell family denies it, the commit rung does not")
+	for _, prose := range []message{
+		{"fix: refresh the mocks gener" + "ated with mockery", ""},
+		{"docs: describe sources gener" + "ated with [protoc](https://example.com)", ""},
+	} {
+		if !shellFinds(t, shell.Trailers(), "trailer", prose) || commitFinds(t, commits.NoTrailers(), "trailer", prose) {
+			t.Errorf("%q: a trailer phrase in prose: the shell family denies it, the commit rung does not", prose.subject)
+		}
 	}
 	review := message{"fix: x", "Reviewed-by: a"}
 	if shellFinds(t, shell.Trailers(), "trailer", review) || !commitFinds(t, commits.NoTrailers(), "trailer", review) {
