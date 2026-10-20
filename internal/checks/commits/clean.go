@@ -36,8 +36,8 @@ func Clean(c model.Commit) string {
 	}
 }
 
-// commentOf is the comment string of a commit, the default of git when the
-// commit names none.
+// commentOf answers the default of git for a commit that names no comment
+// string, because git cleaned that message with the default.
 func commentOf(c model.Commit) string {
 	if c.CommentChar == "" {
 		return model.DefaultCommentChar

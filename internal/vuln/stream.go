@@ -60,8 +60,9 @@ func Scanner(r io.Reader) (string, error) {
 	return version, err
 }
 
-// read decodes the whole stream: the scanner version of its config message
-// and the reachable advisories.
+// read decodes the stream to its end, because a stream cut short or one
+// without the config message govulncheck writes first comes from no
+// complete scan and must never read as clean.
 func read(r io.Reader) (string, []Finding, error) {
 	version, configured := "", false
 	byID := map[string]Finding{}

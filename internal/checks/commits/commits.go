@@ -24,14 +24,16 @@ func Checks() []model.Check {
 	return []model.Check{Conventional(), NoTrailers(), NoDashes(), BodyWidth(), Shape()}
 }
 
-// spec builds the specification of a commit check: commit scope, the core
-// owner, the commit rule and the proof key equal to the id.
+// spec gives a check of the family the commit scope, so the engine runs it
+// only at the commit rung and never in a scan or an agent hook, and its id
+// as the proof key, which names the manifest entry of its fixtures.
 func spec(id string) model.Spec {
 	return model.Spec{ID: id, Rule: commitRule, Scope: model.ScopeCommit, Owner: model.OwnerCore, Proof: id}
 }
 
-// messageRule is a check over the message git records, handed the comment
-// string the message was cleaned with.
+// messageRule is a check over the message git records. Its judge also gets
+// the comment string, because a cleanup that keeps the comment lines leaves
+// them in the message and git reads the trailers past them.
 type messageRule struct {
 	spec  model.Spec
 	judge func(message, comment string) []model.Finding
@@ -39,7 +41,8 @@ type messageRule struct {
 
 func (r messageRule) Spec() model.Spec { return r.spec }
 
-// Run judges the message the commit records.
+// Run judges the message as git cleans it after the hook, because the log
+// records that message and not the file the hook read.
 func (r messageRule) Run(_ context.Context, in model.Input) (model.Result, error) {
 	if in.Commit == nil {
 		return model.Result{Status: model.NotApplicable(noCommit)}, nil

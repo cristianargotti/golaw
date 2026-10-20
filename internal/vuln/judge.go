@@ -38,7 +38,8 @@ func Expired(waivers []model.Waiver, now time.Time) []model.Waiver {
 	return out
 }
 
-// waived reports whether a waiver of the advisory is in force.
+// waived holds an advisory while any entry of its id is in force, so an
+// entry that extends a waiver keeps it waived beside the one that lapsed.
 func waived(waivers []model.Waiver, id string, now time.Time) bool {
 	for _, w := range waivers {
 		if w.ID == id && inForce(w, now) {

@@ -15,8 +15,9 @@ const (
 	gitlinkMode = "160000"
 )
 
-// newLines counts the lines the changes bring and answers aside the files
-// over the read bound, whose lines it could not count.
+// newLines counts the lines the changes bring. A file over the read bound
+// is answered aside as unread instead of refused, because its lines cannot
+// be counted with certainty.
 func newLines(s model.Snapshot, changes []model.Change) (int, []string, error) {
 	total := 0
 	var unread []string

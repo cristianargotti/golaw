@@ -9,8 +9,8 @@ import (
 	"github.com/cristianargotti/golaw/internal/report"
 )
 
-// armed is a rung the gate let through: the policy in force and the ladder
-// that armed it.
+// armed hands the rung the policy and the ladder the gate read, so the
+// rung judges with the very ones that armed it.
 type armed struct {
 	loaded *policy.Loaded
 	ladder model.Ladder
@@ -45,7 +45,8 @@ func gate(ctx context.Context, deps Dependencies, name string) (armed, Outcome, 
 	return armed{loaded: loaded, ladder: ladder}, Outcome{}, true
 }
 
-// on reports whether the ladder arms the rung of the name.
+// on reads the switch of the named rung; a name the ladder does not know
+// is off, so it never runs.
 func on(ladder model.Ladder, name string) bool {
 	switch name {
 	case PreCommit:
@@ -59,14 +60,15 @@ func on(ladder model.Ladder, name string) bool {
 	}
 }
 
-// failed is the outcome of a rung that could not judge: the failure code,
-// the English reason after the name of the rung, and the line in the
-// language of the policy that points at it.
+// failed refuses with the failure code when a rung could not judge: the
+// English reason first, for the person and the agent alike, then one line
+// in the language of the policy that points the person at it.
 func failed(name, language string, err error) Outcome {
 	return Outcome{Code: codeFailure, Lines: []string{prefix(name) + err.Error(), refused(language, name)}}
 }
 
-// prefix starts every line a rung writes itself.
+// prefix starts every line a rung writes itself, so a person tells its
+// lines apart from the output of the tools it runs.
 func prefix(name string) string {
 	return "golaw " + name + ": "
 }

@@ -28,7 +28,8 @@ func Shape() model.Check {
 	return shapeRule{spec: spec("commit.shape")}
 }
 
-// shapeRule measures the staged changes of a commit.
+// shapeRule is no message rule, because it reads the staged changes and
+// their blobs, which a message rule never sees.
 type shapeRule struct {
 	spec model.Spec
 }
@@ -63,8 +64,9 @@ func (r shapeRule) Run(_ context.Context, in model.Input) (model.Result, error) 
 	return res, nil
 }
 
-// commitKind answers the conventional type of the subject, empty for a
-// subject without one, and whether the law leaves the message alone.
+// commitKind answers the type of the subject, empty for a subject without
+// one, which is no feat and so keeps to the limits, and whether the law
+// leaves the message alone.
 func commitKind(message string) (string, bool) {
 	_, subject, exempt := subjectOf(lines(message))
 	if exempt {

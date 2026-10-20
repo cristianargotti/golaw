@@ -136,7 +136,8 @@ func (c *tally) read(line string) {
 	}
 }
 
-// block reports whether the paragraph is a trailer block.
+// block is the verdict of git on the paragraph: trailers alone, or a line
+// git writes itself among them and trailers for a quarter of its lines.
 func (c *tally) block() bool {
 	return (c.recognized && c.trailers*3 >= c.nonTrailers) || (c.trailers > 0 && c.nonTrailers == 0)
 }

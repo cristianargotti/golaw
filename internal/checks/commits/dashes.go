@@ -33,8 +33,8 @@ func judgeDashes(message, _ string) []model.Finding {
 	return out
 }
 
-// runeColumn answers the 1-based rune column of the first r of the line, 0
-// when the line holds none.
+// runeColumn counts runes, not bytes, so the column of a dash after a
+// letter outside ASCII is the one an editor shows; 0 when there is none.
 func runeColumn(line string, r rune) int {
 	i := strings.IndexRune(line, r)
 	if i < 0 {
