@@ -46,6 +46,7 @@ type suite struct {
 	m2              *m2Shared
 	m2OS            string
 	m2Prerequisites func(*suite, string, string) ([]string, error)
+	m2Timings       map[string]command
 }
 
 func newSuite(root, base string, execute executor, lookup locator) *suite {
