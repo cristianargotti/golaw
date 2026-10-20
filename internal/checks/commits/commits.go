@@ -21,7 +21,7 @@ const noCommit = "the commits family judges a commit"
 
 // Checks lists every check of the family in report order.
 func Checks() []model.Check {
-	return []model.Check{Conventional(), NoTrailers(), NoDashes()}
+	return []model.Check{Conventional(), NoTrailers(), NoDashes(), BodyWidth()}
 }
 
 // spec builds the specification of a commit check: commit scope, the core

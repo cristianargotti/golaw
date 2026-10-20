@@ -162,3 +162,7 @@ checks:
     code: em-dash
     red: testdata/commit.no-dashes/red
     near: testdata/commit.no-dashes/near
+  - id: commit.body-width
+    code: body-width
+    red: testdata/commit.body-width/red
+    near: testdata/commit.body-width/near
