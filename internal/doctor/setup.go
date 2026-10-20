@@ -94,6 +94,11 @@ func setupReceiptLines(facts SetupFacts) []Line {
 		line.Detail = "local hooks are optional; run golaw setup to arm them"
 	case setupPresent:
 		line.Detail = "setup receipt is present"
+		// The hooks find golaw through PATH, so a git client started with
+		// another PATH needs the path setup resolved to compare against.
+		if facts.Receipt.Golaw != "" {
+			line.Detail += "; setup recorded golaw at " + facts.Receipt.Golaw + ", and the armed hooks run golaw from PATH"
+		}
 	default:
 		line.State, line.Code = setupInvalid, "setup-receipt-invalid"
 		line.Detail = facts.ReceiptError + "; inspect the receipt, then run golaw setup again"
