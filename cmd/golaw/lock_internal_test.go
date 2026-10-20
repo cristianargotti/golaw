@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"io"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/gittest"
 	"github.com/cristianargotti/golaw/internal/model"
@@ -123,6 +125,32 @@ func TestLockedValidatesBeforeDiscoveringOrDerivingAPath(t *testing.T) {
 		if !errors.Is(err, model.ErrUsage) {
 			t.Fatalf("invalid command %q reached discovery: %v", args, err)
 		}
+	}
+}
+
+// The deadline passes RungWait, so a command that ends at the deadline was
+// still waiting where a rung would have failed fast (section 5.7).
+func TestLockedWaitsOnDemandPastTheRungWait(t *testing.T) {
+	t.Parallel()
+	deadline := runner.RungWait + time.Second
+	repo := gittest.New(t)
+	holdCommandLock(t, runner.LockPath(repo.GitDir(), "measure"))
+	dir := t.TempDir()
+	program := runnertest.Install(t, dir, "probe", runnertest.Behavior{
+		Probe: []string{"version"},
+	})
+	b := ladderApp(t).bind()
+	started := time.Now()
+	ctx, cancel := context.WithTimeout(t.Context(), deadline)
+	defer cancel()
+	_, err := b.locked(ctx, repo.Root, "measure",
+		[]string{program}, nil, io.Discard, io.Discard)
+	elapsed := time.Since(started)
+	if !errors.Is(err, context.DeadlineExceeded) || errors.Is(err, runner.ErrLocked) {
+		t.Fatalf("on-demand wait = %v, want the deadline before the lock gave up", err)
+	}
+	if calls := runnertest.Calls(t, dir, "probe"); elapsed < deadline || len(calls) != 0 {
+		t.Fatalf("waited %s of %s, calls = %v", elapsed, deadline, calls)
 	}
 }
 
