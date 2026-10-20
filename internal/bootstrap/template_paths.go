@@ -12,6 +12,30 @@ import (
 	"github.com/cristianargotti/golaw/internal/install"
 )
 
+// errIrregular marks a component of another file type than the
+// destination needs, such as a file where a directory must be.
+var errIrregular = fmt.Errorf("component of another file type: %w", install.ErrPath)
+
+// IrregularPaths names the destinations a symbolic link or a component of
+// another file type holds, so init leaves them as they are and goes on.
+func IrregularPaths(root string, paths []string) ([]string, error) {
+	resolved, err := templateRoot(root)
+	if err != nil {
+		return nil, err
+	}
+	var irregular []string
+	for _, name := range paths {
+		_, err := templatePath(resolved, name)
+		switch {
+		case errors.Is(err, ErrSymlink), errors.Is(err, errIrregular):
+			irregular = append(irregular, name)
+		case err != nil:
+			return nil, err
+		}
+	}
+	return irregular, nil
+}
+
 func templateRoot(root string) (string, error) {
 	absolute, err := filepath.Abs(root)
 	if err != nil {
@@ -61,7 +85,7 @@ func templateComponent(path, name string, parent bool) error {
 		return fmt.Errorf("bootstrap: template %q: %w", name, ErrSymlink)
 	}
 	if (parent && !info.IsDir()) || (!parent && !info.Mode().IsRegular()) {
-		return fmt.Errorf("bootstrap: template component %q: %w", name, install.ErrPath)
+		return fmt.Errorf("bootstrap: template component %q: %w", name, errIrregular)
 	}
 	return nil
 }

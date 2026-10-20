@@ -44,11 +44,17 @@ func renderUpdateTemplates(root string, inputs assets.Context, recorded []policy
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", err
 	}
+	allowed, irregular, err := filterInitIrregular(root, allowed, func(path string) bool {
+		return slices.ContainsFunc(recorded, func(record policy.ManagedFile) bool { return record.Path == path })
+	})
+	if err != nil {
+		return bootstrap.TemplatePlan{}, "", err
+	}
 	plan, err := bootstrap.PlanUpdate(root, allowed, recorded)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", initOperation("plan updated templates", err)
 	}
-	plan.Language, plan.Ownership = inputs.Language, ownership
+	plan.Language, plan.Ownership, plan.Irregular = inputs.Language, ownership, irregular
 	lines := updateNotices(plan, rendered)
 	if notice != "" {
 		lines = append([]string{notice}, lines...)

@@ -63,8 +63,12 @@ func renderInitTemplates(root string, inputs assets.Context, owners []byte) (boo
 	if err != nil {
 		return bootstrap.TemplatePlan{}, err
 	}
+	allowed, irregular, err := filterInitIrregular(root, allowed, func(string) bool { return true })
+	if err != nil {
+		return bootstrap.TemplatePlan{}, err
+	}
 	plan, err := bootstrap.PlanTemplates(root, allowed)
-	plan.Language, plan.Ownership = inputs.Language, ownership
+	plan.Language, plan.Ownership, plan.Irregular = inputs.Language, ownership, irregular
 	return plan, initOperation("plan templates", err)
 }
 

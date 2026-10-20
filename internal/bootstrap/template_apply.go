@@ -33,7 +33,7 @@ func ApplyTemplates(root string, plan TemplatePlan, out io.Writer) error {
 
 // WriteTemplateDiff keeps previews and application output identical.
 func WriteTemplateDiff(out io.Writer, plan TemplatePlan) error {
-	if err := writeOwnership(out, plan.Ownership, plan.Language); err != nil {
+	if err := writeOwnership(out, plan); err != nil {
 		return err
 	}
 	writes, proposals := "Gravações:", "Propostas sem gravação:"

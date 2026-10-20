@@ -24,6 +24,7 @@ type TemplatePlan struct {
 	Managed    []policy.ManagedFile
 	LocalEdits []LocalEdit
 	Ownership  Ownership
+	Irregular  []string
 	Language   string
 	root       string
 	inputs     []install.Change
