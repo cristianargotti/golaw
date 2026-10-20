@@ -27,11 +27,21 @@ func DefaultDirs(goos string, env func(string) string) (Dirs, error) {
 	if err != nil {
 		return Dirs{}, err
 	}
-	config, err := baseDir(goos, env, "XDG_CONFIG_HOME", "APPDATA", ".config")
+	config, err := ConfigDir(goos, env)
 	if err != nil {
 		return Dirs{}, err
 	}
-	return Dirs{State: filepath.Join(state, appDir), Config: filepath.Join(config, appDir)}, nil
+	return Dirs{State: filepath.Join(state, appDir), Config: config}, nil
+}
+
+// ConfigDir is the config directory of DefaultDirs alone, for a load that
+// reads no enrollment record and so has no use for the state directory.
+func ConfigDir(goos string, env func(string) string) (string, error) {
+	config, err := baseDir(goos, env, "XDG_CONFIG_HOME", "APPDATA", ".config")
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(config, appDir), nil
 }
 
 // baseDir picks the first set variable, then the Windows variable on

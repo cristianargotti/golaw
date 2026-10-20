@@ -3,6 +3,7 @@ package policy_test
 import (
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -41,5 +42,27 @@ func TestDefaultDirs(t *testing.T) {
 	}
 	if _, err := policy.DefaultDirs("windows", env(map[string]string{"LOCALAPPDATA": `C:\L`})); !errors.Is(err, model.ErrUsage) {
 		t.Errorf("windows without APPDATA: %v", err)
+	}
+}
+
+func TestConfigDirNeedsNoStateDirectory(t *testing.T) {
+	t.Parallel()
+	roaming := `C:\R`
+	cases := map[string]struct {
+		goos string
+		env  map[string]string
+		want string
+	}{
+		"xdg alone":  {"linux", map[string]string{"XDG_CONFIG_HOME": "/c"}, "/c/golaw"},
+		"linux home": {"linux", map[string]string{"HOME": "/h/u"}, "/h/u/.config/golaw"},
+		"windows":    {"windows", map[string]string{"APPDATA": roaming}, filepath.Join(roaming, "golaw")},
+	}
+	for name, c := range cases {
+		if got, err := policy.ConfigDir(c.goos, env(c.env)); err != nil || got != filepath.FromSlash(c.want) {
+			t.Errorf("%s: %q, %v, want %q", name, got, err, c.want)
+		}
+	}
+	if _, err := policy.ConfigDir("linux", env(map[string]string{"XDG_STATE_HOME": "/s"})); !errors.Is(err, model.ErrUsage) || !strings.Contains(err.Error(), "neither XDG_CONFIG_HOME nor HOME is set") {
+		t.Errorf("no config variable: %v", err)
 	}
 }

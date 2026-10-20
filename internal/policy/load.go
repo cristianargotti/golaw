@@ -65,6 +65,11 @@ type Input struct {
 	// digests, a HEAD without golaw.yml is ErrEnrollment and a digest that
 	// differs is ErrEnrollment naming both digests.
 	Expected *Expected
+	// ConfigErr, when set, is why Dirs.Config is unknown. Only a policy
+	// that names a profile reads that directory, and it is refused with
+	// this error, so a runner whose environment names no config directory
+	// still loads a policy without a profile.
+	ConfigErr error
 }
 
 // Loaded is the policy in force with everything config explain reports.
@@ -113,7 +118,7 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 	if l.Policy, err = Compile(l.File, in.Now, in.Schemas); err != nil {
 		return nil, err
 	}
-	if err := l.verifyProfile(in.Dirs.Config); err != nil {
+	if err := l.verifyProfile(in); err != nil {
 		return nil, err
 	}
 	if err := l.enroll(in.Reenroll, in.Schemas); err != nil {
@@ -154,11 +159,14 @@ func (l *Loaded) inForce(ctx context.Context, uncommitted bool) ([]byte, error) 
 }
 
 // verifyProfile checks the installed bundle when the file names one.
-func (l *Loaded) verifyProfile(configDir string) error {
+func (l *Loaded) verifyProfile(in Input) error {
 	if l.File.Profile == nil {
 		return nil
 	}
-	s, err := VerifyProfile(configDir, *l.File.Profile)
+	if in.ConfigErr != nil {
+		return fmt.Errorf("profile %s: %w", l.File.Profile.Name, in.ConfigErr)
+	}
+	s, err := VerifyProfile(in.Dirs.Config, *l.File.Profile)
 	if err != nil {
 		return err
 	}

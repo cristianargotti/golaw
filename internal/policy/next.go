@@ -65,7 +65,7 @@ func upgraded(ctx context.Context, in Input, loc Location) (*Loaded, error) {
 	if l.Policy, err = Compile(f, in.Now, in.Schemas); err != nil {
 		return nil, err
 	}
-	if err := l.verifyProfile(in.Dirs.Config); err != nil {
+	if err := l.verifyProfile(in); err != nil {
 		return nil, err
 	}
 	if err := l.enroll(false, in.Schemas); err != nil {
