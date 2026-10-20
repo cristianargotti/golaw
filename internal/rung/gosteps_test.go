@@ -75,16 +75,22 @@ func TestPreCommitReadsTheIndexWhenTheWorktreeDiffers(t *testing.T) {
 		t.Errorf("a staged broken package with a clean worktree = %+v", out)
 	}
 	r.Stage(map[string]string{"a/a.go": vetClean})
-	r.Write("a/b.go", "package a\n\nimport \"fmt\"\n\n// B formats a value.\nfunc B() string { return fmt.Sprintf(\"%d\", \"y\") }\n")
-	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 0 {
-		t.Errorf("an untracked broken file beside the package = %+v", out)
+	// An untracked file go vet refuses, beside the staged package or in a
+	// package that imports it, sends the steps to the copy of the index,
+	// which holds neither: read in place, its problem would be named.
+	untracked := map[string]string{
+		"a/b.go": "package a\n\nimport \"fmt\"\n\n// B formats a value.\nfunc B() string { return fmt.Sprintf(\"%d\", \"y\") }\n",
+		"b/b.go": "package b\n\nimport (\n\t\"fmt\"\n\n\t\"example.test/m/a\"\n)\n\n// B formats the value of a.\nfunc B() string { return fmt.Sprintf(\"%d\", a.A()) }\n",
 	}
-	r.Remove("a/b.go")
-	r.Write("b/b.go", "package b\n\nimport \"example.test/m/a\"\n\n// B is the value of a.\nfunc B() string { return a.A() }\n")
-	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 0 {
-		t.Errorf("an untracked package that imports the staged one = %+v", out)
+	for path, content := range untracked {
+		r.Write(path, content)
+		d := deps(t, r)
+		out := rung.RunPreCommit(t.Context(), d)
+		if out.Code != 0 || contains(out, path) || !contains(out, "vet: go vet found nothing in 1 affected packages") || !emptyDir(t, filepath.Join(d.State, "runner", "trees")) {
+			t.Errorf("an untracked %s go vet refuses = %+v", path, out)
+		}
+		r.Remove(path)
 	}
-	r.Remove("b/b.go")
 	inPlace := deps(t, r)
 	if out := rung.RunPreCommit(t.Context(), inPlace); out.Code != 0 {
 		t.Errorf("a worktree that holds the index = %+v", out)
