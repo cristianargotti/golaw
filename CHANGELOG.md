@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: make fmt of golaw.mk takes the pre-commit lock, the one the pre-commit rung holds around its toolchain, because it took a lock of its own name and a formatter that rewrites the tree ran beside a commit reading it.
 - 2026-10-20: with test_staged on, a failing test of a package the commit touches is run once more at HEAD, and one that fails there too is named and left to the pipeline, because a test that already failed refused even a comment edit beside it.
 - 2026-10-20: the staged comparison reads the other Go files of each staged package at the base and compares a goast.goleak finding by its package, because a goroutine added to a sibling file of a package whose committed file already started one without a goleak test was refused as a new finding.
 - 2026-10-20: pre-commit names and leaves to the pipeline a check the comparison with the base cannot measure, as when the base revision of a staged file does not parse, because a commit that repaired a syntax error and kept an inherited finding exited 2 for a base the person cannot fix through the commit; scan --staged keeps exit 2.
