@@ -11,19 +11,20 @@ import (
 // failPrefix starts the line go test prints for a package that failed.
 const failPrefix = "FAIL\t"
 
-// heldAtHead answers whether every test that fails in the packages the
-// commit touches already fails at HEAD, and names each package with its
-// tests: such a failure is no fault of the commit, so the rung leaves it
-// to the pipeline (the owner's rule that a rung refuses only what it
-// recognizes with certainty). Only failures go test names a test for are
-// compared, once more at HEAD in a copy of its tree; a package that does
-// not build, a failure no test names, an unborn branch or a HEAD that
+// heldAtHead answers whether every failure in the packages the commit
+// touches already happens at HEAD, and names each package with its tests:
+// such a failure is no fault of the commit, so the rung leaves it to the
+// pipeline (the owner's rule that a rung refuses only what it recognizes
+// with certainty). The packages run once more at HEAD in a copy of its
+// tree: only the failing tests when go test named one for each package,
+// and whole when a package failed naming none, as a TestMain that exits
+// does. A package that does not build, an unborn branch or a HEAD that
 // cannot be copied or tested leaves the refusal as it stands.
 func (p *precommit) heldAtHead(ctx context.Context, out runner.Output, touched []string) ([]string, bool) {
 	tests := failedTests(out)
 	var names []string
 	for _, pkg := range touched {
-		if len(tests[pkg]) == 0 {
+		if len(tests[pkg]) == 0 && buildFailed(out, pkg) {
 			return nil, false
 		}
 		names = append(names, tests[pkg]...)
@@ -31,24 +32,50 @@ func (p *precommit) heldAtHead(ctx context.Context, out runner.Output, touched [
 	if p.repo.Head == "" {
 		return nil, false
 	}
+	if slices.ContainsFunc(touched, func(pkg string) bool { return len(tests[pkg]) == 0 }) {
+		names = nil
+	}
 	base, ok := p.testAtHead(ctx, names, touched)
 	if !ok {
 		return nil, false
 	}
-	held := failedTests(base)
+	return heldPackages(tests, base, touched)
+}
+
+// heldPackages names each touched package whose failure HEAD repeats:
+// each test that fails with the commit also fails there, or the package
+// fails there naming no test, as it does with the commit.
+func heldPackages(tests map[string][]string, base runner.Output, touched []string) ([]string, bool) {
+	held, failed := failedTests(base), failedPackages(base)
 	named := make([]string, 0, len(touched))
 	for _, pkg := range touched {
-		if slices.ContainsFunc(tests[pkg], func(name string) bool { return !slices.Contains(held[pkg], name) }) {
+		unnamed := len(tests[pkg]) == 0
+		switch {
+		case unnamed && (!slices.Contains(failed, pkg) || len(held[pkg]) > 0 || buildFailed(base, pkg)):
 			return nil, false
+		case unnamed:
+			named = append(named, pkg+" (no test named)")
+		case slices.ContainsFunc(tests[pkg], func(name string) bool { return !slices.Contains(held[pkg], name) }):
+			return nil, false
+		default:
+			named = append(named, pkg+" ("+strings.Join(tests[pkg], ", ")+")")
 		}
-		named = append(named, pkg+" ("+strings.Join(tests[pkg], ", ")+")")
 	}
 	return named, true
 }
 
-// testAtHead runs the named tests of the packages in a copy of the tree of
-// HEAD, outside the repository, and removes the copy; a copy that cannot
-// be made, or a go test that cannot start, answers no run.
+// buildFailed reports whether go test printed that a package did not
+// build or could not be set up.
+func buildFailed(out runner.Output, pkg string) bool {
+	return slices.ContainsFunc(toolLines(out), func(line string) bool {
+		return line == failPrefix+pkg+" [build failed]" || line == failPrefix+pkg+" [setup failed]"
+	})
+}
+
+// testAtHead runs the packages in a copy of the tree of HEAD, outside the
+// repository, only the named tests when there are names, and removes the
+// copy; a copy that cannot be made, or a go test that cannot start,
+// answers no run.
 func (p *precommit) testAtHead(ctx context.Context, names, packages []string) (runner.Output, bool) {
 	copied, err := runner.Materialize(ctx, runner.MaterializeInput{
 		Dir: p.deps.Dir, Env: p.deps.Environ, Rev: p.repo.Head, Parent: treesDir(p.deps), Bounds: runner.DefaultBounds(),
@@ -56,8 +83,11 @@ func (p *precommit) testAtHead(ctx context.Context, names, packages []string) (r
 	if err != nil {
 		return runner.Output{}, false
 	}
-	args := slices.Concat([]string{"test", "-race", "-run", "^(" + strings.Join(names, "|") + ")$"}, packages)
-	out, err := runner.Run(ctx, runner.Command{Name: "go", Args: args, Dir: copied.Dir, Env: p.treeEnv(goTree{dir: copied.Dir})})
+	args := []string{"test", "-race"}
+	if len(names) > 0 {
+		args = append(args, "-run", "^("+strings.Join(names, "|")+")$")
+	}
+	out, err := runner.Run(ctx, runner.Command{Name: "go", Args: slices.Concat(args, packages), Dir: copied.Dir, Env: p.treeEnv(goTree{dir: copied.Dir})})
 	if closeErr := copied.Close(); closeErr != nil {
 		return runner.Output{}, false
 	}

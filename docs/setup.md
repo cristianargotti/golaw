@@ -64,7 +64,7 @@ ladder:
   test_staged: false
 ```
 
-Changing these switches causes no policy finding and needs no re-enrollment. A disabled rung returns silently before version checks or tool resolution. test_staged is off by default. Enabling it adds affected-package tests with the race detector to pre-commit; the full suite remains in remote CI or the platform pipeline. When a test of a package the commit touches fails, the rung runs the failing tests once more in a copy of the HEAD tree: a test that fails at HEAD too is named and left to the pipeline, while a test the commit breaks or adds is refused. A package that does not build, or a failure go test names no test for, still refuses.
+Changing these switches causes no policy finding and needs no re-enrollment. A disabled rung returns silently before version checks or tool resolution. test_staged is off by default. Enabling it adds affected-package tests with the race detector to pre-commit; the full suite remains in remote CI or the platform pipeline. When a test of a package the commit touches fails, the rung runs the failing tests once more in a copy of the HEAD tree: a test that fails at HEAD too is named and left to the pipeline, while a test the commit breaks or adds is refused. A package that fails naming no test, as a TestMain that exits after its tests does, runs whole at HEAD, and the same unnamed failure there is named and left to the pipeline. A package that does not build still refuses, and the refusal names the off switch.
 
 ## Update the kit
 

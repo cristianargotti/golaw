@@ -46,7 +46,7 @@ func (p *precommit) test(ctx context.Context, t goTree) Outcome {
 }
 
 // failures judges a go test that failed: a failure in a package the commit
-// touches refuses, unless each of its tests already fails at HEAD, and a
+// touches refuses, unless HEAD already fails the same way, and a
 // failure anywhere else, or one no package names, is named and left to
 // the pipeline.
 func (p *precommit) failures(ctx context.Context, out runner.Output) Outcome {
@@ -56,7 +56,7 @@ func (p *precommit) failures(ctx context.Context, out runner.Output) Outcome {
 	if len(touched) > 0 {
 		held, ok := p.heldAtHead(ctx, out, touched)
 		if !ok {
-			return refusedBy(testStep, "go test -race fails in the affected packages; fix the tests before the commit", out)
+			return refusedBy(testStep, "go test -race fails in the affected packages; fix the tests before the commit or switch test_staged off in golaw.yml", out)
 		}
 		lines = append(lines, stepLine(testStep, "go test -race fails at HEAD too in the packages the commit touches, which the pipeline judges: "+strings.Join(held, ", ")))
 	}

@@ -22,8 +22,8 @@ func TestFailedTestsNameTheTopLevelTestsOfEachPackage(t *testing.T) {
 	}
 }
 
-// A failure no test names, as a package that does not build, and a branch
-// with no commit leave the refusal as it stands, without asking HEAD.
+// A package that does not build and a branch with no commit leave the
+// refusal as it stands, without asking HEAD.
 func TestHeldAtHeadComparesOnlyNamedTestsOfACommit(t *testing.T) {
 	t.Parallel()
 	p := &precommit{}
@@ -38,5 +38,32 @@ func TestHeldAtHeadComparesOnlyNamedTestsOfACommit(t *testing.T) {
 	p.repo.Head, p.deps.Dir, p.deps.State = "0123456789012345678901234567890123456789", t.TempDir(), t.TempDir()
 	if _, ok := p.heldAtHead(t.Context(), named, []string{"example.test/m/a"}); ok {
 		t.Error("a HEAD that cannot be copied reads as held at HEAD")
+	}
+}
+
+// A failure the commit leaves unnamed is held only by the same unnamed
+// failure at HEAD: a HEAD that passes the package, names a failing test
+// there or cannot build it keeps the refusal.
+func TestHeldPackagesRequiresTheSameUnnamedFailureAtHead(t *testing.T) {
+	t.Parallel()
+	pkg := "example.test/m/a"
+	tests := map[string][]string{}
+	for name, tc := range map[string]struct {
+		base string
+		want bool
+	}{
+		"the same unnamed failure":    {"PASS\nFAIL\t" + pkg + "\t0.01s\n", true},
+		"a HEAD that passes":          {"ok  \t" + pkg + "\t0.01s\n", false},
+		"a test named at HEAD":        {"--- FAIL: TestA (0.00s)\nFAIL\t" + pkg + "\t0.01s\n", false},
+		"a HEAD that does not set up": {"FAIL\t" + pkg + " [setup failed]\n", false},
+	} {
+		named, ok := heldPackages(tests, runner.Output{Stdout: []byte(tc.base)}, []string{pkg})
+		if ok != tc.want || (ok && !slices.Equal(named, []string{pkg + " (no test named)"})) {
+			t.Errorf("%s: heldPackages = %v, %v", name, named, ok)
+		}
+	}
+	unnamed := runner.Output{Stdout: []byte("PASS\nFAIL\t" + pkg + "\t0.01s\n")}
+	if _, ok := (&precommit{}).heldAtHead(t.Context(), unnamed, []string{pkg}); ok {
+		t.Error("an unnamed failure on a branch with no commit reads as held at HEAD")
 	}
 }
