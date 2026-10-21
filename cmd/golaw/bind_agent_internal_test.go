@@ -26,6 +26,9 @@ func TestInstallOptionsNeedThePolicyInForce(t *testing.T) {
 	if options.ConfigDir != agentUnderTest().ConfigDir(b.env, home) || options.StateDir == "" {
 		t.Fatalf("directories = %+v", options)
 	}
+	if options.Home != home || options.Executable != filepath.Join(home, "bin", "golaw") || options.GOOS != "linux" {
+		t.Fatalf("the hook command inputs = %+v", options)
+	}
 	bare, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -149,4 +152,18 @@ func enrolledPort(t *testing.T, b binding, root string) (enrollmentPort, string)
 		t.Fatal(err)
 	}
 	return port, identity
+}
+
+// TestConfigDirTellsAnOverrideSetToTheDefault reads whether the override
+// variable of a host was set from the reads of the agent's own ConfigDir,
+// so an override that names the default directory is still an override,
+// which a host may resolve otherwise than its default.
+func TestConfigDirTellsAnOverrideSetToTheDefault(t *testing.T) {
+	t.Parallel()
+	home := t.TempDir()
+	fallback, set := configDir(agentUnderTest(), func(string) string { return "" }, home)
+	explicit, explicitSet := configDir(agentUnderTest(), func(string) string { return fallback }, home)
+	if set || !explicitSet || explicit != fallback {
+		t.Fatalf("default = %q %v, explicit = %q %v", fallback, set, explicit, explicitSet)
+	}
 }

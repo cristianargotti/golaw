@@ -38,11 +38,31 @@ func (b binding) installOptions(ctx context.Context, agent agents.Agent, root, s
 	if err != nil {
 		return install.Options{}, fmt.Errorf("build the read deny rules: %w", err)
 	}
+	running, err := b.exe()
+	if err != nil {
+		return install.Options{}, fmt.Errorf("resolve the running binary: %w", err)
+	}
+	dir, set := configDir(agent, b.env, home)
 	return install.Options{
-		Root: root, ConfigDir: agent.ConfigDir(b.env, home), StateDir: state, Scope: scope,
+		Root: root, ConfigDir: dir, ConfigDirSet: set, StateDir: state, Scope: scope,
 		Version: b.info.Version, PolicyDigest: l.Policy.Digest, ProfileDigest: profileDigest(l.File),
-		ReadRules: rules,
+		ReadRules: rules, Home: home, Executable: running, GOOS: b.goos,
 	}, nil
+}
+
+// configDir is where the host of an agent reads its settings, and whether
+// the person named it through the host's override variable, read from
+// the variables the agent's own ConfigDir reads: a host may resolve an
+// override otherwise than its default directory, even when both name the
+// same path.
+func configDir(agent agents.Agent, env func(string) string, home string) (string, bool) {
+	set := false
+	dir := agent.ConfigDir(func(name string) string {
+		value := env(name)
+		set = set || value != ""
+		return value
+	}, home)
+	return dir, set
 }
 
 // commitFirst names the step an enrolled repository with commits still
