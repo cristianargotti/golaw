@@ -1,0 +1,5 @@
+checks:
+  - id: ci.rendered
+    code: ci-rendered
+    red: testdata/ci.rendered/red
+    near: testdata/ci.rendered/near

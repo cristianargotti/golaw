@@ -1,0 +1,19 @@
+name: CI
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env: {GOFLAGS: "-mod=readonly"}
+    defaults: {run: {shell: bash}}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with: {persist-credentials: false}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: {go-version-file: go.mod}
+      - run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
+      - run: go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0
+      - run: go version
+        env:
+          GOLAW_ENROLLED: ${{ vars.GOLAW_ENROLLED }}
+      - run: git diff --exit-code
