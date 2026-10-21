@@ -1,13 +1,9 @@
 package assets
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"io/fs"
-	"slices"
-	"strings"
-	"text/template"
 )
 
 // Values keeps adopter inputs explicit so rendering never probes a machine.
@@ -57,7 +53,8 @@ func renderContext(source fs.FS, t Template, c Context) (Rendered, error) {
 	if err != nil {
 		return Rendered{}, fmt.Errorf("read template: %w", err)
 	}
-	data, err := executeTemplate(string(body), c)
+	allowCI := t.Source == ciSource && path == ciDestination
+	data, err := executeAsset(string(body), c, allowCI)
 	if err != nil {
 		return Rendered{}, err
 	}
@@ -68,23 +65,5 @@ func renderContext(source fs.FS, t Template, c Context) (Rendered, error) {
 }
 
 func executeTemplate(text string, c Context) ([]byte, error) {
-	functions := template.FuncMap{"has": slices.Contains[[]string, string], "hasPrefix": strings.HasPrefix}
-	parsed, err := template.New("asset").Funcs(functions).Option("missingkey=error").Parse(text)
-	if err != nil {
-		return nil, fmt.Errorf("parse template: %w", err)
-	}
-	for _, item := range parsed.Templates() {
-		if err := validateReferences(item.Root, c, ""); err != nil {
-			return nil, err
-		}
-	}
-	var output bytes.Buffer
-	if err := parsed.Execute(&output, c); err != nil {
-		return nil, fmt.Errorf("execute template: %w", err)
-	}
-	data := output.Bytes()
-	if bytes.Contains(data, []byte("{{")) || bytes.Contains(data, []byte("}}")) {
-		return nil, errDelimiter
-	}
-	return data, nil
+	return executeAsset(text, c, false)
 }

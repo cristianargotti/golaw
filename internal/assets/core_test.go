@@ -29,6 +29,7 @@ func TestCompleteCoreInventoryHasNoProjectAgentFiles(t *testing.T) {
 			}
 			want := []string{
 				".editorconfig", ".gitattributes", ".github/dependabot.yml",
+				ciAssetPath,
 				".gitleaks.toml", ".golangci.yml", ".gremlins.yaml",
 				".mockery.yaml", "Makefile",
 				tc.decisions + "/0001-inherited-baseline.md",
@@ -52,7 +53,12 @@ func TestCompleteCoreInventoryHasNoProjectAgentFiles(t *testing.T) {
 // to land outside every project agent directory.
 func requireCoreFile(t *testing.T, file *assets.Rendered) {
 	t.Helper()
-	if strings.Contains(string(file.Data), "{{") {
+	body := string(file.Data)
+	// The pipeline resolves the enrollment expression, so the CI file keeps it.
+	if file.Path == ciAssetPath {
+		body = strings.ReplaceAll(body, ciEnrollmentExpression, "")
+	}
+	if strings.Contains(body, "{{") {
 		t.Errorf("remaining expression in %s", file.Path)
 	}
 	for _, forbidden := range []string{

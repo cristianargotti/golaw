@@ -9,6 +9,7 @@
     "templates/.editorconfig.tmpl",
     "templates/.gitattributes.tmpl",
     "templates/.github/dependabot.yml.tmpl",
+    "templates/.github/workflows/ci.yml.tmpl",
     "templates/.gitleaks.toml.tmpl",
     "templates/.golangci.yml.tmpl",
     "templates/.gremlins.yaml.tmpl",

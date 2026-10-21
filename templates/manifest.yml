@@ -11,6 +11,10 @@ templates:
     destination: .github/dependabot.yml
     ownership: kit
     when: []
+  - source: templates/.github/workflows/ci.yml.tmpl
+    destination: .github/workflows/ci.yml
+    ownership: kit
+    when: []
   - source: templates/.gitleaks.toml.tmpl
     destination: .gitleaks.toml
     ownership: kit
