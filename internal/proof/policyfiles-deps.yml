@@ -6,3 +6,7 @@ checks:
     code: dependency-record-missing
     red: testdata/policy.dependency-records/red
     near: testdata/policy.dependency-records/near
+  - id: policy.dependabot-cooldown
+    code: dependabot-cooldown-short
+    red: testdata/policy.dependabot-cooldown/red
+    near: testdata/policy.dependabot-cooldown/near
