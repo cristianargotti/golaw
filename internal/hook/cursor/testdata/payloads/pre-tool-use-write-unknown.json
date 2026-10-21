@@ -1,0 +1,14 @@
+{
+  "conversation_id": "conversation",
+  "generation_id": "generation",
+  "model": "model",
+  "hook_event_name": "preToolUse",
+  "cursor_version": "2.4.0",
+  "workspace_roots": ["/project"],
+  "user_email": null,
+  "transcript_path": null,
+  "tool_name": "Write",
+  "tool_input": { "__undocumented__": true },
+  "tool_use_id": "tool",
+  "cwd": "/project"
+}

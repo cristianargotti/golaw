@@ -1,0 +1,14 @@
+{
+  "session_id": "session",
+  "turn_id": "turn",
+  "agent_id": "agent",
+  "agent_type": "worker",
+  "transcript_path": null,
+  "cwd": "/project",
+  "hook_event_name": "PreToolUse",
+  "model": "model",
+  "permission_mode": "default",
+  "tool_name": "Bash",
+  "tool_input": { "command": "git status --porcelain" },
+  "tool_use_id": "tool"
+}

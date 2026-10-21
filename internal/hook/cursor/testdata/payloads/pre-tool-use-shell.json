@@ -1,0 +1,20 @@
+{
+  "conversation_id": "conversation",
+  "generation_id": "generation",
+  "model": "model",
+  "model_id": "model",
+  "model_params": [{ "id": "effort", "value": "max" }],
+  "hook_event_name": "preToolUse",
+  "cursor_version": "2.4.0",
+  "workspace_roots": ["/project"],
+  "user_email": null,
+  "transcript_path": null,
+  "tool_name": "Shell",
+  "tool_input": {
+    "command": "go test ./...",
+    "working_directory": "/project"
+  },
+  "tool_use_id": "tool",
+  "cwd": "/project",
+  "agent_message": "Running the tests"
+}
