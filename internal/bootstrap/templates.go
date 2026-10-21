@@ -25,6 +25,7 @@ type TemplatePlan struct {
 	LocalEdits []LocalEdit
 	Ownership  Ownership
 	Irregular  []string
+	Collisions []Collision
 	Held       []policy.ManagedFile
 	Language   string
 	root       string
@@ -55,6 +56,7 @@ func PlanTemplates(root string, rendered []assets.Rendered) (TemplatePlan, error
 			return TemplatePlan{}, err
 		}
 	}
+	plan.Collisions = plan.makeCollisions()
 	slices.SortFunc(plan.Managed, func(a, b policy.ManagedFile) int { return cmp.Compare(a.Path, b.Path) })
 	return plan, nil
 }
