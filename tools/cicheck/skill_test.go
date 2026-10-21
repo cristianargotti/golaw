@@ -23,7 +23,6 @@ func TestCanonicalSkill(t *testing.T) {
 		"Ask before pushing or opening a pull request.",
 		"Run golaw scan . before finishing.",
 		"Run golaw scan --staged before finishing staged work.",
-		"The rules page carries the prose mapping; read docs/checklists.md of the kit at the same tag when it exists.",
 	)
 	copies, err := filepath.Glob("../../agents/*/skills/golaw/SKILL.md")
 	if err != nil {

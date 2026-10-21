@@ -4,20 +4,52 @@ golaw separates measurable rules from engineering judgment. The production regis
 
 ## Prose mapping
 
-| Rule | Delivered location |
+The inventory rows below identify retained engineering judgment and its delivered text. They are prose labels, not check IDs, and do not change published `rules/4.x@1` references or finding fingerprints. Apply each item only where the repository has the concern it describes; judgment stays prose rather than becoming a runtime finding.
+
+| Inventory row | Delivered location |
 | --- | --- |
-| Reuse ladder and dependency justification | agents/SKILL.md |
-| failures.Prefix, sentinels, and errors.Is | agents/SKILL.md |
-| One use case per file | agents/SKILL.md |
-| Pull request size and one topic | agents/SKILL.md |
-| Permission before push or pull request | agents/SKILL.md |
-| Strongest documented practice | agents/SKILL.md |
-| Clock port and metric ownership | agents/SKILL.md |
-| Integration conventions and migration recovery | agents/SKILL.md |
-| Test-first evidence and unmeasured results | agents/SKILL.md |
-| Scan before finishing | agents/SKILL.md |
-| Assurance, secret limits, and recovery | docs/security.md |
-| Agent protocol and live evidence | docs/agent-contracts.md |
+| 4.1: one use case per file | agents/SKILL.md |
+| 4.1: pull request size and topic | agents/SKILL.md |
+| 4.2: truthful why comments | agents/SKILL.md |
+| 4.3: HTTP error identity | agents/SKILL.md |
+| 4.4: third-party boundary dependencies | docs/rules.md |
+| 4.4: context shapes | docs/rules.md |
+| 4.4: metric ownership | agents/SKILL.md |
+| 4.4: transactions and retries | docs/checklists.md |
+| 4.6: wall-clock budgets | docs/checklists.md |
+| 4.6: mutant equivalence | docs/checklists.md |
+| 4.6: growing-table query plans | docs/checklists.md |
+| 4.6: falsifiable checks and harness results | docs/checklists.md |
+| 4.6: amd64 delivery evidence | docs/checklists.md |
+| 4.6: workstation concurrency | docs/checklists.md |
+| 4.9: price constraints | docs/checklists.md |
+| 4.9: fingerprint versions | docs/checklists.md |
+| 4.9: finite retention | docs/checklists.md |
+| 4.9: pool and call budgets | docs/checklists.md |
+| 4.9: concurrent idempotency | docs/checklists.md |
+| 4.10: contract identity in liveness | docs/checklists.md |
+| 4.11: process and log identity | docs/checklists.md |
+| 4.11: histogram ceilings | docs/checklists.md |
+| 4.11: end-to-end deadlines | docs/checklists.md |
+| 4.12: destination conventions | docs/checklists.md |
+| 4.12: squash trailer risk | docs/checklists.md |
+| 4.15: strongest documented practice | agents/SKILL.md |
+| 4.15: reuse ladder | agents/SKILL.md |
+| 4.15: managed-object justification | docs/checklists.md |
+| 4.15: measurement falsifiability | docs/checklists.md |
+| 4.15: reproducible claims | agents/SKILL.md |
+| 4.15: agreement between tools | docs/checklists.md |
+| 4.15: recurring findings and lessons | docs/checklists.md |
+| 4.15: verification and review | docs/checklists.md |
+| 4.15: builder and reviewer checklists | docs/rules.md |
+
+A third-party dependency in domain or application needs a decision record and an explicit allowed boundary. The record explains why repository code and the standard library cannot meet the need, the alternatives and the reversal condition. The allowed import boundary prevents a convenience dependency from silently introducing transport or infrastructure into the inner layers; a record alone does not widen the policy.
+
+Context shapes use plain application structs, repository row mapping, generated handler signatures and validated configuration. These shapes keep domain and use cases independent of transport, persistence and environment parsing. The [context guide](context-template.md) gives the directories, ports, construction order and tests without introducing an application framework or scaffolding application source.
+
+The builder and reviewer use docs/checklists.md. The [builder checklist](checklists.md#builder) orders decisions, implementation and delivery evidence; the [reviewer checklist](checklists.md#reviewer) judges that evidence against boundaries and failure modes. They stay distinct so completing implementation steps does not substitute for judging the result. A clean review needs no invented finding.
+
+The [canonical skill](../agents/SKILL.md) also retains failure wrapping with failures.Prefix, errors.Is against sentinels, the Clock port, integration and migration conventions, scan guidance and permission before a push or pull request. See the [security guide](security.md) for assurance and recovery, and [agent contracts](agent-contracts.md) for protocol and live evidence.
 
 ## Go source checks
 
@@ -77,4 +109,4 @@ Comments explain why in English. Documentation, findings, and commits are Englis
 
 Local checks are optional aids. Remote CI or the platform pipeline is the only hard gate.
 
-The complete retained-rule mapping and builder and reviewer checklists belong to M3.
+The prose mapping above connects the retained inventory to the skill, this page and the delivered builder and reviewer checklists.
