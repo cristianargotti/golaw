@@ -92,12 +92,12 @@ func TestTemplateMergedEditorConfigPreservesRequiredOccurrences(t *testing.T) {
 	shuffled := strings.Join(lines, "\n") + "\n"
 	const brownfield = "root = true\n\n[*]\nindent_style = space\n"
 	const appended = "charset = utf-8\nend_of_line = lf\ninsert_final_newline = true\n" +
-		"trim_trailing_whitespace = true\nindent_size = 2\n[*.go]\nindent_style = tab\n" +
-		"[Makefile]\nindent_style = tab\n[*.mk]\nindent_style = tab\n"
+		"trim_trailing_whitespace = true\nindent_size = 2\n\n[*.go]\nindent_style = tab\n" +
+		"\n[Makefile]\nindent_style = tab\n\n[*.mk]\nindent_style = tab\n"
 	for _, tc := range []struct{ name, before, want string }{
 		{"brownfield", brownfield, brownfield + appended},
 		{"without blank lines", compact, compact},
-		{"reordered lines", shuffled, shuffled},
+		{"reordered lines under other headers", shuffled, "indent_style = tab\nroot = true\n[*.mk]\nindent_style = tab\n[Makefile]\nindent_style = tab\n[*.go]\nindent_size = 2\nindent_style = space\ntrim_trailing_whitespace = true\ninsert_final_newline = true\nend_of_line = lf\ncharset = utf-8\nindent_style = tab\n[*]\nroot = true\ncharset = utf-8\nend_of_line = lf\ninsert_final_newline = true\ntrim_trailing_whitespace = true\nindent_style = space\nindent_size = 2\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -145,8 +145,8 @@ func TestTemplateMergedProposalsPreserveCRLF(t *testing.T) {
 	const makeAfter = makeBefore + "include golaw.mk\r\n"
 	const editorBefore = "root = true\r\n\r\n[*]\r\nindent_style = space\r\n"
 	const editorAfter = editorBefore + "charset = utf-8\r\nend_of_line = lf\r\ninsert_final_newline = true\r\n" +
-		"trim_trailing_whitespace = true\r\nindent_size = 2\r\n[*.go]\r\nindent_style = tab\r\n" +
-		"[Makefile]\r\nindent_style = tab\r\n[*.mk]\r\nindent_style = tab\r\n"
+		"trim_trailing_whitespace = true\r\nindent_size = 2\r\n\r\n[*.go]\r\nindent_style = tab\r\n" +
+		"\r\n[Makefile]\r\nindent_style = tab\r\n\r\n[*.mk]\r\nindent_style = tab\r\n"
 	for _, tc := range []struct {
 		name, before, want string
 		file               assets.Rendered

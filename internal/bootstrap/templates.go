@@ -134,7 +134,7 @@ func (plan *TemplatePlan) addMergedTemplate(change install.Change) {
 		plan.Changes = append(plan.Changes, change)
 		return
 	}
-	change.After = appendTemplateLines(change.Before, change.After)
+	change.After = mergeTemplate(change.Path, change.Before, change.After)
 	if !bytes.Equal(change.Before, change.After) {
 		plan.Proposed = append(plan.Proposed, change)
 	}
