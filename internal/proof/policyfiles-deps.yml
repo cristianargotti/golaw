@@ -22,3 +22,8 @@ checks:
     code: openapi-policy
     red: testdata/policy.openapi-assertions/red
     near: testdata/policy.openapi-assertions/near
+  - id: policy.codeowners-foreign
+    code: foreign-owned-change
+    red: testdata/policy.codeowners-foreign/red
+    near: testdata/policy.codeowners-foreign/near
+    profile: fixture

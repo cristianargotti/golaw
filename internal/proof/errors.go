@@ -10,5 +10,8 @@ var (
 	ErrFixture = errors.New("invalid proof fixture")
 	// errTrailing marks a commit file that holds more than its one commit;
 	// LoadFixture answers it inside ErrFixture.
-	errTrailing = errors.New("data after the commit")
+	errTrailing       = errors.New("data after the commit")
+	errStagedTrailing = errors.New("data after staged changes")
+	errStagedChange   = errors.New("contradictory staged change")
+	errStagedObject   = errors.New("staged changes must be an object")
 )

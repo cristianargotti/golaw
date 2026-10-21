@@ -29,16 +29,19 @@ const (
 
 // Fixture is one loaded red or near-miss tree: its files at their in-tree
 // paths and, for an event check, the normalized event or, for a commit
-// check, the commit.
+// check, the commit and, for a staged tree, the staged changes with their
+// base blobs.
 type Fixture struct {
 	Files  map[string][]byte
 	Event  *model.Event
 	Commit *model.Commit
+	Staged *StagedFixture
 }
 
 // LoadFixture reads a fixture directory. A .esc file is decoded and loses
-// its suffix, event.json becomes the Event, commit.json the Commit, and an
-// empty tree is an error because it would prove nothing.
+// its suffix, event.json becomes the Event, commit.json the Commit,
+// staged.json becomes Staged, and an empty tree is an error because it
+// would prove nothing.
 func LoadFixture(dir string) (Fixture, error) {
 	f := Fixture{Files: make(map[string][]byte)}
 	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
@@ -58,8 +61,8 @@ func LoadFixture(dir string) (Fixture, error) {
 	if err != nil {
 		return Fixture{}, fmt.Errorf("%w: %s: %w", ErrFixture, dir, err)
 	}
-	if len(f.Files) == 0 && f.Event == nil && f.Commit == nil {
-		return Fixture{}, fmt.Errorf("%w: %s holds no file, no event and no commit", ErrFixture, dir)
+	if len(f.Files) == 0 && f.Event == nil && f.Commit == nil && f.Staged == nil {
+		return Fixture{}, fmt.Errorf("%w: %s holds no file, no event, no commit and no staged changes", ErrFixture, dir)
 	}
 	return f, nil
 }
@@ -127,13 +130,15 @@ func PolicyFor(e Entry) *model.EffectivePolicy {
 // Input builds the dispatch input of the fixture for a check scope: a scan
 // over the tree for file and tree checks, the commit rung over a commit that
 // adds every file of the tree for commit checks, a hook with the event for
-// event checks.
+// event checks, or the staged scan over the tree, with its changes and base
+// blobs, when the fixture carries staged.json.
 func (f *Fixture) Input(scope model.Scope, policy *model.EffectivePolicy) (model.Input, error) {
 	tree := NewTree(f.Files)
 	in := model.Input{Policy: policy, Snapshot: tree}
 	switch scope {
 	case model.ScopeFile, model.ScopeTree:
 		in.Mode, in.Targets = model.ModeScan, tree.Files()
+		in = f.stagedInput(in)
 	case model.ScopeCommit:
 		if f.Commit == nil {
 			return model.Input{}, fmt.Errorf("%w: a commit check fixture needs %s", ErrFixture, CommitFile)
@@ -174,8 +179,8 @@ func eventTargets(e *model.Event, tree *Tree) []model.File {
 	return out
 }
 
-// add places one entry of the tree: the event, the commit, or a file, a
-// .esc file decoded, and names the entry in front of a failure.
+// add places one entry of the tree: the event, the commit, the staged changes,
+// or a file, a .esc file decoded, and names the entry in front of a failure.
 func (f *Fixture) add(rel string, content []byte) error {
 	var err error
 	switch rel {
@@ -183,6 +188,8 @@ func (f *Fixture) add(rel string, content []byte) error {
 		err = f.addEvent(content)
 	case CommitFile:
 		err = f.addCommit(content)
+	case StagedFile:
+		err = f.addStaged(content)
 	default:
 		f.addFile(rel, content)
 	}
