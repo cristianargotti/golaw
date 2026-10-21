@@ -41,6 +41,12 @@ func TestSetupRefusesALefthookConfigThatRunsNoRung(t *testing.T) {
 				"pre-push:\n  commands:\n    golaw:\n      run: golaw hook pre-push '{1}' '{2}'\n",
 			[]string{"no pre-commit command golaw hook pre-commit"},
 		},
+		"a rung named only in fail_text": {
+			"pre-commit:\n  commands:\n    build:\n      run: make build\n      fail_text: golaw hook pre-commit refused\n" +
+				"commit-msg:\n  commands:\n    golaw:\n      run: golaw hook commit-msg '{1}'\n" +
+				"pre-push:\n  commands:\n    golaw:\n      name: golaw hook pre-push\n      run: make test\n      tags: [golaw hook pre-push]\n",
+			[]string{"no pre-commit command golaw hook pre-commit", "no pre-push command golaw hook pre-push"},
+		},
 		"no mapping":  {"- golaw hook pre-commit\n", []string{"no pre-commit command golaw hook pre-commit"}},
 		"broken yaml": {"pre-commit: [\n", []string{"no pre-commit command golaw hook pre-commit", "no pre-push command golaw hook pre-push"}},
 	} {
@@ -78,6 +84,9 @@ func TestSetupArmsAConfigThatRoutesEveryRung(t *testing.T) {
 		"an alias":  own + "pre-push:\n  commands:\n    golaw:\n      run: *push\n",
 		"extends":   "extends:\n  - shared/lefthook.yml\npre-commit:\n  commands:\n    vet:\n      run: go vet ./...\n",
 		"the local": own + "pre-push:\n  commands:\n    test:\n      run: make test\n",
+		"a quoted executable": "pre-commit:\n  commands:\n    golaw:\n      run: '\"golaw\" hook pre-commit'\n" +
+			"commit-msg:\n  commands:\n    golaw:\n      run: \"\\\"golaw\\\" hook commit-msg {1}\"\n" +
+			"pre-push:\n  commands:\n    golaw:\n      run: \"'./bin/golaw' hook pre-push {1} {2}\"\n",
 		"beside other commands": "pre-commit:\n  parallel: true\n  commands:\n    vet:\n      run: go vet ./...\n    golaw:\n      run: golaw hook pre-commit\n" +
 			"commit-msg:\n  commands:\n    golaw:\n      run: golaw hook commit-msg '{1}'\n" +
 			"pre-push:\n  commands:\n    golaw:\n      run: golaw hook pre-push '{1}' '{2}'\n      use_stdin: true\n",

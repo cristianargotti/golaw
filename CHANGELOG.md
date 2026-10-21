@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: setup reads only the run value of each lefthook command or job, with its YAML and shell quoting dropped, when it checks that a section routes its rung, because a quoted golaw executable was refused and a rung named only in a fail_text was armed over a hook that runs another command.
 - 2026-10-20: make fmt of golaw.mk takes the pre-commit lock, the one the pre-commit rung holds around its toolchain, because it took a lock of its own name and a formatter that rewrites the tree ran beside a commit reading it.
 - 2026-10-20: with test_staged on, a failing test of a package the commit touches is run once more at HEAD, and one that fails there too is named and left to the pipeline, because a test that already failed refused even a comment edit beside it.
 - 2026-10-20: the staged comparison reads the other Go files of each staged package at the base and compares a goast.goleak finding by its package, because a goroutine added to a sibling file of a package whose committed file already started one without a goleak test was refused as a new finding.

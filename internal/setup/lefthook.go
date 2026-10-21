@@ -86,16 +86,25 @@ func uncomment(line string) string {
 	return line
 }
 
-// routed reports whether the text of a hook section calls golaw hook
-// <rung>, golaw by its name or by a path to it.
+// routed reports whether a run value of a hook section calls golaw hook
+// <rung>, golaw by its name or by a path to it, quoted or not. The shell
+// quotes go before the words split, and the shell operators split words
+// as blanks do.
 func routed(body, rung string) bool {
-	fields := strings.Fields(body)
-	for i := 0; i+2 < len(fields); i++ {
-		name := strings.TrimSuffix(path.Base(strings.ReplaceAll(fields[i], `\`, "/")), ".exe")
-		name = strings.TrimLeft(name, `"'{[`)
-		if name == "golaw" && fields[i+1] == "hook" && strings.Trim(fields[i+2], `"'{}[],`) == rung {
-			return true
+	for _, value := range runValues(body) {
+		fields := strings.Fields(shellWords(value))
+		for i := 0; i+2 < len(fields); i++ {
+			name := strings.TrimSuffix(path.Base(fields[i]), ".exe")
+			if name == "golaw" && fields[i+1] == "hook" && fields[i+2] == rung {
+				return true
+			}
 		}
 	}
 	return false
+}
+
+// shellWords drops the shell quotes of a value, turns a Windows path
+// separator into a slash and turns the shell operators into blanks.
+func shellWords(value string) string {
+	return strings.NewReplacer(`"`, "", "'", "", `\`, "/", ";", " ", "&", " ", "|", " ", "(", " ", ")", " ", "`", " ").Replace(value)
 }
