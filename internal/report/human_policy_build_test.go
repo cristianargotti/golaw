@@ -12,5 +12,6 @@ func policyBuildSentences() map[string]string {
 		"ci-target-missing":       "verificação ausente do CI; inclua o alvo indicado em ci ou em uma execução sob demanda comprovada",
 		"hook-command-not-binary": "verificação pesada em um gancho local; deixe-a no make ci e chame só o binário golaw no gancho",
 		"generate-check-missing":  "alvo generate-check ausente; adicione o alvo ao Makefile ou a um arquivo incluído",
+		"hook-test-missing":       "teste do script ausente; adicione o arquivo .test.sh indicado ao lado do script",
 	}
 }

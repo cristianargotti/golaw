@@ -14,3 +14,8 @@ checks:
     code: generate-check-missing
     red: testdata/policy.generated-fresh/red
     near: testdata/policy.generated-fresh/near
+  - id: policy.hook-tests
+    code: hook-test-missing
+    red: testdata/policy.hook-tests/red
+    near: testdata/policy.hook-tests/near
+    profile: fixture
