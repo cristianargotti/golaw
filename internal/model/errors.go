@@ -33,4 +33,7 @@ var (
 	// ErrCannotJudge marks a hook input the kit cannot judge: malformed
 	// stdin, an unreadable target, an unknown mutation schema.
 	ErrCannotJudge = errors.New("cannot judge")
+	// ErrOutsideSubset marks a configuration construct outside the subset a
+	// policy check declares it reads: a stated limit, never a finding.
+	ErrOutsideSubset = errors.New("outside the declared subset, a stated limit; docs/rules.md names the rewrite")
 )
