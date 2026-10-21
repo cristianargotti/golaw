@@ -2,6 +2,8 @@ package cicheck_test
 
 import (
 	"bytes"
+	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -90,4 +92,88 @@ func TestM3SkillPointsToDeliveredGuides(t *testing.T) {
 			t.Errorf("skill retains unsupported instruction: %s", forbidden)
 		}
 	}
+}
+
+const m3SkillPointer = "~/.agents/skills/golaw/SKILL.md"
+
+func TestM3ProseBudgetBoundaries(t *testing.T) {
+	t.Parallel()
+	base := "agents/" + agentID(t) + "/"
+	pointer := "Read " + m3SkillPointer + ".\n"
+	skillLimit := "; limit 100 lines and 10000 bytes; shorten the skill."
+	blockLimit := "; limit 1000 bytes with at least 1 pointer; shorten the block or add " + m3SkillPointer + "."
+	ruleLimit := "; limit 20 lines; shorten the rule."
+	rows := []struct {
+		name, path, body, want string
+	}{
+		{"near skill lines", m3SkillPath, strings.Repeat("x\n", 100), ""},
+		{"red skill lines", m3SkillPath, strings.Repeat("x\n", 101), "101 lines and 202 bytes" + skillLimit},
+		{"near unterminated", m3SkillPath, strings.Repeat("x\n", 99) + "x", ""},
+		{"red unterminated", m3SkillPath, strings.Repeat("x\n", 100) + "x", "101 lines and 201 bytes" + skillLimit},
+		{"near skill bytes", m3SkillPath, strings.Repeat("x", 10000), ""},
+		{"red skill bytes", m3SkillPath, strings.Repeat("x", 10001), "1 lines and 10001 bytes" + skillLimit},
+		{"near UTF-8", m3SkillPath, strings.Repeat("é", 5000), ""},
+		{"red UTF-8", m3SkillPath, strings.Repeat("é", 5000) + "x", "1 lines and 10001 bytes" + skillLimit},
+		{"near copied skill", base + "skills/golaw/SKILL.md", strings.Repeat("x\n", 100), ""},
+		{"red copied skill", base + "skills/golaw/SKILL.md", strings.Repeat("x\n", 101), "101 lines and 202 bytes" + skillLimit},
+		{"red another skill", "agents/extra/SKILL.md", strings.Repeat("x", 10001), "1 lines and 10001 bytes" + skillLimit},
+		{"near block bytes", base + "AGENTS.md", pointer + strings.Repeat("x", 1000-len(pointer)), ""},
+		{"red block bytes", base + "AGENTS.md", pointer + strings.Repeat("x", 1001-len(pointer)), "1001 bytes and 1 skill pointers" + blockLimit},
+		{"red missing pointer", base + "AGENTS.md", strings.Repeat("x", 1000), "1000 bytes and 0 skill pointers" + blockLimit},
+		{"near rule lines", base + "golaw.mdc", strings.Repeat("x\n", 20), ""},
+		{"red rule lines", base + "golaw.mdc", strings.Repeat("x\n", 21), "21 lines" + ruleLimit},
+		{"near rule unterminated", base + "golaw.mdc", strings.Repeat("x\n", 19) + "x", ""},
+		{"red rule unterminated", base + "golaw.mdc", strings.Repeat("x\n", 20) + "x", "21 lines" + ruleLimit},
+		{"near CRLF", base + "golaw.mdc", strings.Repeat("x\r\n", 20), ""},
+		{"red CRLF", base + "golaw.mdc", strings.Repeat("x\r\n", 21), "21 lines" + ruleLimit},
+		{"near empty skill", m3SkillPath, "", ""},
+		{"near on-demand prose", m3RulesPath, strings.Repeat("x\n", 301), ""},
+		{"near root instructions", "AGENTS.md", strings.Repeat("x", 2000), ""},
+		{"near adjacent directory", "agents-extra/SKILL.md", strings.Repeat("x", 10001), ""},
+		{"near other asset", "agents/README.md", strings.Repeat("x", 10001), ""},
+	}
+	for _, row := range rows {
+		want := row.want
+		if want != "" {
+			want = row.path + " has " + want
+		}
+		if got := inspectProseBudget(row.path, []byte(row.body)); got != want {
+			t.Errorf("%s: reason=%q, want=%q", row.name, got, want)
+		}
+	}
+}
+
+func TestM3KitProseBudgets(t *testing.T) {
+	t.Parallel()
+	for _, path := range trackedPaths(t) {
+		if !strings.HasPrefix(path, "agents/") {
+			continue
+		}
+		if reason := inspectProseBudget(path, kitBytes(t, path)); reason != "" {
+			t.Error(reason)
+		}
+	}
+}
+
+func inspectProseBudget(path string, data []byte) string {
+	if !strings.HasPrefix(path, "agents/") {
+		return ""
+	}
+	name, lines, size := filepath.Base(path), lineCount(data), len(data)
+	switch {
+	case name == "SKILL.md":
+		if lines > 100 || size > 10000 {
+			return fmt.Sprintf("%s has %d lines and %d bytes; limit 100 lines and 10000 bytes; shorten the skill.", path, lines, size)
+		}
+	case name == "AGENTS.md":
+		pointers := bytes.Count(data, []byte(m3SkillPointer))
+		if size > 1000 || pointers == 0 {
+			return fmt.Sprintf("%s has %d bytes and %d skill pointers; limit 1000 bytes with at least 1 pointer; shorten the block or add %s.", path, size, pointers, m3SkillPointer)
+		}
+	case filepath.Ext(name) == ".mdc":
+		if lines > 20 {
+			return fmt.Sprintf("%s has %d lines; limit 20 lines; shorten the rule.", path, lines)
+		}
+	}
+	return ""
 }
