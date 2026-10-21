@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: the M2 acceptance record lists as inherited the nine commits whose body lines exceed 100 characters and the fifteen merges named after their branch, because rewording them rewrites the unpushed history the evidence names, which stays the owner's call before the first push.
 - 2026-10-20: the command reader of the agent hooks ends a part at a shell comment, an unquoted # that starts a word, because a reset and a commit followed by a comment that named --amend were read as an amend and the post event blocked on a file the reset brought from the parent.
 - 2026-10-20: the staged comparison holds back a goast.goleak finding of a package whose committed Go file the base left over the read bound, and names that file, because a goroutine added beside a 9 MiB file that already started one was refused as new while the file that made it inherited was never named.
 - 2026-10-20: docs/security.md states as a limit a file git ignores that a //go:embed pattern of an index package names, with a rung test that pins its answers, because listing the ignored files to catch it would read them on every commit, while only test_staged, which is off by default, can refuse that exotic case, with a reason that names the off switch.
