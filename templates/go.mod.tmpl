@@ -1,0 +1,3 @@
+{{- $dsl := false}}{{range .DirectRequires}}{{if eq .Path "github.com/quasilyte/go-ruleguard/dsl"}}{{$dsl = true}}{{end}}{{end}}
+{{- if not $dsl}}require github.com/quasilyte/go-ruleguard/dsl v0.3.23
+{{end -}}

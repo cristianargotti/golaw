@@ -108,6 +108,12 @@ linters:
     gocritic:
       enabled-tags: [diagnostic, style, performance]
       disabled-checks: [hugeParam, unnamedResult]
+      settings:
+        # The ruleguard rules of the standard (scripts/lint/rules.go); the
+        # ruleguard check itself comes with the style tag.
+        ruleguard:
+          rules: '${base-path}/scripts/lint/rules.go'
+          failOn: all
     govet:
       enable-all: true
       disable: [fieldalignment]

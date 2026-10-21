@@ -26,7 +26,7 @@ func initBindApp(t *testing.T) testApp {
 func TestInitTemplatesRequireApplyAndRemainUnarmed(t *testing.T) {
 	t.Parallel()
 	repo := gittest.New(t)
-	module := "module example.test/service\n\ngo 1.27\n\nrequire (\n example.test/library v1.2.3\n)\n"
+	module := "module example.test/service\n\ngo 1.27\n\nrequire (\n example.test/library v1.2.3\n github.com/quasilyte/go-ruleguard/dsl v0.3.23\n)\n"
 	makefile := "all:\n\tgo build ./...\n\ninclude golaw.mk\n"
 	repo.Commit("chore: establish application", map[string]string{
 		"go.mod": module, "Makefile": makefile,

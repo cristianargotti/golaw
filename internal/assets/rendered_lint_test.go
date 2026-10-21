@@ -46,7 +46,11 @@ func TestRenderedRepositoryLintsAndTidiesClean(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// The dsl the rules file imports comes from the module cache, which the
+	// kit's own go.mod already fills, or from the proxy on a fresh machine.
+	online := append((&exec.Cmd{}).Environ(), "GOTOOLCHAIN=local", "GOWORK=off")
 	for _, c := range []runner.Command{
+		{Name: "go", Args: []string{"mod", "download", "github.com/quasilyte/go-ruleguard/dsl"}, Dir: root, Env: online},
 		{Name: "go", Args: []string{"mod", "tidy", "-diff"}, Dir: root, Env: env},
 		{Name: linter, Args: []string{"run", "--allow-parallel-runners", "./..."}, Dir: root, Env: env},
 	} {

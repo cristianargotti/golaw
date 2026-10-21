@@ -33,7 +33,7 @@ func requireInitCI(t *testing.T, owners string, protected bool) {
 	const destination = ".github/workflows/ci.yml"
 	repo := gittest.New(t)
 	repo.Commit("feat: establish service", map[string]string{
-		"go.mod":     "module example.test/service\n\ngo 1.27\n",
+		"go.mod":     adoptedModule,
 		"CODEOWNERS": owners,
 	})
 	ta := initBindApp(t)

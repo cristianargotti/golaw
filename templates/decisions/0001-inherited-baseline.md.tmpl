@@ -1,3 +1,4 @@
+{{- $dsl := false}}{{range .DirectRequires}}{{if eq .Path "github.com/quasilyte/go-ruleguard/dsl"}}{{$dsl = true}}{{end}}{{end -}}
 ---
 record: 1
 title: inherited dependency baseline
@@ -5,6 +6,9 @@ status: inherited
 modules:
 {{- range .DirectRequires}}
   - {{.Path}}
+{{- end}}
+{{- if not $dsl}}
+  - github.com/quasilyte/go-ruleguard/dsl
 {{- end}}
   - github.com/evilmartians/lefthook/v2
   - github.com/golangci/golangci-lint/v2
@@ -14,14 +18,15 @@ modules:
 
 {{if eq .Language "pt-BR"}}# Dependências herdadas
 
-Esta lista registra as dependências diretas existentes. Uma entrada negada exige substituição ou remoção.
+Esta lista registra as dependências diretas existentes. Uma entrada negada exige substituição ou remoção. A entrada kit é o módulo que scripts/lint/rules.go importa; o go.mod o recebe pela proposta do golaw init.
 
 | Módulo | Versão | Estado |
 {{else}}# Inherited dependencies
 
-This list records existing direct dependencies. A denied entry requires replacement or removal.
+This list records existing direct dependencies. A denied entry requires replacement or removal. The kit entry is the module scripts/lint/rules.go imports; go.mod receives it through the golaw init proposal.
 
 | Module | Version | Status |
 {{end}}| --- | --- | --- |
 {{range .DirectRequires}}| {{.Path}} | {{.Version}} | {{if or (eq .Path "github.com/sirupsen/logrus") (hasPrefix .Path "github.com/sirupsen/logrus/") (eq .Path "github.com/swaggo") (hasPrefix .Path "github.com/swaggo/")}}denied{{else}}inherited{{end}} |
+{{end}}{{if not $dsl}}| github.com/quasilyte/go-ruleguard/dsl | v0.3.23 | kit |
 {{end}}

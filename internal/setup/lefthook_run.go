@@ -70,7 +70,7 @@ func keyColon(body string, i int) bool {
 		return false
 	}
 	rest = rest[1:]
-	return rest == "" || strings.ContainsAny(rest[:1], " \t\n,}]")
+	return rest == "" || strings.ContainsRune(" \t\n,}]", rune(rest[0]))
 }
 
 // runValue reads the value of a run key that ends at key and sits at
