@@ -14,4 +14,6 @@ var (
 	ErrTooLarge = errors.New("over the 1 MiB the agent hooks read before its first commit")
 	// ErrModule marks module metadata the local Go tool cannot read.
 	ErrModule = errors.New("cannot read module metadata")
+	// ErrAccept marks a destination without a proposal init can safely write.
+	ErrAccept = errors.New("not a proposal init can write")
 )

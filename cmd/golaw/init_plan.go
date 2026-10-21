@@ -54,7 +54,7 @@ func renderInitialPolicy(root, pin string, opts initOptions) ([]byte, error) {
 	return data, initOperation("render initial policy", err)
 }
 
-func (a *app) planInit(ctx context.Context, root string, current, data []byte, apply bool) (initPlan, error) {
+func (a *app) planInit(ctx context.Context, root string, current, data []byte, apply bool, accept []string) (initPlan, error) {
 	module, err := readInitModule(root)
 	if err != nil {
 		return initPlan{}, err
@@ -62,6 +62,12 @@ func (a *app) planInit(ctx context.Context, root string, current, data []byte, a
 	templates, notice, err := a.bind().initTemplates(ctx, root, data)
 	if err != nil {
 		return initPlan{}, err
+	}
+	if len(accept) > 0 && notice != "" {
+		return initPlan{}, fmt.Errorf("%w: init rendered no template, so it has no proposal to write", bootstrap.ErrAccept)
+	}
+	if err = templates.Accept(accept); err != nil {
+		return initPlan{}, initOperation("accept proposals", err)
 	}
 	// A protected golaw.yml keeps its bytes, so init keeps and enrolls it
 	// as M1 did and only names the records it would add.
