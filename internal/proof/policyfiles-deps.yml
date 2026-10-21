@@ -10,3 +10,7 @@ checks:
     code: dependabot-cooldown-short
     red: testdata/policy.dependabot-cooldown/red
     near: testdata/policy.dependabot-cooldown/near
+  - id: policy.image-digest
+    code: image-digest-missing
+    red: testdata/policy.image-digest/red
+    near: testdata/policy.image-digest/near

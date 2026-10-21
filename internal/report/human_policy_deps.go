@@ -9,5 +9,6 @@ func policyDepsPhrases() []sentence {
 	return []sentence{
 		{"dependency-record-missing", "dependência direta sem registro de decisão; registre o módulo no cabeçalho do registro"},
 		{"dependabot-cooldown-short", "intervalo de atualização abaixo da política; use sete dias e trinta para versões principais"},
+		{"image-digest-missing", "imagem base sem digest completo; fixe a referência com sha256"},
 	}
 }

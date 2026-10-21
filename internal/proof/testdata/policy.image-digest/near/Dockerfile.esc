@@ -1,0 +1,4 @@
+ARG BASE=alpine@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+FROM ${BASE} AS build
+ENV GOTOOLCHAIN=local
+FROM build AS final
