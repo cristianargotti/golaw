@@ -1,8 +1,14 @@
 package cicheck_test
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/policy"
 )
 
 const (
@@ -78,4 +84,81 @@ func TestM3GuideLengths(t *testing.T) {
 			t.Errorf("%s has %d lines, maximum 300", path, got)
 		}
 	}
+}
+
+const m3ProfilesPath = "docs/profiles.md"
+
+func TestM3ProfileContract(t *testing.T) {
+	t.Parallel()
+	requireText(t, m3ProfilesPath,
+		"A profile is data, never code.",
+		"A profile adds checks or tightens floors; it never relaxes a core rule.",
+		"Template subtraction happens only during init.",
+		"A profile's remote gate is whatever the adopting platform runs.",
+		"Without a remote stage, automatic kit checks run only on machines whose developers armed them.",
+		"A remote hard gate requires a demonstrated remote rejection.",
+		"M3 validates the identity stamp and reference; payload loading and profile install belong to M5.",
+		"Unsupported syntax or unavailable external evidence is Unmeasured, never a text match.",
+		"Hooks never fetch a profile.",
+		"An absent or mismatched profile never falls back to core.",
+	)
+	for _, key := range []string{"name", "version", "date", "source", "digest"} {
+		requireText(t, m3ProfilesPath, "| `"+key+"` |")
+	}
+	if got := lineCount(kitBytes(t, m3ProfilesPath)); got > 300 {
+		t.Fatalf("profile guide has %d lines, maximum 300", got)
+	}
+}
+
+func TestM3ProfileExamplesUseTheExistingSchema(t *testing.T) {
+	t.Parallel()
+	stamp := string(m3ProfileYAML(t, "## Bundle identity"))
+	rows := []struct {
+		name string
+		data string
+		bad  bool
+	}{
+		{"near complete stamp", stamp, false},
+		{"red unknown field", stamp + "unknown: true\n", true},
+		{"red duplicate field", stamp + "name: second\n", true},
+		{"red invalid date", strings.Replace(stamp, "2026-10-20", "2026-02-30", 1), true},
+		{"red nonexact version", strings.Replace(stamp, "1.2.3", "latest", 1), true},
+	}
+	for _, row := range rows {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			path := filepath.Join(t.TempDir(), policy.StampFile)
+			if err := os.WriteFile(path, []byte(row.data), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := policy.LoadStamp(path)
+			if errors.Is(err, model.ErrPolicy) != row.bad {
+				t.Fatalf("stamp error=%v, invalid=%v", err, row.bad)
+			}
+		})
+	}
+	config, err := policy.Decode(m3ProfileYAML(t, "## Repository reference"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := config.Validate(nil); err != nil {
+		t.Fatal(err)
+	}
+	if config.Profile == nil || config.Profile.Name != "fixture" {
+		t.Fatal("repository example does not name its fixture profile")
+	}
+}
+
+func m3ProfileYAML(t *testing.T, heading string) []byte {
+	t.Helper()
+	text := string(kitBytes(t, m3ProfilesPath))
+	_, rest, found := strings.Cut(text, heading+"\n\n```yaml\n")
+	if !found {
+		t.Fatalf("profile example heading is absent: %s", heading)
+	}
+	body, _, found := strings.Cut(rest, "\n```")
+	if !found {
+		t.Fatalf("profile example is not closed: %s", heading)
+	}
+	return []byte(body + "\n")
 }
