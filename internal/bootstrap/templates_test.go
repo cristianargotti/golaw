@@ -65,6 +65,9 @@ func writeBefore(t *testing.T, path, before string) {
 	if before == "" {
 		return
 	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(path, []byte(before), 0o600); err != nil {
 		t.Fatal(err)
 	}

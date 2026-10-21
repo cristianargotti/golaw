@@ -32,6 +32,7 @@ func TestReadModuleSortsDirectRequirementsAndIgnoresToolchain(t *testing.T) {
 			{Path: "example.test/alpha", Version: "v0.2.0"},
 			{Path: "example.test/zebra", Version: "v1.0.0"},
 		},
+		Indirect: []assets.Requirement{{Path: "example.test/middle", Version: "v2.0.0+incompatible"}},
 	}
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Fatalf("module = %+v, want %+v, error %v", got, want, err)

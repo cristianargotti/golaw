@@ -39,6 +39,9 @@ func WriteTemplateDiff(out io.Writer, plan TemplatePlan) error {
 	if err := writeCollisions(out, plan); err != nil {
 		return err
 	}
+	if err := writePromoted(out, plan); err != nil {
+		return err
+	}
 	writes, proposals := "Gravações:", "Propostas sem gravação:"
 	if plan.Language != "" && plan.Language != "pt-BR" {
 		writes, proposals = "Writes:", "Proposals without writes:"

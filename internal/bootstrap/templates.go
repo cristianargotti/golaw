@@ -26,6 +26,7 @@ type TemplatePlan struct {
 	Ownership  Ownership
 	Irregular  []string
 	Collisions []Collision
+	Promoted   []assets.Requirement
 	Held       []policy.ManagedFile
 	Language   string
 	root       string
