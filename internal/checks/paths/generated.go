@@ -16,13 +16,13 @@ const ignoreFile = ".gitignore"
 // ignoredTree matches an ignore rule whose last element is a generated tree,
 // with or without a trailing slash or star, at the root, under a path or
 // under a double star.
-var ignoredTree = regexp.MustCompile(`(?:^|/)(?:gen|sqlcgen|test/mocks)(?:/\**|/)?$`)
+var ignoredTree = regexp.MustCompile(`(?:^|/)(?:gen|sqlcgen|test/mocks|api/generated)(?:/\**|/)?$`)
 
 type generatedTracked struct{}
 
 // GeneratedTracked is paths.generated-tracked: no ignore file hides gen/,
-// sqlcgen/ or test/mocks, because generated code is versioned and proven
-// fresh by the pipeline.
+// sqlcgen/, test/mocks or api/generated, because generated code is versioned
+// and proven fresh by the pipeline.
 func GeneratedTracked() model.Check { return generatedTracked{} }
 
 func (generatedTracked) Spec() model.Spec { return spec("paths.generated-tracked", model.ScopeFile) }

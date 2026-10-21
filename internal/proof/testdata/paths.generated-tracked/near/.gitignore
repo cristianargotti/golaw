@@ -2,3 +2,6 @@ bin/
 # gen/
 !gen/
 generated/
+api/generated-docs/
+# api/generated/
+!api/generated/

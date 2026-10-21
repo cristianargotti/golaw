@@ -1,0 +1,1 @@
+{"changes":[{"Op":2,"OldPath":".github/CODEOWNERS","NewPath":".github/CODEOWNERS","Mode":"100644","Before":"base","After":"candidate"},{"Op":1,"NewPath":"src/note.txt","Mode":"100644","After":"file"}],"blobs":{"base":"* @app\n/.github/ @platform\n/.github/CODEOWNERS @app\n"}}
