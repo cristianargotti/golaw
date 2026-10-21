@@ -70,7 +70,7 @@ func embedFields(rest string) []string {
 	for rest = strings.TrimLeft(rest, " \t"); rest != ""; rest = strings.TrimLeft(rest, " \t") {
 		field := rest[:quotedLen(rest)]
 		rest = rest[len(field):]
-		if unquoted, err := strconv.Unquote(field); err == nil {
+		if unquoted, err := strconv.Unquote(field); err == nil { // fallback: a field go cannot unquote stays as written
 			field = unquoted
 		}
 		out = append(out, strings.TrimPrefix(field, "all:"))
