@@ -29,11 +29,16 @@ const (
 // Unmeasured of A6, named in a line
 // while the push goes on, because the pipeline judges it. The URL git
 // passes beside the remote is not read: the rung judges the pushed trees,
-// and a URL may carry a credential no line should print.
+// and a URL may carry a credential no line should print. While the go
+// capability is off the repository holds no Go program to scan, so the rung
+// names that in one line and verifies no scanner.
 func RunPrePush(ctx context.Context, deps Dependencies, remote, _ string) Outcome {
 	a, out, ok := gate(ctx, deps, PrePush)
 	if !ok {
 		return out
+	}
+	if !a.loaded.Policy.Has(goCapability) {
+		return Outcome{Lines: []string{prefix(PrePush) + goOff}}
 	}
 	updates, err := runner.ParseRefUpdates(deps.Stdin)
 	if err != nil {

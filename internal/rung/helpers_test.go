@@ -17,8 +17,9 @@ import (
 // now is the clock the rungs of these tests read.
 var now = time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
 
-// armedPolicy pins the kit and arms every rung; a test adds keys after it.
-const armedPolicy = "golaw: 1\nkit: {version: 0.1.0}\n"
+// armedPolicy pins the kit, enables go and arms every rung; a test adds
+// keys after it.
+const armedPolicy = "golaw: 1\nkit: {version: 0.1.0}\ncapabilities: [go]\n"
 
 // armedRepo commits a module and the policy, and answers the repository.
 func armedRepo(t *testing.T, golaw string) *gittest.Repo {

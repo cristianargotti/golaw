@@ -24,13 +24,13 @@ const (
 //nolint:paralleltest // the fake tools are found through PATH
 func TestPreCommitReadsAGoleakFindingByItsPackage(t *testing.T) {
 	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks, "golangci-lint": linter})
-	inherited := armedRepo(t, armedPolicy+"capabilities: [go]\n")
+	inherited := armedRepo(t, armedPolicy)
 	inherited.Commit("feat: start the worker", map[string]string{"a/a.go": starts, "a/b.go": quiet})
 	inherited.Stage(map[string]string{"a/b.go": louder})
 	if out := rung.RunPreCommit(t.Context(), deps(t, inherited)); out.Code != 0 || contains(out, "goast.goleak") {
 		t.Errorf("a goroutine beside the one the base starts = %+v", out)
 	}
-	first := armedRepo(t, armedPolicy+"capabilities: [go]\n")
+	first := armedRepo(t, armedPolicy)
 	first.Commit("feat: add the package", map[string]string{"a/a.go": quiet, "a/b.go": "package a\n"})
 	first.Stage(map[string]string{"a/b.go": louder})
 	out := rung.RunPreCommit(t.Context(), deps(t, first))
@@ -49,14 +49,14 @@ func TestPreCommitReadsAGoleakFindingByItsPackage(t *testing.T) {
 func TestPreCommitLeavesToThePipelineAGoleakFindingBesideAnUnreadFile(t *testing.T) {
 	fakes(t, map[string]runnertest.Behavior{"gitleaks": leaks, "golangci-lint": linter})
 	oversized := starts + strings.Repeat("//\n", 3<<20)
-	inherited := armedRepo(t, armedPolicy+"capabilities: [go]\n")
+	inherited := armedRepo(t, armedPolicy)
 	inherited.Commit("feat: start the worker", map[string]string{"a/a.go": oversized, "a/b.go": quiet})
 	inherited.Stage(map[string]string{"a/b.go": louder})
 	out := rung.RunPreCommit(t.Context(), deps(t, inherited))
 	if out.Code != 0 || contains(out, "deny goast.goleak") || !contains(out, "over the read bound, not judged here: a/a.go; the pipeline judges them") {
 		t.Errorf("a goroutine beside an oversized file of its package = %+v", out)
 	}
-	first := armedRepo(t, armedPolicy+"capabilities: [go]\n")
+	first := armedRepo(t, armedPolicy)
 	first.Commit("feat: add the packages", map[string]string{"a/b.go": quiet, "c/c.go": strings.Replace(oversized, "package a", "package c", 1)})
 	first.Stage(map[string]string{"a/b.go": louder})
 	out = rung.RunPreCommit(t.Context(), deps(t, first))

@@ -28,6 +28,9 @@ func (b binding) coverage(
 	if checkoutErr := enrolledCheckout(loaded); checkoutErr != nil {
 		return coverage.Report{}, nil, checkoutErr
 	}
+	if !loaded.Policy.Has(goCapability) {
+		return coverage.Report{}, nil, coverageOffError{}
+	}
 	floors := coverage.FloorsFrom(loaded.Policy.OptionsFor(policy.CoverageCheck))
 	floors = tightenedCoverage(floors, options)
 	local, err := evaluateCoverageFile(options.Input, loaded.Root, floors)

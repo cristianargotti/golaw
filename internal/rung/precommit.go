@@ -33,6 +33,7 @@ type precommit struct {
 	deps     Dependencies
 	language string
 	ladder   model.Ladder
+	inForce  *model.EffectivePolicy // the policy in force, whose capabilities choose the steps
 	repo     source.Repo
 	scan     stage.Result
 	settled  settlement // what the scan leaves to the pipeline
@@ -58,7 +59,10 @@ func newPrecommit(ctx context.Context, deps Dependencies, a armed) (*precommit, 
 	limits := limited(scan.Run)
 	s := settled(scan.Run)
 	scan.Decision = s.decision
-	return &precommit{deps: deps, language: a.loaded.Policy.Language, ladder: a.ladder, repo: repo, scan: scan, settled: s, limits: limits}, nil
+	return &precommit{
+		deps: deps, language: a.loaded.Policy.Language, ladder: a.ladder, inForce: a.loaded.Policy,
+		repo: repo, scan: scan, settled: s, limits: limits,
+	}, nil
 }
 
 // run reports the staged scan, takes the lock of the worktree so two

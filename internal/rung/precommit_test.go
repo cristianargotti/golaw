@@ -192,7 +192,7 @@ func TestPreCommitRefusesANewFindingNamedLikeAnOldOne(t *testing.T) {
 		return "// " + name + " counts.\nfunc " + name + "() int {\n\tx := 0\n" + strings.Repeat("\tx++\n", 45) + "\treturn x\n}\n"
 	}
 	for _, added := range []string{"Step2", "StepB"} {
-		r := armedRepo(t, armedPolicy+"capabilities: [go]\n")
+		r := armedRepo(t, armedPolicy)
 		r.Commit("feat: add the step", map[string]string{"a/a.go": "package a\n\n" + long("Step1")})
 		r.Stage(map[string]string{"a/a.go": "package a\n\n// Step1 counts.\nfunc Step1() int { return 1 }\n\n" + long(added)})
 		out := rung.RunPreCommit(t.Context(), deps(t, r))
