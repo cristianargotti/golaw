@@ -3,7 +3,9 @@
 package cicheck_test
 
 import (
+	"maps"
 	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 
@@ -23,6 +25,10 @@ func TestActionTagsResolveToPins(t *testing.T) {
 			t.Fatal(err)
 		}
 		verifyActionPins(t, data, seen)
+	}
+	documents := m3PinDocuments(t)
+	for _, name := range slices.Sorted(maps.Keys(documents)) {
+		verifyActionPins(t, documents[name], seen)
 	}
 	if len(seen) == 0 {
 		t.Fatal("no action pins measured")
