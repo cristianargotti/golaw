@@ -107,7 +107,9 @@ func TestUnrewrittenLeavesWhatNoAmendChanged(t *testing.T) {
 // followed by a commit, whose message may name --amend in single or double
 // quotes, an amend a script runs and an echo of the words are not amends,
 // while an amend after a quoted message, a separator or a backslash inside
-// quotes, a quoted global option or a quoted --amend itself is one.
+// quotes, a quoted global option or a quoted --amend itself is one. A
+// shell comment holds no amend, while a # inside a quoted message or a
+// word starts none, and the line after a comment is read.
 func TestAmendsReadsTheAmendOfAGitCommit(t *testing.T) {
 	t.Parallel()
 	for command, want := range map[string]bool{
@@ -127,6 +129,12 @@ func TestAmendsReadsTheAmendOfAGitCommit(t *testing.T) {
 		"git -c 'user.name=A B' commit --amend":                                                         true,
 		"git commit '--amend'":                                                                          true,
 		"git commit \\\n  --amend":                                                                      true,
+		"git reset -q --hard HEAD~1 && git commit -q --allow-empty -m 'docs: again' # --amend":          false,
+		"git commit -m again #--amend\n":                                                                false,
+		"git commit -m again # note\ngit commit --amend":                                                true,
+		"git commit -m 'issue #1' --amend":                                                              true,
+		"git commit -m issue#1 --amend":                                                                 true,
+		"git commit -m again;# --amend":                                                                 false,
 	} {
 		if got := amends(command); got != want {
 			t.Errorf("%q: amends %v, want %v", command, got, want)

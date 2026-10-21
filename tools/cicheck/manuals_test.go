@@ -150,7 +150,7 @@ func TestContractsJudgeWhatAMoveOfHeadChanged(t *testing.T) {
 		"A commit the command created on the parents of the HEAD the pre event started from by a git commit --amend its text runs plainly, an amend, rewrites that HEAD: every file the rewrite changed against it is judged",
 		"a file the amended commit drops from its delta and restores to the bytes of its parent included",
 		"a reset followed by a commit on the same parents is no amend, so the notice names what the reset brought, and an amend a script runs is not read as one, a stated limit",
-		"The pre event reads the words of the text as the shell reads quotes, so an --amend or an -X inside a quoted commit message or value, a separator in it included, is no option of git",
+		"The pre event reads the words of the text as the shell reads quotes and comments, so an --amend or an -X inside a quoted commit message or value, a separator in it included, is no option of git, and neither is one in a shell comment",
 		"Git log and git var run only when the move brought such a path",
 		"A move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed",
 		"reads as a commit it did not create, a stated limit",

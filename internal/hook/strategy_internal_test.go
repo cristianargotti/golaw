@@ -43,6 +43,7 @@ func TestStrategyOptionsReadsOursAndTheirs(t *testing.T) {
 		"git merge -X ours -X theirs side":                {"theirs"},
 		"git merge -X theirs a || git merge -X theirs b":  {"theirs"},
 		"git merge -X theirs a || git merge -X ours b":    {"theirs", "ours"},
+		"git merge -X ours side # -X theirs":              {"ours"},
 	} {
 		if got := strategyOptions(command); !slices.Equal(got, want) {
 			t.Errorf("%q: options %q, want %q", command, got, want)

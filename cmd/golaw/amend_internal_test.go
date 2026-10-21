@@ -39,9 +39,10 @@ func amendableBeside(t *testing.T, root string) {
 // progress or not, one that writes the parent's bytes back and one that
 // writes a dash of its own; the near misses, an amend that keeps the fix,
 // before such a merge or not, a reset to the parent and a reset followed by
-// a commit on the same parent, its message naming --amend or not, where the
-// reset brought notes.md and the notice names it; and the stated limit, an
-// amend a script runs, which the hook does not read as an amend.
+// a commit on the same parent, its message or a shell comment after it
+// naming --amend or not, where the reset brought notes.md and the notice
+// names it; and the stated limit, an amend a script runs, which the hook
+// does not read as an amend.
 func amendCases(t *testing.T) []lineCase {
 	t.Helper()
 	amend := func(files map[string]string) func(string) {
@@ -79,6 +80,10 @@ func amendCases(t *testing.T) []lineCase {
 		{
 			"a reset and a commit whose message names --amend", "git reset -q --hard HEAD~1 && git commit -q --allow-empty -m 'docs: explain --amend behavior'",
 			before, resetCommit("docs: explain --amend behavior"), "", named,
+		},
+		{
+			"a reset and a commit whose shell comment names --amend", "git reset -q --hard HEAD~1 && git commit -q --allow-empty -m 'docs: again' # --amend",
+			before, resetCommit("docs: again"), "", named,
 		},
 		{"an amend a script runs, the stated limit", "sh amend.sh", before, restore, "", named},
 		{

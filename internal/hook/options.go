@@ -70,8 +70,10 @@ func gitInvocations(command string) [][]string {
 // separators of the shell. A span from a quote to the same quote stays in
 // one word with its quotes, a separator or a space in it included, a
 // backslash outside single quotes keeps the character after it in the word
-// and joins two lines before a line break, and a quote left open runs to
-// the end of the text, which the shell would refuse to run.
+// and joins two lines before a line break, a quote left open runs to the
+// end of the text, which the shell would refuse to run, and an unquoted #
+// that starts a word ends the part with the rest of its line, a comment
+// that holds no option of git.
 func shellParts(command string) [][]string {
 	var scan shellScan
 	for _, r := range command {
@@ -83,7 +85,8 @@ func shellParts(command string) [][]string {
 
 // shellScan is what shellParts has read of a command text: the parts it
 // ended, the words of the part it reads, the word it reads, the quote of
-// the span it is in and whether a backslash escapes the next character.
+// the span it is in, whether a backslash escapes the next character and
+// whether a comment runs to the line end.
 type shellScan struct {
 	parts   [][]string
 	words   []string
@@ -91,10 +94,14 @@ type shellScan struct {
 	open    bool
 	quote   rune
 	escaped bool
+	comment bool
 }
 
 func (s *shellScan) next(r rune) {
 	switch {
+	case s.comment:
+		s.comment = r != '\n'
+		return
 	case s.escaped:
 		s.escaped = false
 		if r == '\n' {
@@ -110,6 +117,10 @@ func (s *shellScan) next(r rune) {
 		}
 	case r == '\'' || r == '"':
 		s.quote = r
+	case r == '#' && !s.open:
+		s.endPart()
+		s.comment = true
+		return
 	case strings.ContainsRune(";&|\n", r):
 		s.endPart()
 		return
