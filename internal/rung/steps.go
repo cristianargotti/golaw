@@ -80,13 +80,3 @@ func verified(ctx context.Context, name string, env []string) (string, error) {
 	}
 	return path, nil
 }
-
-// notShipped names the steps of section 7 that enter with the db and api
-// templates, which this version does not ship.
-func notShipped() Outcome {
-	return Outcome{Lines: []string{
-		stepLine("migrate-lint", "not applicable, this version ships no database template"),
-		stepLine("openapi-breaking", "not applicable, this version ships no api template"),
-		stepLine("generate-check", "not applicable, this version ships no generator template"),
-	}}
-}

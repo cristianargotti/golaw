@@ -11,16 +11,10 @@ import (
 	"github.com/cristianargotti/golaw/internal/runnertest"
 )
 
-// The pinned gitleaks a fake plays, its call over the staged diff, and the
-// exit status it answers for a leak.
+// The pinned gitleaks a fake plays and its call over the staged diff.
 var (
-	leaks      = runnertest.Behavior{Probe: []string{"version"}, Version: "8.30.1"}
-	leaksCall  = []string{"git", "--pre-commit", "--staged", "--redact", "--no-banner", "--no-color", "--verbose", "--exit-code", "3", "."}
-	notShipped = []string{
-		"golaw pre-commit: migrate-lint: not applicable, this version ships no database template",
-		"golaw pre-commit: openapi-breaking: not applicable, this version ships no api template",
-		"golaw pre-commit: generate-check: not applicable, this version ships no generator template",
-	}
+	leaks     = runnertest.Behavior{Probe: []string{"version"}, Version: "8.30.1"}
+	leaksCall = []string{"git", "--pre-commit", "--staged", "--redact", "--no-banner", "--no-color", "--verbose", "--exit-code", "3", "."}
 )
 
 // fakes puts fake tools first on PATH, git and go still found behind them,
@@ -49,7 +43,7 @@ func TestPreCommitReportsTheStagedScanAndTheSecrets(t *testing.T) {
 	r.Stage(map[string]string{"notes.md": "why\n"})
 	clean := rung.RunPreCommit(t.Context(), deps(t, r))
 	if clean.Code != 0 || !strings.HasPrefix(clean.Lines[0], "verdict clean: 0 findings") || clean.Lines[1] != "golaw pre-commit: secrets: gitleaks found no secret in the staged changes" ||
-		!slices.Equal(clean.Lines[len(clean.Lines)-len(notShipped):], notShipped) {
+		len(leftLines(clean)) != 0 {
 		t.Errorf("clean commit = %+v", clean)
 	}
 	if calls := runnertest.Calls(t, dir, "gitleaks"); !slices.EqualFunc(calls, [][]string{{"version"}, leaksCall}, slices.Equal) {
