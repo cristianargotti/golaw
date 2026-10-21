@@ -94,7 +94,7 @@ func TestOverFireFailsWhenTheNearMissNeverReachesTheCheck(t *testing.T) {
 	}
 }
 
-// TestVerifyReportsEveryPassInOrder breaks one pass at a time, then all four
+// TestVerifyReportsEveryPassInOrder breaks one pass at a time, then all five
 // at once through a manifest entry without its check, so Verify can neither
 // drop a pass nor change their order.
 func TestVerifyReportsEveryPassInOrder(t *testing.T) {
@@ -118,7 +118,8 @@ func TestVerifyReportsEveryPassInOrder(t *testing.T) {
 		"baseline":     {[]model.Check{dashCheck{id: "text.dashes"}, noVerifyCheck{}}, proof.Manifest{Checks: []proof.Entry{swapped, noVerify}}, "baseline text.dashes; baseline text.dashes"},
 		"deletion":     {[]model.Check{dashCheck{id: "text.dashes"}, dashCheck{id: "text.twin"}, noVerifyCheck{}}, proof.Manifest{Checks: []proof.Entry{dashes, noVerify, twin}}, "deletion text.dashes; deletion text.twin"},
 		"over-fire":    {[]model.Check{dashCheck{id: "text.dashes", requires: unmet}, noVerifyCheck{}}, m, "baseline text.dashes; baseline text.dashes; over-fire text.dashes"},
-		"every pass":   {[]model.Check{dashCheck{id: "text.dashes"}}, m, "completeness shell.no-verify; baseline shell.no-verify; deletion shell.no-verify; over-fire shell.no-verify"},
+		"capability":   {[]model.Check{neededCheck{dashCheck{id: "text.dashes"}, []string{"go"}}, dashCheck{id: "text.twin"}, noVerifyCheck{}}, proof.Manifest{Checks: []proof.Entry{dashes, noVerify, twin}}, "deletion text.dashes; deletion text.twin; capability text.dashes"},
+		"every pass":   {[]model.Check{dashCheck{id: "text.dashes"}}, m, "completeness shell.no-verify; baseline shell.no-verify; deletion shell.no-verify; over-fire shell.no-verify; capability shell.no-verify"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
