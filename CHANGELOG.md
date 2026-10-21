@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: docs/security.md states as a limit a file git ignores that a //go:embed pattern of an index package names, with a rung test that pins its answers, because listing the ignored files to catch it would read them on every commit, while only test_staged, which is off by default, can refuse that exotic case, with a reason that names the off switch.
 - 2026-10-20: with test_staged on, a package the commit touches that fails naming no test runs whole at HEAD, and the same unnamed failure there is named and left to the pipeline, and the test refusal names the off switch, because a TestMain that exits after its tests refused even a comment edit with a reason the developer could not act on.
 - 2026-10-20: setup binds the interrupt and termination signals to its context, as the rungs do, because a SIGTERM after lefthook install killed setup before it put the git hooks back and left hooks armed with no receipt.
 - 2026-10-20: setup reads only the run value of each lefthook command or job, with its YAML and shell quoting dropped, when it checks that a section routes its rung, because a quoted golaw executable was refused and a rung named only in a fail_text was armed over a hook that runs another command.
