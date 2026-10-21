@@ -1,4 +1,5 @@
 # The proof entries of the policy checks the lint half of the family owns:
 # one entry per registered check, with the finding code its red fixture
 # must yield and its two fixture directories relative to this file.
-checks: []
+checks:
+  - {id: policy.golangci, code: golangci-linter-disabled, red: testdata/policy.golangci/red, near: testdata/policy.golangci/near}

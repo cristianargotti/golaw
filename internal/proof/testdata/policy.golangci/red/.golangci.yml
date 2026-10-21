@@ -1,0 +1,21 @@
+# The near miss with errcheck, a required linter, disabled.
+version: "2"
+linters:
+  default: all
+  disable: [errcheck]
+  settings:
+    govet:
+      enable-all: true
+    depguard:
+      rules:
+        domain:
+          list-mode: strict
+          files: ["!$test", "**/internal/domain/**"]
+          allow: [$gostd, example.test/service/internal/domain]
+        application:
+          list-mode: strict
+          files: ["!$test", "**/internal/application/**"]
+          allow: [$gostd, example.test/service/internal/domain, example.test/service/internal/application]
+    forbidigo:
+      forbid:
+        - pattern: ^float32$
