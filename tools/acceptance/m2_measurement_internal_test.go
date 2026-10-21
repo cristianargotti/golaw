@@ -133,7 +133,10 @@ func m2MeasuredResult(t *testing.T, rung string, got result) {
 // or empty when it is one. It reads the statuses the producers print: the
 // verdict line of a report, which always counts its unmeasured checks, the
 // line of a check left unmeasured, the push line of a scanner that could
-// not judge, and the line of files over the read bound.
+// not judge, the line of files over the read bound and every line that
+// leaves work to the pipeline. It also requires the line each rung prints
+// when its work ran to the end, so a silent rung, one that is not armed
+// or one that skipped its Go steps, never times as a completion.
 func m2MeasuredReason(rung string, got result) string {
 	if got.err != nil {
 		return got.err.Error()
@@ -145,9 +148,12 @@ func m2MeasuredReason(rung string, got result) string {
 			return "the verdict counts " + match[1] + " unmeasured checks"
 		}
 	}
-	statuses := regexp.MustCompile(`(?m)^\S+ unmeasured |govulncheck could not judge it|over the read bound, not judged here`)
+	statuses := regexp.MustCompile(`(?m)^\S+ unmeasured |govulncheck could not judge it|over the read bound, not judged here|left to the pipeline|the pipeline judges|not judged against a base`)
 	if status := statuses.FindString(text); status != "" {
 		return "unmeasured: " + status
+	}
+	if !m2Completed(rung).MatchString(text) {
+		return "no line shows the " + rung + " work ran to the end"
 	}
 	advisory := regexp.MustCompile(`GO-\d{4}-\d{4,}`)
 	if got.code == 0 || rung == "pre-push" && got.code > 0 && advisory.MatchString(text) {
@@ -156,29 +162,58 @@ func m2MeasuredReason(rung string, got result) string {
 	return "exit " + strconv.Itoa(got.code)
 }
 
+// m2Completed matches the line a rung prints when its work ran to the end:
+// go vet over the affected packages of the staged Go change, the verdict of
+// the message, and the verdict of govulncheck on a pushed tip.
+func m2Completed(rung string) *regexp.Regexp {
+	switch rung {
+	case "pre-commit":
+		return regexp.MustCompile(`vet: go vet found nothing in \d+ affected packages`)
+	case "commit-msg":
+		return regexp.MustCompile(`verdict \w+: \d+ findings`)
+	default:
+		return regexp.MustCompile(`govulncheck finds no reachable vulnerability|GO-\d{4}-\d{4,} (reachable|waived)`)
+	}
+}
+
 func TestM2MeasuredStatuses(t *testing.T) {
 	t.Parallel()
 	clean := "verdict clean: 0 findings (0 enforced, 0 notes), 32 excluded, 0 unmeasured\n"
+	vetted := clean + "golaw pre-commit: vet: go vet found nothing in 8 affected packages\n"
 	tests := []struct {
 		name     string
 		rung     string
 		got      result
 		measured bool
 	}{
-		{"zero unmeasured", "pre-commit", result{stdout: clean}, true},
+		{"zero unmeasured", "pre-commit", result{stdout: vetted}, true},
 		{"positive unmeasured", "pre-commit", result{
 			stdout: "verdict clean: 0 findings (0 enforced, 0 notes), 31 excluded, 1 unmeasured\n",
 		}, false},
 		{"named unmeasured check", "pre-commit", result{
-			stdout: "goast.file-length unmeasured the file is over the read bound\n" + clean,
+			stdout: "goast.file-length unmeasured the file is over the read bound\n" + vetted,
 		}, false},
 		{"scanner failure", "pre-push", result{
 			stderr: "golaw pre-push: main: govulncheck could not judge it, the pipeline judges it: exit status 2\n",
 		}, false},
 		{"over the read bound", "pre-commit", result{
-			stdout: clean + "golaw pre-commit: over the read bound, not judged here: big.bin; the pipeline judges them\n",
+			stdout: vetted + "golaw pre-commit: over the read bound, not judged here: big.bin; the pipeline judges them\n",
 		}, false},
-		{"measured advisory", "pre-push", result{code: 1, stderr: "golaw pre-push: main: GO-2026-0001 is reachable\n"}, true},
+		{"ignored Go files", "pre-commit", result{
+			stdout: clean + "golaw pre-commit: tree: the Go steps are left to the pipeline: the worktree holds Go files git ignores, which the commit does not record and a copy of the index lacks: gen.go\n",
+		}, false},
+		{"a copy over its bounds", "pre-commit", result{
+			stdout: clean + "golaw pre-commit: tree: the Go steps are left to the pipeline: tree over its bounds; stage the whole change, so the worktree holds what the index holds, and they read it in place\n",
+		}, false},
+		{"a base it could not measure", "pre-commit", result{
+			stdout: vetted + "golaw pre-commit: not judged against a base it could not measure, the pipeline judges them: goast.sentinel-decl (parse a/a.go)\n",
+		}, false},
+		{"silent pre-commit", "pre-commit", result{}, false},
+		{"silent commit-msg", "commit-msg", result{}, false},
+		{"silent pre-push", "pre-push", result{}, false},
+		{"commit-msg verdict", "commit-msg", result{stdout: clean}, true},
+		{"clean push", "pre-push", result{stdout: "golaw pre-push: 4569d0892268: govulncheck finds no reachable vulnerability\n"}, true},
+		{"measured advisory", "pre-push", result{code: 1, stderr: "golaw pre-push: main: GO-2026-0001 reachable in stdlib, fixed in v1.27.2\n"}, true},
 		{"advisory outside the push", "pre-commit", result{code: 1, stderr: "GO-2026-0001\n"}, false},
 		{"refusal", "commit-msg", result{code: 1, stderr: "golaw commit-msg: commit.conventional\n"}, false},
 		{"execution error", "pre-commit", result{err: ErrAcceptance}, false},
