@@ -26,32 +26,32 @@ func dockerContinued(text string) bool {
 }
 
 func dockerToken(text string) (string, string, bool) {
-	var word strings.Builder
+	var word []byte
 	var quote byte
 	for i := 0; i < len(text); i++ {
 		c := text[i]
 		switch {
 		case quote == 0 && strings.ContainsRune(dockerSpace, rune(c)):
-			return word.String(), text[i:], true
+			return string(word), text[i:], true
 		case c == '\\' && quote != '\'':
 			if quote == '"' && i+1 < len(text) && !strings.ContainsRune("$\"\\", rune(text[i+1])) {
-				word.WriteByte(c)
+				word = append(word, c)
 				continue
 			}
 			i++
 			if i >= len(text) {
 				return "", "", false
 			}
-			word.WriteByte(text[i])
+			word = append(word, text[i])
 		case c == quote:
 			quote = 0
 		case quote == 0 && (c == '\'' || c == '"'):
 			quote = c
 		default:
-			word.WriteByte(c)
+			word = append(word, c)
 		}
 	}
-	return word.String(), "", quote == 0
+	return string(word), "", quote == 0
 }
 
 func dockerWords(text string) ([]string, bool) {
@@ -68,19 +68,19 @@ func dockerWords(text string) ([]string, bool) {
 }
 
 func dockerExpand(text string, args map[string]string) (string, bool) {
-	var expanded strings.Builder
+	var expanded []byte
 	for {
 		prefix, rest, found := strings.Cut(text, "$")
-		expanded.WriteString(prefix)
+		expanded = append(expanded, prefix...)
 		if !found {
-			return expanded.String(), true
+			return string(expanded), true
 		}
 		name, suffix, valid := dockerVariable(rest)
 		value, known := args[name]
 		if !valid || !known || strings.Contains(value, "$") {
 			return "", false
 		}
-		expanded.WriteString(value)
+		expanded = append(expanded, value...)
 		text = suffix
 	}
 }
