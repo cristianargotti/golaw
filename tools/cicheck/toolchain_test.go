@@ -21,8 +21,8 @@ var advisoryFloor = [3]int{1, 27, 2}
 func TestWorkflowsShareOneFixedToolchain(t *testing.T) {
 	t.Parallel()
 	want := gateToolchain(t)
-	for _, workflow := range []string{"ci.yml", "release.yml", "vuln.yml"} {
-		path := ".github/workflows/" + workflow
+	for _, lane := range []string{"ci.yml", "release.yml", "vuln.yml"} {
+		path := ".github/workflows/" + lane
 		root, err := document(kitBytes(t, path))
 		if err != nil {
 			t.Fatal(err)
