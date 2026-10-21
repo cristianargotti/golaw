@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"path/filepath"
@@ -48,11 +49,19 @@ func TestDoctorPrintsOneReportPerAgent(t *testing.T) {
 	if got := ta.run(t.Context(), []string{"doctor", "--json", "--scope", scopeProject, root}); got != exitClean {
 		t.Fatalf("json exit = %d, stderr = %q", got, ta.stderr.String())
 	}
-	var report doctor.Report
-	if err := json.Unmarshal(ta.stdout.Bytes(), &report); err != nil ||
-		report.Schema != 1 || len(report.Lines) < 2 ||
-		report.Lines[0].ID != "doctor.plugin" || (*asked)[3] != scopeProject {
-		t.Fatalf("json = %q, %v", ta.stdout.String(), err)
+	// One document per agent, in id order: the first is the first agent's.
+	decoder := json.NewDecoder(bytes.NewReader(ta.stdout.Bytes()))
+	documents := 0
+	for decoder.More() {
+		var report doctor.Report
+		if err := decoder.Decode(&report); err != nil || report.Schema != 1 ||
+			(documents == 0 && (len(report.Lines) < 2 || report.Lines[0].ID != "doctor.plugin")) {
+			t.Fatalf("json = %q, %v", ta.stdout.String(), err)
+		}
+		documents++
+	}
+	if documents != len(agents.All()) || (*asked)[len(*asked)-1] != scopeProject {
+		t.Fatalf("documents = %d, asked = %v", documents, *asked)
 	}
 }
 

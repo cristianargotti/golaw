@@ -23,7 +23,7 @@ func (b binding) doctorReport(ctx context.Context, agent agents.Agent, root, sco
 	if err != nil {
 		return doctor.Report{}, err
 	}
-	return doctor.Assess(doctor.Collect(ctx, input, port, doctor.NativeRunner{})), nil
+	return agent.Doctor(ctx, input, port), nil
 }
 
 // doctorInput gathers what doctor needs: the receipt, the running binary,

@@ -1,0 +1,4 @@
+# golaw rules for the shell commands of an agent: forbidden prefix rules
+# generated from the shell family of the kit by golaw agent install. A
+# prefix cannot express an option anywhere in a command, git -C or a
+# wrapper such as bash -lc; the golaw hook judges those.
