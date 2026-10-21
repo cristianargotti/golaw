@@ -29,9 +29,10 @@ func TestUpdateRestrictsWritesToRecordedPaths(t *testing.T) {
 	}, recorded)
 	want := []policy.ManagedFile{
 		{Path: "known.txt", SHA256: install.Digest([]byte("new\n"))},
+		{Path: "new.txt", SHA256: install.Digest([]byte("new\n"))},
 		{Path: "unknown.txt", SHA256: oldHash},
 	}
-	if err != nil || len(plan.Changes) != 1 || plan.Changes[0].Path != "known.txt" ||
+	if err != nil || len(plan.Changes) != 2 || plan.Changes[0].Path != "known.txt" || plan.Changes[1].Path != "new.txt" ||
 		!slices.Equal(plan.Managed, want) || len(plan.LocalEdits) != 0 || len(plan.Proposed) != 0 {
 		t.Fatalf("restricted plan = %+v, %v", plan, err)
 	}
@@ -43,7 +44,7 @@ func TestUpdateRestrictsWritesToRecordedPaths(t *testing.T) {
 	}
 	requireUpdatedBytes(t, filepath.Join(root, "known.txt"), "new\n")
 	requireUpdatedBytes(t, filepath.Join(root, "unknown.txt"), "reviewed\n")
-	requireTemplateAbsent(t, root, "new.txt")
+	requireUpdatedBytes(t, filepath.Join(root, "new.txt"), "new\n")
 	requireTemplateAbsent(t, root, "notes.txt")
 }
 
