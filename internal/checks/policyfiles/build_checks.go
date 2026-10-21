@@ -6,5 +6,5 @@ import "github.com/cristianargotti/golaw/internal/model"
 // order: policy.makefile, policy.ci-target, policy.generated-fresh and
 // policy.hook-tests.
 func buildChecks() []model.Check {
-	return []model.Check{Makefile()}
+	return []model.Check{Makefile(), CITarget()}
 }

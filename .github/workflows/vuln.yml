@@ -5,7 +5,7 @@
 # in vulnerability_waivers of golaw.yml, with its decision record under
 # docs/adr/, keeps the lane green until the day it names and never longer
 # (tools/vulngate prints every waiver it applies and fails on an expired
-# one). The date is passed in, so a run is reproducible.
+# one).
 name: Vulnerabilities
 
 on:
@@ -36,11 +36,7 @@ jobs:
       - name: Install pinned govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
       - name: Scan with the waivers of golaw.yml
-        # Without a shell the step runs as bash -e, where a pipe takes the
-        # exit code of vulngate alone; shell: bash adds pipefail, so a failed
-        # scan fails the lane.
-        shell: bash
-        run: govulncheck -format json ./... | go run ./tools/vulngate -waivers golaw.yml -today "$(date -u +%F)"
+        run: make vuln
 
   m2-live:
     runs-on: ubuntu-latest
