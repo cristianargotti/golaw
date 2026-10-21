@@ -8,6 +8,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Added
 
+- 2026-10-20: the policy family, rules rules/4.5@1 (the lint configuration), rules/4.6@1 (hook script tests), rules/4.7@1 (secret scanning), rules/4.8@1 (the supply chain), rules/4.9@1 (migrations), rules/4.10@1 (the API contract), rules/4.12@1 (ownership) and rules/4.13@1 (the ci target): the checks that read the configuration of a repository through a declared subset, each over the tree so a half-written file of an agent is never judged, and a construct outside the subset named as a stated limit and never a finding, because the pipeline is the only gate and its configuration must carry the standard.
 - 2026-10-20: scan --staged compares index findings with the base as a multiset and evaluates the proposed policy separately, so unstaged edits cannot hide a staged violation.
 - 2026-10-20: scan --enrolled accepts externally provisioned digests, because a clean CI runner must not trust enrollment supplied by its checkout.
 - 2026-10-20: the optional pre-commit, commit-msg and pre-push rungs run through the binary, because local checks must not depend on make, awk or tar.
