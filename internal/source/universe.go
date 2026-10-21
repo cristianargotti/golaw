@@ -17,8 +17,9 @@ import (
 // binaryProbe is how many leading bytes decide that a file is binary.
 const binaryProbe = 8000
 
-// generatedHeader is the Go convention for generated files.
-var generatedHeader = regexp.MustCompile(`(?m)^// Code generated .* DO NOT EDIT\.$`)
+// generatedHeader accepts the Go convention and swaggo's form. Requiring a
+// line comment at the start of a line keeps prose and block comments out.
+var generatedHeader = regexp.MustCompile(`(?m)^// (?:Package \S+ )?Code generated .* DO NOT EDIT\.?$`)
 
 // entry is one path of the universe as git listed it.
 type entry struct {

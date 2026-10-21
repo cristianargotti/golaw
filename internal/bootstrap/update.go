@@ -12,7 +12,8 @@ import (
 	"github.com/cristianargotti/golaw/internal/policy"
 )
 
-// PlanUpdate limits writes to recorded baselines so local ownership survives version movement.
+// PlanUpdate limits rewrites to recorded baselines so local ownership
+// survives version movement, and plans the kit files a newer version adds.
 func PlanUpdate(root string, rendered []assets.Rendered, recorded []policy.ManagedFile) (TemplatePlan, error) {
 	plan, err := PlanTemplates(root, nil)
 	if err != nil {
@@ -36,6 +37,9 @@ func PlanUpdate(root string, rendered []assets.Rendered, recorded []policy.Manag
 		if err := plan.addUpdate(file, record); err != nil {
 			return TemplatePlan{}, err
 		}
+	}
+	if err := plan.addArrivals(files, records); err != nil {
+		return TemplatePlan{}, err
 	}
 	slices.SortFunc(plan.Managed, func(a, b policy.ManagedFile) int { return cmp.Compare(a.Path, b.Path) })
 	return plan, nil

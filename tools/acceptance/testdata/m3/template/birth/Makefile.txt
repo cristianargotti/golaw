@@ -1,0 +1,38 @@
+LOG_LEVEL := error
+ENVIRONMENT :=
+
+ifneq (,$(filter log_debug,$(MAKECMDGOALS)))
+	LOG_LEVEL := debug
+endif
+
+ifneq (,$(filter qa,$(MAKECMDGOALS)))
+	ENVIRONMENT := qa
+else ifneq (,$(filter live,$(MAKECMDGOALS)))
+	ENVIRONMENT := live
+else
+	ENVIRONMENT := dev
+endif
+
+.PHONY: install-deps lint lint-fix test qa live log_debug
+
+install-deps:
+	@command -v golangci-lint >/dev/null 2>&1 || \
+		GOBIN=$(shell go env GOPATH)/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+
+lint:
+	@golangci-lint run -v
+
+lint-fix:
+	@golangci-lint run -v --fix
+
+test:
+	@docker compose run --rm test
+
+qa:
+	@:
+
+live:
+	@:
+
+log_debug:
+	@:
