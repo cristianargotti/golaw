@@ -31,7 +31,8 @@ func TestReadModuleDoesNotSelectAnotherToolchain(t *testing.T) {
 			}
 			want := bootstrap.ModuleInfo{
 				Path: "example.test/service", GoVersion: version,
-				Direct: []assets.Requirement{{Path: "example.test/direct", Version: "v1.2.3"}},
+				Direct:   []assets.Requirement{{Path: "example.test/direct", Version: "v1.2.3"}},
+				Indirect: []assets.Requirement{{Path: "example.test/indirect", Version: "v1.4.0"}},
 			}
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("module = %+v, want %+v", got, want)

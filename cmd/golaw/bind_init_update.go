@@ -24,7 +24,7 @@ func (b binding) updateTemplates(ctx context.Context, root string, data []byte, 
 		return bootstrap.TemplatePlan{}, "", err
 	}
 	config.Kit.Version = pin
-	inputs, notice, err := b.initTemplateContext(ctx, root, config)
+	inputs, _, notice, err := b.initTemplateContext(ctx, root, config)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", err
 	}
