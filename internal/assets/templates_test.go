@@ -156,7 +156,7 @@ func TestTemplatesPreserveSortedEntriesAndEmptyManifests(t *testing.T) {
 	entries := make([]string, 0, len(destinations))
 	for _, destination := range destinations {
 		entry := strings.Replace(templateTestEntry, "output.yml", "'"+destination+"'", 1)
-		entries = append(entries, strings.Replace(entry, "when: []", "when: [go, db, go]", 1))
+		entries = append(entries, strings.Replace(entry, "when: []", "when: [go, db]", 1))
 	}
 	tree[templateTestManifest].Data = []byte("templates:\n" + strings.Join(entries, ""))
 	tree[templateTestSource] = &fstest.MapFile{}
@@ -166,7 +166,7 @@ func TestTemplatesPreserveSortedEntriesAndEmptyManifests(t *testing.T) {
 	}
 	for i, entry := range got {
 		if entry.Source != templateTestSource || entry.Destination != destinations[i] ||
-			entry.Ownership != assets.OwnedByKit || strings.Join(entry.When, ",") != "go,db,go" {
+			entry.Ownership != assets.OwnedByKit || strings.Join(entry.When, ",") != "go,db" {
 			t.Fatalf("entry %d changed: %+v", i, entry)
 		}
 	}

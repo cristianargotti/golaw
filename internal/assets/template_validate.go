@@ -37,9 +37,12 @@ func validateTemplate(source fs.FS, entry Template) error {
 	default:
 		return fmt.Errorf("%w: unknown ownership: %q", ErrManifest, entry.Ownership)
 	}
-	for _, capability := range entry.When {
+	for i, capability := range entry.When {
 		if !slices.Contains(model.Capabilities(), capability) {
 			return fmt.Errorf("%w: unknown capability: %q", ErrManifest, capability)
+		}
+		if slices.Contains(entry.When[:i], capability) {
+			return fmt.Errorf("%w: capability %q repeats in the condition of %s", ErrManifest, capability, entry.Source)
 		}
 	}
 	if _, err := fs.ReadFile(source, entry.Source); err != nil {
