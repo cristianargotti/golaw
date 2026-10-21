@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,12 +21,16 @@ func (a *app) setupCommand() *cobra.Command {
 		Short: "Arm optional Git hooks or remove the hooks recorded by setup",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// A person who stops setup stops it through the context, so a
+			// stop after lefthook install still puts the git hooks back.
+			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
 			deps := setup.Dependencies{Run: runner.Run, Verify: runner.Verify}
-			plan, err := a.bind().setupPlan(cmd.Context(), rootArg(args), a.now(), uninstall, deps)
+			plan, err := a.bind().setupPlan(ctx, rootArg(args), a.now(), uninstall, deps)
 			if err != nil {
 				return err
 			}
-			return setupFailed(setup.Apply(cmd.Context(), plan, cmd.OutOrStdout(), deps))
+			return setupFailed(setup.Apply(ctx, plan, cmd.OutOrStdout(), deps))
 		},
 	}
 	cmd.Flags().BoolVar(&uninstall, "uninstall", false, "remove the receipt-owned hooks and keep the tools installed")
