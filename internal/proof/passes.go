@@ -121,7 +121,7 @@ type verdict struct {
 }
 
 func (p pair) run(ctx context.Context, reg *engine.Registry, f Fixture) (verdict, error) {
-	in, err := f.Input(p.spec.Scope, Policy())
+	in, err := f.Input(p.spec.Scope, PolicyFor(p.entry))
 	if err != nil {
 		return verdict{}, err
 	}
