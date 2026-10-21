@@ -97,6 +97,7 @@ func wantDepguard(module string, hex bool) map[string]any {
 		map[string]any{"pkg": "github.com/pkg/errors", "desc": "use fmt.Errorf with %w and the standard errors package"},
 		map[string]any{"pkg": "math/rand$", "desc": "use math/rand/v2 or crypto/rand"},
 		map[string]any{"pkg": "github.com/sirupsen/logrus", "desc": "use log/slog"},
+		map[string]any{"pkg": "github.com/swaggo", "desc": "the API path is OpenAPI 3 with oapi-codegen"},
 	}}}
 	if hex {
 		rules["domain"] = map[string]any{
