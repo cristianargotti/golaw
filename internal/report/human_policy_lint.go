@@ -15,5 +15,9 @@ func policyLintPhrases() []sentence {
 		{code: "golangci-layer-missing", text: "nenhuma regra estrita do depguard protege uma camada interna; acrescente a regra que o golaw init gera"},
 		{code: "golangci-layer-open", text: "regra do depguard abre uma camada interna; deixe a regra estrita e permita só a biblioteca padrão e as camadas internas"},
 		{code: "golangci-float32-allowed", text: "o forbidigo não proíbe float32; acrescente o padrão ^float32$"},
+		{code: "ruleguard-disabled", text: "o gocritic não roda a verificação ruleguard; mantenha a tag style e não a desative"},
+		{code: "ruleguard-unconfigured", text: "a configuração do ruleguard não nomeia o arquivo de regras; aponte rules para scripts/lint/rules.go"},
+		{code: "ruleguard-rule-missing", text: "a regra stringByteCut do ruleguard está ausente; escreva a regra que o golaw init gera"},
+		{code: "gitleaks-generated-allowlist", text: "allowlist do gitleaks libera arquivos gerados da varredura de segredos; remova o caminho"},
 	}
 }

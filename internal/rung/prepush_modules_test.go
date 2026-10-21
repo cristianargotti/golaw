@@ -22,7 +22,7 @@ const (
 //nolint:paralleltest // the fake tools are found through PATH
 func TestPrePushNamesEveryFixOfAnAdvisoryInOneOrder(t *testing.T) {
 	r := armedRepo(t, armedPolicy)
-	short := "golaw pre-push: " + r.Head()[:12] + ": "
+	short := "golaw pre-push: " + r.Head()[:12] + ": " //nolint:gocritic // a commit hash is hex, ASCII by construction
 	want := []string{
 		short + "GO-2026-0004 reachable in golang.org/x/net, fixed in v0.60.0",
 		short + "GO-2026-0004 reachable in stdlib, fixed in v1.27.2",

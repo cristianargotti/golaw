@@ -36,7 +36,7 @@ func TestCompleteCoreInventoryHasNoProjectAgentFiles(t *testing.T) {
 				".gitleaks.toml", ".golangci.yml", ".gremlins.yaml",
 				".mockery.yaml", "Makefile",
 				tc.decisions + "/0001-inherited-baseline.md",
-				"golaw.mk", "lefthook.yml",
+				"go.mod", "golaw.mk", "lefthook.yml", "scripts/lint/rules.go",
 				"test/deadcode/reachability_test.go", "tools/go.mod",
 			}
 			slices.Sort(want)
@@ -105,6 +105,11 @@ func TestCompleteCoreTemplatesScanClean(t *testing.T) {
 	}
 }
 
+// dslSums are the go.sum lines of the ruleguard dsl the rendered go.mod
+// requires once the person applies the proposal of init.
+const dslSums = "github.com/quasilyte/go-ruleguard/dsl v0.3.23 h1:lxjt5B6ZCiBeeNO8/oQsegE6fLeCzuMRoVWSkXC4uvY=\n" +
+	"github.com/quasilyte/go-ruleguard/dsl v0.3.23/go.mod h1:KeCP03KrjuSO0H1kTuZQCWlQPulDV6YMIXmpQss17rU=\n"
+
 // initPolicy is the effective policy of the golaw.yml init writes beside
 // the templates, so the scan judges the rendered files under the floors and
 // the allowed lint exclusions init seeds.
@@ -129,7 +134,9 @@ func initPolicy(t *testing.T, capabilities []string) *model.EffectivePolicy {
 }
 
 // renderedRepository is every core template rendered for the
-// capabilities, beside the go.mod of the module the templates name.
+// capabilities, beside the go.mod of the module the templates name with
+// the requirement init proposes applied, as the person applies it, and the
+// go.sum lines of that requirement.
 func renderedRepository(t *testing.T, capabilities []string) map[string][]byte {
 	t.Helper()
 	context := assetContext()
@@ -139,10 +146,12 @@ func renderedRepository(t *testing.T, capabilities []string) map[string][]byte {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files := map[string][]byte{"go.mod": []byte("module " + context.ModulePath + "\n\ngo " + context.GoVersion + "\n")}
+	module := "module " + context.ModulePath + "\n\ngo " + context.GoVersion + "\n\n"
+	files := map[string][]byte{"go.sum": []byte(dslSums)}
 	for i := range rendered {
 		files[rendered[i].Path] = rendered[i].Data
 	}
+	files["go.mod"] = append([]byte(module), files["go.mod"]...)
 	if _, ok := files["test/deadcode/reachability_test.go"]; !ok {
 		t.Fatal("the deadcode asset is not rendered")
 	}

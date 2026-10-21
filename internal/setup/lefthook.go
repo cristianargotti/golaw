@@ -63,7 +63,7 @@ func sections(data []byte) map[string]string {
 		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "---") {
 			continue
 		}
-		if name, rest, found := strings.Cut(line, ":"); found && !strings.ContainsAny(line[:1], " \t-") {
+		if name, rest, found := strings.Cut(line, ":"); found && !strings.ContainsRune(" \t-", rune(line[0])) {
 			key = strings.Trim(strings.TrimSpace(name), `"'`)
 			config[key] += rest + "\n"
 			continue

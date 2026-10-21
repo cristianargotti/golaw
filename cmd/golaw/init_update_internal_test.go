@@ -13,7 +13,7 @@ import (
 func TestInitUpdateMovesThePinAndPreservesLocalEdits(t *testing.T) {
 	t.Parallel()
 	repo := gittest.New(t)
-	repo.Write("go.mod", "module example.test/service\n\ngo 1.27\n")
+	repo.Write("go.mod", adoptedModule)
 	ta := initBindApp(t)
 	path := filepath.Join(repo.Root, "golaw.yml")
 	older, before := olderPolicy(t, ta, repo, path)

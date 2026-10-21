@@ -57,7 +57,7 @@ func TestInitKeepsAProtectedPolicyAndHoldsNewRecords(t *testing.T) {
 	repo := gittest.New(t)
 	reviewed := m1Policy(t)
 	repo.Commit("chore: adopt the policy", map[string]string{
-		"go.mod":    "module example.test/service\n\ngo 1.27\n",
+		"go.mod":    adoptedModule,
 		"golaw.yml": reviewed, "CODEOWNERS": protectedPolicyOwners,
 	})
 	ta := initBindApp(t)
