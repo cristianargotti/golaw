@@ -1,0 +1,11 @@
+# gocritic runs the ruleguard check under the style tag with the rules file
+# of the standard.
+version: "2"
+linters:
+  settings:
+    gocritic:
+      enabled-tags: [diagnostic, style, performance]
+      settings:
+        ruleguard:
+          rules: '${base-path}/scripts/lint/rules.go'
+          failOn: all

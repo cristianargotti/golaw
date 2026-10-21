@@ -63,7 +63,7 @@ func TestInitUnchangedPolicyKeepsM1Status(t *testing.T) {
 func requireUnchangedPolicyStatus(t *testing.T, language, status string, tightened bool) {
 	t.Helper()
 	repo := gittest.New(t)
-	repo.Write("go.mod", "module example.test/service\n\ngo 1.27\n")
+	repo.Write("go.mod", adoptedModule)
 	ta := initBindApp(t)
 	flags := []string{"--language", language, "--capabilities", "go,api"}
 	first := append([]string{"init", "--apply", repo.Root}, flags...)

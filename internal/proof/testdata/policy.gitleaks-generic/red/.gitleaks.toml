@@ -1,0 +1,9 @@
+# The default rules with the generated tree freed from the scan.
+title = "service"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "generated clients"
+paths = ['''^gen/''']

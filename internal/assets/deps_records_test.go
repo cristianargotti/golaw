@@ -24,12 +24,12 @@ func TestBaselineCoversApplicationAndRenderedTools(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			files := map[string][]byte{
-				"go.mod": []byte("module example.test/service\nrequire example.test/library v1.0.0\n"),
-			}
+			files := make(map[string][]byte)
 			for _, file := range rendered {
 				files[file.Path] = file.Data
 			}
+			module := "module example.test/service\nrequire example.test/library v1.0.0\n"
+			files["go.mod"] = append([]byte(module), files["go.mod"]...)
 			tree := proof.NewTree(files)
 			policy := proof.Policy()
 			policy.Layout.Decisions = directory
