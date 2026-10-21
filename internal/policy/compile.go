@@ -41,7 +41,24 @@ func Compile(f File, now time.Time, schemas Schemas) (*model.EffectivePolicy, er
 	p.Options = f.Checks.options(schemas)
 	p.Ladder = f.Ladder.ladder()
 	p.Waivers = f.waivers()
+	p.Layout = f.Layout.layout()
 	return &p, nil
+}
+
+// layout answers the layout the file names, the core default for each part
+// it leaves out.
+func (l *Layout) layout() model.Layout {
+	out := model.Layout{Main: model.DefaultMain, Decisions: model.DefaultDecisions}
+	if l == nil {
+		return out
+	}
+	if l.Main != nil {
+		out.Main = *l.Main
+	}
+	if l.Decisions != nil {
+		out.Decisions = *l.Decisions
+	}
+	return out
 }
 
 // floors answers the size floors, the core defaults where unset.

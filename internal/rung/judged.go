@@ -22,12 +22,14 @@ const maxNamed = 20
 // the language of the policy, which names the rule through the phrase
 // table.
 func judged(name, language string, run *engine.Run) Outcome {
+	limits := limited(run)
 	s := settled(run)
 	lines, err := reportLines(run, s.decision)
 	if err != nil {
 		return failed(name, language, err)
 	}
 	out := Outcome{Code: codeOf(s.decision), Lines: append(lines, s.lines(name)...)}
+	out.Lines = append(out.Lines, limitLines(name, limits)...)
 	if out.Code != codeClean {
 		out.Lines = append(out.Lines, report.Human(language, s.decision))
 	}

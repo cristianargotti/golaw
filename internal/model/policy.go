@@ -10,6 +10,20 @@ const (
 	DefaultLanguage      = "pt-BR"
 )
 
+// The layout a policy that names none holds: the main package at the root
+// and the decision records under docs/adr (decision 5, section 5.3).
+const (
+	DefaultMain      = "root"
+	DefaultDecisions = "docs/adr"
+)
+
+// Layout is where the main package and the decision records of the
+// repository live, as golaw.yml names them.
+type Layout struct {
+	Main      string // root or cmd
+	Decisions string // the slash separated directory of the decision records
+}
+
 // SizeFloors are the size laws of section 3.
 type SizeFloors struct {
 	FileLines     int // at most this many lines per Go file
@@ -89,6 +103,7 @@ type EffectivePolicy struct {
 	Options      map[string]Options // resolved options per check id
 	Ladder       Ladder             // the optional local rungs this checkout arms; never a floor
 	Waivers      []Waiver           // every committed vulnerability waiver, sorted by id; the push rung judges their expiry
+	Layout       Layout             // where the main package and the decision records live
 }
 
 // CoreDefaults is the policy every repository gets before its golaw.yml
@@ -98,6 +113,7 @@ func CoreDefaults() EffectivePolicy {
 	return EffectivePolicy{
 		Language: DefaultLanguage,
 		Ladder:   DefaultLadder(),
+		Layout:   Layout{Main: DefaultMain, Decisions: DefaultDecisions},
 		Sizes:    SizeFloors{FileLines: DefaultFileLines, FunctionLines: DefaultFunctionLines},
 		Enrollment: Enrollment{
 			State: EnrollmentNone,

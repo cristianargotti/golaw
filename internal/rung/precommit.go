@@ -36,6 +36,7 @@ type precommit struct {
 	repo     source.Repo
 	scan     stage.Result
 	settled  settlement // what the scan leaves to the pipeline
+	limits   []string   // the stated limits of the policy checks, left to the pipeline
 }
 
 // newPrecommit discovers the repository and scans the index git commits
@@ -54,9 +55,10 @@ func newPrecommit(ctx context.Context, deps Dependencies, a armed) (*precommit, 
 	if err != nil {
 		return nil, fmt.Errorf("staged scan: %w", err)
 	}
+	limits := limited(scan.Run)
 	s := settled(scan.Run)
 	scan.Decision = s.decision
-	return &precommit{deps: deps, language: a.loaded.Policy.Language, ladder: a.ladder, repo: repo, scan: scan, settled: s}, nil
+	return &precommit{deps: deps, language: a.loaded.Policy.Language, ladder: a.ladder, repo: repo, scan: scan, settled: s, limits: limits}, nil
 }
 
 // run reports the staged scan, takes the lock of the worktree so two
@@ -69,6 +71,7 @@ func (p *precommit) run(ctx context.Context) Outcome {
 		return failed(PreCommit, p.language, err)
 	}
 	lines = append(lines, p.settled.lines(PreCommit)...)
+	lines = append(lines, limitLines(PreCommit, p.limits)...)
 	lock, err := runner.Acquire(ctx, runner.LockPath(p.repo.GitDir, PreCommit), runner.RungWait)
 	if err != nil {
 		return failed(PreCommit, p.language, fmt.Errorf("%w: wait for the commit that holds it to end, then commit again", err))
