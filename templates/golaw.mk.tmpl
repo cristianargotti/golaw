@@ -3,11 +3,28 @@ export GOTOOLCHAIN=local
 PKG ?= .
 FUZZ ?= Fuzz
 FUZZTIME ?= 30s
+GOLAW_ENROLLED ?=
+MUTATION_BASE ?= origin/main
+{{- if has .Capabilities "db"}}
+MIGRATIONS ?= db/migrations/*.sql
+{{- end}}
+{{- if has .Capabilities "api"}}
+OPENAPI_BASE ?= api/openapi.base.yaml
+OPENAPI_CURRENT ?= api/openapi.yaml
+OPENAPI_BUNDLE ?= api/openapi.bundle.yaml
+{{- end}}
+{{- if has .Capabilities "image"}}
+IMAGE ?= golaw-local:check
+{{- end}}
 
-.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration
+.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration deps-age generate-check vuln licenses mutation-changed ci{{if has .Capabilities "db"}} migrate-lint{{end}}{{if has .Capabilities "api"}} openapi-breaking openapi-examples-check docs-check{{end}}{{if has .Capabilities "image"}} dockerfile-lint image-pins-check image image-scan{{end}}
 
 mod:
 	go mod verify
+
+deps-age: export GOTOOLCHAIN := auto
+deps-age:
+	go run github.com/cristianargotti/golaw/tools/depsage@v{{.KitVersion}} -days 7
 
 fmt:
 	golaw lock pre-commit -- golangci-lint fmt ./...
@@ -17,6 +34,10 @@ lint:
 
 vet:
 	go vet ./...
+
+generate-check:
+	go generate ./...
+	git diff --exit-code
 
 test:
 	go test -race -shuffle=on -count=1 -timeout=10m -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...
@@ -28,7 +49,7 @@ build:
 	go build ./...
 
 scan:
-	golaw scan .
+	golaw scan $(if $(GOLAW_ENROLLED),--enrolled $(GOLAW_ENROLLED)) .
 
 secrets:
 	gitleaks dir --redact --no-banner .
@@ -36,6 +57,18 @@ secrets:
 
 deadcode:
 	go test -tags=deadcode ./test/deadcode/
+
+vuln: export GOTOOLCHAIN := auto
+vuln:
+	go run github.com/cristianargotti/golaw/tools/vulngate@v{{.KitVersion}} -scan -waivers golaw.yml
+
+licenses: export GOTOOLCHAIN := auto
+licenses:
+	go run github.com/google/go-licenses/v2@v2.0.1 check --disallowed_types=forbidden,restricted ./...
+
+mutation-changed: export GOTOOLCHAIN := auto
+mutation-changed:
+	go run github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0 unleash --diff $(MUTATION_BASE)
 
 bench:
 	go test -run=^$$ -bench=. -benchmem ./...
@@ -45,3 +78,37 @@ fuzz:
 
 test-integration:
 	go test -race -tags=integration ./...
+{{- if has .Capabilities "db"}}
+
+migrate-lint:
+	squawk $(MIGRATIONS)
+{{- end}}
+{{- if has .Capabilities "api"}}
+
+openapi-breaking: export GOTOOLCHAIN := auto
+openapi-breaking:
+	go run github.com/oasdiff/oasdiff@v1.11.7 breaking --fail-on ERR $(OPENAPI_BASE) $(OPENAPI_CURRENT)
+
+openapi-examples-check:
+	redocly lint --config redocly.yaml $(OPENAPI_CURRENT)
+
+docs-check:
+	redocly bundle --config redocly.yaml $(OPENAPI_CURRENT) --output $(OPENAPI_BUNDLE)
+	git diff --exit-code
+{{- end}}
+{{- if has .Capabilities "image"}}
+
+dockerfile-lint:
+	hadolint Dockerfile
+
+image-pins-check:
+	golaw scan .
+
+image:
+	docker build -t $(IMAGE) .
+
+image-scan:
+	trivy image --exit-code 1 $(IMAGE)
+{{- end}}
+
+ci:{{if has .Capabilities "go"}} mod deps-age fmt vet generate-check test coverage-check build lint deadcode{{end}}{{if has .Capabilities "db"}} migrate-lint{{end}}{{if has .Capabilities "api"}} openapi-breaking openapi-examples-check{{end}}{{if has .Capabilities "go"}} vuln licenses{{end}}{{if has .Capabilities "api"}} docs-check{{end}}{{if has .Capabilities "go"}} secrets{{end}} scan{{if has .Capabilities "image"}} dockerfile-lint image-pins-check image image-scan{{end}}

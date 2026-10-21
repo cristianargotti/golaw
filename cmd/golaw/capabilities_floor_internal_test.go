@@ -35,7 +35,9 @@ func TestScanRefusesAGoShapeWithoutGoBeforeAnyCheck(t *testing.T) {
 		t.Fatalf("stdout = %q, stderr = %q", ta.stdout.String(), ta.stderr.String())
 	}
 	near := boundApp(t)
-	if got := near.run(t.Context(), []string{"scan", capabilityRepository(t, "capabilities: [api, go]\n")}); got != exitClean {
+	nearRoot := capabilityRepository(t, "capabilities: [api, go]\n")
+	coreAssets(t, nearRoot)
+	if got := near.run(t.Context(), []string{"scan", nearRoot}); got != exitClean {
 		t.Fatalf("api with go: exit = %d, stderr = %q", got, near.stderr.String())
 	}
 }
