@@ -73,9 +73,11 @@ func lookup(code string) (string, bool) {
 }
 
 // phrases is the message table of the human channel: one Portuguese
-// sentence per finding code of the kit, in catalog order.
+// sentence per finding code of the kit, in catalog order; each half of the
+// policy family keeps its rows in a file of its own.
 func phrases() []sentence {
-	return slices.Concat(filePhrases(), goastPhrases(), shellPhrases(), commitPhrases())
+	return slices.Concat(filePhrases(), goastPhrases(), shellPhrases(), commitPhrases(),
+		policyLintPhrases(), policyBuildPhrases(), policyDepsPhrases())
 }
 
 // filePhrases are the sentences of the text and paths families.

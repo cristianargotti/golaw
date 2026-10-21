@@ -58,7 +58,10 @@ func TestHumanNamesUnknownCodesAndUnmeasuredChecks(t *testing.T) {
 // sentence.
 func TestHumanRendersPortugueseForEveryCode(t *testing.T) {
 	t.Parallel()
-	for _, family := range []map[string]string{fileSentences(), goastSentences(), shellSentences(), commitSentences()} {
+	for _, family := range []map[string]string{
+		fileSentences(), goastSentences(), shellSentences(), commitSentences(),
+		policyLintSentences(), policyBuildSentences(), policyDepsSentences(),
+	} {
 		for code, want := range family {
 			decision := engine.Decision{Mode: model.ModeHook, Verdict: engine.VerdictDeny, Findings: []model.Finding{
 				{Check: "family.sample", Path: "internal/a.go", Code: code, Message: "english message", Severity: model.SeverityDeny},

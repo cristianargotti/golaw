@@ -1,0 +1,8 @@
+package report_test
+
+// policyDepsSentences spells the sentence of every code the dependency
+// half of the policy family emits, as TestHumanRendersPortugueseForEveryCode
+// reads them.
+func policyDepsSentences() map[string]string {
+	return map[string]string{}
+}
