@@ -3,7 +3,6 @@ package cicheck_test
 import (
 	"maps"
 	"os"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -111,22 +110,23 @@ func TestSupplyChainLanes(t *testing.T) {
 	requireText(t, "Makefile", "go run ./tools/depsage -days 7", "ci: mod deps-age ")
 }
 
-// A step without a shell runs as bash -e, which takes the exit code of the
-// last command of a pipe, so a scanner that fails would leave vulngate to
-// read an empty stream; only shell: bash adds pipefail.
 func TestVulnerabilityLaneFailsWithItsScanner(t *testing.T) {
 	t.Parallel()
 	root, err := document(kitBytes(t, ".github/workflows/vuln.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var shells []string
+	count := 0
 	for _, step := range children(at(root, "jobs", "govulncheck", "steps")) {
-		if strings.Contains(value(at(step, "run")), "| go run ./tools/vulngate ") {
-			shells = append(shells, value(at(step, "shell")))
+		if value(at(step, "run")) == "make vuln" {
+			count++
+			if value(at(step, "continue-on-error")) == "true" {
+				t.Fatal("the vulnerability command ignores failure")
+			}
 		}
 	}
-	if !slices.Equal(shells, []string{"bash"}) {
-		t.Fatalf("shells of the piped scan = %q, want [bash]", shells)
+	if count != 1 {
+		t.Fatalf("make vuln steps = %d, want 1", count)
 	}
+	requireText(t, "Makefile", "go run ./tools/vulngate -scan -waivers golaw.yml")
 }

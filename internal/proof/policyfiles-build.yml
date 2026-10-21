@@ -6,3 +6,11 @@ checks:
     code: make-target-missing
     red: testdata/policy.makefile/red
     near: testdata/policy.makefile/near
+  - id: policy.ci-target
+    code: ci-target-missing
+    red: testdata/policy.ci-target/red
+    near: testdata/policy.ci-target/near
+  - id: policy.generated-fresh
+    code: generate-check-missing
+    red: testdata/policy.generated-fresh/red
+    near: testdata/policy.generated-fresh/near
