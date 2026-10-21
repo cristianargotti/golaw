@@ -7,5 +7,5 @@ import "github.com/cristianargotti/golaw/internal/model"
 // policy.deps-age-config, policy.image-digest, policy.codeowners-foreign,
 // policy.openapi-assertions and policy.squawk-config.
 func depsChecks() []model.Check {
-	return []model.Check{DependencyRecords(), DependabotCooldown(), ImageDigest()}
+	return []model.Check{DependencyRecords(), DependabotCooldown(), ImageDigest(), SquawkConfig()}
 }

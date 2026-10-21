@@ -14,3 +14,7 @@ checks:
     code: image-digest-missing
     red: testdata/policy.image-digest/red
     near: testdata/policy.image-digest/near
+  - id: policy.squawk-config
+    code: squawk-policy
+    red: testdata/policy.squawk-config/red
+    near: testdata/policy.squawk-config/near

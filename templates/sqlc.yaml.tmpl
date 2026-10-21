@@ -1,0 +1,16 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/adapters/outbound/postgres/sqlcgen
+        sql_package: database/sql
+    rules:
+      - many-needs-bound
+rules:
+  - name: many-needs-bound
+    message: '{{if eq .Language "pt-BR"}}consultas com vários resultados precisam de limite{{else}}queries returning many rows need a bound{{end}}'
+    rule: 'query.cmd == "many" && !query.sql.matches("(?is).*\\b(limit|fetch)\\b.*")'

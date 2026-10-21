@@ -31,6 +31,10 @@ templates:
     destination: .mockery.yaml
     ownership: kit
     when: []
+  - source: templates/.squawk.toml.tmpl
+    destination: .squawk.toml
+    ownership: kit
+    when: [db]
   - source: templates/Makefile.tmpl
     destination: Makefile
     ownership: merged
@@ -43,6 +47,14 @@ templates:
     destination: lefthook.yml
     ownership: kit
     when: []
+  - source: templates/sqlc.vet.yaml.tmpl
+    destination: sqlc.vet.yaml
+    ownership: kit
+    when: [db]
+  - source: templates/sqlc.yaml.tmpl
+    destination: sqlc.yaml
+    ownership: kit
+    when: [db]
   - source: templates/test/deadcode/reachability_test.go.tmpl
     destination: test/deadcode/reachability_test.go
     ownership: developer
