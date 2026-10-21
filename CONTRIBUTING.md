@@ -1,6 +1,6 @@
 # Contributing
 
-The repository has a small set of laws. `make ci` checks every one a machine can check, and remote CI runs the same target on macOS, Linux and Windows; it is the only gate. Nothing on a developer's machine is mandatory: the rungs in `lefthook.yml` run only after `lefthook install`, which nobody runs for you.
+The repository has a small set of laws. `make ci` checks every one a machine can check, and remote CI runs the same target on macOS, Linux and Windows; it is the only gate. Nothing on a developer's machine is mandatory: the rungs in `lefthook.yml` run only after `golaw setup` arms them, which nobody runs for you, and `golaw setup --uninstall` removes them, as [docs/setup.md](docs/setup.md) describes.
 
 ## Laws
 

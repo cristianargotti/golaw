@@ -87,3 +87,14 @@ func nodeValue(node *yaml.Node) string {
 	}
 	return node.Value
 }
+
+// TestContributingArmsTheRungsWithSetup holds the contributor page to the
+// way M2 arms a rung: golaw hook passes silently until golaw setup records
+// its receipt, so a raw lefthook install arms nothing.
+func TestContributingArmsTheRungsWithSetup(t *testing.T) {
+	t.Parallel()
+	requireText(t, "CONTRIBUTING.md", "`golaw setup`", "`golaw setup --uninstall`")
+	if strings.Contains(string(kitBytes(t, "CONTRIBUTING.md")), "lefthook install") {
+		t.Fatal("CONTRIBUTING.md arms the rungs with lefthook install, which arms nothing")
+	}
+}
