@@ -1,0 +1,11 @@
+// Command birth is the shape of the entry point a scaffolded service has.
+package main
+
+import "github.com/spf13/cobra"
+
+func main() {
+	root := &cobra.Command{Use: "birth"}
+	if err := root.Execute(); err != nil {
+		panic(err)
+	}
+}

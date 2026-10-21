@@ -1,0 +1,2 @@
+* @example-org/service-team
+.github/ @example-org/platform-team

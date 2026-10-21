@@ -1,0 +1,18 @@
+swagger: "2.0"
+info:
+  title: Birth
+  version: "1.0"
+paths:
+  /health:
+    get:
+      responses:
+        "200":
+          description: ok
+          schema:
+            $ref: "#/definitions/Health"
+definitions:
+  Health:
+    type: object
+    properties:
+      response_time:
+        type: number

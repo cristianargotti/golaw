@@ -1,0 +1,11 @@
+FROM registry.example.test/platform/certificates:latest AS certs
+
+FROM golang:1.27-alpine AS build
+WORKDIR /src
+COPY . .
+RUN go build -o /out/birth .
+
+FROM alpine:3.20
+COPY --from=certs /certificates.crt /usr/local/share/ca-certificates/
+COPY --from=build /out/birth /birth
+ENTRYPOINT ["/birth"]
