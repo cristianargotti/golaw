@@ -53,6 +53,7 @@ func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *e
 		got.Findings = introduced(got.Findings, heldAt(bases, i))
 		for _, held := range bases {
 			held.provable(got, held.staged.Outcomes[i].Result)
+			held.besideDoubt(got, i)
 		}
 	}
 	return nil

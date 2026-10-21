@@ -3,6 +3,7 @@ package stage
 import (
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -23,10 +24,38 @@ func (b *baseRun) provable(got *model.Result, base model.Result) {
 	if base.Status.Kind != model.StatusUnmeasured {
 		return
 	}
-	var behind []string
+	holdBack(got, base, func(f model.Finding) ([]string, bool) { return b.doubt(f, base.Unread) })
+}
+
+// besideDoubt holds back a package finding of the index whose package the
+// run of the files beside the targets left a Go file unread in: the rule
+// judges the package whole, so the file it could not read may start the
+// goroutines the base held, and the finding is no proof of the commit.
+func (b *baseRun) besideDoubt(got *model.Result, i int) {
+	if b.beside == nil || b.beside.Outcomes[i].Result.Status.Kind != model.StatusUnmeasured {
+		return
+	}
+	base := b.beside.Outcomes[i].Result
+	holdBack(got, base, func(f model.Finding) ([]string, bool) {
+		var behind []string
+		for _, u := range base.Unread {
+			if f.Check == packageRule && path.Dir(u) == path.Dir(f.Path) && strings.HasSuffix(u, goSuffix) {
+				behind = append(behind, renamedTo(u, b.moved))
+			}
+		}
+		return behind, len(behind) > 0
+	})
+}
+
+// holdBack removes each finding doubt answers doubted, and leaves the
+// outcome unmeasured with the reason of the base, unless the index left it
+// unmeasured already, and the files behind each doubt among its unread
+// files.
+func holdBack(got *model.Result, base model.Result, doubt func(model.Finding) ([]string, bool)) {
+	var unread []string
 	kept := slices.DeleteFunc(slices.Clone(got.Findings), func(f model.Finding) bool {
-		unread, doubted := b.doubt(f, base.Unread)
-		behind = append(behind, unread...)
+		files, doubted := doubt(f)
+		unread = append(unread, files...)
 		return doubted
 	})
 	if len(kept) == len(got.Findings) {
@@ -35,7 +64,7 @@ func (b *baseRun) provable(got *model.Result, base model.Result) {
 	if got.Status.Kind == model.StatusMeasured {
 		got.Status = model.Unmeasured(BaseReason + base.Status.Reason)
 	}
-	for _, p := range behind {
+	for _, p := range unread {
 		if !slices.Contains(got.Unread, p) {
 			got.Unread = append(got.Unread, p)
 		}

@@ -32,6 +32,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-20: the staged comparison holds back a goast.goleak finding of a package whose committed Go file the base left over the read bound, and names that file, because a goroutine added beside a 9 MiB file that already started one was refused as new while the file that made it inherited was never named.
 - 2026-10-20: docs/security.md states as a limit a file git ignores that a //go:embed pattern of an index package names, with a rung test that pins its answers, because listing the ignored files to catch it would read them on every commit, while only test_staged, which is off by default, can refuse that exotic case, with a reason that names the off switch.
 - 2026-10-20: with test_staged on, a package the commit touches that fails naming no test runs whole at HEAD, and the same unnamed failure there is named and left to the pipeline, and the test refusal names the off switch, because a TestMain that exits after its tests refused even a comment edit with a reason the developer could not act on.
 - 2026-10-20: setup binds the interrupt and termination signals to its context, as the rungs do, because a SIGTERM after lefthook install killed setup before it put the git hooks back and left hooks armed with no receipt.

@@ -175,6 +175,14 @@ func TestScanHoldsBackWhatAnUnreadBaseCannotDisprove(t *testing.T) {
 		"a credential beside an unread base file": {
 			base: field, staged: shortened, check: "goast.secret-fields", unread: []string{"p/z.go"}, reason: "compare with the base: read p/z.go",
 		},
+		"a goroutine beside an unread file of its package": {
+			base:   map[string]string{"golaw.yml": goPolicy, "p/a.go": "package p\n\nfunc a() { go a() }\n" + strings.Repeat("a\n", model.MaxReadBytes/2), "p/b.go": "package p\n"},
+			staged: at("p/b.go", "package p\n\nfunc b() { go b() }\n"), check: "goast.goleak", unread: []string{"p/a.go"}, reason: "compare with the base: read p/a.go",
+		},
+		"a goroutine beside an unread file of another package": {
+			base:   map[string]string{"golaw.yml": goPolicy, "q/a.go": "package q\n\nfunc a() { go a() }\n" + strings.Repeat("a\n", model.MaxReadBytes/2), "p/b.go": "package p\n"},
+			staged: at("p/b.go", "package p\n\nfunc b() { go b() }\n"), check: "goast.goleak", want: []string{"p/b.go"},
+		},
 		"beside them, a new file with a credential": {
 			base: field, staged: beside, check: "goast.secret-fields", want: []string{"p/b.go"}, unread: []string{"p/z.go"}, reason: "compare with the base: read p/z.go",
 		},
