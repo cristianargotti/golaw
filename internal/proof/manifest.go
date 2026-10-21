@@ -21,10 +21,11 @@ import (
 // Go unicode escapes and is decoded while it is loaded, so prohibited bytes
 // never sit in the repository.
 type Entry struct {
-	ID   string `yaml:"id"`   // the check id, also the proof key
-	Code string `yaml:"code"` // the finding code the red fixture must yield
-	Red  string `yaml:"red"`  // the directory of the red fixture
-	Near string `yaml:"near"` // the directory of the near-miss fixture
+	ID      string `yaml:"id"`                // the check id, also the proof key
+	Code    string `yaml:"code"`              // the finding code the red fixture must yield
+	Red     string `yaml:"red"`               // the directory of the red fixture
+	Near    string `yaml:"near"`              // the directory of the near-miss fixture
+	Profile string `yaml:"profile,omitempty"` // the profile the fixtures run under, empty for core only
 }
 
 // Manifest is manifest.yml decoded.
@@ -49,6 +50,27 @@ func LoadManifest(path string) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("%s: %w", path, err)
 	}
 	return m, nil
+}
+
+// LoadManifests reads several manifests as one proof, each strictly as
+// LoadManifest reads it, and refuses an id that appears in two of them, so
+// the completeness pass compares the whole registry with the whole proof.
+func LoadManifests(paths ...string) (Manifest, error) {
+	if len(paths) == 0 {
+		return Manifest{}, fmt.Errorf("%w: no manifest named", ErrManifest)
+	}
+	var all Manifest
+	for _, path := range paths {
+		m, err := LoadManifest(path)
+		if err != nil {
+			return Manifest{}, err
+		}
+		all.Checks = append(all.Checks, m.Checks...)
+	}
+	if err := all.validate(); err != nil {
+		return Manifest{}, fmt.Errorf("%v: %w", paths, err)
+	}
+	return all, nil
 }
 
 // Names returns the check ids of the manifest, sorted.
@@ -84,6 +106,8 @@ func (m Manifest) validate() error {
 			return fmt.Errorf("%w: %s: code %q is not kebab-case", ErrManifest, e.ID, e.Code)
 		case e.Red == "" || e.Near == "":
 			return fmt.Errorf("%w: %s: red and near fixtures are both required", ErrManifest, e.ID)
+		case e.Profile != "" && !model.ValidCode(e.Profile):
+			return fmt.Errorf("%w: %s: profile %q is not a lower case name", ErrManifest, e.ID, e.Profile)
 		}
 		seen[e.ID] = true
 	}

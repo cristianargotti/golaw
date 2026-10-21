@@ -115,6 +115,15 @@ func Policy() *model.EffectivePolicy {
 	return &p
 }
 
+// PolicyFor is the policy the fixtures of an entry run under: Policy, with
+// the profile the entry names enrolled, so a check that applies only under
+// a profile reaches its fixtures.
+func PolicyFor(e Entry) *model.EffectivePolicy {
+	p := Policy()
+	p.Profile = e.Profile
+	return p
+}
+
 // Input builds the dispatch input of the fixture for a check scope: a scan
 // over the tree for file and tree checks, the commit rung over a commit that
 // adds every file of the tree for commit checks, a hook with the event for
