@@ -193,5 +193,14 @@ func TestInitDefersCapabilityGrowthAfterAnUnenrolledCommit(t *testing.T) {
 	if got, want := enrolledDigest(t, ta, repo.Root), digestOf(grown); got != want {
 		t.Fatalf("committed growth was not enrolled: got %s, want %s", got, want)
 	}
+	// A kit file the grown set renders differently stays a proposal until
+	// init --update writes it (CAP-6), so the enrolled policy loads and the
+	// scan names the db target golaw.mk does not carry yet.
+	if pending := capabilityRun(t, ta, exitFindings, "scan", repo.Root); !strings.Contains(pending, "add required target migrate-lint to Makefile") {
+		t.Fatalf("scan before the update = %q", pending)
+	}
+	capabilityRun(t, ta, exitClean, "init", "--update", "--apply", repo.Root)
+	repo.Git("add", "-A")
+	repo.Commit("build: render the database targets", nil)
 	capabilityRun(t, ta, exitClean, "scan", repo.Root)
 }
