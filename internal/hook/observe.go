@@ -21,7 +21,7 @@ func (run execution) answer(ctx context.Context, event model.Event, data []byte,
 	case len(run.request.Gaps) > 0:
 		answer.event, answer.result = run.request.Event, run.unmeasured(ctx, dependencies)
 	default:
-		answer.event, answer.result = run.request.Event, run.evaluate(ctx, data, dependencies)
+		answer.event, answer.result = run.request.Event, run.judged(ctx, data, dependencies)
 	}
 	return answer
 }

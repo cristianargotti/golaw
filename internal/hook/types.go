@@ -13,7 +13,8 @@ import (
 // judging, for a pre event whose policy another event of the host judges.
 // Detect asks for the change detection pass of a post event whose tool the
 // core does not know as a shell tool. Capture is recorded through the
-// dependencies before the answer leaves (A4).
+// dependencies before the answer leaves (A4). Writes are the files the
+// text of a shell pre event writes, judged as a write before the command.
 type Request struct {
 	Event   model.Event
 	Content map[string][]byte
@@ -23,6 +24,15 @@ type Request struct {
 	Observe bool
 	Detect  bool
 	Capture *Capture
+	Writes  *Writes
+}
+
+// Writes are the files the text of a shell command writes, which its
+// decoder reconstructed: candidates with their bytes, judged as a write of
+// the same tool before the command is judged.
+type Writes struct {
+	Candidates []model.Candidate
+	Content    map[string][]byte
 }
 
 // Capture is what an adapter records of a payload it cannot judge yet
@@ -87,7 +97,11 @@ type Adapter struct {
 
 // Parsed is an event an adapter decoded once: its header, and the decoder
 // of its request, which reads none of the bytes of the event again.
+// Targets are the further files a write of several files leads to, after
+// the event's target: enrollment reads each of them, so a first file
+// outside every repository never lends its location to the others (A3).
 type Parsed struct {
-	Event  model.Event
-	Decode func(Base, model.Snapshot) (Request, error)
+	Event   model.Event
+	Decode  func(Base, model.Snapshot) (Request, error)
+	Targets []string
 }

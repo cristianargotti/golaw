@@ -257,24 +257,9 @@ func (h hookBinding) hashes(ctx context.Context, repo hook.Repository, paths []s
 // overlay folds the candidates of a write event, with the bytes the adapter
 // reconstructed, into the base snapshot.
 func (h hookBinding) overlay(_ context.Context, base model.Snapshot, candidates []model.Candidate, content map[string][]byte) (model.Snapshot, error) {
-	o, _, err := source.NewOverlay(base, overlayMutations(candidates, content))
+	o, _, err := source.NewOverlay(base, source.FromCandidates(candidates, content))
 	if err != nil {
 		return nil, fmt.Errorf("fold the candidates: %w", err)
 	}
 	return o, nil
-}
-
-// overlayMutations maps the candidates to the mutations of the source
-// package. An edit the adapter already applied in memory arrives as the
-// whole content, so it is folded as a replace bound to the same base.
-func overlayMutations(candidates []model.Candidate, content map[string][]byte) []source.Mutation {
-	muts := make([]source.Mutation, 0, len(candidates))
-	for _, c := range candidates {
-		m := source.Mutation{Path: c.Path, Op: c.Op, From: c.From, BaseHash: c.BaseHash, Content: content[c.Path]}
-		if c.Op == model.CandidateEdit && c.Reconstructed {
-			m.Op = model.CandidateReplace
-		}
-		muts = append(muts, m)
-	}
-	return muts
 }
