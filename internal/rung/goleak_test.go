@@ -42,7 +42,7 @@ func TestPreCommitReadsAGoleakFindingByItsPackage(t *testing.T) {
 // A committed file of the package over the read bound may start the
 // goroutines a goroutine added beside it inherits, so the finding is no
 // proof of the commit: the rung names the file and lets the commit go.
-// The first goroutine of a package whose oversized neighbour lies in
+// The first goroutine of a package whose oversized neighbor lies in
 // another package is still the commit's own and is refused.
 //
 //nolint:paralleltest // the fake tools are found through PATH
