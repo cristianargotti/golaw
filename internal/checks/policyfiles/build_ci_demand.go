@@ -172,7 +172,7 @@ func demandShellControl(line, command string) bool {
 		return true
 	}
 	return slices.Contains([]string{
-		"if", "then", "else", "elif", "fi", "for", "while", "until", "do", "done", "case", "esac",
+		"if", "then", wordElse, "elif", "fi", "for", "while", "until", "do", "done", "case", "esac",
 		"select", "function", "{", "}", "(", ")", "!", "set", "cd", "pushd", "popd", "trap", "exec", "exit", "return", "eval", "source", ".",
 	}, command) || strings.HasPrefix(command, "-") || strings.HasPrefix(command, "@") || strings.Contains(command, "$(")
 }

@@ -15,6 +15,10 @@ const mergeTag = "!!merge"
 // readers both judge, so one constant keeps the two readers in step.
 const keyVersion = "version"
 
+// yamlTrue is the plain spelling of the YAML scalar true, which the Actions,
+// Redocly and golangci-lint readers each compare a value against.
+const yamlTrue = "true"
+
 // entry is one key of a mapping with its value and the line of the key.
 type entry struct {
 	key   string

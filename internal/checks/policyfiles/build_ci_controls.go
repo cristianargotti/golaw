@@ -31,7 +31,7 @@ func demandControls(file string, root, job, step *yaml.Node) error {
 		if err := buildReaderMapping(file, node, "Actions execution controls", "if", "continue-on-error", "defaults", demandDirectoryKey, demandShellKey); err != nil {
 			return err
 		}
-		for _, control := range []struct{ key, safe string }{{"if", "true"}, {"continue-on-error", demandFalse}} {
+		for _, control := range []struct{ key, safe string }{{"if", yamlTrue}, {"continue-on-error", demandFalse}} {
 			value := child(node, control.key)
 			if value != nil && (value.Kind != yaml.ScalarNode || value.Value != control.safe) {
 				return outside(file, value.Line, "Actions "+control.key+": "+value.Value)

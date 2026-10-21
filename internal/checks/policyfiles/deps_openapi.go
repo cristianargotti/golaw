@@ -173,7 +173,7 @@ func redoclyBoolean(node *yaml.Node, key string) (bool, bool) {
 	if value == nil {
 		return false, true
 	}
-	return value.Value == "true", value.Kind == yaml.ScalarNode && value.Tag == "!!bool"
+	return value.Value == yamlTrue, value.Kind == yaml.ScalarNode && value.Tag == "!!bool"
 }
 
 func redoclyFields(node *yaml.Node, keys ...string) bool {

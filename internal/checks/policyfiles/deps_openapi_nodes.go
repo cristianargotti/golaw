@@ -164,7 +164,7 @@ func apiSchemaEdges() []apiEdge {
 		{"contains", apiSchema, 0},
 		{"if", apiSchema, 0},
 		{"then", apiSchema, 0},
-		{"else", apiSchema, 0},
+		{wordElse, apiSchema, 0},
 		{"propertyNames", apiSchema, 0},
 		{"unevaluatedItems", apiSchema, 0},
 		{"unevaluatedProperties", apiSchema, 0},

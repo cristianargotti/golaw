@@ -12,6 +12,10 @@ type makeBlock struct {
 
 const makeDefine = "define"
 
+// wordElse is the one spelling of else that the make directives, the shell
+// keywords of a demand line and the JSON Schema keywords share.
+const wordElse = "else"
+
 func (b *makeBlock) condition() string {
 	if len(b.openers) != 0 {
 		return b.openers[len(b.openers)-1]
@@ -27,7 +31,7 @@ func (b *makeBlock) directive(line makeLine) bool {
 	switch words[0] {
 	case "ifeq", "ifneq", "ifdef", "ifndef":
 		b.openers = append(b.openers, fmt.Sprintf("%s:%d", line.file, line.line))
-	case "else":
+	case wordElse:
 		// Both branches remain conditional because no condition is evaluated.
 	case "endif":
 		if len(b.openers) != 0 {

@@ -155,5 +155,5 @@ func (cfg *golangci) settingLine(key string) int {
 // isTrue answers whether a node is the YAML scalar true, in the three
 // spellings YAML 1.2 and golangci-lint read as true.
 func isTrue(node *yaml.Node) bool {
-	return node != nil && node.Kind == yaml.ScalarNode && slices.Contains([]string{"true", "True", "TRUE"}, node.Value)
+	return node != nil && node.Kind == yaml.ScalarNode && slices.Contains([]string{yamlTrue, "True", "TRUE"}, node.Value)
 }
