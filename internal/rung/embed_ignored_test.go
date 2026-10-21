@@ -38,17 +38,7 @@ func TestPreCommitReadsInPlaceBesideAnIgnoredFileAnEmbedNames(t *testing.T) {
 		}},
 	} {
 		t.Run(name, func(t *testing.T) {
-			r := armedRepo(t, armedPolicy+tc.ladder)
-			r.Stage(map[string]string{"a/a.go": globEmbedder, "a/assets/one.txt": "one\n"})
-			r.Write("a/assets/two.txt", "two\n")
-			exclude := filepath.Join(r.GitDir(), "info", "exclude")
-			if err := os.MkdirAll(filepath.Dir(exclude), 0o750); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(exclude, []byte("a/assets/two.txt\n"), 0o600); err != nil {
-				t.Fatal(err)
-			}
-			d := deps(t, r)
+			d := ignoredEmbedDeps(t, tc.ladder)
 			out := rung.RunPreCommit(t.Context(), d)
 			if out.Code != tc.code {
 				t.Fatalf("an ignored file an embed names = %+v", out)
@@ -63,4 +53,21 @@ func TestPreCommitReadsInPlaceBesideAnIgnoredFileAnEmbedNames(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ignoredEmbedDeps stages the embedding package and one asset, writes a
+// second asset the pattern names and excludes it through .git/info/exclude.
+func ignoredEmbedDeps(t *testing.T, ladder string) rung.Dependencies {
+	t.Helper()
+	r := armedRepo(t, armedPolicy+ladder)
+	r.Stage(map[string]string{"a/a.go": globEmbedder, "a/assets/one.txt": "one\n"})
+	r.Write("a/assets/two.txt", "two\n")
+	exclude := filepath.Join(r.GitDir(), "info", "exclude")
+	if err := os.MkdirAll(filepath.Dir(exclude), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(exclude, []byte("a/assets/two.txt\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return deps(t, r)
 }
