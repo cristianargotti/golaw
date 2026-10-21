@@ -43,6 +43,9 @@ func (a *app) initCommand() *cobra.Command {
 
 func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts initOptions) error {
 	if opts.update {
+		if err := updateCapabilities(opts); err != nil {
+			return initFailed(err)
+		}
 		return a.initializeUpdate(ctx, out, path, opts.apply)
 	}
 	root, current, data, err := a.prepareInitSnapshot(path, opts)
@@ -66,6 +69,13 @@ func (a *app) finishInit(ctx context.Context, out io.Writer, root string, plan i
 	}
 	if err := applyInit(root, plan, out); err != nil {
 		return initFailed(err)
+	}
+	grown, err := a.grownAtHead(ctx, root, plan)
+	if err != nil {
+		return initFailed(err)
+	}
+	if grown {
+		return initFailed(writeLines(out, []string{enrollAfterCommitLine(plan.policy.Language)}))
 	}
 	return a.enrollInit(ctx, out, root, plan.data, plan.policy)
 }

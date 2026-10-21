@@ -15,6 +15,25 @@ import (
 	"github.com/cristianargotti/golaw/internal/policy"
 )
 
+func TestInitUpdateEnrollsTheNewPinOfACommittedPolicy(t *testing.T) {
+	t.Parallel()
+	ta := boundApp(t)
+	repo := adopted(t, ta, false)
+	older := strings.Replace(string(currentPolicy(t, repo.Root)), testVersion, "9.9.8", 1)
+	repo.Write(bootstrap.PolicyFile, older)
+	repo.Git("add", "-A")
+	repo.Commit("build: adopt the earlier pin", nil)
+	capabilityRun(t, ta, exitClean, "init", "--apply", repo.Root)
+	out := capabilityRun(t, ta, exitClean, "init", "--update", "--apply", repo.Root)
+	updated := currentPolicy(t, repo.Root)
+	if got, want := enrolledDigest(t, ta, repo.Root), digestOf(updated); got != want {
+		t.Errorf("update did not enroll its new pin: got %s, want %s", got, want)
+	}
+	if !strings.Contains(out, "enrolled: ") || !strings.HasSuffix(out, commitAsked) {
+		t.Errorf("update did not retain its enrollment and commit reminder: %q", out)
+	}
+}
+
 func TestInitUpdateKeepsReviewedSettingsAndUnrenderableRecords(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, module string }{
@@ -35,7 +54,7 @@ func TestInitUpdateKeepsReviewedSettingsAndUnrenderableRecords(t *testing.T) {
 				"checks: {sizes: {file_lines: 200}}\nmanaged:\n" +
 				"  - {path: retired.conf, sha256: " + hash + "}\n"
 			repo.Write(bootstrap.PolicyFile, reviewed)
-			args := []string{"init", "--update", "--apply", "--language", "pt-BR", "--capabilities", "unknown", repo.Root}
+			args := []string{"init", "--update", "--apply", "--language", "pt-BR", repo.Root}
 			if code := ta.run(t.Context(), args); code != exitClean {
 				t.Fatalf("update exit = %d: %s", code, ta.stderr.String())
 			}

@@ -24,10 +24,16 @@ type initPlan struct {
 	refusal       error
 }
 
+// initialPolicy is the policy init proposes: the reviewed file with the
+// capabilities the flag adds, or a new policy rendered from the flags.
 func initialPolicy(root, pin string, opts initOptions) ([]byte, bool, error) {
 	current, err := bootstrap.Current(root)
-	if err != nil || current != nil {
-		return current, current != nil, initOperation("read reviewed policy", err)
+	if err != nil {
+		return nil, false, initOperation("read reviewed policy", err)
+	}
+	if current != nil {
+		grown, growErr := bootstrap.GrowCapabilities(current, opts.capabilities)
+		return grown, true, initOperation("add the capabilities", growErr)
 	}
 	data, err := renderInitialPolicy(root, pin, opts)
 	return data, false, err
