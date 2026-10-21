@@ -10,11 +10,13 @@ import (
 	"github.com/cristianargotti/golaw/internal/runner"
 )
 
-// testStep names the go test step test_staged arms, raceNeedsCgo is what go
-// prints when -race meets a host whose cgo is off, and raceUnsupported what
-// it prints on a platform the race detector does not cover.
+// testStep names the go test step test_staged arms, testStagedOff is its
+// line while the ladder leaves it off, raceNeedsCgo is what go prints when
+// -race meets a host whose cgo is off, and raceUnsupported what it prints
+// on a platform the race detector does not cover.
 const (
 	testStep        = "test"
+	testStagedOff   = "skipped, test_staged is off in the ladder of golaw.yml"
 	raceNeedsCgo    = "-race requires cgo"
 	raceUnsupported = "-race is not supported on"
 )
@@ -27,7 +29,7 @@ const (
 func (p *precommit) test(ctx context.Context, t goTree) Outcome {
 	switch {
 	case !p.ladder.TestStaged:
-		return passed(testStep, "skipped, test_staged is off in the ladder of golaw.yml")
+		return passed(testStep, testStagedOff)
 	case len(t.set.Patterns) == 0:
 		return passed(testStep, noPackage)
 	}

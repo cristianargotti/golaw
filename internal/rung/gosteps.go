@@ -15,10 +15,14 @@ const (
 	noPackage = "skipped, the commit touches no Go package"
 )
 
-// goSteps runs the steps that read Go packages: it chooses the tree that
-// holds what the index holds for every Go input, names there the packages
-// the commit touches, runs the steps there and removes a copy it made.
+// goSteps runs the steps that read Go packages while the go capability
+// holds: it chooses the tree that holds what the index holds for every Go
+// input, names there the packages the commit touches, runs the steps there
+// and removes a copy it made.
 func (p *precommit) goSteps(ctx context.Context) Outcome {
+	if !p.inForce.Has(goCapability) {
+		return goSkipped(p.ladder.TestStaged)
+	}
 	t, out, ok := p.tree(ctx)
 	if !ok {
 		return out
