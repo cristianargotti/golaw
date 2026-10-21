@@ -46,18 +46,10 @@ func evaluateParsed(ctx context.Context, agent string, parse func() (Parsed, err
 		return completed{event: event, result: Result{Outcome: Allow}}
 	}
 	run, err := loadExecution(ctx, repository, parsed.Decode, dependencies)
-	answer := completed{event: event, language: run.language()}
-	switch {
-	case err != nil:
-		answer.result = failureLanguage(event, err, run.language())
-	case run.request.Denial != "":
-		answer.result = rejectionLanguage(event, run.request.Denial, false, run.language())
-	case len(run.request.Gaps) > 0:
-		answer.event, answer.result = run.request.Event, run.unmeasured(ctx, dependencies)
-	default:
-		answer.event, answer.result = run.request.Event, run.evaluate(ctx, data, dependencies)
+	if err != nil {
+		return completed{event: event, result: failureLanguage(event, err, run.language()), language: run.language()}
 	}
-	return answer
+	return run.answer(ctx, event, data, dependencies)
 }
 
 // unmeasured answers a write whose bytes the hook cannot hold, an edit of a

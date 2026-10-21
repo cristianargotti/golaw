@@ -9,12 +9,29 @@ import (
 // Request keeps candidate bytes outside the normalized event. Gaps names
 // what a decoder could not reconstruct within the read bound: the hook
 // measures nothing more of such an event and answers it with a notice.
+// Observe asks the core to keep the baseline of A15 and allow without
+// judging, for a pre event whose policy another event of the host judges.
+// Detect asks for the change detection pass of a post event whose tool the
+// core does not know as a shell tool. Capture is recorded through the
+// dependencies before the answer leaves (A4).
 type Request struct {
 	Event   model.Event
 	Content map[string][]byte
 	Denial  string
 	Hints   []string
 	Gaps    []Gap
+	Observe bool
+	Detect  bool
+	Capture *Capture
+}
+
+// Capture is what an adapter records of a payload it cannot judge yet
+// (A4): the host event, the tool and the key names of its input, sorted,
+// a nested key joined to its parent with a dot, never a value.
+type Capture struct {
+	Event string   `json:"event"`
+	Tool  string   `json:"tool"`
+	Keys  []string `json:"keys"`
 }
 
 // Gap is what an event left unmeasured, for the agent: a path, or the

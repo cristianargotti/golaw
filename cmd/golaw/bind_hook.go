@@ -61,7 +61,7 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Moved: h.moved, Hashes: h.hashes, Overlay: h.overlay,
 		Commits: h.commits, Committer: h.committer, Automatic: h.automatic, Remerged: h.remerged,
 		AutomaticWith: h.automaticWith, RemergedWith: h.remergedWith, Conflicts: h.conflicts, Restyled: h.restyled, Parents: h.parents,
-		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now},
+		Registry: registry, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now}, Capture: h.capture,
 	}, nil
 }
 
@@ -76,10 +76,10 @@ func (b binding) processHome() string {
 	return home
 }
 
-// hookDigest is the digest of the hook definition the plugin of an agent
-// ships, the one doctor binds an observation to.
+// hookDigest is the digest of the hook definition an agent ships, the one
+// doctor binds an observation to.
 func hookDigest(agent agents.Agent) (string, error) {
-	data, err := assets.Read("agents/" + agent.ID + "/hooks/hooks.json")
+	data, err := assets.Read(agents.HookAsset(agent.ID))
 	if err != nil {
 		return "", fmt.Errorf("read the hook definition: %w", err)
 	}
