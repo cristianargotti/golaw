@@ -1,0 +1,42 @@
+package application_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"{{.ModulePath}}/internal/application"
+	"{{.ModulePath}}/internal/domain"
+)
+
+func TestCatalogFindsAnItemOrNamesItsAbsence(t *testing.T) {
+	t.Parallel()
+	item, err := domain.NewItem("1", "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog := application.NewCatalog(item)
+	got, err := catalog.Find(t.Context(), "1")
+	if err != nil || got != item {
+		t.Fatalf("Find = %v, %v", got, err)
+	}
+	if _, err := catalog.Find(t.Context(), "2"); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("Find of an absent item = %v", err)
+	}
+	canceled, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := catalog.Find(canceled, "1"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Find under a canceled context = %v", err)
+	}
+}
+
+func TestNewItemRefusesAnEmptyField(t *testing.T) {
+	t.Parallel()
+	for _, fields := range [][2]string{
+		{"", "name"}, {"1", " "},
+	} {
+		if _, err := domain.NewItem(fields[0], fields[1]); !errors.Is(err, domain.ErrInvalidItem) {
+			t.Fatalf("NewItem(%q, %q) = %v", fields[0], fields[1], err)
+		}
+	}
+}

@@ -1,0 +1,79 @@
+package server_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"{{.ModulePath}}/internal/application"
+	"{{.ModulePath}}/internal/domain"
+	"{{.ModulePath}}/internal/rbac"
+	"{{.ModulePath}}/internal/server"
+)
+
+func catalog(t *testing.T) *application.Catalog {
+	t.Helper()
+	item, err := domain.NewItem("1", "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return application.NewCatalog(item)
+}
+
+func TestItemsAnswersThroughThePolicyAndTheProblemDoor(t *testing.T) {
+	t.Parallel()
+	handler := server.New(":0", catalog(t), rbac.DefaultPolicy()).Handler()
+	for _, tc := range []struct {
+		name, role, path string
+		status           int
+		media            string
+	}{
+		{"found", "reader", "/items/1", http.StatusOK, "application/json"},
+		{"absent", "reader", "/items/2", http.StatusNotFound, "application/problem+json"},
+		{"forbidden", "guest", "/items/1", http.StatusForbidden, "application/problem+json"},
+	} {
+		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, tc.path, http.NoBody)
+		request.Header.Set("X-Role", tc.role)
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+		if recorder.Code != tc.status || recorder.Header().Get("Content-Type") != tc.media {
+			t.Fatalf("%s: %d %q", tc.name, recorder.Code, recorder.Header().Get("Content-Type"))
+		}
+	}
+}
+
+func TestItemsAnswersAnInternalProblemWhenTheRequestEnded(t *testing.T) {
+	t.Parallel()
+	handler := server.New(":0", catalog(t), rbac.DefaultPolicy()).Handler()
+	ended, cancel := context.WithCancel(t.Context())
+	cancel()
+	request := httptest.NewRequestWithContext(ended, http.MethodGet, "/items/1", http.NoBody)
+	request.Header.Set("X-Role", "reader")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	var problem map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if recorder.Code != http.StatusInternalServerError || problem["status"] != float64(http.StatusInternalServerError) {
+		t.Fatalf("ended request = %d %v", recorder.Code, problem)
+	}
+}
+
+func TestRunStopsWithItsContext(t *testing.T) {
+	t.Parallel()
+	ended, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := server.New("127.0.0.1:0", catalog(t), rbac.DefaultPolicy()).Run(ended); err != nil {
+		t.Fatalf("Run = %v", err)
+	}
+}
+
+func TestRunNamesAnAddressItCannotListenOn(t *testing.T) {
+	t.Parallel()
+	if err := server.New("127.0.0.1:invalid", catalog(t), rbac.DefaultPolicy()).Run(t.Context()); err == nil {
+		t.Fatal("Run over an invalid address must fail")
+	}
+}

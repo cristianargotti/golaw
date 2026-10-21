@@ -1,0 +1,15 @@
+package main
+
+import (
+	"context"
+	"testing"
+)
+
+func TestRunStopsWithItsContext(t *testing.T) {
+	t.Parallel()
+	ended, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := run(ended, "0"); err != nil {
+		t.Fatalf("run = %v", err)
+	}
+}

@@ -1,0 +1,36 @@
+package rbac_test
+
+import (
+	"testing"
+
+	"{{.ModulePath}}/internal/rbac"
+)
+
+// TestEveryRouteHasADecisionForEveryRole is the contract: each route the
+// service registers names the permission it asks for, and each role has an
+// explicit answer for it, so no route is reachable by omission.
+func TestEveryRouteHasADecisionForEveryRole(t *testing.T) {
+	t.Parallel()
+	contract := []struct {
+		route      string
+		permission rbac.Permission
+		allowed    map[rbac.Role]bool
+	}{
+		{
+			"GET /items/{id}", rbac.ReadItems,
+			map[rbac.Role]bool{rbac.Reader: true, rbac.Editor: true, "guest": false},
+		},
+		{
+			"PUT /items/{id}", rbac.EditItems,
+			map[rbac.Role]bool{rbac.Reader: false, rbac.Editor: true, "guest": false},
+		},
+	}
+	policy := rbac.DefaultPolicy()
+	for _, entry := range contract {
+		for role, want := range entry.allowed {
+			if got := policy.Allows(role, entry.permission); got != want {
+				t.Errorf("%s as %s = %v, want %v", entry.route, role, got, want)
+			}
+		}
+	}
+}

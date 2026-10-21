@@ -1,0 +1,36 @@
+// Package rbac decides which role may take which action; the contract test
+// beside it lists every route against every role, so a new route without a
+// decision fails the build instead of answering by default.
+package rbac
+
+import "slices"
+
+// Role is the caller's role, as the request names it.
+type Role string
+
+// Permission is one action a route asks for.
+type Permission string
+
+// The roles and permissions the service knows.
+const (
+	Reader    Role       = "reader"
+	Editor    Role       = "editor"
+	ReadItems Permission = "items:read"
+	EditItems Permission = "items:edit"
+)
+
+// Policy maps each role to the permissions it holds.
+type Policy map[Role][]Permission
+
+// DefaultPolicy is the policy the service runs with.
+func DefaultPolicy() Policy {
+	return Policy{
+		Reader: {ReadItems},
+		Editor: {ReadItems, EditItems},
+	}
+}
+
+// Allows answers whether a role holds a permission; an unknown role holds none.
+func (p Policy) Allows(role Role, permission Permission) bool {
+	return slices.Contains(p[role], permission)
+}

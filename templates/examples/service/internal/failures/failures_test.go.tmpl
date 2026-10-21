@@ -1,0 +1,22 @@
+package failures_test
+
+import (
+	"errors"
+	"testing"
+
+	"{{.ModulePath}}/internal/failures"
+)
+
+var errSample = errors.New("sample")
+
+func TestPrefixNamesTheOperationAndKeepsTheChain(t *testing.T) {
+	t.Parallel()
+	wrap := failures.Prefix("items: find")
+	got := wrap(errSample)
+	if got.Error() != "items: find: sample" || !errors.Is(got, errSample) {
+		t.Fatalf("wrap = %v", got)
+	}
+	if wrap(nil) != nil {
+		t.Fatal("a nil error must stay nil")
+	}
+}

@@ -1,0 +1,19 @@
+// Package domain holds the items the service answers for and the rules
+// they obey, with no dependency beyond the standard library.
+package domain
+
+import "strings"
+
+// Item is one entry of the catalog.
+type Item struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// NewItem builds an item, refusing an empty identifier or name.
+func NewItem(id, name string) (Item, error) {
+	if strings.TrimSpace(id) == "" || strings.TrimSpace(name) == "" {
+		return Item{}, ErrInvalidItem
+	}
+	return Item{ID: id, Name: name}, nil
+}

@@ -1,0 +1,54 @@
+// Package errors is the one door errors leave the API through: an RFC 9457
+// Problem Details document, so no handler writes a 4xx or 5xx of its own.
+package errors
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+)
+
+// The media type of a Problem Details document and the type of a problem
+// that only its status describes.
+const (
+	mediaType = "application/problem+json"
+	blank     = "about:blank"
+)
+
+// Problem is an RFC 9457 Problem Details document.
+type Problem struct {
+	Type     string `json:"type"`
+	Title    string `json:"title"`
+	Status   int    `json:"status"`
+	Detail   string `json:"detail,omitempty"`
+	Instance string `json:"instance,omitempty"`
+}
+
+// NotFound is the problem of a resource the service does not hold.
+func NotFound(instance string) Problem {
+	return Problem{Type: blank, Title: "Not Found", Status: http.StatusNotFound, Instance: instance}
+}
+
+// Forbidden is the problem of a caller whose role lacks the permission.
+func Forbidden(instance string) Problem {
+	return Problem{Type: blank, Title: "Forbidden", Status: http.StatusForbidden, Instance: instance}
+}
+
+// Internal is the problem of a failure the caller cannot fix.
+func Internal(instance string) Problem {
+	return Problem{
+		Type: blank, Title: "Internal Server Error",
+		Status: http.StatusInternalServerError, Instance: instance,
+	}
+}
+
+// Write answers a problem; a document the connection cannot take is logged,
+// because the status line has already gone.
+func Write(ctx context.Context, w http.ResponseWriter, problem Problem) {
+	w.Header().Set("Content-Type", mediaType)
+	w.WriteHeader(problem.Status)
+	if err := json.NewEncoder(w).Encode(problem); err != nil {
+		slog.WarnContext(ctx, "problem document not written", slog.String("error", err.Error()))
+	}
+}

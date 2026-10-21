@@ -1,0 +1,36 @@
+// Package application holds the use cases of the service over the domain.
+package application
+
+import (
+	"context"
+	"fmt"
+
+	"{{.ModulePath}}/internal/domain"
+)
+
+// Catalog answers items by identifier from the set it was built with.
+type Catalog struct {
+	items map[string]domain.Item
+}
+
+// NewCatalog builds a catalog over items, the last of a repeated
+// identifier winning.
+func NewCatalog(items ...domain.Item) *Catalog {
+	byID := make(map[string]domain.Item, len(items))
+	for _, item := range items {
+		byID[item.ID] = item
+	}
+	return &Catalog{items: byID}
+}
+
+// Find answers the item of an identifier, or domain.ErrNotFound.
+func (c *Catalog) Find(ctx context.Context, id string) (domain.Item, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.Item{}, fmt.Errorf("application: find item: %w", err)
+	}
+	item, ok := c.items[id]
+	if !ok {
+		return domain.Item{}, fmt.Errorf("application: find item %q: %w", id, domain.ErrNotFound)
+	}
+	return item, nil
+}

@@ -1,0 +1,45 @@
+// Command service answers the items API, the shape of a service the kit's
+// templates are rendered for.
+package main
+
+import (
+	"context"
+	"log/slog"
+	"os"
+	"os/signal"
+
+	"{{.ModulePath}}/internal/application"
+	"{{.ModulePath}}/internal/domain"
+	"{{.ModulePath}}/internal/failures"
+	"{{.ModulePath}}/internal/rbac"
+	"{{.ModulePath}}/internal/server"
+)
+
+// defaultPort is the port the service listens on when PORT is empty.
+const defaultPort = "8080"
+
+func main() {
+	os.Exit(serve())
+}
+
+func serve() int {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	if err := run(ctx, os.Getenv("PORT")); err != nil {
+		slog.ErrorContext(ctx, "service stopped", slog.String("error", err.Error()))
+		return 1
+	}
+	return 0
+}
+
+func run(ctx context.Context, port string) error {
+	if port == "" {
+		port = defaultPort
+	}
+	wrap := failures.Prefix("service: run")
+	item, err := domain.NewItem("1", "first")
+	if err != nil {
+		return wrap(err)
+	}
+	return wrap(server.New(":"+port, application.NewCatalog(item), rbac.DefaultPolicy()).Run(ctx))
+}

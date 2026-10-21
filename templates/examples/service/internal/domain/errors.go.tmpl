@@ -1,0 +1,10 @@
+package domain
+
+import "errors"
+
+var (
+	// ErrInvalidItem is an item without an identifier or a name.
+	ErrInvalidItem = errors.New("invalid item")
+	// ErrNotFound is an identifier the catalog does not hold.
+	ErrNotFound = errors.New("item not found")
+)

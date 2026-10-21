@@ -1,0 +1,85 @@
+openapi: 3.1.0
+info:
+  title: Items
+  version: 1.0.0
+  description: The items API of the example service.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://items.example.test
+security: []
+paths:
+  /items/{id}:
+    get:
+      operationId: getItem
+      summary: Answer one item.
+      description: Answers the item of an identifier, or a Problem Details document.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "1"
+      responses:
+        "200":
+          description: The item.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+              example:
+                id: "1"
+                name: first
+                price: 10.5
+        "403":
+          description: The role lacks the permission.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              example:
+                type: about:blank
+                title: Forbidden
+                status: 403
+        "404":
+          description: The catalog does not hold the item.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              example:
+                type: about:blank
+                title: Not Found
+                status: 404
+components:
+  schemas:
+    Item:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: first
+        price:
+          type: number
+          format: double
+          example: 10.5
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+          example: Not Found
+        status:
+          type: integer
+          format: int32
+          example: 404
