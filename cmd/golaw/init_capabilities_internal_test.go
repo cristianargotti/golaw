@@ -91,6 +91,11 @@ func TestInitGrowsTheCapabilitiesOfAReviewedPolicy(t *testing.T) {
 	if got := enrolledDigest(t, ta, repo.Root); got != digestOf(grown) {
 		t.Fatalf("the record does not hold the grown policy: %s", got)
 	}
+	// The grown policy needs the layer rules that remain an update proposal.
+	if pending := capabilityRun(t, ta, exitFindings, "scan", repo.Root); !strings.Contains(pending, "depguard has no strict rule over internal/domain") {
+		t.Fatalf("scan before the update = %q", pending)
+	}
+	capabilityRun(t, ta, exitClean, "init", "--update", "--apply", repo.Root)
 	capabilityRun(t, ta, exitClean, "scan", repo.Root)
 	kept := capabilityRun(t, ta, exitClean, "init", "--capabilities", "db", repo.Root)
 	if !strings.Contains(kept, "+capabilities: [db, go, hexagonal]\n") {
