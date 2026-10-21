@@ -19,6 +19,7 @@ type initOptions struct {
 	update       bool
 	language     string
 	capabilities []string
+	accept       []string
 }
 
 // initCommand previews policy and template changes before an explicit apply
@@ -38,10 +39,15 @@ func (a *app) initCommand() *cobra.Command {
 	cmd.Flags().StringVar(&opts.language, "language", model.DefaultLanguage, "language of the human channel")
 	cmd.Flags().StringSliceVar(&opts.capabilities, "capabilities", nil,
 		"capabilities to enable: "+strings.Join(model.Capabilities(), ", "))
+	cmd.Flags().StringSliceVar(&opts.accept, "accept", nil,
+		"write the proposal init prints for this destination as well; repeat for several")
 	return cmd
 }
 
 func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts initOptions) error {
+	if opts.update && len(opts.accept) > 0 {
+		return initFailed(fmt.Errorf("%w: --accept writes a proposal of init, while init --update keeps every local edit", model.ErrUsage))
+	}
 	if opts.update {
 		if err := updateCapabilities(opts); err != nil {
 			return initFailed(err)
@@ -52,7 +58,7 @@ func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts i
 	if err != nil {
 		return err
 	}
-	plan, err := a.planInit(ctx, root, current, data, opts.apply)
+	plan, err := a.planInit(ctx, root, current, data, opts.apply, opts.accept)
 	if err != nil {
 		return initFailed(err)
 	}

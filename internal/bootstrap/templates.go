@@ -31,6 +31,7 @@ type TemplatePlan struct {
 	root       string
 	inputs     []install.Change
 	baselines  []policy.ManagedFile
+	owners     map[string]assets.Ownership
 }
 
 // PlanTemplates preserves existing ownership before any output or mutation.
@@ -50,6 +51,7 @@ func PlanTemplates(root string, rendered []assets.Rendered) (TemplatePlan, error
 	plan := TemplatePlan{
 		root: resolved, Managed: managed, baselines: slices.Clone(managed),
 		inputs: []install.Change{{Path: PolicyFile, Before: current, Existed: current != nil}},
+		owners: make(map[string]assets.Ownership),
 	}
 	for i := range rendered {
 		if err := plan.addTemplate(rendered[i]); err != nil {
@@ -76,6 +78,7 @@ func (plan *TemplatePlan) addTemplate(file assets.Rendered) error {
 	if slices.ContainsFunc(plan.inputs, func(c install.Change) bool { return c.Path == file.Path }) {
 		return fmt.Errorf("bootstrap: duplicate template destination %q: %w", file.Path, install.ErrPath)
 	}
+	plan.owners[file.Path] = file.Template.Ownership
 	before, existed, err := readTemplate(plan.root, file.Path)
 	if err != nil {
 		return err

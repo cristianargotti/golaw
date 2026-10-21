@@ -197,3 +197,35 @@ func TestMakeCollisionsRequiresConflictingRules(t *testing.T) {
 		})
 	}
 }
+
+func TestTemplatePlanAllowsMakefileRecipeBesideIncludedPrerequisites(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, included string
+		wantRefusal    bool
+	}{
+		{"near prerequisites", "ci: lint test\n", false},
+		{"red recipe", "ci: lint test\n\tcheck\n", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			writeBefore(t, filepath.Join(root, "Makefile"), "ci:\n\techo\n")
+			plan, err := bootstrap.PlanTemplates(root, []assets.Rendered{
+				templateFile("Makefile", "include golaw.mk\n", assets.OwnedMerged),
+				templateFile("golaw.mk", tc.included, assets.OwnedByKit),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			acceptErr := plan.Accept([]string{"Makefile"})
+			if tc.wantRefusal {
+				if !errors.Is(acceptErr, bootstrap.ErrAccept) || !strings.Contains(acceptErr.Error(), "ci (Makefile:1)") {
+					t.Fatalf("conflicting recipe acceptance = %v", acceptErr)
+				}
+			} else if acceptErr != nil {
+				t.Fatalf("prerequisite-only include refused: %v", acceptErr)
+			}
+		})
+	}
+}
