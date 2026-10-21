@@ -1,0 +1,23 @@
+# Every linter runs and the shadow analyzer with it; the layer rules and
+# the float32 pattern hold under every capability. A linter outside the
+# required set is disabled, which the rule leaves alone.
+version: "2"
+linters:
+  default: all
+  disable: [exhaustruct]
+  settings:
+    govet:
+      enable-all: true
+    depguard:
+      rules:
+        domain:
+          list-mode: strict
+          files: ["!$test", "**/internal/domain/**"]
+          allow: [$gostd, example.test/service/internal/domain]
+        application:
+          list-mode: strict
+          files: ["!$test", "**/internal/application/**"]
+          allow: [$gostd, example.test/service/internal/domain, example.test/service/internal/application]
+    forbidigo:
+      forbid:
+        - pattern: ^float32$

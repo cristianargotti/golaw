@@ -21,14 +21,17 @@ const (
 const (
 	keyLinters = "linters"
 	keyRules   = "rules"
+	keyEnable  = "enable"
+	keyDisable = "disable"
 )
 
 // golangci is the part of a golangci-lint configuration of version 2 the
 // lint checks judge: which linters run, which issues are excluded, and the
 // settings node each per-linter rule reads. The declared subset is the
 // version key, linters.default, linters.enable, linters.disable, the rules
-// and paths of linters.exclusions and linters.settings; every other key is
-// left unread, because no verdict depends on it.
+// and paths of linters.exclusions and linters.settings. Nonempty paths-except
+// is a stated limit because it also frees paths from required linters;
+// other keys are left unread because no verdict depends on them.
 type golangci struct {
 	path       string
 	line       int         // the line of the linters key, 1 when the key is absent
@@ -148,10 +151,10 @@ func (cfg *golangci) readLinters(linters *yaml.Node) error {
 		}
 	}
 	var err error
-	if cfg.enable, err = names(cfg.path, "linters.enable", child(linters, "enable")); err != nil {
+	if cfg.enable, err = names(cfg.path, "linters.enable", child(linters, keyEnable)); err != nil {
 		return err
 	}
-	cfg.disable, err = names(cfg.path, "linters.disable", child(linters, "disable"))
+	cfg.disable, err = names(cfg.path, "linters.disable", child(linters, keyDisable))
 	return err
 }
 
@@ -159,6 +162,9 @@ func (cfg *golangci) readLinters(linters *yaml.Node) error {
 func readExclusions(file string, node *yaml.Node) ([]exclusion, error) {
 	if node != nil && node.Kind != yaml.MappingNode {
 		return nil, outside(file, node.Line, "linters.exclusions that is not a mapping")
+	}
+	if except := child(node, "paths-except"); except != nil && (except.Kind != yaml.SequenceNode || len(except.Content) != 0) {
+		return nil, outside(file, except.Line, "linters.exclusions.paths-except")
 	}
 	var out []exclusion
 	rules := child(node, keyRules)

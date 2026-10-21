@@ -4,12 +4,15 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw"
 	"github.com/cristianargotti/golaw/internal/assets"
+	"github.com/cristianargotti/golaw/internal/bootstrap"
 	"github.com/cristianargotti/golaw/internal/checks"
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/policy"
 	"github.com/cristianargotti/golaw/internal/proof"
 )
 
@@ -84,11 +87,9 @@ func TestCompleteCoreTemplatesScanClean(t *testing.T) {
 	for _, capabilities := range [][]string{{"go"}, model.Capabilities()} {
 		t.Run(strings.Join(capabilities, ","), func(t *testing.T) {
 			t.Parallel()
-			policy := model.CoreDefaults()
-			policy.Capabilities = capabilities
 			tree := proof.NewTree(renderedRepository(t, capabilities))
 			run, err := engine.Dispatch(t.Context(), registry, model.Input{
-				Mode: model.ModeScan, Policy: &policy, Snapshot: tree, Targets: tree.Files(),
+				Mode: model.ModeScan, Policy: initPolicy(t, capabilities), Snapshot: tree, Targets: tree.Files(),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -102,6 +103,29 @@ func TestCompleteCoreTemplatesScanClean(t *testing.T) {
 			}
 		})
 	}
+}
+
+// initPolicy is the effective policy of the golaw.yml init writes beside
+// the templates, so the scan judges the rendered files under the floors and
+// the allowed lint exclusions init seeds.
+func initPolicy(t *testing.T, capabilities []string) *model.EffectivePolicy {
+	t.Helper()
+	data, err := bootstrap.Render(bootstrap.Inputs{
+		KitVersion: templateValues().KitVersion, Language: model.DefaultLanguage, Capabilities: capabilities,
+		Layout: bootstrap.Layout{Main: bootstrap.MainRoot, Decisions: "docs/adr", Go: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := policy.Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	compiled, err := policy.Compile(file, time.Date(2026, time.October, 20, 0, 0, 0, 0, time.UTC), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return compiled
 }
 
 // renderedRepository is every core template rendered for the
