@@ -1,0 +1,8 @@
+module example.test/app
+require (
+ example.test/a v1.0.0
+)
+require (
+ example.test/b v1.0.0
+ example.test/c v1.0.0 // indirect
+)

@@ -6,5 +6,8 @@ package report
 // policy.codeowners-foreign, policy.openapi-assertions,
 // policy.squawk-config), one per code, in the order its checks register.
 func policyDepsPhrases() []sentence {
-	return nil
+	return []sentence{
+		{"dependency-record-missing", "dependência direta sem registro de decisão; registre o módulo no cabeçalho do registro"},
+		{"dependabot-cooldown-short", "intervalo de atualização abaixo da política; use sete dias e trinta para versões principais"},
+	}
 }

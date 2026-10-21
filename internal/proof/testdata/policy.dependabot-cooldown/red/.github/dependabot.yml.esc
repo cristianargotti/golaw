@@ -1,0 +1,6 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule: {interval: weekly}
+    cooldown: {default-days: 6, semver-major-days: 30}
