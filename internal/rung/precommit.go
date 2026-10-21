@@ -96,11 +96,11 @@ func (p *precommit) run(ctx context.Context) Outcome {
 }
 
 // tools runs the steps of the declared toolchain in order, then names the
-// steps of section 7 this version does not ship.
+// steps of section 7 this version leaves to the pipeline.
 func (p *precommit) tools(ctx context.Context) Outcome {
 	out := Outcome{}
 	for _, step := range []func(context.Context) Outcome{p.secrets, p.goSteps} {
 		out = join(out, step(ctx))
 	}
-	return join(out, notShipped())
+	return join(out, p.leftToPipeline())
 }
