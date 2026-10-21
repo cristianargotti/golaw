@@ -1,0 +1,8 @@
+openapi: 3.0.3
+info: {title: sample, version: 1.0.0}
+paths: {}
+components:
+  schemas:
+    Amount:
+      type: number
+      format: float

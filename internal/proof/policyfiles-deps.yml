@@ -18,3 +18,7 @@ checks:
     code: squawk-policy
     red: testdata/policy.squawk-config/red
     near: testdata/policy.squawk-config/near
+  - id: policy.openapi-assertions
+    code: openapi-policy
+    red: testdata/policy.openapi-assertions/red
+    near: testdata/policy.openapi-assertions/near
