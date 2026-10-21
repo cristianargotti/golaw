@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -27,7 +28,15 @@ const (
 	coverageFileFlag    = "file"
 	coverageMinimumFlag = "min-statements"
 	coveragePercentCap  = 100
+	goCapability        = "go"
 )
+
+// coverageOffError is the answer of the coverage floors while the go
+// capability is off: the policy names no Go program, so no profile is
+// read and nothing is judged.
+type coverageOffError struct{}
+
+func (coverageOffError) Error() string { return "not applicable, the go capability is off" }
 
 func (a *app) coverageCommand() *cobra.Command {
 	options := coverageOptions{Floors: coverage.DefaultFloors()}
@@ -55,6 +64,9 @@ func (a *app) coverageCommand() *cobra.Command {
 
 func (a *app) runCoverage(ctx context.Context, out io.Writer, root string, options coverageOptions) error {
 	local, plain, err := a.bind().coverage(ctx, root, a.now(), options)
+	if off, ok := errors.AsType[coverageOffError](err); ok {
+		return writeLines(out, []string{"coverage: " + off.Error()})
+	}
 	if err != nil {
 		return fmt.Errorf("coverage: %w", err)
 	}

@@ -15,7 +15,7 @@ const commandModule = "example.test/coverage"
 func coverageCommandFixture(t *testing.T, floor int) (testApp, *gittest.Repo) {
 	t.Helper()
 	repo := gittest.New(t)
-	policyText := "golaw: 1\nkit: {version: " + testVersion + "}\n"
+	policyText := "golaw: 1\nkit: {version: " + testVersion + "}\ncapabilities: [go]\n"
 	if floor == 90 {
 		policyText += "checks:\n  coverage: {total: 90, package: 90, file: 90}\n"
 	}
@@ -165,7 +165,7 @@ func TestCoverageMinimumOnlyTightens(t *testing.T) {
 			t.Parallel()
 			ta, repo := coverageCommandFixture(t, 80)
 			repo.Commit("test: set coverage minimum", map[string]string{
-				"golaw.yml": "golaw: 1\nkit: {version: " + testVersion + "}\n" +
+				"golaw.yml": "golaw: 1\nkit: {version: " + testVersion + "}\ncapabilities: [go]\n" +
 					"checks:\n  coverage: {min_statements: " + tc.policy + "}\n",
 				"small.go": "package coverage\n\nfunc Small() int {\n" +
 					"\tn := 0\n" + strings.Repeat("\tn++\n", 8) + "\treturn n\n}\n",
