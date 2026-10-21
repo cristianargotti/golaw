@@ -10,6 +10,9 @@ import (
 	"github.com/cristianargotti/golaw/internal/install"
 )
 
+// errLefthook is the failure setup restores the hooks after.
+var errLefthook = errors.New("lefthook failed")
+
 // A hook lefthook rewrote in place gets its bytes back, and a hook whose
 // directory is gone names the hook setup could not put back.
 func TestRestoreHookRewritesInPlaceAndNamesWhatItCannotRestore(t *testing.T) {
@@ -19,7 +22,7 @@ func TestRestoreHookRewritesInPlaceAndNamesWhatItCannotRestore(t *testing.T) {
 	if err := os.WriteFile(path, []byte("lefthook hook\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cause := errors.New("lefthook failed")
+	cause := errLefthook
 	err := restoreHooks([]install.Change{{Path: path, Before: []byte("old lefthook hook\n"), Existed: true}}, cause)
 	if !errors.Is(err, cause) || !strings.Contains(err.Error(), "setup put the git hooks back") {
 		t.Fatalf("restore = %v", err)
