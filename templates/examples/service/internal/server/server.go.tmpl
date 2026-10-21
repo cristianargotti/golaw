@@ -1,0 +1,92 @@
+// Package server is the inbound HTTP adapter: it routes each request
+// through the role policy, answers items as JSON and every failure through
+// the Problem Details door.
+package server
+
+import (
+	"context"
+	"encoding/json"
+	stderrors "errors"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"{{.ModulePath}}/internal/application"
+	"{{.ModulePath}}/internal/domain"
+	problems "{{.ModulePath}}/internal/errors"
+	"{{.ModulePath}}/internal/failures"
+	"{{.ModulePath}}/internal/rbac"
+)
+
+// roleHeader names the request header that carries the caller's role.
+const roleHeader = "X-Role"
+
+// The bounds of every connection and of the shutdown.
+const (
+	readTimeout  = 5 * time.Second
+	writeTimeout = 10 * time.Second
+	shutdownWait = 5 * time.Second
+)
+
+// Server serves the items API.
+type Server struct {
+	http *http.Server
+}
+
+// New builds the server of an address over a catalog and a role policy.
+func New(addr string, catalog *application.Catalog, policy rbac.Policy) *Server {
+	mux := http.NewServeMux()
+	mux.Handle("GET /items/{id}", items(catalog, policy))
+	return &Server{
+		http: &http.Server{
+			Addr: addr, Handler: mux,
+			ReadHeaderTimeout: readTimeout, ReadTimeout: readTimeout, WriteTimeout: writeTimeout,
+		},
+	}
+}
+
+// Handler answers the routes of the server, for tests and middleware.
+func (s *Server) Handler() http.Handler {
+	return s.http.Handler
+}
+
+// Run serves until the context ends, then drains the open requests.
+func (s *Server) Run(ctx context.Context) error {
+	wrap := failures.Prefix("server: run")
+	stop := context.AfterFunc(ctx, func() {
+		drain, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownWait)
+		defer cancel()
+		if err := s.http.Shutdown(drain); err != nil {
+			slog.WarnContext(drain, "shutdown left requests open", slog.String("error", err.Error()))
+		}
+	})
+	defer stop()
+	err := s.http.ListenAndServe()
+	if stderrors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return wrap(err)
+}
+
+func items(catalog *application.Catalog, policy rbac.Policy) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		if !policy.Allows(rbac.Role(r.Header.Get(roleHeader)), rbac.ReadItems) {
+			problems.Write(ctx, w, problems.Forbidden(r.URL.Path))
+			return
+		}
+		item, err := catalog.Find(ctx, r.PathValue("id"))
+		switch {
+		case stderrors.Is(err, domain.ErrNotFound):
+			problems.Write(ctx, w, problems.NotFound(r.URL.Path))
+			return
+		case err != nil:
+			problems.Write(ctx, w, problems.Internal(r.URL.Path))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(item); err != nil {
+			slog.WarnContext(ctx, "item not written", slog.String("error", err.Error()))
+		}
+	})
+}

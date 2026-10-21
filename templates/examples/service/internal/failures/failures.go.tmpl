@@ -1,0 +1,17 @@
+// Package failures names the operation an error crossed, once per layer,
+// so a chain reads as the path it took and errors.Is still reaches the
+// sentinel underneath.
+package failures
+
+import "fmt"
+
+// Prefix answers the wrapper of one operation: it writes the operation in
+// front of an error and keeps the error matchable, and a nil error stays nil.
+func Prefix(operation string) func(error) error {
+	return func(err error) error {
+		if err == nil {
+			return nil
+		}
+		return fmt.Errorf("%s: %w", operation, err)
+	}
+}

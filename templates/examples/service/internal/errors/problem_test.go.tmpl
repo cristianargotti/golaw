@@ -1,0 +1,50 @@
+package errors_test
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	problems "{{.ModulePath}}/internal/errors"
+)
+
+func TestWriteAnswersAProblemDocument(t *testing.T) {
+	t.Parallel()
+	for _, want := range []problems.Problem{
+		problems.NotFound("/items/1"), problems.Forbidden("/items/1"), problems.Internal("/items/1"),
+	} {
+		recorder := httptest.NewRecorder()
+		problems.Write(t.Context(), recorder, want)
+		var got problems.Problem
+		if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+			t.Fatal(err)
+		}
+		if recorder.Code != want.Status || got != want ||
+			recorder.Header().Get("Content-Type") != "application/problem+json" {
+			t.Fatalf("Write = %d %+v %q", recorder.Code, got, recorder.Header().Get("Content-Type"))
+		}
+	}
+}
+
+func TestWriteLogsADocumentTheConnectionRefuses(t *testing.T) {
+	t.Parallel()
+	writer := failingWriter{
+		header: http.Header{},
+	}
+	problems.Write(t.Context(), &writer, problems.NotFound("/items/1"))
+	if writer.status != http.StatusNotFound {
+		t.Fatalf("status = %d", writer.status)
+	}
+}
+
+type failingWriter struct {
+	header http.Header
+	status int
+}
+
+func (w *failingWriter) Header() http.Header { return w.header }
+
+func (w *failingWriter) WriteHeader(status int) { w.status = status }
+
+func (w *failingWriter) Write([]byte) (int, error) { return 0, http.ErrHandlerTimeout }
