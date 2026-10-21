@@ -10,3 +10,15 @@ checks:
     code: dependabot-cooldown-short
     red: testdata/policy.dependabot-cooldown/red
     near: testdata/policy.dependabot-cooldown/near
+  - id: policy.image-digest
+    code: image-digest-missing
+    red: testdata/policy.image-digest/red
+    near: testdata/policy.image-digest/near
+  - id: policy.squawk-config
+    code: squawk-policy
+    red: testdata/policy.squawk-config/red
+    near: testdata/policy.squawk-config/near
+  - id: policy.openapi-assertions
+    code: openapi-policy
+    red: testdata/policy.openapi-assertions/red
+    near: testdata/policy.openapi-assertions/near

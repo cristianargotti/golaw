@@ -31,10 +31,26 @@ templates:
     destination: .mockery.yaml
     ownership: kit
     when: []
+  - source: templates/.squawk.toml.tmpl
+    destination: .squawk.toml
+    ownership: kit
+    when: [db]
   - source: templates/Makefile.tmpl
     destination: Makefile
     ownership: merged
     when: []
+  - source: templates/api/codegen/server.yaml.tmpl
+    destination: api/codegen/server.yaml
+    ownership: kit
+    when: [api]
+  - source: templates/api/codegen/spec.yaml.tmpl
+    destination: api/codegen/spec.yaml
+    ownership: kit
+    when: [api]
+  - source: templates/api/codegen/types.yaml.tmpl
+    destination: api/codegen/types.yaml
+    ownership: kit
+    when: [api]
   - source: templates/golaw.mk.tmpl
     destination: golaw.mk
     ownership: kit
@@ -43,6 +59,18 @@ templates:
     destination: lefthook.yml
     ownership: kit
     when: []
+  - source: templates/redocly.yaml.tmpl
+    destination: redocly.yaml
+    ownership: kit
+    when: [api]
+  - source: templates/sqlc.vet.yaml.tmpl
+    destination: sqlc.vet.yaml
+    ownership: kit
+    when: [db]
+  - source: templates/sqlc.yaml.tmpl
+    destination: sqlc.yaml
+    ownership: kit
+    when: [db]
   - source: templates/test/deadcode/reachability_test.go.tmpl
     destination: test/deadcode/reachability_test.go
     ownership: developer

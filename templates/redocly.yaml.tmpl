@@ -1,0 +1,18 @@
+extends: [recommended]
+apis:
+  main:
+    root: api/openapi.yaml
+rules:
+  no-invalid-media-type-examples: error
+  rule/number-double:
+    subject: {type: Schema, property: format}
+    where:
+      - subject: {type: Schema, property: type}
+        assertions: {const: number}
+    assertions: {defined: true, const: double}
+  rule/response-example:
+    subject: {type: MediaType}
+    where:
+      - subject: {type: Response}
+        assertions: {defined: true}
+    assertions: {requireAny: [example, examples]}
