@@ -40,7 +40,7 @@ func TestHookRunsThePrePushRungOfTheRepository(t *testing.T) {
 	fakes := t.TempDir()
 	runnertest.Install(t, fakes, "govulncheck", runnertest.Behavior{Stdout: `{"config": {"scanner_name": "govulncheck", "scanner_version": "v1.7.0"}}` + "\n"})
 	t.Setenv("PATH", fakes+string(os.PathListSeparator)+os.Getenv("PATH"))
-	want := "golaw pre-push: " + tip[:12] + ": govulncheck finds no reachable vulnerability\n"
+	want := "golaw pre-push: " + tip[:12] + ": govulncheck finds no reachable vulnerability\n" //nolint:gocritic // a commit hash is hex, ASCII by construction
 	for _, args := range [][]string{{"hook", "pre-push", "origin", remote}, {"hook", "pre-push"}} {
 		ta := rungApp(t, root)
 		ta.stdin = strings.NewReader("refs/heads/side " + tip + " refs/heads/side " + runner.ZeroSHA + "\n")

@@ -56,7 +56,7 @@ func TestPrePushJudgesTheReachableAdvisoriesByTheWaivers(t *testing.T) {
 	for name, c := range cases {
 		dir := fakes(t, map[string]runnertest.Behavior{"govulncheck": c.b, "gitleaks": leaks, "golangci-lint": linter})
 		out := rung.RunPrePush(t.Context(), pushing(t, r, update(r.Head())), "origin", "https://example.com/repo.git")
-		if out.Code != c.scan.Code || !contains(out, "golaw pre-push: "+r.Head()[:12]+": "+c.scan.Lines[0]) {
+		if out.Code != c.scan.Code || !contains(out, "golaw pre-push: "+r.Head()[:12]+": "+c.scan.Lines[0]) { //nolint:gocritic // a commit hash is hex, ASCII by construction
 			t.Errorf("%s = %+v", name, out)
 		}
 		if calls := runnertest.Calls(t, dir, "govulncheck"); len(calls) != 1 || strings.Join(calls[0], " ") != "-format json ./..." {
@@ -176,7 +176,7 @@ func TestPrePushScansEachDistinctTipOfOnePush(t *testing.T) {
 		"refs/heads/release "+r.Head()+" refs/heads/release "+runner.ZeroSHA, "(delete) "+runner.ZeroSHA+" refs/heads/old "+side)
 	out := rung.RunPrePush(t.Context(), d, "origin", "")
 	clean := ": govulncheck finds no reachable vulnerability"
-	if out.Code != 0 || len(out.Lines) != 2 || !contains(out, "golaw pre-push: "+r.Head()[:12]+clean) || !contains(out, "golaw pre-push: "+side[:12]+clean) {
+	if out.Code != 0 || len(out.Lines) != 2 || !contains(out, "golaw pre-push: "+r.Head()[:12]+clean) || !contains(out, "golaw pre-push: "+side[:12]+clean) { //nolint:gocritic // a commit hash is hex, ASCII by construction
 		t.Errorf("HEAD, side, a duplicate and a deletion = %+v", out)
 	}
 	if calls := runnertest.Calls(t, dir, "govulncheck"); len(calls) != 2 {
@@ -197,7 +197,7 @@ func TestPrePushScansABranchAndItsTagOnce(t *testing.T) {
 	r.Git("tag", "-a", "-m", "release", "v1.0.0")
 	tag := strings.TrimSpace(r.Git("rev-parse", "v1.0.0"))
 	d := pushing(t, r, update(r.Head()), "refs/tags/v1.0.0 "+tag+" refs/tags/v1.0.0 "+runner.ZeroSHA)
-	if out := rung.RunPrePush(t.Context(), d, "origin", ""); out.Code != 0 || len(out.Lines) != 1 || !contains(out, "golaw pre-push: "+r.Head()[:12]+": ") {
+	if out := rung.RunPrePush(t.Context(), d, "origin", ""); out.Code != 0 || len(out.Lines) != 1 || !contains(out, "golaw pre-push: "+r.Head()[:12]+": ") { //nolint:gocritic // a commit hash is hex, ASCII by construction
 		t.Errorf("a branch and its annotated tag = %+v", out)
 	}
 	if calls := runnertest.Calls(t, dir, "govulncheck"); len(calls) != 1 {

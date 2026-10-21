@@ -1,0 +1,11 @@
+# The default rules with fixtures and public identifiers freed, and no
+# generated file.
+title = "service"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "fixtures and public node ids"
+paths = ['''(^|/)testdata/''']
+regexes = ['''\bPVT_[A-Za-z0-9_-]{8,}\b''']

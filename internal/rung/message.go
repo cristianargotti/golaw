@@ -58,18 +58,19 @@ func picked(message string, strip bool) (string, string) {
 		if line == "" || !strings.ContainsRune(autoCandidates, rune(line[0])) {
 			continue
 		}
+		candidate := string(rune(line[0]))
 		if line[1:] == scissorsLine {
-			return line[:1], message
+			return candidate, message
 		}
-		if !strings.Contains(starts, line[:1]) {
-			starts += line[:1]
+		if !strings.Contains(starts, candidate) {
+			starts += candidate
 		}
 	}
 	if len(starts) <= 1 || !strip {
 		return starts[:min(len(starts), 1)], message
 	}
 	kept := slices.DeleteFunc(strings.Split(message, "\n"), func(line string) bool {
-		return line != "" && strings.Contains(starts, line[:1])
+		return line != "" && strings.ContainsRune(starts, rune(line[0]))
 	})
 	return "", strings.Join(kept, "\n")
 }
