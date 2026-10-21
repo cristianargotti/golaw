@@ -46,6 +46,7 @@ func TestScanEnrolledRunsUnderTheProvisionedDigests(t *testing.T) {
 	t.Parallel()
 	ta := enrolledApp(t)
 	root := repository(t, true)
+	coreAssets(t, root)
 	digest := digestOf(renderedPolicy(t))
 	if got := ta.run(t.Context(), []string{"scan", "--enrolled", digest, root}); got != exitClean || !strings.Contains(ta.stdout.String(), "verdict clean") {
 		t.Fatalf("exit = %d, stdout = %q, stderr = %q", got, ta.stdout.String(), ta.stderr.String())
@@ -63,6 +64,7 @@ func TestScanEnrolledReadsNoRecordOfTheStateDirectory(t *testing.T) {
 	t.Parallel()
 	ta := enrolledApp(t)
 	root := repository(t, true)
+	coreAssets(t, root)
 	dirs, err := ta.bind().dirs()
 	if err != nil {
 		t.Fatal(err)
@@ -138,6 +140,7 @@ func TestScanStagedEnrolledJudgesTheIndexUnderTheProvisionedDigests(t *testing.T
 func TestScanEnrolledResolvesOnlyTheDirectoriesItReads(t *testing.T) {
 	t.Parallel()
 	root := repository(t, true)
+	coreAssets(t, root)
 	digest := digestOf(renderedPolicy(t))
 	for name, kept := range map[string][]string{"the config directory alone": {"XDG_CONFIG_HOME"}, "no variable": nil} {
 		for _, args := range [][]string{{"scan", "--enrolled", digest, root}, {"scan", "--staged", "--enrolled", digest, root}} {
