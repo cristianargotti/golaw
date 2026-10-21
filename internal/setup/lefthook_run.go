@@ -121,23 +121,23 @@ func indentedLines(body string, from, column int) (string, int) {
 // escapes resolved, and returns it with the index after its closing quote.
 func quotedScalar(body string, i int) (string, int) {
 	quote := body[i]
-	var text strings.Builder
+	var text []byte
 	for j := i + 1; j < len(body); j++ {
 		c := body[j]
 		switch {
 		case quote == '\'' && c == '\'' && strings.HasPrefix(body[j+1:], "'"):
-			text.WriteByte('\'')
+			text = append(text, '\'')
 			j++
 		case c == quote:
-			return text.String(), j + 1
+			return string(text), j + 1
 		case quote == '"' && c == '\\' && j+1 < len(body):
 			j++
-			text.WriteByte(escaped(body[j]))
+			text = append(text, escaped(body[j]))
 		default:
-			text.WriteByte(c)
+			text = append(text, c)
 		}
 	}
-	return text.String(), len(body)
+	return string(text), len(body)
 }
 
 // escaped resolves the character after a backslash of a double-quoted

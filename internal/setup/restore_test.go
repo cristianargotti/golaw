@@ -114,7 +114,9 @@ func hooksState(t *testing.T, dir string) string {
 		if readErr != nil {
 			t.Fatal(readErr)
 		}
-		state.WriteString(entry.Name() + "=" + string(data) + ";")
+		if _, writeErr := state.WriteString(entry.Name() + "=" + string(data) + ";"); writeErr != nil {
+			t.Fatal(writeErr)
+		}
 	}
 	return state.String()
 }
