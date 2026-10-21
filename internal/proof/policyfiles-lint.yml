@@ -3,3 +3,4 @@
 # must yield and its two fixture directories relative to this file.
 checks:
   - {id: policy.golangci, code: golangci-linter-disabled, red: testdata/policy.golangci/red, near: testdata/policy.golangci/near}
+  - {id: policy.ruleguard, code: ruleguard-rule-missing, red: testdata/policy.ruleguard/red, near: testdata/policy.ruleguard/near}

@@ -14,5 +14,8 @@ func policyLintSentences() map[string]string {
 		"golangci-layer-missing":      "nenhuma regra estrita do depguard protege uma camada interna; acrescente a regra que o golaw init gera",
 		"golangci-layer-open":         "regra do depguard abre uma camada interna; deixe a regra estrita e permita só a biblioteca padrão e as camadas internas",
 		"golangci-float32-allowed":    "o forbidigo não proíbe float32; acrescente o padrão ^float32$",
+		"ruleguard-disabled":          "o gocritic não roda a verificação ruleguard; mantenha a tag style e não a desative",
+		"ruleguard-unconfigured":      "a configuração do ruleguard não nomeia o arquivo de regras; aponte rules para scripts/lint/rules.go",
+		"ruleguard-rule-missing":      "a regra stringByteCut do ruleguard está ausente; escreva a regra que o golaw init gera",
 	}
 }

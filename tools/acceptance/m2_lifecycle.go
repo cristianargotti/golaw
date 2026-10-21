@@ -17,6 +17,11 @@ const (
 	m2EditedAsset = "golaw.mk"
 )
 
+// m2LifecycleModule is the module of the lifecycle rows: it requires the
+// ruleguard dsl the rendered rules file imports, as an adopter does once it
+// applies the go.mod proposal of init, so a second init proposes nothing.
+const m2LifecycleModule = m2Module + "\nrequire github.com/quasilyte/go-ruleguard/dsl v0.3.23\n"
+
 func (s *suite) lifecycleM2(ctx context.Context, name string) error {
 	if !slices.Contains(m2LifecycleNames(), name) {
 		return fmt.Errorf("unknown M2 lifecycle case %q: %w", name, ErrAcceptance)
@@ -77,7 +82,7 @@ func (s *suite) m2LifecycleRepository(ctx context.Context, name string) (string,
 	if err != nil {
 		return "", err
 	}
-	if err := writeFile(filepath.Join(repo, moduleFile), []byte(m2Module), fileMode); err != nil {
+	if err := writeFile(filepath.Join(repo, moduleFile), []byte(m2LifecycleModule), fileMode); err != nil {
 		return "", err
 	}
 	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}); err != nil {
