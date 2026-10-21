@@ -128,9 +128,13 @@ func (l *Layout) validate() error {
 	return nil
 }
 
-// validateLists judges the capabilities.
+// validateLists judges the capabilities: known and unique, then the floor
+// of their implications.
 func (f File) validateLists() error {
-	return knownUnique(keyCapabilities, f.Capabilities, model.Capabilities())
+	if err := knownUnique(keyCapabilities, f.Capabilities, model.Capabilities()); err != nil {
+		return err
+	}
+	return CheckCapabilities(f.Capabilities)
 }
 
 // validateRecords judges the waivers, the exceptions and the managed files.

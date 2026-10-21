@@ -10,7 +10,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// The names of the four passes.
+// The names of the passes; the capability pass is named beside its code.
 const (
 	PassCompleteness = "completeness"
 	PassBaseline     = "baseline"
@@ -52,7 +52,8 @@ func Verify(ctx context.Context, reg *engine.Registry, root string, m Manifest) 
 	out := Completeness(reg, m)
 	out = append(out, Baseline(ctx, reg, root, m)...)
 	out = append(out, Deletion(ctx, reg, root, m)...)
-	return append(out, OverFire(ctx, reg, root, m)...)
+	out = append(out, OverFire(ctx, reg, root, m)...)
+	return append(out, Capability(ctx, reg, root, m)...)
 }
 
 // Baseline proves, through production dispatch, that the red fixture of
@@ -120,33 +121,9 @@ type verdict struct {
 	other  string       // another check that reported the code, or empty
 }
 
+// run dispatches one fixture of the entry under the policy of its entry.
 func (p pair) run(ctx context.Context, reg *engine.Registry, f Fixture) (verdict, error) {
-	in, err := f.Input(p.spec.Scope, PolicyFor(p.entry))
-	if err != nil {
-		return verdict{}, err
-	}
-	run, err := engine.Dispatch(ctx, reg, in)
-	if err != nil {
-		return verdict{}, fmt.Errorf("dispatch: %w", err)
-	}
-	var v verdict
-	for i := range run.Outcomes {
-		o := &run.Outcomes[i]
-		if o.Spec.ID == p.entry.ID {
-			v.status = o.Result.Status
-		}
-		for _, f := range o.Result.Findings {
-			if f.Code != p.entry.Code {
-				continue
-			}
-			if o.Spec.ID == p.entry.ID {
-				v.own = true
-			} else if v.other == "" {
-				v.other = o.Spec.ID
-			}
-		}
-	}
-	return v, nil
+	return p.runUnder(ctx, reg, f, PolicyFor(p.entry))
 }
 
 func (p pair) baseline(ctx context.Context, reg *engine.Registry) []Failure {

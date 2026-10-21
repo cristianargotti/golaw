@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/policy"
 )
 
 // capabilityGo is the capability every Go module gets, so the Go checks
@@ -77,6 +78,9 @@ func (in Inputs) Normalize() (Inputs, error) {
 		if !slices.Contains(model.Capabilities(), name) {
 			return Inputs{}, fmt.Errorf("%w: unknown capability %q", model.ErrUsage, name)
 		}
+	}
+	if err := policy.CheckCapabilities(capabilities); err != nil {
+		return Inputs{}, fmt.Errorf("%w: %w", model.ErrUsage, err)
 	}
 	in.Capabilities = capabilities
 	return in, nil
