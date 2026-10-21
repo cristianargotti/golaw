@@ -10,65 +10,35 @@ import (
 
 func TestMakeAssetsKeepLongChecksExplicit(t *testing.T) {
 	t.Parallel()
-	const makeBody = `export GOTOOLCHAIN=local
-
-PKG ?= .
-FUZZ ?= Fuzz
-FUZZTIME ?= 30s
-
-.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration
-
-mod:
-	go mod verify
-
-fmt:
-	golaw lock pre-commit -- golangci-lint fmt ./...
-
-lint:
-	golangci-lint run ./...
-
-vet:
-	go vet ./...
-
-test:
-	go test -race -shuffle=on -count=1 -timeout=10m -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...
-
-coverage-check:
-	golaw coverage --input coverage.out
-
-build:
-	go build ./...
-
-scan:
-	golaw scan .
-
-secrets:
-	gitleaks dir --redact --no-banner .
-	gitleaks git --redact --no-banner .
-
-deadcode:
-	go test -tags=deadcode ./test/deadcode/
-
-bench:
-	go test -run=^$$ -bench=. -benchmem ./...
-
-fuzz:
-	go test -run=^$$ -fuzz=$(FUZZ) -fuzztime=$(FUZZTIME) $(PKG)
-
-test-integration:
-	go test -race -tags=integration ./...
-`
-	for _, tc := range []struct {
-		path, want string
-		ownership  assets.Ownership
-	}{
-		{"Makefile", "include golaw.mk\n", assets.OwnedMerged},
-		{"golaw.mk", makeBody, assets.OwnedByKit},
+	assertAsset(t, "Makefile", "include golaw.mk\n", assets.OwnedMerged)
+	got := renderedAsset(t, "golaw.mk", assetContext())
+	if got.Template.Ownership != assets.OwnedByKit {
+		t.Fatal("build include ownership is not kit")
+	}
+	body := string(got.Data)
+	if !strings.HasPrefix(body, "export GOTOOLCHAIN=local\n") {
+		t.Fatal("the module toolchain is not local by default")
+	}
+	for _, want := range []string{
+		"\nPKG ?= .\nFUZZ ?= Fuzz\nFUZZTIME ?= 30s\n",
+		"\n.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration ",
+		"\nmod:\n\tgo mod verify\n",
+		"\nfmt:\n\tgolaw lock pre-commit -- golangci-lint fmt ./...\n",
+		"\nlint:\n\tgolangci-lint run ./...\n",
+		"\nvet:\n\tgo vet ./...\n",
+		"\ntest:\n\tgo test -race -shuffle=on -count=1 -timeout=10m -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...\n",
+		"\ncoverage-check:\n\tgolaw coverage --input coverage.out\n",
+		"\nbuild:\n\tgo build ./...\n",
+		"\nscan:\n\tgolaw scan $(if $(GOLAW_ENROLLED),--enrolled $(GOLAW_ENROLLED)) .\n",
+		"\nsecrets:\n\tgitleaks dir --redact --no-banner .\n\tgitleaks git --redact --no-banner .\n",
+		"\ndeadcode:\n\tgo test -tags=deadcode ./test/deadcode/\n",
+		"\nbench:\n\tgo test -run=^$$ -bench=. -benchmem ./...\n",
+		"\nfuzz:\n\tgo test -run=^$$ -fuzz=$(FUZZ) -fuzztime=$(FUZZTIME) $(PKG)\n",
+		"\ntest-integration:\n\tgo test -race -tags=integration ./...\n",
 	} {
-		t.Run(tc.path, func(t *testing.T) {
-			t.Parallel()
-			assertAsset(t, tc.path, tc.want, tc.ownership)
-		})
+		if !strings.Contains(body, want) {
+			t.Errorf("missing retained build contract: %q", want)
+		}
 	}
 }
 

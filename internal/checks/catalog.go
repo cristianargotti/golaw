@@ -10,6 +10,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/checks/commits"
 	"github.com/cristianargotti/golaw/internal/checks/goast"
 	"github.com/cristianargotti/golaw/internal/checks/paths"
+	"github.com/cristianargotti/golaw/internal/checks/policyfiles"
 	"github.com/cristianargotti/golaw/internal/checks/shell"
 	"github.com/cristianargotti/golaw/internal/checks/text"
 	"github.com/cristianargotti/golaw/internal/engine"
@@ -26,7 +27,7 @@ func Catalog() []model.Check {
 
 // families are the constructors of the check families, in report order.
 func families() []Family {
-	return []Family{text.Checks, paths.Checks, goast.Checks, shell.Checks, commits.Checks}
+	return []Family{text.Checks, paths.Checks, goast.Checks, policyfiles.Checks, shell.Checks, commits.Checks}
 }
 
 // concat joins the families into one list, keeping their order.

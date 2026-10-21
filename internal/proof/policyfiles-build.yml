@@ -1,4 +1,8 @@
 # The proof entries of the policy checks the build half of the family owns:
 # one entry per registered check, with the finding code its red fixture
 # must yield and its two fixture directories relative to this file.
-checks: []
+checks:
+  - id: policy.makefile
+    code: make-target-missing
+    red: testdata/policy.makefile/red
+    near: testdata/policy.makefile/near
