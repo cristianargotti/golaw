@@ -18,6 +18,7 @@ type initPlan struct {
 	templates     bootstrap.TemplatePlan
 	module        install.Change
 	policy        *model.EffectivePolicy
+	suggestions   []bootstrap.Suggestion
 	notice        string
 	status        string
 	update        bool
@@ -79,7 +80,7 @@ func (a *app) planInit(ctx context.Context, root string, current, data []byte, a
 			return initPlan{}, err
 		}
 	}
-	return a.compileInitPlan(root, initPlan{
+	return a.compileSuggestedInitPlan(root, initPlan{
 		current: current, data: data, templates: templates, module: module, notice: notice,
 	}, apply)
 }
@@ -135,6 +136,9 @@ func printInitPolicy(out io.Writer, plan initPlan) error {
 		for _, edit := range plan.templates.LocalEdits {
 			lines = append(lines, updateLocalEdit(edit, plan.templates.Language))
 		}
+	}
+	if line := suggestionLine(plan.policy.Language, plan.policy.Capabilities, plan.suggestions); line != "" {
+		lines = append(lines, line)
 	}
 	return writeLines(out, lines)
 }
