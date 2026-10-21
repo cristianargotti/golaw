@@ -67,3 +67,7 @@ checks:
     code: managed-drift
     red: testdata/managed/red
     near: testdata/managed/near
+  - id: doctor.go-toolchain
+    code: go-older-than-line
+    red: testdata/go-toolchain/red
+    near: testdata/go-toolchain/near

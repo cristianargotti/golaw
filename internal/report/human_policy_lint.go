@@ -12,5 +12,8 @@ func policyLintPhrases() []sentence {
 		{code: "golangci-hollowed", text: "regra de exclusão esvazia um linter exigido; remova a regra"},
 		{code: "golangci-exclusion-unlisted", text: "exclusão de um linter exigido fora das exclusões permitidas do golaw.yml; remova a exclusão"},
 		{code: "golangci-shadow-off", text: "o govet não roda a análise shadow; ative enable-all ou acrescente shadow"},
+		{code: "golangci-layer-missing", text: "nenhuma regra estrita do depguard protege uma camada interna; acrescente a regra que o golaw init gera"},
+		{code: "golangci-layer-open", text: "regra do depguard abre uma camada interna; deixe a regra estrita e permita só a biblioteca padrão e as camadas internas"},
+		{code: "golangci-float32-allowed", text: "o forbidigo não proíbe float32; acrescente o padrão ^float32$"},
 	}
 }

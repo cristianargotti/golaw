@@ -2,6 +2,7 @@ package policyfiles
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -55,6 +56,9 @@ func (golangciCheck) Run(_ context.Context, in model.Input) (model.Result, error
 	for _, judge := range golangciRules() {
 		found, err := judge(in, cfg)
 		if err != nil {
+			if failure, ok := errors.AsType[layerReadError](err); ok {
+				return answer(goModFile, failure.cause), nil
+			}
 			return answer(path, err), nil
 		}
 		findings = append(findings, found...)
@@ -64,7 +68,7 @@ func (golangciCheck) Run(_ context.Context, in model.Input) (model.Result, error
 
 // golangciRules are the judgments of policy.golangci, in report order.
 func golangciRules() []func(model.Input, golangci) ([]model.Finding, error) {
-	return []func(model.Input, golangci) ([]model.Finding, error){judgeLinters, judgeExclusions, judgeShadow}
+	return []func(model.Input, golangci) ([]model.Finding, error){judgeLinters, judgeExclusions, judgeShadow, judgeLayers, judgeFloat32}
 }
 
 // lintResult is the measured result of a lint check.
