@@ -11,6 +11,10 @@ import (
 // mergeTag is the tag yaml.v3 gives the key of a YAML 1.1 merge.
 const mergeTag = "!!merge"
 
+// keyVersion is the schema key that the Dependabot and the golangci-lint
+// readers both judge, so one constant keeps the two readers in step.
+const keyVersion = "version"
+
 // entry is one key of a mapping with its value and the line of the key.
 type entry struct {
 	key   string

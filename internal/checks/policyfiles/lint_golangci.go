@@ -101,7 +101,7 @@ func readGolangci(path string, data []byte) (golangci, error) {
 	if err != nil {
 		return golangci{}, err
 	}
-	if version := child(root, "version"); version == nil || version.Kind != yaml.ScalarNode || version.Value != "2" {
+	if version := child(root, keyVersion); version == nil || version.Kind != yaml.ScalarNode || version.Value != "2" {
 		return golangci{}, outside(path, lineOf(version), "a version other than 2; run golangci-lint migrate")
 	}
 	cfg := golangci{path: path, line: 1, defaults: defaultStandard, defaultAt: 1, settings: &yaml.Node{Kind: yaml.MappingNode}}

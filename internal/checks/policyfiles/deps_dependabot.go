@@ -35,10 +35,10 @@ func readDependabot(path string, data []byte) (dependabot, error) {
 	if err != nil {
 		return dependabot{}, err
 	}
-	if err := dependabotUnique(path, root, "version", "updates"); err != nil {
+	if err := dependabotUnique(path, root, keyVersion, "updates"); err != nil {
 		return dependabot{}, err
 	}
-	version := child(root, "version")
+	version := child(root, keyVersion)
 	var number int
 	if version == nil || version.Tag != "!!int" || version.Decode(&number) != nil || number != 2 {
 		return dependabot{}, outside(path, dependabotLine(version), "Dependabot version other than 2")
