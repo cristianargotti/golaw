@@ -42,15 +42,31 @@ func (p *precommit) test(ctx context.Context, t goTree) Outcome {
 	case bytes.Contains(out.Stderr, []byte(raceUnsupported)):
 		return passed(testStep, "go test -race is not supported on this host: switch test_staged off in golaw.yml; the pipeline runs the tests")
 	}
+	return p.failures(ctx, out)
+}
+
+// failures judges a go test that failed: a failure in a package the commit
+// touches refuses, unless each of its tests already fails at HEAD, and a
+// failure anywhere else, or one no package names, is named and left to
+// the pipeline.
+func (p *precommit) failures(ctx context.Context, out runner.Output) Outcome {
 	failed := failedPackages(out)
-	if slices.ContainsFunc(failed, p.touches) {
-		return refusedBy(testStep, "go test -race fails in the affected packages; fix the tests before the commit", out)
+	touched := slices.DeleteFunc(slices.Clone(failed), func(pkg string) bool { return !p.touches(pkg) })
+	var lines []string
+	if len(touched) > 0 {
+		held, ok := p.heldAtHead(ctx, out, touched)
+		if !ok {
+			return refusedBy(testStep, "go test -race fails in the affected packages; fix the tests before the commit", out)
+		}
+		lines = append(lines, stepLine(testStep, "go test -race fails at HEAD too in the packages the commit touches, which the pipeline judges: "+strings.Join(held, ", ")))
 	}
-	text := "go test -race fails in packages the commit does not touch, which the pipeline judges: " + strings.Join(failed, ", ")
+	if others := slices.DeleteFunc(failed, p.touches); len(others) > 0 {
+		lines = append(lines, stepLine(testStep, "go test -race fails in packages the commit does not touch, which the pipeline judges: "+strings.Join(others, ", ")))
+	}
 	if len(failed) == 0 {
-		text = "go test -race fails without naming a package, which the pipeline judges"
+		lines = append(lines, stepLine(testStep, "go test -race fails without naming a package, which the pipeline judges"))
 	}
-	return Outcome{Lines: slices.Concat([]string{stepLine(testStep, text)}, toolLines(out))}
+	return Outcome{Lines: slices.Concat(lines, toolLines(out))}
 }
 
 // failedPackages are the import paths go test names in a FAIL line, a
@@ -58,7 +74,7 @@ func (p *precommit) test(ctx context.Context, t goTree) Outcome {
 func failedPackages(out runner.Output) []string {
 	var failed []string
 	for _, line := range toolLines(out) {
-		rest, ok := strings.CutPrefix(line, "FAIL\t")
+		rest, ok := strings.CutPrefix(line, failPrefix)
 		if !ok {
 			continue
 		}
