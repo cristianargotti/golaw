@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "beforeReadFile",
+  "conversation_id": "conversation",
+  "generation_id": "generation",
+  "workspace_roots": ["/project"],
+  "file_path": "/project/main.go",
+  "content": "package main\n",
+  "attachments": []
+}

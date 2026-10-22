@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "preToolUse",
+  "conversation_id": "conversation",
+  "generation_id": "generation",
+  "workspace_roots": ["/project"],
+  "cwd": "/project",
+  "tool_name": "Delete",
+  "tool_use_id": "tool",
+  "turn_id": "turn",
+  "tool_input": { "__undocumented__": true }
+}

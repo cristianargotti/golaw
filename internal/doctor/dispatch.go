@@ -11,7 +11,7 @@ import (
 func dispatchLines(snapshot Snapshot) []Line {
 	dispatch := snapshot.Dispatch
 	line := Line{
-		ID: "doctor.dispatch", State: stateUnknown, Code: "dispatch-unobserved",
+		ID: idDispatch, State: stateUnknown, Code: "dispatch-unobserved",
 		Detail: "no hook process has run for this repository under this home",
 	}
 	switch {

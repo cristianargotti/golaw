@@ -1,0 +1,49 @@
+checks:
+  - id: codex.envelope
+    code: envelope
+    red: testdata/envelope/red
+    near: testdata/envelope/near
+  - id: codex.apply-patch-add
+    code: apply-patch-add
+    red: testdata/apply-patch-add/red
+    near: testdata/apply-patch-add/near
+  - id: codex.apply-patch-update
+    code: apply-patch-update
+    red: testdata/apply-patch-update/red
+    near: testdata/apply-patch-update/near
+  - id: codex.apply-patch-unapplied
+    code: apply-patch-unapplied
+    red: testdata/apply-patch-unapplied/red
+    near: testdata/apply-patch-unapplied/near
+  - id: codex.apply-patch-move
+    code: apply-patch-move
+    red: testdata/apply-patch-move/red
+    near: testdata/apply-patch-move/near
+  - id: codex.apply-patch-delete
+    code: apply-patch-delete
+    red: testdata/apply-patch-delete/red
+    near: testdata/apply-patch-delete/near
+  - id: codex.bash
+    code: bash
+    red: testdata/bash/red
+    near: testdata/bash/near
+  - id: codex.heredoc-patch
+    code: heredoc-patch
+    red: testdata/heredoc-patch/red
+    near: testdata/heredoc-patch/near
+  - id: codex.heredoc-patch-cd
+    code: heredoc-patch-cd
+    red: testdata/heredoc-patch-cd/red
+    near: testdata/heredoc-patch-cd/near
+  - id: codex.heredoc-cat
+    code: heredoc-cat
+    red: testdata/heredoc-cat/red
+    near: testdata/heredoc-cat/near
+  - id: codex.post-apply-patch
+    code: post-apply-patch
+    red: testdata/post-apply-patch/red
+    near: testdata/post-apply-patch/near
+  - id: codex.post-bash
+    code: post-bash
+    red: testdata/post-bash/red
+    near: testdata/post-bash/near

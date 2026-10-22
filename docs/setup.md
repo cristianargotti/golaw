@@ -1,6 +1,6 @@
 # Setup
 
-M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). Other agent adapters belong to later milestones; a warning about the chain of agent instruction files concerns that later adapter integration, not a new installation of M3.
+M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). M4 adds the Codex CLI guard and the Cursor compatibility preview, installed as the [agent section](#codex-and-cursor-agents) below describes; a warning about the chain of agent instruction files concerns that agent integration, not a new installation of M3.
 
 Adopting repositories need Go 1.24 or newer. Building the kit needs Go 1.27. Claude Code 2.1.295 is the minimum host version; 2.1.299 is validated.
 
@@ -153,3 +153,103 @@ A go line past Go's support window adopts, and its standard library advisories c
 A repository born with lint debt is red on its first `make ci` until the debt is fixed: M3 ships no lint baseline, and the reviewed debt set that only `init --apply` seeds arrives with the inventory pass of a later release. Fix the debt, or keep `make ci` off the gate until then; the pre-commit rung reports only the lint a commit introduces.
 
 A generator that rewrites a file without the Go generated header flips with `make fmt`; naming such files is profile data of a later release. Commit the generator's output after `make fmt`.
+
+## Codex and Cursor agents
+
+M4 adds the Codex CLI guard and the Cursor compatibility preview beside the Claude Code guard. Cursor's shell and read guards judge, while its writes are captured, not enforced. Each agent installation is its own opt-in: run only the agents you use, at the scope you want.
+
+### Install and remove
+
+Each command below is an alternative, not a step of a sequence. At user scope, the default:
+
+```sh
+golaw agent install --agent codex
+golaw agent install --agent cursor
+golaw agent install --agent all
+golaw agent uninstall --agent codex
+golaw agent uninstall --agent cursor
+golaw agent uninstall --agent all
+```
+
+At project scope, from inside the repository:
+
+```sh
+golaw agent install --agent codex --scope project
+golaw agent install --agent cursor --scope project
+golaw agent install --agent all --scope project
+golaw agent uninstall --agent codex --scope project
+golaw agent uninstall --agent cursor --scope project
+golaw agent uninstall --agent all --scope project
+```
+
+--scope user explicitly selects the default scope. Installation is a separate opt-in from golaw setup; neither initialization nor agent installation arms a git rung, and uninstall neither arms nor disarms one.
+
+--agent all runs every agent of the registry in its order, claude, codex and cursor, each under a line `agent: <id>` with its own diff and receipt, and stops at the first agent whose installation fails, so the last agent named is the one to fix. golaw agent uninstall --agent all removes every agent that has a receipt at the scope and prints `not installed: <id>` for each one that has none.
+
+### Where the artifacts go
+
+| Artifact           | User scope                        | Project scope                   |
+| ------------------ | --------------------------------- | ------------------------------- |
+| Codex hooks        | `~/.codex/hooks.json`             | `.codex/hooks.json`             |
+| Codex prefix rules | No user rules file                | `.codex/rules/golaw.rules`      |
+| Codex marked block | `~/.codex/AGENTS.md`              | `AGENTS.md`                     |
+| Cursor hooks       | `~/.cursor/hooks.json`            | `.cursor/hooks.json`            |
+| Cursor rule        | No user rule file                 | `.cursor/rules/golaw.mdc`       |
+| Shared skill       | `~/.agents/skills/golaw/SKILL.md` | `.agents/skills/golaw/SKILL.md` |
+
+CODEX_HOME, when set, replaces ~/.codex for the Codex user artifacts and for its trust configuration, config.toml. It does not relocate the shared user skill. A CODEX_HOME reached through a symbolic link is named by its real path, the path Codex keys trust with, while the default ~/.codex is named as given. Project destinations are relative to the installation root, the root of the repository. The marked block points at the user skill and, for a project installation, at .agents/skills/golaw/SKILL.md in that repository, so one block serves both scopes; Codex and Cursor read the same skill file, which each receipt lists.
+
+Codex prefix rules are written only with --scope project; a user-scope rules file would apply to every Codex session, enrolled or not. In a repository golaw never enrolled the hook gives a valid allow, so a user rules file would deny there what the hook allows: a user-scope installation writes no rules file and leaves a personal file of that name untouched. No user-scope rule file is installed for the compatibility preview. Cursor documents no user rules file, so its rule exists at project scope only.
+
+Codex reads the project hooks of a linked git worktree from the .codex folder of the root checkout, so install at project scope from the root checkout. An agent file that is itself a symbolic link, as a dotfiles checkout may leave, is refused and never followed, because following it would write outside the agent's directory.
+
+### What install and uninstall change
+
+The installer computes every change first and shows the diff before it writes; a repeated installation finds nothing to change and writes nothing. golaw's handlers are appended after the foreign ones of each event and an owned handler is replaced in place, so foreign hook entries keep their order; the marked block, from `<!-- golaw:begin -->` to `<!-- golaw:end -->`, is replaced in place or appended. When a change moves a Codex handler, golaw's or a foreign one, to another position, the install names its old and new trust identity, and that handler needs review in /hooks again, because Codex keeps the approval under the old key.
+
+One receipt per agent and scope records what the installation owns: the hash of every file it owns whole, the exact JSON of each handler it owns with its event and position, and the hash of each marked block it wrote into a file you own. Its path comes from agents.ReceiptPath, `<state>/<agent>/<scope>/receipt.json`, with the project identity as one more directory at project scope. The state directory comes from policy.DefaultDirs: XDG_STATE_HOME when set, otherwise LOCALAPPDATA on Windows and ~/.local/state on macOS and Linux, with the golaw suffix.
+
+Uninstall reads the receipt and removes exactly what it lists: the owned handlers, matched by their exact definition, the marked block, the rules file, the Cursor rule and the shared skill, then the receipt. Foreign entries and the rest of a file you own stay, and a hooks file or AGENTS.md the installation created is removed only when nothing else is left in it. Uninstall keeps a shared skill while another receipt owns it. A changed owned file is refused with ErrChanged and is not removed. Without a receipt nothing is guessed. Uninstall leaves golaw.yml and the enrollment as they are.
+
+### Codex trust
+
+Codex runs a hook only when its feature is on, its project layer is loaded and the hash of its definition is trusted. After an install:
+
+1. Codex uses features.hooks in config.toml, on by default; enable it if it is disabled.
+2. With --scope project, trust the project in Codex, which loads the .codex folder of a project only once the project is trusted. Project trust and hook trust are separate steps.
+3. Open /hooks in Codex and approve the golaw hooks whenever the install prints that step.
+4. Run golaw doctor again, with --scope project for a project installation.
+
+The installer never writes hooks.state. Codex keeps the trust of each handler in the hooks.state table of its config.toml, keyed by the hooks file, the event and the position, and the installer only reads it to decide whether to print the /hooks step. A changed command, matcher, timeout or handler position can require review even when artifact installation succeeded, and Codex skips an untrusted or changed hook without a word, which is why doctor reports trust.
+
+On macOS and Linux each hook command is the quoted absolute path of the golaw binary that ran the install, followed by hook codex or hook cursor. On Windows, the Codex commandWindows and the Cursor command are an encoded PowerShell launcher that passes stdin to the binary byte for byte and exits with its status. Windows acceptance exercises both command processors, cmd.exe /c and powershell.exe -Command. That is offline evidence of the launcher, never live host evidence. After the binary moves, run agent install again; for Codex the changed command needs /hooks review.
+
+### Read doctor
+
+Installed, trusted and active are separate facts. golaw doctor prints one report per agent for the scope it inspects, user by default or --scope project, with a pt-BR summary after the lines of each agent. doctor --json prints one JSON document per agent. doctor exits 0 after printing a report, including findings; collection failure exits 2. Exit 0 says the report was collected, not that a guard protects: read the state line.
+
+| Line             | Codes                                                                                           | Meaning                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| doctor.installed | installed, installed-drift, not-installed                                                       | the receipt exists and every artifact, entry and block it lists is present and matches                                      |
+| doctor.binary    | binary-matches, binary-differs, binary-unresolved                                               | the binary each hook command names, against the running one                                                                 |
+| doctor.trusted   | trusted, untrusted, revalidation-required, trust-unknown                                        | whether the host will run the hook                                                                                          |
+| doctor.dispatch  | observed, stale, unobserved                                                                     | the current definition's dispatch evidence: the host ran it for this repository, ran an earlier definition, or never ran it |
+| doctor.state     | protecting, installed-untrusted, trusted-inactive, not-installed, trust-unknown, preview-active | the one line that tells the three facts apart                                                                               |
+| doctor.fail-mode | fail-closed, host-fails-open                                                                    | per event, whether the host blocks the tool when the hook fails                                                             |
+| doctor.version   | agent-version-validated, agent-version-unvalidated, agent-version-unavailable                   | Codex: codex --version against the pinned patch grammar                                                                     |
+| doctor.preview   | cursor-writes-not-enforced                                                                      | Cursor only, always: writes not enforced, payload unknown                                                                   |
+| doctor.capture   | capture-recorded, capture-absent                                                                | per Cursor write event, the key names a payload carried, never a value                                                      |
+| doctor.duplicate | no-duplicate, duplicate-hook, skill-duplicate                                                   | a second copy of the hook or the skill the agent would load                                                                 |
+| doctor.companion | companion-absent, companion-found                                                               | the companion gate in the agent's hooks file, before or after golaw                                                         |
+
+protecting requires matching installation, established trust and current observed dispatch. An agent with no receipt at a scope is not-installed in state unknown, never red. An installation that drifted, or a receipt that cannot be read, is installed-drift, and its state is not-installed in state red with the install command that repairs it. An installed hook the host will not run is installed-untrusted; one whose trust doctor cannot read is trust-unknown; a trusted one that has not run with the current definition is trusted-inactive. Cursor is never protecting: an installed, trusted and observed Cursor hook is preview-active, because its writes are captured, not enforced.
+
+Codex trust comes first from codex app-server hooks/list, when the installed CLI answers within the doctor's deadline, and otherwise from the fallback that compares each receipt definition's hash with the record in config.toml; the line names its source. A handler changed since it was trusted is revalidation-required; one never trusted, turned off, under a disabled hooks feature or in a project Codex does not trust is untrusted. Claude plugin trust remains trust-unknown without suitable live evidence, even after the hook ran. Cursor runs user hooks without a trust step, so its user trust is trusted, and runs project hooks only in a trusted workspace doctor cannot read, so its project trust is unknown. Cursor user trust does not turn captured writes into enforced writes. Capture does not turn on write enforcement.
+
+Claude's onFailure: block and Cursor's failClosed: true are fail-closed. Codex has no fail-closed setting, so its line is host-fails-open in state unknown, its stated limit; a Claude or Cursor handler without its blocking setting is host-fails-open in state red. The version line is agent-version-validated when Codex answers the version its patch grammar is pinned to; Claude keeps its floor line, and Cursor, with no validated version, has none.
+
+Cursor imports Claude settings-file hooks by default and maps Edit to Write and Bash to Shell, so a golaw hook command in ~/.claude/settings.json would run twice; the hooks live in the plugin, and doctor reports duplicate-hook. A golaw skill under ~/.codex/skills or ~/.cursor/skills beside ~/.agents/skills produces skill-duplicate. Remove the extra copy in either case.
+
+Codex stops reading the AGENTS.md chain at 32 KiB, the golaw block stays under 1,000 bytes, and doctor does not measure the chain in M4. Keep your own AGENTS.md files within that budget.
+
+doctor.companion finds a companion gate by its neutral names: a handler whose command runs standards_gate.py in the agent's hooks file, reported before or after golaw's handler of the same event; for Claude the coexistence report also reads its registry, standards-gate.json. No file may receive two blocking verdicts: retire from the companion gate each family golaw owns before both run.

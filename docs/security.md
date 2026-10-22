@@ -10,6 +10,8 @@ golaw checks repository content and supported agent operations. It is not a sand
 | Offline acceptance | The exact installed invocation receives recorded inputs                        | The adapter and launcher answer the protocol         |
 | Live acceptance    | A dated record identifies agent, OS, version, binary, and target state         | The host dispatched and respected the installed hook |
 
+The table below is the M1 scope, kept as history. Assurance levels for each agent and OS are recorded in the [agent contract matrix](agent-contracts.md). It holds one row per agent, event and operating system, each proven live, proven offline or documented only, and this page keeps no second matrix.
+
 | Agent       | OS                    | M1 offline scope                                          | M1 live scope                       |
 | ----------- | --------------------- | --------------------------------------------------------- | ----------------------------------- |
 | Claude Code | Linux                 | Adapter and installed exec invocation                     | No live enforcement claim           |
@@ -21,6 +23,8 @@ golaw checks repository content and supported agent operations. It is not a sand
 These are release requirements, not a substitute for the recorded acceptance results. The historical macOS host evidence is in agent-contracts.md.
 
 ## What the guard stops
+
+This section and the next describe the Claude Code guard. The Codex guard and the Cursor guard have their own sections below, each stating what it stops and what it cannot stop.
 
 In an enrolled repository, supported pre events deny a typographic dash write, a prohibited secret read, a --no-verify commit, and an oversized candidate whose whole content can be reconstructed. An Edit is applied in memory before measurement. A shell command is read the way its shell hands the program its words: a redirection, wherever it stands and joined to a word or not, is no argument, and the name rules judge its file. A comment, from a hash that starts a word to the end of its line or a PowerShell block comment, is text no rule reads, so a quote or a here-document operator in it opens nothing. Inside an arithmetic expression, or a $[ ] or ${ } of a word, a << opens no here-document. A here-document the line never ends takes the rest of the command line as its body, as bash does, and is data unless a shell reads it. A $[ ] or ${ } that holds a blank, a newline, a parenthesis or another separator of commands, where the scanner ends the word, is beyond this reading.
 
@@ -42,7 +46,35 @@ A shell command is judged by the repository of the session's working directory, 
 
 Four shapes of a command line, none of which a well-meaning agent writes, are read otherwise than the shell reads them; they are stated limits, not reasons to widen the reading, and a test pins the answer the hook gives each one. A hash right after the parenthesis that closes a substitution, an arithmetic expansion or a process substitution inside a word, as in x=$(true)#, begins a comment for this reading, while the shell keeps it in the word, so the commands after it on its line pass and a quote after it opens nothing. The words after the script of sh -c or bash -c, which the shell hands the script as its positional parameters, are read as words of the script, so a comment that ends the script hides them, as in bash -c 'cat "$1" # read' sh followed by a file name. The string of env -S is split as a POSIX shell splits words, so an escape env reads its own way is read as the character it escapes: `\_`, a blank to env, joins two words into one name, and `\c`, the end of the string to env, is read as a c. A line crafted for bash 3.2, which ends a substitution inside double quotes at the first parenthesis left open, is read as bash 4 and later read it, typed at the tool's shell or fed to bash through a here-document.
 
-Codex CLI and Cursor enforcement are outside M1. Their later adapters have separate limits: Codex write_stdin into an existing interpreter, untrusted or failed hooks, and specialized tool routes; Cursor writes until its mutation payload is understood. M1 implies no enforcement by those adapters.
+## The Codex guard
+
+Codex stops a dash write and an oversized file before it exists through apply_patch when the whole candidate can be reconstructed, a secret read through Bash tokens, and a --no-verify commit. The patch grammar is pinned to the validated Codex version. An Update chunk that applies exactly to the file on disk reconstructs the whole candidate; one that does not is judged by its added lines only, with the size deferred to the post event where the host emits one.
+
+Codex cannot stop write_stdin into an interactive interpreter, hosted and MCP tools beyond the optional matchers, an untrusted or failed hook, or background writers.
+
+Codex has no read event: the rule runs on Bash tokens and optional MCP read matchers. Optional MCP matchers do not establish general MCP coverage. write_stdin into an interpreter, hosted tools, unsupported specialized routes and background writers remain outside the coverage claim. The secret names are the patterns of internal/checks/paths/secret.go and the credential printers those of the shell checks under internal/checks/shell, executable data with red and near-miss fixtures; this page repeats neither list and widens neither.
+
+Codex fails open on host failures and skips untrusted hooks silently. The host failures are a timeout, a spawn failure, exit 1, termination by a signal, invalid response JSON, exit 2 with an empty stderr, disabled hooks, untrusted hooks and an untrusted project layer; Codex has no fail-closed host setting. A denial is the schema-valid deny JSON with exit 0 and the English reason on stderr, because an answer with a field outside the schema is invalid and lets the tool run. The internal budget is 8 seconds; the installed host timeout is 10 seconds. The eight-second deadline can produce a pre denial before the ten-second timeout, but it cannot fix a process that never starts or a hook the host never dispatches.
+
+The internal deadline, prefix rules, post feedback, optional staged scanning and doctor reduce these gaps. None of them is a gate: the deadline answers before the host timeout; the prefix rules are loaded by Codex itself, apart from the hook; post feedback arrives where the host emits a post event; golaw scan --staged is optional; doctor reports trust and the current dispatch evidence, so an inert hook is never reported as protecting. Remote CI or the platform pipeline is the only hard gate.
+
+The generated rules cover only the unconditional forbidden prefixes the shell family supplies: the families the hook denies in every enrolled repository whatever the policy says. They do not encode policy-dependent push or pull-request restrictions. A user-scope rules file also applies outside enrolled repositories. There the hook gives a valid allow, so golaw.rules is written only with --scope project, and project rules require the trusted project layer. Prefix rules cannot express an option anywhere, git -C or arbitrary wrappers. golaw.rules is a regular file, because a symbolic link is never loaded. A malformed rules file can discard all user and project rules for the session. codex execpolicy check proves that the file loads and the tested argv matches; it does not prove session dispatch or arbitrary shell interpretation.
+
+A shell pre event is judged as a prospective write only for a sole apply_patch or applypatch here-document statement, optionally preceded by cd with one word and &&, and for a cat here-document with one visible output target; appended content is not a reconstructed whole file. Additional statements, pipes, ||, variables and substitutions receive the shell family's judgment and any available post detection. They do not justify a wider recognizer. An intercepted patch has only the Bash pre event. The workdir argument is absent from the hook payload. So the payload cwd may identify a different directory from the command's actual directory.
+
+A failed multi-file patch can leave earlier files written without a post event. A running command can receive its post event later, or never. Codex has no PostToolUseFailure. Post findings are feedback about completed execution, never rollback.
+
+Codex trust is read, never written: the installer prints the /hooks step when a definition it writes differs from the trusted record, and doctor asks Codex itself through codex app-server or compares the hash with the record. On Windows a process that Codex app-server starts may outlive doctor; on macOS and Linux doctor ends its whole process group. Ending a process tree on Windows needs a job object, and M4 adds no module for it.
+
+## The Cursor guard
+
+Cursor is a compatibility preview with no supported-enforcement claim in M4. Cursor stops a secret read by name at beforeReadFile, for exposure to the model only, and the shell denials at beforeShellExecution. A shell command is judged at preToolUse Shell as well, with the same English reason, any denial winning. Cursor cannot stop the disk read, and cannot stop writes until a live record proves the Write payload (A4, cut 13).
+
+Cursor's beforeReadFile prevents exposure to the model, not the disk read. The event already carries the file content; the decoder drops that content and judges the name, so the boundary is model exposure.
+
+Write and Delete capture records key names, never values or content. The key names of a Write or Delete payload are captured before the allow; nested key names are joined with dots and sorted. Capture success is not payload validation or write enforcement. Writes remain unenforced until a live record proves the Write payload, as A4 and cut 13 require; enforcement turns on with typed, versioned fixtures of that payload.
+
+Post findings are advisory. Post feedback does not undo a write. The installed definition carries failClosed: true, which the documentation says blocks the action on a crash, a timeout, a non-zero exit or no output, so the allow JSON is always printed. That is the documented behavior of the host, not a tested live host, and doctor reports Cursor as a preview whose writes are not enforced.
 
 ## Local aids and the remote gate
 
@@ -114,12 +146,12 @@ Inherited environment variables and secrets outside the recognized names remain 
 
 Run golaw doctor before upgrading the kit or agent. Compare installed and validated versions, artifact hashes, resolved executable, policy pin, enrollment digests, and fail mode.
 
-When a payload change, panic, or missing executable blocks work, a person selects the last validated kit tag from the compatibility history. Install that tag with go install or its signed release asset, then run golaw agent install --agent claude.
+When a payload change, panic, or missing executable blocks work, a person selects the last validated kit tag from the compatibility history. Install that tag with go install or its signed release asset, then run golaw agent install --agent claude. For the selected integration, a person chooses the last validated kit and agent combination, installs that binary, restores the matching kit.version and enrollment digests through the same reviewed procedure, and reruns the corresponding agent install, --agent codex or --agent cursor. Codex additionally requires the /hooks review when its hook definition changed, plus project trust where a project installation is used. No recovery edits hooks.state and none bypasses a hook.
 
 Restore the matching kit.version and enrollment digests as part of the person's reviewed change, committing the repository policy change and updating external enrollment through agent install, which enrolls the committed policy only as a tightening, never lowering a policy floor. The binary and pin must move together.
 
 Run doctor again. From a checkout of the kit at the validated tag, since the harness ships with the kit and never with an adopting repository, replay the recovery-control row of go run ./tools/acceptance, which takes the binary away, puts the validated one back, runs agent install again and requires the allowed write through the installed invocation, before resuming work.
 
-Retain the previous validated combination in the compatibility history after every upgrade. The first release has no previous golaw release; its acceptance demonstrates reinstalling the validated candidate.
+Retain the previous validated combination in the compatibility history after every upgrade. The first release has no previous golaw release; its acceptance demonstrates reinstalling the validated candidate. Marketplace distribution remains deferred until its pinned pointer requirement is met, and Cursor has no supported-enforcement claim in M4.
 
 Any emergency relaxation belongs outside the repository in user scope. It must be time-boxed, owned, audited, and prominent in doctor. There is no repository-level advisory switch.

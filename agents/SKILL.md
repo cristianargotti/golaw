@@ -33,6 +33,12 @@ Run golaw scan . before finishing. Run golaw scan --staged before finishing stag
 
 Only the developer arms git rungs with golaw setup; init alone never arms them. Each rung switches off in golaw.yml without a finding. Armed rungs finish in seconds, and pre-push runs govulncheck only. The full make ci belongs in remote CI or the platform pipeline; mutation, fuzzing, benchmarks and integration stay on demand.
 
-Installed agent guards deny violations until a person uninstalls them. Do not weaken policy to bypass a finding.
+Installed guards deny recognized violations only on enforced routes. Capture, feedback and installation alone do not prove enforcement. Do not weaken policy to bypass a finding.
+
+Use golaw doctor to distinguish installed, trusted and active hooks. Read docs/agent-contracts.md and docs/security.md of the kit at the same tag before relying on an integration.
+
+Cursor is a compatibility preview. Write and Delete payloads are captured by key name and allowed. Post feedback is advisory.
+
+After a Codex hook definition changes, review it through /hooks. Never write hooks.state yourself.
 
 The rules page carries the prose mapping. Read docs/checklists.md of the kit at the same tag. Use its conditional checks and evidence record, and docs/context-template.md for hexagonal context shapes.

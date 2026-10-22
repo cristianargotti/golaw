@@ -1,0 +1,94 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"io"
+)
+
+// The M4 rows of section 11: the preparation row a failed build answers
+// with, the detail of a passing row, and the evidence of a row that is no
+// single agent's.
+const (
+	m4Preparation = "m4-preparation"
+	m4Candidate   = "candidate"
+	m4Verified    = "verified offline through the installed command"
+	m4Unversioned = "none"
+	m4AllAgents   = "all"
+)
+
+// m4Catalog is one category of M4 rows: the agent and the validated agent
+// version its evidence names, and the rows it measures, given whether a
+// skipped row is required.
+type m4Catalog struct {
+	agent, version string
+	rows           func(s *suite, ctx context.Context, required bool) []row
+}
+
+// m4Catalogs are the categories of the M4 rows in report order.
+func m4Catalogs() []m4Catalog {
+	return []m4Catalog{}
+}
+
+// collectM4 measures every M4 category over a prepared suite.
+func (s *suite) collectM4(ctx context.Context, required bool) ([]row, map[string]rowEvidence) {
+	return s.m4CollectCatalogs(ctx, m4Catalogs(), required)
+}
+
+// m4CollectCatalogs walks the catalogs in order and keys the evidence of
+// every row by category and name, as the M2 and M3 rows are keyed.
+func (s *suite) m4CollectCatalogs(ctx context.Context, catalogs []m4Catalog, required bool) ([]row, map[string]rowEvidence) {
+	var rows []row
+	evidence := make(map[string]rowEvidence)
+	for _, catalog := range catalogs {
+		for _, item := range catalog.rows(s, ctx, required) {
+			rows = append(rows, item)
+			evidence[item.category+"/"+item.name] = rowEvidence{Agent: catalog.agent, Version: catalog.version, Binary: s.digest}
+		}
+	}
+	return rows, evidence
+}
+
+// measuredM4 is measured with the detail of a passing M4 row.
+func measuredM4(category, name string, err error) row {
+	got := measured(category, name, err)
+	if err == nil {
+		got.detail = m4Verified
+	}
+	return got
+}
+
+// runM4 reports the M4 rows alone, over the preparation of the M1 rows:
+// the real binary built and every agent installed twice in the isolated
+// home.
+func (s *suite) runM4(ctx context.Context, out io.Writer) int {
+	return s.m4Run(ctx, out, m4Catalogs())
+}
+
+func (s *suite) m4Run(ctx context.Context, out io.Writer, catalogs []m4Catalog) int {
+	if err := s.prepare(ctx); err != nil {
+		item := measured(m4Preparation, m4Candidate, err)
+		evidence := map[string]rowEvidence{m4Preparation + "/" + m4Candidate: {Agent: m4AllAgents, Binary: s.digest}}
+		return m2ReportCode(reportEvidence(out, []row{item}, "", s.digest, evidence))
+	}
+	rows, evidence := s.m4CollectCatalogs(ctx, catalogs, false)
+	return m2ReportCode(reportEvidence(out, rows, "", s.digest, evidence))
+}
+
+// m4Flags are the flags of the M4 runs: -m4 reports the M4 rows alone.
+type m4Flags struct {
+	only *bool
+}
+
+func m4FlagSet(flags *flag.FlagSet) m4Flags {
+	return m4Flags{only: flags.Bool("m4", false, "require M4 functional evidence rows")}
+}
+
+// route runs the M4 mode a flag selects and reports whether one did; a
+// release run keeps every row, so it never routes here.
+func (f m4Flags) route(ctx context.Context, out io.Writer, s *suite, release bool) (int, bool) {
+	if release || !*f.only {
+		return 0, false
+	}
+	return s.runM4(ctx, out), true
+}

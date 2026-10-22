@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch)$",
+        "hooks": [
+          { "type": "command", "command": "golaw hook codex", "timeout": 10 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch)$",
+        "hooks": [
+          { "type": "command", "command": "golaw hook codex", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

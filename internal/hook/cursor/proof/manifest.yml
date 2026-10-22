@@ -1,0 +1,41 @@
+checks:
+  - id: cursor.envelope
+    code: envelope
+    red: testdata/envelope/red
+    near: testdata/envelope/near
+  - id: cursor.shell
+    code: shell
+    red: testdata/shell/red
+    near: testdata/shell/near
+  - id: cursor.write-capture
+    code: write-capture
+    red: testdata/write-capture/red
+    near: testdata/write-capture/near
+  - id: cursor.delete-capture
+    code: delete-capture
+    red: testdata/delete-capture/red
+    near: testdata/delete-capture/near
+  - id: cursor.shell-observe
+    code: shell-observe
+    red: testdata/shell-observe/red
+    near: testdata/shell-observe/near
+  - id: cursor.read
+    code: read
+    red: testdata/read/red
+    near: testdata/read/near
+  - id: cursor.post-shell
+    code: post-shell
+    red: testdata/post-shell/red
+    near: testdata/post-shell/near
+  - id: cursor.post-shell-failure
+    code: post-shell-failure
+    red: testdata/post-shell-failure/red
+    near: testdata/post-shell-failure/near
+  - id: cursor.post-write
+    code: post-write
+    red: testdata/post-write/red
+    near: testdata/post-write/near
+  - id: cursor.post-write-failure
+    code: post-write-failure
+    red: testdata/post-write-failure/red
+    near: testdata/post-write-failure/near

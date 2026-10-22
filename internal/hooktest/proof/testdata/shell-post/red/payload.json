@@ -1,0 +1,10 @@
+{
+  "session_id": "session",
+  "agent_id": "agent",
+  "tool_use_id": "tool",
+  "cwd": "/project",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": { "command": "printf x > notes.md" },
+  "tool_response": { "stdout": "", "stderr": "" }
+}

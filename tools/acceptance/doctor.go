@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -26,37 +25,46 @@ const (
 )
 
 // doctorRow replays item 2 of section 10.3: once an installed hook ran in
-// the installed repository, doctor --json decodes, every artifact the
-// receipt lists matches, every hook of its definition blocks on failure,
-// the hook names the binary this run built, a source build is metadata,
-// never verified (section 11 M1), and the hook process left the dispatch
-// evidence of section 5.6.
+// the installed repository, doctor --json decodes into one report per
+// agent, every artifact the Claude receipt lists matches, every hook of its
+// definition blocks on failure, the hook names the binary this run built,
+// a source build is metadata, never verified (section 11 M1), the hook
+// process left the dispatch evidence of section 5.6, and the Codex and
+// Cursor reports say what agentWants holds.
 func (s *suite) doctorRow(ctx context.Context) row {
 	repo := filepath.Join(s.base, dirRepos, repoInstallation)
 	input, err := payload(s.root, repo, writeFixture(caseDoctor, pathNote, textSafe, wantAllow))
 	if err == nil {
 		err = expect(s.invoke(ctx, repo, eventPre, toolWrite, input), wantAllow)
 	}
-	if err != nil {
-		return measured(categoryInstallation, caseDoctor, err)
+	if err == nil {
+		err = s.judgeDoctorReports(ctx, repo)
 	}
+	return measured(categoryInstallation, caseDoctor, err)
+}
+
+// judgeDoctorReports runs doctor --json in the installed repository and
+// judges the Claude report against its receipt and every other report
+// against agentWants.
+func (s *suite) judgeDoctorReports(ctx context.Context, repo string) error {
 	got := s.execute(ctx, command{
 		program: s.binary, args: []string{"doctor", "--json"}, dir: repo, env: s.env,
 	})
 	if err := success(got); err != nil {
-		return measured(categoryInstallation, caseDoctor, err)
+		return err
 	}
-	var report doctor.Report
-	decoder := json.NewDecoder(bytes.NewReader([]byte(got.stdout)))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&report); err != nil {
-		return measured(categoryInstallation, caseDoctor, fmt.Errorf("decode doctor --json: %w", err))
+	reports, err := decodeReports(got.stdout)
+	if err != nil {
+		return err
 	}
-	owed, readErr := receiptKeys(s.home)
-	if readErr != nil {
-		return measured(categoryInstallation, caseDoctor, readErr)
+	owed, err := receiptKeys(s.home)
+	if err != nil {
+		return err
 	}
-	return measured(categoryInstallation, caseDoctor, judgeDoctor(report, owed, s.binary))
+	if judgeErr := judgeDoctor(reports[0], owed, s.binary); judgeErr != nil {
+		return judgeErr
+	}
+	return judgeAgentReports(reports, s.binary)
 }
 
 // owedLines come from the receipt the installer wrote, one key per artifact
@@ -106,23 +114,48 @@ func receiptKeys(home string) (owedLines, error) {
 	return owed, nil
 }
 
-// findReceipt answers the only receipt under home: a second one means the
-// row cannot tell which installation doctor reported.
+// findReceipt answers the only Claude receipt under home: the agents
+// installed beside it keep receipts of their own, which name their agent,
+// and a second Claude receipt means the row cannot tell which installation
+// doctor reported.
 func findReceipt(home string) (string, error) {
 	var found []string
 	err := filepath.WalkDir(home, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr == nil && !entry.IsDir() && entry.Name() == receiptFile {
+		if walkErr != nil || entry.IsDir() || entry.Name() != receiptFile {
+			return walkErr
+		}
+		agent, err := receiptAgent(path)
+		if err == nil && agent == agentClaude {
 			found = append(found, path)
 		}
-		return walkErr
+		return err
 	})
 	if err != nil {
 		return "", fmt.Errorf("find the receipt: %w", err)
 	}
 	if len(found) != 1 {
-		return "", fmt.Errorf("found %d receipts under the isolated home: %w", len(found), ErrAcceptance)
+		return "", fmt.Errorf("found %d receipts of %s under the isolated home: %w", len(found), agentClaude, ErrAcceptance)
 	}
 	return found[0], nil
+}
+
+// receiptAgent reads the agent a receipt names; a receipt without one is
+// the Claude receipt every installation before M4 wrote.
+func receiptAgent(path string) (string, error) {
+	body, err := readFile(path)
+	if err != nil {
+		return "", err
+	}
+	var receipt struct {
+		Agent string `json:"agent"`
+	}
+	if err := json.Unmarshal(body, &receipt); err != nil {
+		return "", fmt.Errorf("decode the receipt %s: %w", path, err)
+	}
+	if receipt.Agent == "" {
+		return agentClaude, nil
+	}
+	return receipt.Agent, nil
 }
 
 // judgedLine is the code and the state a judged line must carry together:

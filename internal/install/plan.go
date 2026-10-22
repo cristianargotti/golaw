@@ -9,10 +9,16 @@ import (
 )
 
 // Options contains resolved command inputs rather than environment reads.
+// Home is the home directory of the person, Executable the path of the
+// running binary the hook command names and GOOS the operating system the
+// hook command is written for. ConfigDirSet says the person named
+// ConfigDir through the override variable of the agent's host.
 type Options struct {
 	Root, ConfigDir, StateDir, Scope, Version string
 	PolicyDigest, ProfileDigest               string
 	ReadRules                                 []string
+	Home, Executable, GOOS                    string
+	ConfigDirSet                              bool
 }
 
 // Change freezes the comparison required before a write.
@@ -24,12 +30,15 @@ type Change struct {
 }
 
 // Plan keeps the complete diff available before enrollment or file writes.
+// Notes are the lines the person reads after the write, such as the trust
+// step of a host that keys trust by the hook definition.
 type Plan struct {
 	Changes                     []Change
 	Receipt                     Receipt
 	ReceiptPath                 string
 	PolicyDigest, ProfileDigest string
 	Uninstall                   bool
+	Notes                       []string
 }
 
 // PlanClaude plans from the embedded bundle alone, so the plugin it installs

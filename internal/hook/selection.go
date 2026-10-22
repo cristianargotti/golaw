@@ -47,7 +47,7 @@ func (run execution) input(ctx context.Context, dependencies Dependencies) (mode
 
 // postPaths are the files a post event judges: the file a write tool wrote,
 // as the host reports it, and the files the change detection of a shell
-// command found changed. The files the host reports a shell command
+// command, or of a tool whose decoder asks for it, found changed. The files the host reports a shell command
 // changed are judged only when no baseline classifies them: its diff names
 // what a move brought and what only changed its status as well, which the
 // detection answers apart, so a file it names gets the answer the detection
@@ -57,7 +57,7 @@ func (run execution) input(ctx context.Context, dependencies Dependencies) (mode
 func (run execution) postPaths(ctx context.Context, dependencies Dependencies) ([]string, []Gap) {
 	paths := slices.Clone(run.request.Hints)
 	var gaps []Gap
-	if run.request.Event.Tool == "Bash" || run.request.Event.Tool == "PowerShell" {
+	if run.request.Detect || run.request.Event.Tool == "Bash" || run.request.Event.Tool == "PowerShell" {
 		changed, found, err := run.changedPaths(ctx, dependencies)
 		if err == nil {
 			paths = changed

@@ -133,6 +133,9 @@ func (s *suite) install(ctx context.Context) error {
 	if err := writeFile(settings, []byte(body), fileMode); err != nil {
 		return err
 	}
+	if err := seedForeign(s.home); err != nil {
+		return err
+	}
 	repo, err := s.repository(ctx, "installation", true)
 	if err != nil {
 		return err
@@ -151,14 +154,17 @@ func (s *suite) install(ctx context.Context) error {
 	if settingsErr := preservedSettings(settings); settingsErr != nil {
 		return settingsErr
 	}
+	if foreignErr := preservedForeign(s.home); foreignErr != nil {
+		return foreignErr
+	}
 	s.hookFile, s.hooks, err = discoverHooks(s.home)
 	return err
 }
 
 // installArgs keeps every row that installs on the one command the
-// adoption sequence documents.
+// adoption sequence documents: every agent of the registry (section 4.3).
 func installArgs() []string {
-	return []string{"agent", "install", "--agent", agentClaude}
+	return []string{"agent", "install", "--agent", m4AllAgents}
 }
 
 func (s *suite) reinstall(ctx context.Context, c command, first map[string]string) error {
