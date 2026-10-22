@@ -13,7 +13,7 @@ func Claude(ctx context.Context, input Input, enrollment EnrollmentReader) Repor
 func Codex(ctx context.Context, input Input, _ EnrollmentReader) Report {
 	facts := collectAgent(input)
 	facts.Version, facts.VersionError = readVersion(ctx, agentVersion{command: agentCodex}, input.Environment)
-	facts.Trust = codexRecordTrust(input)
+	facts.Trust = codexTrust(ctx, input, appServer{version: RunningMetadata().Version})
 	return agentReport(input.Language, facts)
 }
 
