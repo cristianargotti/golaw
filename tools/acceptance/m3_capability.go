@@ -20,6 +20,8 @@ import (
 
 const (
 	m3CapabilityCategory = "m3-capability"
+	m3APICapability      = "api"
+	m3ImageCapability    = "image"
 	m3DomainRule         = "domain"
 	m3RawResponseFile    = "internal/server/raw.go"
 	// m3RawResponse is the gin shape goast.raw-error-response reads by
@@ -44,13 +46,13 @@ type m3CapabilityCase struct {
 // only what the tree with the capability holds, so both trees end alike.
 func m3CapabilityCases() map[string]m3CapabilityCase {
 	return map[string]m3CapabilityCase{
-		"api": {
+		m3APICapability: {
 			checks: []string{"goast.raw-error-response", "policy.openapi-assertions"}, conditioned: true,
 			apply: m3WriteRawResponse,
 		},
-		"db":        {checks: []string{"policy.squawk-config"}, conditioned: true, apply: m3RemovePresent(".squawk.toml")},
-		"hexagonal": {checks: []string{m3GolangciCheck}, apply: m3DropDomainRule},
-		"image":     {checks: []string{"policy.image-digest"}, conditioned: true, apply: m3DropDigests},
+		"db":              {checks: []string{"policy.squawk-config"}, conditioned: true, apply: m3RemovePresent(".squawk.toml")},
+		"hexagonal":       {checks: []string{m3GolangciCheck}, apply: m3DropDomainRule},
+		m3ImageCapability: {checks: []string{"policy.image-digest"}, conditioned: true, apply: m3DropDigests},
 	}
 }
 
