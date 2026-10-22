@@ -8,7 +8,7 @@ import (
 // shellRequest is the request of a beforeShellExecution event: its
 // command, judged by the shell family where the envelope says it runs.
 func shellRequest(input payload, event model.Event) (hook.Request, error) {
-	command, err := input.required("command")
+	command, err := input.required(commandField)
 	if err != nil {
 		return hook.Request{}, err
 	}

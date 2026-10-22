@@ -25,8 +25,10 @@ const (
 
 // The fields of the envelope more than one route reads.
 const (
-	nameField = "hook_event_name"
-	toolField = "tool_name"
+	nameField         = "hook_event_name"
+	toolField         = "tool_name"
+	conversationField = "conversation_id"
+	commandField      = "command"
 )
 
 // payload is the envelope of a Cursor event with every field kept as it
@@ -48,7 +50,7 @@ func parsePayload(data []byte) (payload, error) {
 	if _, foreign := input["turn_id"]; foreign {
 		return nil, fmt.Errorf("%w: envelope does not belong to cursor", model.ErrCannotJudge)
 	}
-	if input.text(nameField) == "" || input.text("conversation_id") == "" {
+	if input.text(nameField) == "" || input.text(conversationField) == "" {
 		return nil, fmt.Errorf("%w: incomplete cursor envelope", model.ErrCannotJudge)
 	}
 	if _, err := input.roots(); err != nil {
@@ -111,7 +113,7 @@ func eventHeader(input payload) (model.Event, error) {
 	}
 	event := model.Event{
 		Agent: agentID, Tool: input.text(toolField), Cwd: input.text("cwd"),
-		SessionID: input.text("conversation_id"), AgentID: input.text("generation_id"),
+		SessionID: input.text(conversationField), AgentID: input.text("generation_id"),
 		ToolUseID: input.text("tool_use_id"),
 	}
 	if event.Cwd == "" && len(roots) > 0 {

@@ -24,7 +24,7 @@ func observeShell(input payload, event model.Event) (hook.Request, error) {
 	if toolInput == nil {
 		return hook.Request{}, fmt.Errorf("%w: cursor tool_input is no object", model.ErrCannotJudge)
 	}
-	command, err := toolInput.required("command")
+	command, err := toolInput.required(commandField)
 	if err != nil {
 		return hook.Request{}, err
 	}

@@ -19,3 +19,7 @@ checks:
     code: shell-observe
     red: testdata/shell-observe/red
     near: testdata/shell-observe/near
+  - id: cursor.read
+    code: read
+    red: testdata/read/red
+    near: testdata/read/near
