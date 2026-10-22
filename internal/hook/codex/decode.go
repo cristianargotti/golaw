@@ -64,9 +64,20 @@ func decode(event model.Event, in toolInput, base hook.Base, snapshot model.Snap
 }
 
 // shellRequest normalizes a Bash pre event: the command text as the shell
-// family reads it, where it runs and the tool name Codex writes.
-func shellRequest(event model.Event, command string, _ hook.Base, _ model.Snapshot) (hook.Request, error) {
+// family reads it, where it runs and the tool name Codex writes, with the
+// files a recognized here-document form writes attached as its writes,
+// which the core judges before the command.
+func shellRequest(event model.Event, command string, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 	event.Shape = model.ShapeShell
 	event.Shell = &model.ShellCommand{Command: command, Cwd: event.Cwd, Tool: bashTool}
-	return hook.Request{Event: event}, nil
+	request := hook.Request{Event: event}
+	form, ok := recognize(command)
+	switch {
+	case !ok:
+		return request, nil
+	case form.patch:
+		return heredocPatch(request, form, base, snapshot)
+	default:
+		return heredocCat(request, form, base, snapshot)
+	}
 }
