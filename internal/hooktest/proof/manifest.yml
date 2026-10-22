@@ -1,0 +1,9 @@
+checks:
+  - id: route.write
+    code: write
+    red: testdata/write/red
+    near: testdata/write/near
+  - id: route.shell-post
+    code: shell-post
+    red: testdata/shell-post/red
+    near: testdata/shell-post/near

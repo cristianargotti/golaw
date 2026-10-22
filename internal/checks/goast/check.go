@@ -99,7 +99,7 @@ func (s *state) leave(names ...string) {
 }
 
 func newState(in model.Input) *state {
-	return &state{in: in, once: map[string]bool{}, redacted: map[string]redaction{}}
+	return &state{in: withPartial(in), once: map[string]bool{}, redacted: map[string]redaction{}}
 }
 
 // first lets a directory-level rule report once per run, however many

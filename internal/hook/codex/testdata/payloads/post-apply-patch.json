@@ -1,0 +1,15 @@
+{
+  "session_id": "session",
+  "turn_id": "turn",
+  "transcript_path": null,
+  "cwd": "/project",
+  "hook_event_name": "PostToolUse",
+  "model": "model",
+  "permission_mode": "default",
+  "tool_name": "apply_patch",
+  "tool_input": {
+    "command": "*** Begin Patch\n*** Add File: notes/hello.txt\n+hello\n*** End Patch"
+  },
+  "tool_response": "Success. Updated the following files:\nA notes/hello.txt\n",
+  "tool_use_id": "tool"
+}

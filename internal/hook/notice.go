@@ -31,6 +31,7 @@ const (
 	causeRemergeUnknown = "git could not make the merge commit of this command by itself to compare it"
 	causeArrived        = "the move of HEAD brought it from a commit this command did not create"
 	causeMerged         = "the merge in progress brought it from a commit this command did not create"
+	causeUnapplied      = "its change could not be reconstructed exactly from the file on disk, so only its added lines were judged"
 )
 
 // maxNamed is how many paths a sentence of a notice names before it counts
