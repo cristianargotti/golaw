@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: policy.image-digest judges the images COPY --from and the from of a RUN --mount pull as it judges FROM, and states an expansion or a name no stage carries there as a limit, because a tagged image pulled that way passed silently.
 - 2026-10-22: policy.gitleaks-generic also judges an allowlist path against the files of the tree whose header marks them generated, because an allowlist of the repository's own generated tree, such as the service's sqlcgen directory, passed silently.
 - 2026-10-22: the Makefile reader records a double-colon rule with its targets and states it as a limit only for a check that needs one of them, naming it as double-colon rule <target>::, because an unrelated clean:: left five build checks unmeasured with the reason ::: and scan exited 2.
 - 2026-10-22: golaw coverage reads the generated header as scan and the proof do, swaggo's form without the final period included, because the swaggo docs.go counted toward the package and total floors while scan treated it as generated.

@@ -9,6 +9,7 @@ import (
 type dockerfile struct {
 	path   string
 	stages []dockerStage
+	refs   []dockerRef
 }
 
 type dockerStage struct {
@@ -27,7 +28,8 @@ type dockerVar struct {
 // readDockerfile reads the subset the image and toolchain checks judge:
 // FROM with an optional --platform, never expanded because it names the
 // platform and not the image, and an optional AS; global ARG defaults
-// substituted as $NAME or ${NAME} in FROM; the ENV of each stage in order.
+// substituted as $NAME or ${NAME} in FROM; the ENV of each stage in order;
+// the images the leading --from of COPY and the from of a RUN --mount name.
 // Lines are joined, split and freed of heredoc bodies as BuildKit's parser
 // does, so a Windows checkout reads the instructions the pipeline reads.
 func readDockerfile(file string, data []byte) (dockerfile, error) {
@@ -124,6 +126,10 @@ func dockerOfficialFrontend(reference string) bool {
 
 func (d *dockerfile) instruction(text string, line int, args map[string]string) error {
 	command, rest := dockerCommand(text)
+	if (command == dockerCopy || command == "RUN") && len(d.stages) != 0 {
+		d.reference(command, rest, line)
+		return nil
+	}
 	if command != "FROM" && command != "ENV" && (command != "ARG" || len(d.stages) != 0) {
 		return nil
 	}
