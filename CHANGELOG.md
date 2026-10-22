@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: golaw coverage reads the generated header as scan and the proof do, swaggo's form without the final period included, because the swaggo docs.go counted toward the package and total floors while scan treated it as generated.
 - 2026-10-22: the policy-file checks have a snapshot frozen from git load every configuration path they read in one question, because a question per file took the staged scan of a one-line commit from 21 to 47 git processes and slowed the pre-commit rung.
 - 2026-10-22: init --update proposes, in the modules of the baseline decision record, the modules of the kit's go.mod lines and tools/go.mod that no decision records, because the first update of an M2 adoption left policy.dependency-records red on the tools module the kit itself wrote.
 - 2026-10-22: init prints the go get and go mod tidy that apply its go.mod proposal of the rules module, the pre-commit lint step names that repair and leaves to the pipeline a lint golangci-lint cannot load without it, and the adoption sequence stages the M3 core files, go.mod and go.sum, because a fresh adoption refused every commit that staged a Go file with a type checker error and no repair.

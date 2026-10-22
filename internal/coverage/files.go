@@ -16,8 +16,9 @@ import (
 )
 
 // generatedPattern is the header of generated Go code, which has no author
-// to hold to the coverage law.
-var generatedPattern = regexp.MustCompile(`(?m)^// Code generated .* DO NOT EDIT\.$`)
+// to hold to the coverage law, in the form scan and the proof read it,
+// swaggo's included: an optional Package prefix and no final period.
+var generatedPattern = regexp.MustCompile(`(?m)^// (?:Package \S+ )?Code generated .* DO NOT EDIT\.?$`)
 
 func skippedDirs() map[string]bool {
 	return map[string]bool{".git": true, "vendor": true, "node_modules": true, "testdata": true, "dist": true}
