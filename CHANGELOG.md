@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: docs/rules.md states that policy.ci-target ignores a lefthook construct outside the reader's subset, because the page said such constructs follow stated limits while the check, rightly for an optional rung, passes over them in silence.
 - 2026-10-22: policy.openapi-assertions states a Redocly configuration named redocly.yml, .redocly.yaml or .redocly.yml in place of an absent redocly.yaml as a limit naming the rename, because such a repository got the false finding to add redocly.yaml.
 - 2026-10-22: policy.dependabot-cooldown reads .github/dependabot.yaml as well, states both names at once as a limit and leaves out an entry with open-pull-requests-limit 0, because a .yaml configuration without a cooldown passed silently and a security-only entry, which the cooldown exempts, got a finding.
 - 2026-10-22: policy.dependency-records reads the front matter of a decision record saved with a byte order mark, because a module such a record lists got the false finding to record it.
