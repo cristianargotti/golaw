@@ -173,7 +173,7 @@ func TestM3RulesStateMeasurementBoundaries(t *testing.T) {
 		"Outside the declared subset is Unmeasured, never a finding.",
 		"The reason names the file, line and construct.",
 		"A required Unmeasured check makes scan exit 2.",
-		"An armed pre-commit rung reports a declared-subset limit and leaves it to the pipeline.",
+		"An armed pre-commit rung leaves a declared-subset limit to the pipeline and names it when the commit introduces it",
 		"An unused Makefile variable does not widen the reader's scope.",
 		"Makefile includes resolve from the repository root.",
 		"An absent Makefile is named by policy.makefile alone.",

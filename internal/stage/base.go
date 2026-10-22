@@ -33,8 +33,9 @@ const goSuffix = ".go"
 // is in progress the tree of theirs, the other parent, since a finding the
 // other side holds is one the merge brought (section 8.1). A renamed file
 // is read at its old path in each, so a finding the commit only carries
-// along is never its own.
-func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *engine.Run, theirs string) error {
+// along is never its own. It answers the status of each outcome at the
+// base, which the pre-commit rung compares its stated limits with.
+func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *engine.Run, theirs string) ([]model.Status, error) {
 	moved := renames(candidate.Changes)
 	revs := []string{baseOf(in)}
 	if theirs != "" {
@@ -44,9 +45,13 @@ func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *e
 	for _, rev := range revs {
 		held, err := judgeBase(ctx, in, candidate, rev, moved)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		bases = append(bases, held)
+	}
+	statuses := make([]model.Status, 0, len(run.Outcomes))
+	for i := range bases[0].staged.Outcomes {
+		statuses = append(statuses, bases[0].staged.Outcomes[i].Result.Status)
 	}
 	for i := range run.Outcomes {
 		got := &run.Outcomes[i].Result
@@ -56,7 +61,7 @@ func introducedOnly(ctx context.Context, in Input, candidate model.Input, run *e
 			held.besideDoubt(got, i)
 		}
 	}
-	return nil
+	return statuses, nil
 }
 
 // heldAt is what the bases hold for outcome i, keyed, as a multiset union:
