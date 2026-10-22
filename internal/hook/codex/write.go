@@ -93,7 +93,7 @@ func patchRequest(event model.Event, text string, base hook.Base, snapshot model
 	case len(doc.Hunks) == 0:
 		return hook.Request{Event: event, Observe: true}, nil
 	case doc.Environment != "":
-		return hook.Request{}, fmt.Errorf("%w: the patch selects the Codex environment %q, whose files this hook cannot read: apply it in the local environment, without the Environment ID line", model.ErrCannotJudge, doc.Environment)
+		return hook.Request{}, environmentRefusal(doc.Environment)
 	}
 	request, over, err := patchCandidates(event, doc.Hunks, patchAdded(text), base, snapshot)
 	if err == nil && over != "" && len(request.Content) > 0 {
@@ -127,4 +127,10 @@ func patchCandidates(event model.Event, hunks []Hunk, added [][]string, base hoo
 		request.Event.Candidates = append(request.Event.Candidates, candidate)
 	}
 	return request, over, nil
+}
+
+// environmentRefusal is the answer to a patch that selects a Codex
+// environment, whose files this hook cannot read.
+func environmentRefusal(id string) error {
+	return fmt.Errorf("%w: the patch selects the Codex environment %q, whose files this hook cannot read: apply it in the local environment, without the Environment ID line", model.ErrCannotJudge, id)
 }

@@ -49,7 +49,7 @@ func (in toolInput) text(tool string) (string, error) {
 // location keeps its valid allow.
 func decode(event model.Event, in toolInput, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 	if event.Tool != bashTool && event.Tool != patchTool {
-		return hook.Request{}, fmt.Errorf("%w: unsupported Codex tool %s", model.ErrCannotJudge, event.Tool)
+		return hook.Request{}, unsupportedTool(event.Tool)
 	}
 	command, err := in.text(event.Tool)
 	if err != nil {
@@ -82,4 +82,10 @@ func shellRequest(event model.Event, command string, base hook.Base, snapshot mo
 	default:
 		return heredocCat(request, form, base, snapshot)
 	}
+}
+
+// unsupportedTool is the refusal of a tool outside the two canonical ones,
+// which the installed matcher never selects.
+func unsupportedTool(tool string) error {
+	return fmt.Errorf("%w: unsupported Codex tool %s", model.ErrCannotJudge, tool)
 }

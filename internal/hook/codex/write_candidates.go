@@ -104,7 +104,7 @@ func updateCandidate(from, to string, chunks []Chunk, added []string, snapshot m
 // its patch; any other unreadable base is cannot judge as well.
 func existing(path string, snapshot model.Snapshot) ([]byte, bool, error) {
 	if snapshot.Class(path) == model.ClassUnknown {
-		return nil, false, fmt.Errorf("%w: %s does not exist, and Codex cannot update, move or delete an absent file: correct the path in the patch", model.ErrCannotJudge, path)
+		return nil, false, absentSource(path)
 	}
 	base, err := snapshot.Read(path)
 	switch {
@@ -115,4 +115,10 @@ func existing(path string, snapshot model.Snapshot) ([]byte, bool, error) {
 	default:
 		return nil, false, fmt.Errorf("%w: apply_patch base %s: %w", model.ErrCannotJudge, path, err)
 	}
+}
+
+// absentSource is the answer to a hunk whose source the snapshot does not
+// hold, with the fix the agent can apply.
+func absentSource(path string) error {
+	return fmt.Errorf("%w: %s does not exist, and Codex cannot update, move or delete an absent file: correct the path in the patch", model.ErrCannotJudge, path)
 }
