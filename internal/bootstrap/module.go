@@ -12,10 +12,11 @@ import (
 	"github.com/cristianargotti/golaw/internal/runner"
 )
 
-// ModuleInfo preserves the adopter's Go directive and direct dependencies.
+// ModuleInfo preserves the adopter's Go directive and dependency declarations.
 type ModuleInfo struct {
 	Path, GoVersion string
 	Direct          []assets.Requirement
+	Indirect        []assets.Requirement
 }
 
 type moduleDocument struct {
@@ -50,10 +51,14 @@ func ReadModule(ctx context.Context, root string, env []string) (ModuleInfo, err
 	}
 	info := ModuleInfo{Path: document.Module.Path, GoVersion: document.Go}
 	for _, requirement := range document.Require {
-		if !requirement.Indirect {
-			info.Direct = append(info.Direct, assets.Requirement{Path: requirement.Path, Version: requirement.Version})
+		value := assets.Requirement{Path: requirement.Path, Version: requirement.Version}
+		if requirement.Indirect {
+			info.Indirect = append(info.Indirect, value)
+		} else {
+			info.Direct = append(info.Direct, value)
 		}
 	}
 	slices.SortFunc(info.Direct, func(a, b assets.Requirement) int { return cmp.Compare(a.Path, b.Path) })
+	slices.SortFunc(info.Indirect, func(a, b assets.Requirement) int { return cmp.Compare(a.Path, b.Path) })
 	return info, nil
 }

@@ -23,7 +23,7 @@ func (b binding) initTemplates(ctx context.Context, root string, data []byte) (b
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", err
 	}
-	inputs, notice, err := b.initTemplateContext(ctx, root, config)
+	inputs, promoted, notice, err := b.initTemplateContext(ctx, root, config)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", err
 	}
@@ -31,35 +31,39 @@ func (b binding) initTemplates(ctx context.Context, root string, data []byte) (b
 		_, ownership, filterErr := filterInitOwnership(nil, owners)
 		return bootstrap.TemplatePlan{Ownership: ownership, Language: inputs.Language}, notice, filterErr
 	}
-	plan, err := renderInitTemplates(root, inputs, owners)
+	plan, err := renderInitTemplates(root, inputs, owners, promoted)
 	return plan, "", err
 }
 
-func (b binding) initTemplateContext(ctx context.Context, root string, config policy.File) (assets.Context, string, error) {
+func (b binding) initTemplateContext(ctx context.Context, root string, config policy.File) (assets.Context, []assets.Requirement, string, error) {
 	layout, err := initLayout(root, config)
 	if err != nil {
-		return assets.Context{}, "", err
+		return assets.Context{}, nil, "", err
 	}
 	values := initValues(config, layout)
 	inputs := assets.Context{Values: values, CIBackend: "none"}
 	if !layout.Go {
-		return inputs, moduleInstruction(values.Language, false), nil
+		return inputs, nil, moduleInstruction(values.Language, false), nil
 	}
 	module, err := bootstrap.ReadModule(ctx, root, b.environ())
 	if err != nil && ctx.Err() == nil && errors.Is(err, bootstrap.ErrModule) {
-		return inputs, unreadableModule(values.Language, err), nil
+		return inputs, nil, unreadableModule(values.Language, err), nil
 	}
 	if err != nil {
-		return assets.Context{}, "", initOperation("read the module", err)
+		return assets.Context{}, nil, "", initOperation("read the module", err)
 	}
 	if version.Compare("go"+module.GoVersion, "go1.24") < 0 {
-		return inputs, moduleInstruction(values.Language, true), nil
+		return inputs, nil, moduleInstruction(values.Language, true), nil
+	}
+	module, promoted, err := bootstrap.PromoteImported(root, module)
+	if err != nil {
+		return assets.Context{}, nil, "", initOperation("read the module imports", err)
 	}
 	inputs.ModulePath, inputs.GoVersion, inputs.DirectRequires = module.Path, module.GoVersion, module.Direct
-	return inputs, "", nil
+	return inputs, promoted, "", nil
 }
 
-func renderInitTemplates(root string, inputs assets.Context, owners []byte) (bootstrap.TemplatePlan, error) {
+func renderInitTemplates(root string, inputs assets.Context, owners []byte, promoted []assets.Requirement) (bootstrap.TemplatePlan, error) {
 	rendered, err := assets.RenderAllContext(golaw.FS, inputs)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, initOperation("render templates", err)
@@ -74,7 +78,29 @@ func renderInitTemplates(root string, inputs assets.Context, owners []byte) (boo
 	}
 	plan, err := bootstrap.PlanTemplates(root, allowed)
 	plan.Language, plan.Ownership, plan.Irregular = inputs.Language, ownership, irregular
+	if writesInheritedBaseline(plan, rendered) {
+		plan.Promoted = promoted
+	}
 	return plan, initOperation("plan templates", err)
+}
+
+// writesInheritedBaseline reports whether the plan writes the inherited
+// baseline record, the one case where the promoted line may say that the
+// record lists those modules: init keeps a record the tree already holds,
+// and one written by an earlier version or by hand may lack them.
+func writesInheritedBaseline(plan bootstrap.TemplatePlan, rendered []assets.Rendered) bool {
+	for i := range rendered {
+		file := &rendered[i]
+		if file.Template.Source != "templates/decisions/0001-inherited-baseline.md.tmpl" {
+			continue
+		}
+		for _, change := range plan.Changes {
+			if change.Path == file.Path {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func initLayout(root string, config policy.File) (bootstrap.Layout, error) {
