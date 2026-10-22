@@ -36,7 +36,7 @@ func cinEnvironment(home string) []string {
 	}
 }
 
-func cinWrite(t *testing.T, path string, data []byte) { //nolint:unused // the rules tests of the next task write files through it
+func cinWrite(t *testing.T, path string, data []byte) {
 	t.Helper()
 	must(t, os.MkdirAll(filepath.Dir(path), 0o700))
 	must(t, os.WriteFile(path, data, 0o600))
