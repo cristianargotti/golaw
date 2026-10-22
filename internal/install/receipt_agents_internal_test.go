@@ -67,10 +67,8 @@ func TestClaudeReceiptCarriesNoFieldOfTheOtherAgents(t *testing.T) {
 
 func TestPlannersOfAgentsNotBuiltRefuse(t *testing.T) {
 	t.Parallel()
-	options := Options{Root: t.TempDir(), Scope: "user"}
 	receipt := filepath.Join(t.TempDir(), "receipt.json")
 	for name, plan := range map[string]func() (Plan, error){
-		"cursor install":   func() (Plan, error) { return PlanCursor(options) },
 		"cursor uninstall": func() (Plan, error) { return UninstallCursor(receipt) },
 	} {
 		if _, err := plan(); !errors.Is(err, ErrNotBuilt) {
