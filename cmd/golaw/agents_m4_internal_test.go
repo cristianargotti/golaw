@@ -38,7 +38,7 @@ func TestHookOfTheAgentsNotBuiltFailsClosed(t *testing.T) {
 	}
 }
 
-func TestAgentInstallAllStopsAtTheFirstAgentNotBuilt(t *testing.T) {
+func TestAgentInstallAllStopsAtTheFirstFailure(t *testing.T) {
 	t.Parallel()
 	first, second, third := registryIDs(t)
 	ta, port, root := agentApp(t)
@@ -49,7 +49,7 @@ func TestAgentInstallAllStopsAtTheFirstAgentNotBuilt(t *testing.T) {
 	if !strings.Contains(out, "agent: "+first+"\n") || !strings.Contains(out, "agent: "+second+"\n") || strings.Contains(out, "agent: "+third+"\n") || port.calls != 1 {
 		t.Fatalf("stdout = %q, port = %+v", out, port)
 	}
-	if !strings.Contains(ta.stderr.String(), install.ErrNotBuilt.Error()) {
+	if !strings.Contains(ta.stderr.String(), install.ErrPath.Error()) {
 		t.Fatalf("stderr = %q", ta.stderr.String())
 	}
 }

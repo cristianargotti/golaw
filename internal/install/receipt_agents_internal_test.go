@@ -70,8 +70,6 @@ func TestPlannersOfAgentsNotBuiltRefuse(t *testing.T) {
 	options := Options{Root: t.TempDir(), Scope: "user"}
 	receipt := filepath.Join(t.TempDir(), "receipt.json")
 	for name, plan := range map[string]func() (Plan, error){
-		"codex install":    func() (Plan, error) { return PlanCodex(options) },
-		"codex uninstall":  func() (Plan, error) { return UninstallCodex(receipt) },
 		"cursor install":   func() (Plan, error) { return PlanCursor(options) },
 		"cursor uninstall": func() (Plan, error) { return UninstallCursor(receipt) },
 	} {
