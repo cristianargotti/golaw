@@ -25,16 +25,16 @@ const (
 // NoVerify is shell.no-verify: no command skips the git hooks, neither with
 // the flag (--no-verify, and -n on commit) nor with a hooks path override.
 func NoVerify() model.Check {
-	return commandRule{spec: spec("shell.no-verify"), judge: judgeNoVerify}
+	return commandRule{spec: spec(noVerifyID), judge: judgeNoVerify}
 }
 
 func judgeNoVerify(_ model.Input, segs []segment) ([]model.Finding, error) {
 	for _, call := range gitCalls(segs) {
 		bypass := call.sub == subCommit && commitSkipsHooks(call.args) ||
-			(call.sub == "merge" || call.sub == "rebase" || call.sub == subPush) && call.has(noVerifyFlag) ||
+			call.sub != subCommit && call.has(bypassWords(call.sub)...) ||
 			slices.ContainsFunc(call.words, hooksPath.MatchString)
 		if bypass {
-			return []model.Finding{deny("no-verify", "the command skips the git hooks; the hooks are the rule")}, nil
+			return []model.Finding{deny("no-verify", noVerifyReason)}, nil
 		}
 	}
 	return nil, nil
@@ -45,16 +45,17 @@ func judgeNoVerify(_ model.Input, segs []segment) ([]model.Finding, error) {
 // message; a short cluster carries -n up to its first option that takes a
 // value, so -nm skips the hooks; and the words after -- are paths.
 func commitSkipsHooks(args []string) bool {
+	long, short := flagForms(bypassWords(subCommit))
 	for i := 0; i < len(args); i++ {
 		switch a := args[i]; {
 		case a == "--":
 			return false
-		case a == noVerifyFlag:
+		case slices.Contains(long, a):
 			return true
 		case takesValue(a):
 			i++
 		case len(a) > 1 && a[0] == '-' && a[1] != '-':
-			skips, next := cluster(a[1:])
+			skips, next := cluster(a[1:], short)
 			if skips {
 				return true
 			}
@@ -66,13 +67,29 @@ func commitSkipsHooks(args []string) bool {
 	return false
 }
 
+// flagForms splits the bypass flags of the prefix table into the long
+// options, matched as whole words, and the letters of the short options,
+// read inside a cluster, because git accepts them in both forms.
+func flagForms(flags []string) ([]string, string) {
+	var long, short []string
+	for _, flag := range flags {
+		if strings.HasPrefix(flag, "--") {
+			long = append(long, flag)
+			continue
+		}
+		short = append(short, strings.TrimPrefix(flag, "-"))
+	}
+	return long, strings.Join(short, "")
+}
+
 // cluster reads a short option cluster letter by letter: it reports whether
-// an n comes before the first letter that takes a value, and whether that
-// letter ends the cluster and so takes the next word as its value.
-func cluster(letters string) (bool, bool) {
+// a bypass letter comes before the first letter that takes a value, and
+// whether that letter ends the cluster and so takes the next word as its
+// value.
+func cluster(letters, bypass string) (bool, bool) {
 	for i, r := range letters {
 		switch {
-		case r == 'n':
+		case strings.ContainsRune(bypass, r):
 			return true, false
 		case strings.ContainsRune(shortWithValue, r):
 			return false, i == len(letters)-1
