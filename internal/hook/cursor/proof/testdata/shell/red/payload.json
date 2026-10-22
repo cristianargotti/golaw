@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "beforeShellExecution",
+  "conversation_id": "conversation",
+  "generation_id": "generation",
+  "workspace_roots": ["/project"],
+  "cwd": "/project",
+  "command": "git commit --no-verify -m x",
+  "sandbox": false
+}

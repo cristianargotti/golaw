@@ -1,0 +1,21 @@
+checks:
+  - id: cursor.envelope
+    code: envelope
+    red: testdata/envelope/red
+    near: testdata/envelope/near
+  - id: cursor.shell
+    code: shell
+    red: testdata/shell/red
+    near: testdata/shell/near
+  - id: cursor.write-capture
+    code: write-capture
+    red: testdata/write-capture/red
+    near: testdata/write-capture/near
+  - id: cursor.delete-capture
+    code: delete-capture
+    red: testdata/delete-capture/red
+    near: testdata/delete-capture/near
+  - id: cursor.shell-observe
+    code: shell-observe
+    red: testdata/shell-observe/red
+    near: testdata/shell-observe/near
