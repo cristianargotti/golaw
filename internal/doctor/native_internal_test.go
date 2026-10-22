@@ -24,6 +24,14 @@ func TestMain(m *testing.M) {
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "app-server" {
+		serveHooksList()
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == lingerFixture {
+		linger()
+		return
+	}
 	os.Exit(runnertest.Main(m))
 }
 
