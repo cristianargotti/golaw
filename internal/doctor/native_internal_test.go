@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cristianargotti/golaw/internal/hook/codex"
 	"github.com/cristianargotti/golaw/internal/runnertest"
 )
 
@@ -14,7 +15,11 @@ import (
 // for its version, it prints one and leaves.
 func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == "--version" {
-		if _, err := os.Stdout.WriteString("2.1.299 (test double)\n"); err != nil {
+		answer := "2.1.299 (test double)\n"
+		if strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe") == agentCodex {
+			answer = "codex-cli " + codex.PatchGrammar + "\n"
+		}
+		if _, err := os.Stdout.WriteString(answer); err != nil {
 			return
 		}
 		return
@@ -27,6 +32,13 @@ func TestMain(m *testing.M) {
 // installed.
 func doubleOnPath(t *testing.T) string {
 	t.Helper()
+	return doubleNamed(t, agentClaude)
+}
+
+// doubleNamed puts a copy of the test binary on a search path under a
+// name, which TestMain answers as that agent.
+func doubleNamed(t *testing.T, agent string) string {
+	t.Helper()
 	self, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -36,7 +48,7 @@ func doubleOnPath(t *testing.T) string {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	name := agentClaude
+	name := agent
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}

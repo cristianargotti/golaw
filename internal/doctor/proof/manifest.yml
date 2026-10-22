@@ -139,3 +139,11 @@ checks:
     code: companion-found
     red: testdata/companion-companion-found/red
     near: testdata/companion-companion-found/near
+  - id: doctor.version-agent-version-unvalidated
+    code: agent-version-unvalidated
+    red: testdata/version-agent-version-unvalidated/red
+    near: testdata/version-agent-version-unvalidated/near
+  - id: doctor.version-agent-version-unavailable
+    code: agent-version-unavailable
+    red: testdata/version-agent-version-unavailable/red
+    near: testdata/version-agent-version-unavailable/near

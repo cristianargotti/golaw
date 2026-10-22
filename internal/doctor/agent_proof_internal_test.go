@@ -71,6 +71,8 @@ func agentProofCases() []agentProofCase {
 		{idDuplicate, codeDuplicateHook, facts(duplicateLines)},
 		{idDuplicate, codeSkillDuplicate, facts(duplicateLines)},
 		{idCompanion, codeCompanionFound, facts(companionLines)},
+		{idVersion, codeVersionUnvalidated, facts(codexVersionLines)},
+		{idVersion, codeVersionUnavailable, facts(codexVersionLines)},
 	}
 }
 

@@ -41,6 +41,9 @@ type agentFacts struct {
 
 	Duplicates []duplicateFact `json:"duplicates"`
 	Companions []companionFact `json:"companions"`
+
+	Version      string `json:"version"`
+	VersionError string `json:"version_error"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the
