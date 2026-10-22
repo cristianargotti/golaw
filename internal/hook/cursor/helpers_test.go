@@ -2,12 +2,15 @@ package cursor_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"os"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/hook/cursor"
+	"github.com/cristianargotti/golaw/internal/hooktest"
+	"github.com/cristianargotti/golaw/internal/proof"
 )
 
 func curAdapter() hook.Adapter {
@@ -37,4 +40,18 @@ func curPatch(tb testing.TB, data []byte, fields map[string]any) []byte {
 		tb.Fatal(err)
 	}
 	return encoded
+}
+
+func curDecode(tb testing.TB, data []byte) (hook.Request, error) {
+	tb.Helper()
+	root := hooktest.Repository(tb)
+	parsed, err := cursor.Parse(hooktest.Payload(data, root))
+	if err != nil {
+		return hook.Request{}, fmt.Errorf("parse: %w", err)
+	}
+	request, err := parsed.Decode(hook.Base{Root: root}, proof.NewTree(nil))
+	if err != nil {
+		return hook.Request{}, fmt.Errorf("decode: %w", err)
+	}
+	return request, nil
 }

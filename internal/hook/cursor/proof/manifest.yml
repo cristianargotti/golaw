@@ -7,3 +7,11 @@ checks:
     code: shell
     red: testdata/shell/red
     near: testdata/shell/near
+  - id: cursor.write-capture
+    code: write-capture
+    red: testdata/write-capture/red
+    near: testdata/write-capture/near
+  - id: cursor.delete-capture
+    code: delete-capture
+    red: testdata/delete-capture/red
+    near: testdata/delete-capture/near
