@@ -17,6 +17,10 @@ const (
 	// replay elsewhere would prove a pipeline nobody runs.
 	m3ReplayOS = "linux"
 	m3CIFile   = ".github/workflows/ci.yml"
+	// The capabilities a combination, a violation and a capability row all
+	// name: one spelling keeps the three catalogs on the same capability.
+	m3CapabilityAPI   = "api"
+	m3CapabilityImage = "image"
 )
 
 // m3Combinations are the capability sets of the replay proof of the CI
@@ -26,10 +30,10 @@ func m3Combinations() map[string][]string {
 	return map[string][]string{
 		"every":        model.Capabilities(),
 		"go":           {"go"},
-		"go-api":       {"api", "go"},
+		"go-api":       {m3CapabilityAPI, "go"},
 		"go-db":        {"db", "go"},
 		"go-hexagonal": {"go", "hexagonal"},
-		"go-image":     {"go", "image"},
+		"go-image":     {"go", m3CapabilityImage},
 	}
 }
 

@@ -22,7 +22,6 @@ const (
 	m3GolangciCheck = "policy.golangci"
 	m3MakefileCheck = "policy.makefile"
 	m3MovedTarget   = "deadcode"
-	m3Makefile      = "Makefile"
 	m3QualityFile   = "mk/quality.mk"
 	m3SecondModule  = "example.test/second"
 	m3SecondRecord  = "docs/adr/0002-second-module.md"

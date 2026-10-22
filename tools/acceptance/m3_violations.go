@@ -41,8 +41,8 @@ func m3Violations() map[string]m3Violation {
 		"dependency-records":  {check: "policy.dependency-records", capabilities: goOnly, apply: m3Append(moduleFile, "\nrequire example.test/unrecorded v1.0.0\n")},
 		"dependabot-cooldown": {check: "policy.dependabot-cooldown", capabilities: goOnly, apply: m3Replace(".github/dependabot.yml", "default-days: 7", "default-days: 1")},
 		"deps-age-config":     {check: "policy.deps-age-config", capabilities: goOnly, apply: m3Replace(m2EditedAsset, "-days 7", "-days 1")},
-		"image-digest":        {check: "policy.image-digest", capabilities: []string{"go", "image"}, apply: m3DropDigest},
-		"openapi-assertions":  {check: "policy.openapi-assertions", capabilities: []string{"api", "go"}, apply: m3Remove("redocly.yaml")},
+		"image-digest":        {check: "policy.image-digest", capabilities: []string{"go", m3CapabilityImage}, apply: m3DropDigest},
+		"openapi-assertions":  {check: "policy.openapi-assertions", capabilities: []string{m3CapabilityAPI, "go"}, apply: m3Remove("redocly.yaml")},
 		"squawk-config":       {check: "policy.squawk-config", capabilities: []string{"db", "go"}, apply: m3Remove(".squawk.toml")},
 	}
 }
