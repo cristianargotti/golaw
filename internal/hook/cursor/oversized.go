@@ -76,7 +76,8 @@ func elidedField(fields ...string) bool {
 }
 
 // unkept is the refusal of an event over the bound whose judged field is
-// longer than the reducer keeps, with the bound the agent can stay within.
+// longer than the reducer keeps, naming the bound the agent can stay within.
 func unkept() error {
-	return fmt.Errorf("%w: %w: the input is over 8 MiB and a field the hook judges by is longer than the %d KiB it keeps of it", model.ErrCannotJudge, model.ErrTooLarge, keptField>>10)
+	return fmt.Errorf("%w: the input is over 8 MiB and its path, command or identity is longer than the %d KiB the hook keeps of it: shorten it",
+		model.ErrCannotJudge, keptField>>10)
 }
