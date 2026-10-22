@@ -14,7 +14,8 @@ import (
 // Input separates command configuration from evidence gathered by diagnostics.
 // Agent and Scope name the report; ConfigDir is where the host of the agent
 // reads its settings, Home the home directory of the person and StateDir
-// the state directory receipts, observations and captures share.
+// the state directory receipts, observations and captures share. Language
+// is the language of the human channel of the policy in force.
 type Input struct {
 	Root, ReceiptPath, RunningBinary           string
 	PolicyDigest, ProfileDigest, PinnedVersion string
@@ -22,6 +23,7 @@ type Input struct {
 	Environment                                AgentEnvironment
 	Dispatch                                   Dispatch
 	Agent, Scope, ConfigDir, Home, StateDir    string
+	Language                                   string
 }
 
 // VersionRunner permits native process behavior to be replaced in unit tests.

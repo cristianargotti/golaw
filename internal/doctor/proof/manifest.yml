@@ -71,3 +71,47 @@ checks:
     code: go-older-than-line
     red: testdata/go-toolchain/red
     near: testdata/go-toolchain/near
+  - id: doctor.installed-not-installed
+    code: not-installed
+    red: testdata/installed-not-installed/red
+    near: testdata/installed-not-installed/near
+  - id: doctor.installed-installed-drift
+    code: installed-drift
+    red: testdata/installed-installed-drift/red
+    near: testdata/installed-installed-drift/near
+  - id: doctor.trusted-trust-unknown
+    code: trust-unknown
+    red: testdata/trusted-trust-unknown/red
+    near: testdata/trusted-trust-unknown/near
+  - id: doctor.fail-mode-host-fails-open
+    code: host-fails-open
+    red: testdata/fail-mode-host-fails-open/red
+    near: testdata/fail-mode-host-fails-open/near
+  - id: doctor.dispatch-stale
+    code: stale
+    red: testdata/dispatch-stale/red
+    near: testdata/dispatch-stale/near
+  - id: doctor.dispatch-unobserved
+    code: unobserved
+    red: testdata/dispatch-unobserved/red
+    near: testdata/dispatch-unobserved/near
+  - id: doctor.state-not-installed
+    code: not-installed
+    red: testdata/state-not-installed/red
+    near: testdata/state-not-installed/near
+  - id: doctor.state-installed-untrusted
+    code: installed-untrusted
+    red: testdata/state-installed-untrusted/red
+    near: testdata/state-installed-untrusted/near
+  - id: doctor.state-trust-unknown
+    code: trust-unknown
+    red: testdata/state-trust-unknown/red
+    near: testdata/state-trust-unknown/near
+  - id: doctor.state-trusted-inactive
+    code: trusted-inactive
+    red: testdata/state-trusted-inactive/red
+    near: testdata/state-trusted-inactive/near
+  - id: doctor.state-preview-active
+    code: preview-active
+    red: testdata/state-preview-active/red
+    near: testdata/state-preview-active/near

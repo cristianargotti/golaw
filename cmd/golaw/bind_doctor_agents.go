@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/doctor"
 	"github.com/cristianargotti/golaw/internal/hook/agents"
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // agentDirs fills what the report of an agent names beyond the evidence:
@@ -23,4 +26,15 @@ func (b binding) agentDirs(agent agents.Agent, scope string, input *doctor.Input
 	input.Agent, input.Scope, input.Home, input.StateDir = agent.ID, scope, home, state
 	input.ConfigDir = agent.ConfigDir(b.env, home)
 	return nil
+}
+
+// doctorLanguage is the language of the human channel of the policy in
+// force, for the sentence each report ends with in the text output; with
+// no policy loaded it is the default language.
+func (b binding) doctorLanguage(ctx context.Context, root string, now time.Time) string {
+	l, err := b.loaded(ctx, root, now)
+	if err != nil {
+		return model.DefaultLanguage
+	}
+	return l.Policy.Language
 }

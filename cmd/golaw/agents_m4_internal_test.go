@@ -77,7 +77,7 @@ func TestDoctorReportsComeFromTheAgentOfEachReport(t *testing.T) {
 	root := repository(t, true)
 	for _, agent := range agents.All()[1:] {
 		report, err := b.doctorReport(t.Context(), agent, root, scopeUser, now())
-		if err != nil || len(report.Lines) != 1 || report.Lines[0].ID != "doctor.agent" || report.Lines[0].Key != agent.ID {
+		if err != nil || len(report.Lines) == 0 || report.Lines[0].ID != "doctor.installed" || report.Lines[0].Key != agent.ID+"/"+scopeUser {
 			t.Fatalf("%s: %+v, %v", agent.ID, report, err)
 		}
 	}
