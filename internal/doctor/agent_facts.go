@@ -47,6 +47,7 @@ type agentFacts struct {
 	VersionError string `json:"version_error"`
 
 	Binaries []binaryFact `json:"binaries"`
+	Trust    trustFact    `json:"trust"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the

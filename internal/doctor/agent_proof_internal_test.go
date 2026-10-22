@@ -75,6 +75,8 @@ func agentProofCases() []agentProofCase {
 		{idVersion, codeVersionUnavailable, facts(codexVersionLines)},
 		{idBinary, codeBinaryDiffers, facts(hookBinaryLines)},
 		{idBinary, codeBinaryUnresolved, facts(hookBinaryLines)},
+		{idTrusted, codeUntrusted, facts(trustedLines)},
+		{idTrusted, codeRevalidation, facts(trustedLines)},
 	}
 }
 

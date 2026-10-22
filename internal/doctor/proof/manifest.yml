@@ -155,3 +155,11 @@ checks:
     code: binary-unresolved
     red: testdata/binary-binary-unresolved/red
     near: testdata/binary-binary-unresolved/near
+  - id: doctor.trusted-untrusted
+    code: untrusted
+    red: testdata/trusted-untrusted/red
+    near: testdata/trusted-untrusted/near
+  - id: doctor.trusted-revalidation-required
+    code: revalidation-required
+    red: testdata/trusted-revalidation-required/red
+    near: testdata/trusted-revalidation-required/near
