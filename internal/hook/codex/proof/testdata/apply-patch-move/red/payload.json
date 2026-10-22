@@ -1,0 +1,1 @@
+{"session_id":"session","turn_id":"turn","transcript_path":null,"cwd":"/project","hook_event_name":"PreToolUse","model":"model","permission_mode":"default","tool_name":"apply_patch","tool_input":{"command":"*** Begin Patch\n*** Update File: notes.md\n*** Move to: golaw.yml\n@@\n-old\n+new\n*** End Patch\n"},"tool_use_id":"tool"}
