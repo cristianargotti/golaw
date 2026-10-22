@@ -106,23 +106,48 @@ func receiptKeys(home string) (owedLines, error) {
 	return owed, nil
 }
 
-// findReceipt answers the only receipt under home: a second one means the
-// row cannot tell which installation doctor reported.
+// findReceipt answers the only Claude receipt under home: the agents
+// installed beside it keep receipts of their own, which name their agent,
+// and a second Claude receipt means the row cannot tell which installation
+// doctor reported.
 func findReceipt(home string) (string, error) {
 	var found []string
 	err := filepath.WalkDir(home, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr == nil && !entry.IsDir() && entry.Name() == receiptFile {
+		if walkErr != nil || entry.IsDir() || entry.Name() != receiptFile {
+			return walkErr
+		}
+		agent, err := receiptAgent(path)
+		if err == nil && agent == agentClaude {
 			found = append(found, path)
 		}
-		return walkErr
+		return err
 	})
 	if err != nil {
 		return "", fmt.Errorf("find the receipt: %w", err)
 	}
 	if len(found) != 1 {
-		return "", fmt.Errorf("found %d receipts under the isolated home: %w", len(found), ErrAcceptance)
+		return "", fmt.Errorf("found %d receipts of %s under the isolated home: %w", len(found), agentClaude, ErrAcceptance)
 	}
 	return found[0], nil
+}
+
+// receiptAgent reads the agent a receipt names; a receipt without one is
+// the Claude receipt every installation before M4 wrote.
+func receiptAgent(path string) (string, error) {
+	body, err := readFile(path)
+	if err != nil {
+		return "", err
+	}
+	var receipt struct {
+		Agent string `json:"agent"`
+	}
+	if err := json.Unmarshal(body, &receipt); err != nil {
+		return "", fmt.Errorf("decode the receipt %s: %w", path, err)
+	}
+	if receipt.Agent == "" {
+		return agentClaude, nil
+	}
+	return receipt.Agent, nil
 }
 
 // judgedLine is the code and the state a judged line must carry together:
