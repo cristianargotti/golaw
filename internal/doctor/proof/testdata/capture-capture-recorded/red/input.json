@@ -1,0 +1,1 @@
+{"agent": {"captures": [{"event": "preToolUse", "tool": "Write", "keys": ["file_path"]}]}}

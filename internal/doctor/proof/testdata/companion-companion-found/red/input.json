@@ -1,0 +1,1 @@
+{"agent": {"companions": [{"event": "preToolUse", "path": "hooks.json", "order": "before"}]}}

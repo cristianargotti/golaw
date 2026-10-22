@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/install"
 )
 
@@ -15,7 +16,9 @@ import (
 // Agent and Scope name the report; ConfigDir is where the host of the agent
 // reads its settings, Home the home directory of the person and StateDir
 // the state directory receipts, observations and captures share. Language
-// is the language of the human channel of the policy in force.
+// is the language of the human channel of the policy in force; Captures
+// are the key names a hook process recorded for the repository (A4), and
+// CaptureError why they could not be read.
 type Input struct {
 	Root, ReceiptPath, RunningBinary           string
 	PolicyDigest, ProfileDigest, PinnedVersion string
@@ -24,6 +27,8 @@ type Input struct {
 	Dispatch                                   Dispatch
 	Agent, Scope, ConfigDir, Home, StateDir    string
 	Language                                   string
+	Captures                                   []hook.Capture
+	CaptureError                               string
 }
 
 // VersionRunner permits native process behavior to be replaced in unit tests.
