@@ -1,0 +1,1 @@
+{"agent": {"binaries": [{"event": "preToolUse", "error": "the command \"golaw hook cursor\" names no binary the installer wrote"}]}}

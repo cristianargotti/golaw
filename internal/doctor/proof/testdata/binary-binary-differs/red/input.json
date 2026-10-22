@@ -1,0 +1,1 @@
+{"agent": {"binaries": [{"event": "preToolUse", "named": "bin/other-golaw", "same": false}]}}

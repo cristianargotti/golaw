@@ -139,3 +139,27 @@ checks:
     code: companion-found
     red: testdata/companion-companion-found/red
     near: testdata/companion-companion-found/near
+  - id: doctor.version-agent-version-unvalidated
+    code: agent-version-unvalidated
+    red: testdata/version-agent-version-unvalidated/red
+    near: testdata/version-agent-version-unvalidated/near
+  - id: doctor.version-agent-version-unavailable
+    code: agent-version-unavailable
+    red: testdata/version-agent-version-unavailable/red
+    near: testdata/version-agent-version-unavailable/near
+  - id: doctor.binary-binary-differs
+    code: binary-differs
+    red: testdata/binary-binary-differs/red
+    near: testdata/binary-binary-differs/near
+  - id: doctor.binary-binary-unresolved
+    code: binary-unresolved
+    red: testdata/binary-binary-unresolved/red
+    near: testdata/binary-binary-unresolved/near
+  - id: doctor.trusted-untrusted
+    code: untrusted
+    red: testdata/trusted-untrusted/red
+    near: testdata/trusted-untrusted/near
+  - id: doctor.trusted-revalidation-required
+    code: revalidation-required
+    red: testdata/trusted-revalidation-required/red
+    near: testdata/trusted-revalidation-required/near
