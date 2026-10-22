@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"io"
+
+	"github.com/cristianargotti/golaw/internal/hook/codex"
 )
 
 // The M4 rows of section 11: the preparation row a failed build answers
@@ -27,7 +29,10 @@ type m4Catalog struct {
 
 // m4Catalogs are the categories of the M4 rows in report order.
 func m4Catalogs() []m4Catalog {
-	return []m4Catalog{}
+	return []m4Catalog{
+		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4CodexRows},
+		{agent: agentCursor, version: m4Unversioned, rows: (*suite).m4CursorRows},
+	}
 }
 
 // collectM4 measures every M4 category over a prepared suite.
