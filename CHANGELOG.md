@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: policy.dependency-records reads the front matter of a decision record saved with a byte order mark, because a module such a record lists got the false finding to record it.
 - 2026-10-22: policy.gotoolchain-local reads a plain GOTOOLCHAIN=local as exported beside a bare export line or .EXPORT_ALL_VARIABLES, and states one inside a conditional block as a limit, because such a Makefile exports the local toolchain yet got the false finding that it does not.
 - 2026-10-22: policy.makefile states a GNUmakefile or makefile in place of an absent Makefile as a limit naming the rename, because a repository whose make file GNU make reads under another name got the false finding add Makefile.
 - 2026-10-22: policy.golangci reads an exclusion whose text or source pattern matches every issue, such as .*, as no narrowing, because text .* on gosec silenced a required linter everywhere while the check answered clean.

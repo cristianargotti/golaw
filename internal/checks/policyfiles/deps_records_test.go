@@ -38,6 +38,10 @@ func TestDependencyRecords(t *testing.T) {
 			input: depsEdit(near, record, strings.ReplaceAll(near.files[record], "\n", "\r\n")),
 		},
 		{
+			name:  "byte order mark near",
+			input: depsEdit(near, record, "\ufeff"+near.files[record]),
+		},
+		{
 			name: "fixture module is not an application module",
 			input: depsEdit(near, "internal/x/testdata/m/go.mod",
 				"module example.test/fixture\nrequire example.test/unrecorded v1.0.0\n"),

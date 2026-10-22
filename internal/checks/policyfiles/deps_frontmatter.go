@@ -27,8 +27,10 @@ func recordModules(path string, data []byte) ([]string, error) {
 	return scalars(modules), nil
 }
 
+// recordFrontMatter drops a leading byte order mark, which a Windows editor
+// writes, as it drops the carriage returns of converted line endings.
 func recordFrontMatter(path string, data []byte) ([]byte, error) {
-	lines := strings.Split(string(data), "\n")
+	lines := strings.Split(strings.TrimPrefix(string(data), "\ufeff"), "\n")
 	if strings.TrimSuffix(lines[0], "\r") != "---" {
 		return nil, nil
 	}
