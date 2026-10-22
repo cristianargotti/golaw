@@ -12,12 +12,16 @@ import (
 )
 
 // Input separates command configuration from evidence gathered by diagnostics.
+// Agent and Scope name the report; ConfigDir is where the host of the agent
+// reads its settings, Home the home directory of the person and StateDir
+// the state directory receipts, observations and captures share.
 type Input struct {
 	Root, ReceiptPath, RunningBinary           string
 	PolicyDigest, ProfileDigest, PinnedVersion string
 	RequiredRead                               []string
 	Environment                                AgentEnvironment
 	Dispatch                                   Dispatch
+	Agent, Scope, ConfigDir, Home, StateDir    string
 }
 
 // VersionRunner permits native process behavior to be replaced in unit tests.

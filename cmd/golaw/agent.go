@@ -23,6 +23,7 @@ const (
 type agentOptions struct {
 	agent string
 	scope string
+	every bool // the command runs under --agent all
 }
 
 // agentCommand groups the installers: install writes the artifacts of an
@@ -35,7 +36,7 @@ func (a *app) agentCommand() *cobra.Command {
 }
 
 func agentFlags(cmd *cobra.Command, opts *agentOptions) {
-	cmd.Flags().StringVar(&opts.agent, "agent", "", "the agent: "+strings.Join(agents.IDs(), ", "))
+	cmd.Flags().StringVar(&opts.agent, "agent", "", "the agent: "+strings.Join(agents.IDs(), ", ")+", or "+agentAll+" for every one")
 	cmd.Flags().StringVar(&opts.scope, "scope", scopeUser, "where the artifacts go: "+scopeUser+" or "+scopeProject)
 }
 
@@ -44,11 +45,11 @@ type agentRun func(ctx context.Context, out io.Writer, path string, opts agentOp
 func (a *app) agentInstallCommand() *cobra.Command {
 	return agentSubcommand("install [path]",
 		"Install the skill and the hooks of an agent after printing the diff, and enroll the repository",
-		a.agentInstall)
+		a.everyAgent(a.agentInstall))
 }
 
 func (a *app) agentUninstallCommand() *cobra.Command {
-	return agentSubcommand("uninstall [path]", "Remove exactly what the receipt of an agent lists", a.agentUninstall)
+	return agentSubcommand("uninstall [path]", "Remove exactly what the receipt of an agent lists", a.everyAgent(a.uninstallInstalled))
 }
 
 // agentSubcommand gives install and uninstall one shape, so their flags and
@@ -96,7 +97,7 @@ func (a *app) agentInstall(ctx context.Context, out io.Writer, path string, opts
 	if err := install.Apply(ctx, plan, out, port); err != nil {
 		return installFailed(err)
 	}
-	return installFailed(writeLines(out, []string{"installed: " + plan.ReceiptPath}))
+	return installFailed(writeLines(out, installedLines(plan)))
 }
 
 // reportEnrollment names a re-enrollment before the diff (A3): the record
@@ -124,7 +125,7 @@ func (a *app) agentUninstall(ctx context.Context, out io.Writer, path string, op
 	if err != nil {
 		return uninstallFailed(err)
 	}
-	plan, err := install.PlanUninstall(receipt)
+	plan, err := agent.Uninstall(receipt)
 	if err != nil {
 		return uninstallFailed(err)
 	}

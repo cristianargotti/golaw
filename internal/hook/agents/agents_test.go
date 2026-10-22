@@ -10,24 +10,48 @@ import (
 	"github.com/cristianargotti/golaw/internal/install"
 )
 
-func TestAllListsOneCompleteAgent(t *testing.T) {
+func TestAllListsTheThreeAgentsComplete(t *testing.T) {
 	t.Parallel()
 	all := agents.All()
-	if len(all) != 1 || all[0].ID != "claude" {
-		t.Fatalf("agents = %+v", all)
-	}
-	a := all[0]
-	if a.Adapter.Parse == nil || a.Adapter.Encode == nil || a.Adapter.Oversized == nil || a.Plan == nil || a.ConfigDir == nil {
-		t.Fatal("the agent is incomplete")
-	}
-	if got := agents.IDs(); !slices.Equal(got, []string{"claude"}) {
+	if got := agents.IDs(); !slices.Equal(got, []string{"claude", "codex", "cursor"}) || len(all) != 3 || all[0].ID != "claude" {
 		t.Fatalf("ids = %v", got)
+	}
+	for _, a := range all {
+		if a.Adapter.Parse == nil || a.Adapter.Encode == nil || a.Adapter.Oversized == nil ||
+			a.Plan == nil || a.Uninstall == nil || a.Doctor == nil || a.ConfigDir == nil {
+			t.Fatalf("%s is incomplete", a.ID)
+		}
+		if got, ok := agents.Lookup(a.ID); !ok || got.ID != a.ID {
+			t.Fatalf("lookup %s = %+v, %v", a.ID, got, ok)
+		}
 	}
 	if _, ok := agents.Lookup("nobody"); ok {
 		t.Fatal("an unknown id was found")
 	}
-	if got, ok := agents.Lookup("claude"); !ok || got.ID != "claude" {
-		t.Fatalf("lookup = %+v, %v", got, ok)
+}
+
+func TestConfigDirsOfTheHooksFileAgents(t *testing.T) {
+	t.Parallel()
+	codex, _ := agents.Lookup("codex")
+	cursor, _ := agents.Lookup("cursor")
+	override := func(name string) string {
+		if name == "CODEX_HOME" {
+			return filepath.Join("codex", "home")
+		}
+		return ""
+	}
+	none := func(string) string { return "" }
+	rows := []struct {
+		name, got, want string
+	}{
+		{"codex override", codex.ConfigDir(override, "home"), filepath.Join("codex", "home")},
+		{"codex fallback", codex.ConfigDir(none, "home"), filepath.Join("home", ".codex")},
+		{"cursor ignores the codex override", cursor.ConfigDir(override, "home"), filepath.Join("home", ".cursor")},
+	}
+	for _, row := range rows {
+		if row.got != row.want {
+			t.Errorf("%s = %q, want %q", row.name, row.got, row.want)
+		}
 	}
 }
 
