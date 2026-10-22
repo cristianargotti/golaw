@@ -10,3 +10,7 @@ var (
 
 // ErrVersion prevents malformed output from satisfying a version floor.
 var ErrVersion = errors.New("invalid version")
+
+// errAppServer marks an answer of codex app-server doctor cannot use, so
+// the trust is read from the record instead.
+var errAppServer = errors.New("codex app-server gave no usable answer")
