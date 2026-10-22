@@ -11,13 +11,15 @@ import (
 // event name and the tool the header read: each route decodes one
 // documented payload, and every other event or tool cannot be judged,
 // never allowed by a verdict the policy did not give.
-func decodeRequest(input payload, event model.Event, _ hook.Base, _ model.Snapshot) (hook.Request, error) {
+func decodeRequest(input payload, event model.Event, base hook.Base, _ model.Snapshot) (hook.Request, error) {
 	name := input.text(nameField)
 	switch name {
 	case shellEvent:
 		return shellRequest(input, event)
 	case preEvent:
 		return preRequest(input, event)
+	case readEvent:
+		return readRequest(input, event, base)
 	default:
 		return hook.Request{}, fmt.Errorf("%w: unsupported cursor event %s", model.ErrCannotJudge, name)
 	}

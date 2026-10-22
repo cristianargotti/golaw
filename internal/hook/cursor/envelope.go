@@ -25,8 +25,10 @@ const (
 
 // The fields of the envelope more than one route reads.
 const (
-	nameField = "hook_event_name"
-	toolField = "tool_name"
+	nameField         = "hook_event_name"
+	toolField         = "tool_name"
+	conversationField = "conversation_id"
+	commandField      = "command"
 )
 
 // payload is the envelope of a Cursor event with every field kept as it
@@ -48,7 +50,7 @@ func parsePayload(data []byte) (payload, error) {
 	if _, foreign := input["turn_id"]; foreign {
 		return nil, fmt.Errorf("%w: envelope does not belong to cursor", model.ErrCannotJudge)
 	}
-	if input.text(nameField) == "" || input.text("conversation_id") == "" {
+	if input.text(nameField) == "" || input.text(conversationField) == "" {
 		return nil, fmt.Errorf("%w: incomplete cursor envelope", model.ErrCannotJudge)
 	}
 	if _, err := input.roots(); err != nil {
@@ -69,18 +71,22 @@ func (input payload) text(name string) string {
 	return value
 }
 
-// required is a field a route cannot do without: absent or of another
-// type, the event cannot be judged.
+// required is a field a route cannot do without: absent, null or of
+// another type, the event cannot be judged, because a null decodes into
+// no string and would otherwise pass as an empty one.
 func (input payload) required(name string) (string, error) {
 	raw, present := input[name]
 	if !present {
 		return "", fmt.Errorf("%w: cursor %s is absent", model.ErrCannotJudge, name)
 	}
-	var value string
+	var value *string
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return "", fmt.Errorf("%w: cursor %s is no string: %w", model.ErrCannotJudge, name, err)
 	}
-	return value, nil
+	if value == nil {
+		return "", fmt.Errorf("%w: cursor %s is null", model.ErrCannotJudge, name)
+	}
+	return *value, nil
 }
 
 // roots are the workspace roots of the event, an array of strings that
@@ -111,7 +117,7 @@ func eventHeader(input payload) (model.Event, error) {
 	}
 	event := model.Event{
 		Agent: agentID, Tool: input.text(toolField), Cwd: input.text("cwd"),
-		SessionID: input.text("conversation_id"), AgentID: input.text("generation_id"),
+		SessionID: input.text(conversationField), AgentID: input.text("generation_id"),
 		ToolUseID: input.text("tool_use_id"),
 	}
 	if event.Cwd == "" && len(roots) > 0 {
@@ -124,7 +130,9 @@ func eventHeader(input payload) (model.Event, error) {
 // selects, so enrollment tells a read from a write and the encoder keeps
 // the documented answer of a read or post event whose decoding fails
 // later; a tool preToolUse does not judge keeps no shape and the decoder
-// refuses it.
+// refuses it. beforeShellExecution documents no tool use, so a field of
+// that name it carries is metadata, never the identity the preToolUse
+// baseline of the same call is keyed by (D7).
 func projectShape(event model.Event, name string) (model.Event, error) {
 	switch name {
 	case preEvent:
@@ -135,7 +143,7 @@ func projectShape(event model.Event, name string) (model.Event, error) {
 	case readEvent:
 		event.Shape, event.Tool = model.ShapeRead, readTool
 	case shellEvent:
-		event.Shape, event.Tool = model.ShapeShell, shellTool
+		event.Shape, event.Tool, event.ToolUseID = model.ShapeShell, shellTool, ""
 	default:
 		return model.Event{}, fmt.Errorf("%w: unsupported cursor event %s", model.ErrCannotJudge, name)
 	}

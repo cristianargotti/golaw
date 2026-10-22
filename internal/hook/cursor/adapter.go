@@ -2,18 +2,10 @@ package cursor
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 
 	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/model"
 )
-
-// notBuilt is the cause of an input over the bound until its parse is
-// built: the hook fails closed meanwhile.
-func notBuilt() error {
-	return fmt.Errorf("%w: the cursor adapter is not built yet", model.ErrCannotJudge)
-}
 
 // denial is the answer of a pre event the hook refuses.
 type denial struct {
@@ -34,14 +26,10 @@ func Parse(data []byte) (hook.Parsed, error) {
 	if err != nil {
 		return hook.Parsed{}, err
 	}
+	event = withReadTarget(input, event)
 	return hook.Parsed{Event: event, Decode: func(base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 		return decodeRequest(input, event, base, snapshot)
 	}}, nil
-}
-
-// Oversized parses an event over the bound of the hook in bounded memory.
-func Oversized(io.Reader) (hook.Parsed, error) {
-	return hook.Parsed{}, notBuilt()
 }
 
 // Encode answers a result in the shape the host reads: until the adapter
