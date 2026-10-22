@@ -12,16 +12,36 @@ import (
 // reads, the version doctor compares with the installed one.
 const PatchGrammar = "0.163.0"
 
-// notBuilt is the cause of every event until the adapter is built: the
+// notBuilt is the cause of every answer the adapter does not give yet: the
 // hook fails closed meanwhile.
 func notBuilt() error {
 	return fmt.Errorf("%w: the codex adapter is not built yet", model.ErrCannotJudge)
 }
 
-// Parse decodes an event once: the envelope, the header enrollment reads
-// and the decoder of its request.
-func Parse([]byte) (hook.Parsed, error) {
-	return hook.Parsed{}, notBuilt()
+// Parse decodes an event once: the envelope of D16, the header enrollment
+// reads and the decoder of its request, which reads none of the bytes of
+// the event again.
+func Parse(data []byte) (hook.Parsed, error) {
+	event, in, err := parse(data)
+	if err != nil {
+		return hook.Parsed{}, err
+	}
+	return hook.Parsed{Event: event, Decode: func(base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
+		return decode(event, in, base, snapshot)
+	}}, nil
+}
+
+// parse reads the envelope, the header and the tool input of an event once.
+func parse(data []byte) (model.Event, toolInput, error) {
+	w, err := envelope(data)
+	if err != nil {
+		return model.Event{}, toolInput{}, err
+	}
+	event, err := header(w)
+	if err != nil {
+		return model.Event{}, toolInput{}, err
+	}
+	return event, readInput(w), nil
 }
 
 // Oversized parses an event over the bound of the hook in bounded memory.

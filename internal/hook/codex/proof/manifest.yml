@@ -1,0 +1,5 @@
+checks:
+  - id: codex.envelope
+    code: envelope
+    red: testdata/envelope/red
+    near: testdata/envelope/near
