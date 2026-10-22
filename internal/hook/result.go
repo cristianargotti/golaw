@@ -9,11 +9,6 @@ import (
 	"github.com/cristianargotti/golaw/internal/report"
 )
 
-// DecisionResult preserves the engine's English reason byte for byte.
-func DecisionResult(event model.Event, decision engine.Decision) Result {
-	return decisionResult(event, decision, model.DefaultLanguage)
-}
-
 func decisionResult(event model.Event, decision engine.Decision, language string) Result {
 	if decision.Verdict == engine.VerdictClean {
 		return Result{Outcome: Allow}

@@ -53,8 +53,10 @@ func (r *reads) atHead(ctx context.Context) blobRead {
 
 // staged lists the index entry of golaw.yml and answers the blob it
 // holds: the blob read at HEAD when the index holds that same blob,
-// otherwise the staged blob read by its id. An entry a merge left
-// unresolved is ErrPolicy (ReadIndex).
+// otherwise the staged blob read by its id. A merge that left golaw.yml
+// unresolved holds its sides at stages 1 to 3 and no proposed policy at
+// all, so it is ErrPolicy rather than whichever side the listing names
+// first.
 func (r *reads) staged(ctx context.Context) blobRead {
 	listing, err := plumbing(ctx, r.root, "ls-files", "-z", "--stage", "--", FileName)
 	if err != nil {
