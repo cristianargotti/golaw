@@ -18,5 +18,8 @@ func policyLintSentences() map[string]string {
 		"ruleguard-unconfigured":       "a configuração do ruleguard não nomeia o arquivo de regras; aponte rules para scripts/lint/rules.go",
 		"ruleguard-rule-missing":       "a regra stringByteCut do ruleguard está ausente; escreva a regra que o golaw init gera",
 		"gitleaks-generated-allowlist": "allowlist do gitleaks libera arquivos gerados da varredura de segredos; remova o caminho",
+		"gotoolchain-make-local":       "o Makefile não exporta GOTOOLCHAIN=local; acrescente export GOTOOLCHAIN=local",
+		"gotoolchain-docker-local":     "estágio golang do Dockerfile define GOTOOLCHAIN diferente de local; use ENV GOTOOLCHAIN=local ou retire a linha",
+		"gotoolchain-actions-auto":     "um passo roda go depois do actions/setup-go sem restaurar GOTOOLCHAIN=auto; acrescente a restauração logo após o setup-go",
 	}
 }

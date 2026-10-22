@@ -1,7 +1,9 @@
 package assets_test
 
 import (
+	"bytes"
 	"errors"
+	"io/fs"
 	"slices"
 	"strings"
 	"testing"
@@ -14,7 +16,11 @@ import (
 // serviceDestinations are the files of the service fixture, in path order.
 func serviceDestinations() []string {
 	return []string{
-		"Dockerfile", "api/openapi.yaml", "db/migrations/0001_create_items.sql", "go.mod",
+		"Dockerfile", "api/generated/server.gen.go", "api/generated/spec.gen.go", "api/generated/types.gen.go",
+		"api/openapi.base.yaml", "api/openapi.yaml", "db/migrations/0001_create_items.sql", "db/queries/items.sql",
+		"go.mod", "go.sum",
+		"internal/adapters/outbound/postgres/sqlcgen/db.go", "internal/adapters/outbound/postgres/sqlcgen/items.sql.go",
+		"internal/adapters/outbound/postgres/sqlcgen/models.go",
 		"internal/application/catalog.go", "internal/application/catalog_test.go",
 		"internal/domain/errors.go", "internal/domain/item.go",
 		"internal/errors/problem.go", "internal/errors/problem_test.go",
@@ -44,7 +50,12 @@ func TestRenderServiceRendersEveryFixtureFile(t *testing.T) {
 	if !slices.Equal(paths, serviceDestinations()) {
 		t.Fatalf("service paths = %v", paths)
 	}
-	if byPath["go.mod"] != "module example.test/service\n\ngo 1.27\n" {
+	module, err := fs.ReadFile(golaw.FS, "templates/examples/service/go.mod.tmpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := strings.NewReplacer("{{.ModulePath}}", "example.test/service", "{{.GoVersion}}", "1.27").Replace(string(module))
+	if byPath["go.mod"] != want || !strings.HasPrefix(want, "module example.test/service\n\ngo 1.27\n\nrequire (\n") {
 		t.Fatalf("go.mod = %q", byPath["go.mod"])
 	}
 	if !strings.Contains(byPath["internal/server/server.go"], `"example.test/service/internal/rbac"`) {
@@ -83,6 +94,31 @@ func TestRenderServiceRejectsAnUnlistedFixtureBeforeRendering(t *testing.T) {
 	tree["templates/examples/service/unlisted.yml.tmpl"] = &fstest.MapFile{Data: []byte("value: sample\n")}
 	if _, err := assets.RenderService(tree, templateValues()); !errors.Is(err, assets.ErrManifest) {
 		t.Fatalf("RenderService = %v, want %v", err, assets.ErrManifest)
+	}
+}
+
+// TestRenderServiceCarriesTheSumFileByItsName pins the one fixture file
+// without the template suffix: a go.sum lists the requirements and never
+// names the module, so it holds no placeholder, and the tools that know a
+// go.sum by its name, the secret scan among them, must see it as one.
+func TestRenderServiceCarriesTheSumFileByItsName(t *testing.T) {
+	t.Parallel()
+	sum := "example.test/dep v1.0.0 h1:" + strings.Repeat("A", 43) + "=\n"
+	files, err := assets.RenderService(serviceTree("templates/examples/service/go.sum", sum), templateValues())
+	if err != nil || len(files) != 1 || files[0].Path != "go.sum" || string(files[0].Data) != sum {
+		t.Fatalf("a verbatim go.sum = %+v, %v", files, err)
+	}
+	embedded, err := fs.ReadFile(golaw.FS, "templates/examples/service/go.sum")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rendered, err := assets.RenderService(golaw.FS, templateValues())
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := slices.IndexFunc(rendered, func(r assets.Rendered) bool { return r.Path == "go.sum" })
+	if at < 0 || !bytes.Equal(rendered[at].Data, embedded) {
+		t.Fatal("the fixture's go.sum is not the embedded file under its own name")
 	}
 }
 

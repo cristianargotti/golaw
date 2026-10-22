@@ -3,6 +3,10 @@
 # feature, no awk, no tar. Remote CI runs make ci; nothing here is a gate on
 # a developer's machine.
 
+# make runs the toolchain the machine holds, never one go downloads by
+# itself; the CI file installs the toolchain go.mod names before make ci.
+export GOTOOLCHAIN=local
+
 .PHONY: mod deps-age fmt lint lint-pkg test coverage build scan secrets ci vet coverage-check generate-check deadcode licenses vuln
 
 mod:
