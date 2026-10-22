@@ -10,8 +10,11 @@ func Claude(ctx context.Context, input Input, enrollment EnrollmentReader) Repor
 }
 
 // Codex is the report of the Codex CLI agent.
-func Codex(_ context.Context, input Input, _ EnrollmentReader) Report {
-	return agentReport(input.Language, collectAgent(input))
+func Codex(ctx context.Context, input Input, _ EnrollmentReader) Report {
+	facts := collectAgent(input)
+	facts.Version, facts.VersionError = readVersion(ctx, agentVersion{command: agentCodex}, input.Environment)
+	facts.Trust = codexRecordTrust(input)
+	return agentReport(input.Language, facts)
 }
 
 // Cursor is the report of the Cursor agent, a compatibility preview.

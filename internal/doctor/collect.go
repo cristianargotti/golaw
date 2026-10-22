@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/install"
 )
 
@@ -15,7 +16,9 @@ import (
 // Agent and Scope name the report; ConfigDir is where the host of the agent
 // reads its settings, Home the home directory of the person and StateDir
 // the state directory receipts, observations and captures share. Language
-// is the language of the human channel of the policy in force.
+// is the language of the human channel of the policy in force; Captures
+// are the key names a hook process recorded for the repository (A4), and
+// CaptureError why they could not be read.
 type Input struct {
 	Root, ReceiptPath, RunningBinary           string
 	PolicyDigest, ProfileDigest, PinnedVersion string
@@ -24,6 +27,8 @@ type Input struct {
 	Dispatch                                   Dispatch
 	Agent, Scope, ConfigDir, Home, StateDir    string
 	Language                                   string
+	Captures                                   []hook.Capture
+	CaptureError                               string
 }
 
 // VersionRunner permits native process behavior to be replaced in unit tests.
@@ -37,7 +42,13 @@ type NativeRunner struct{}
 // Version resolves the agent through the observed search path, because the
 // terminal PATH may name another executable.
 func (NativeRunner) Version(ctx context.Context, environment AgentEnvironment) (string, error) {
-	path, err := ResolveAgentBinary(agentClaude, environment)
+	return runVersion(ctx, agentClaude, environment)
+}
+
+// runVersion runs the agent of a command, resolved through the observed
+// search path, with --version, and keeps what it printed.
+func runVersion(ctx context.Context, agent string, environment AgentEnvironment) (string, error) {
+	path, err := ResolveAgentBinary(agent, environment)
 	if err != nil {
 		return "", err
 	}

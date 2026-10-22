@@ -42,7 +42,7 @@ func cinWrite(t *testing.T, path string, data []byte) {
 	must(t, os.WriteFile(path, data, 0o600))
 }
 
-func cinRead(t *testing.T, path string) []byte { //nolint:unused // the installer tests of later tasks read files through it
+func cinRead(t *testing.T, path string) []byte {
 	t.Helper()
 	data, err := os.ReadFile(path)
 	must(t, err)

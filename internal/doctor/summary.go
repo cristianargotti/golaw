@@ -24,7 +24,11 @@ func summary(language string, f agentFacts, state Line) string {
 	if !found {
 		return ""
 	}
-	return strings.NewReplacer("{agent}", f.Agent, "{command}", f.installCommand()).Replace(text)
+	text = strings.NewReplacer("{agent}", f.Agent, "{command}", f.installCommand()).Replace(text)
+	if f.Agent == agentCursor {
+		text += " " + previewSentence(portuguese)
+	}
+	return text
 }
 
 // summaryAbsent is the phrase of an agent with no receipt at the scope,

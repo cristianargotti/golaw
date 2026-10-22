@@ -44,8 +44,14 @@ type agentAssessment struct {
 func agentAssessments() []agentAssessment {
 	return []agentAssessment{
 		{idInstalled, installedLines},
+		{idBinary, hookBinaryLines},
 		{idTrusted, trustedLines},
 		{idFailMode, failModeLines},
+		{idVersion, codexVersionLines},
+		{idPreview, previewLines},
+		{idCapture, captureLines},
+		{idDuplicate, duplicateLines},
+		{idCompanion, companionLines},
 	}
 }
 
@@ -99,7 +105,7 @@ func trustedLines(f agentFacts) []Line {
 	case f.Agent == agentClaude:
 		line.Detail = "whether Claude Code runs a plugin hook before the workspace is trusted is unknown until a live record exists"
 	default:
-		line.Detail = "the Codex trust is not read"
+		line = codexTrustLine(f)
 	}
 	return []Line{line}
 }

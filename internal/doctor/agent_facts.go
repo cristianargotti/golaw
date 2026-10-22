@@ -5,8 +5,10 @@ import (
 	"io/fs"
 	"maps"
 	"os"
+	"runtime"
 	"slices"
 
+	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/install"
 )
 
@@ -34,6 +36,18 @@ type agentFacts struct {
 	Receipt  receiptFact `json:"receipt"`
 	Events   []eventFact `json:"events"`
 	Dispatch Dispatch    `json:"dispatch"`
+
+	Captures     []hook.Capture `json:"captures"`
+	CaptureError string         `json:"capture_error"`
+
+	Duplicates []duplicateFact `json:"duplicates"`
+	Companions []companionFact `json:"companions"`
+
+	Version      string `json:"version"`
+	VersionError string `json:"version_error"`
+
+	Binaries []binaryFact `json:"binaries"`
+	Trust    trustFact    `json:"trust"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the
@@ -58,15 +72,20 @@ type eventFact struct {
 // file: the receipt, every artifact, entry and block it lists, the fail
 // mode of every event it answers and the dispatch the binding observed.
 func collectAgent(input Input) agentFacts {
-	facts := agentFacts{Agent: input.Agent, Scope: input.Scope, Dispatch: input.Dispatch}
+	facts := agentFacts{
+		Agent: input.Agent, Scope: input.Scope, Dispatch: input.Dispatch,
+		Captures: input.Captures, CaptureError: input.CaptureError,
+	}
 	receipt, fact := readReceiptFact(input.ReceiptPath)
 	facts.Receipt = fact
-	if fact.State != receiptRead {
-		return facts
+	if fact.State == receiptRead {
+		slots, err := readSlots(receipt.HooksPath, input.Agent == agentCursor)
+		facts.Receipt.Drift = receiptDrift(receipt, input.Agent, slots, err)
+		facts.Events = eventFacts(receipt, slots)
+		facts.Binaries = collectBinaries(receipt, slots, input.Agent, input.RunningBinary, runtime.GOOS)
 	}
-	slots, err := readSlots(receipt.HooksPath, input.Agent == agentCursor)
-	facts.Receipt.Drift = receiptDrift(receipt, input.Agent, slots, err)
-	facts.Events = eventFacts(receipt, slots)
+	facts.Duplicates = collectDuplicates(input, receipt.HooksPath)
+	facts.Companions = collectCompanions(input, receipt)
 	return facts
 }
 

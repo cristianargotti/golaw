@@ -7,6 +7,7 @@ import (
 
 	"github.com/cristianargotti/golaw/internal/doctor"
 	"github.com/cristianargotti/golaw/internal/hook/agents"
+	"github.com/cristianargotti/golaw/internal/install"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
@@ -37,4 +38,25 @@ func (b binding) doctorLanguage(ctx context.Context, root string, now time.Time)
 		return model.DefaultLanguage
 	}
 	return l.Policy.Language
+}
+
+// captured fills the key names a hook process of the agent recorded for
+// the repository under the hook definition installed now (A4), for the
+// capture lines of its report; an unreadable record is named there, never
+// a reason to fail the report.
+func (b binding) captured(agent agents.Agent, root string, input *doctor.Input) {
+	_, identity, err := install.ProjectIdentity(root)
+	if err != nil {
+		return
+	}
+	digest, err := hookDigest(agent)
+	if err != nil {
+		return
+	}
+	captures, err := doctor.LoadCaptures(agents.CapturePath(input.StateDir, agent.ID, identity), identity, digest)
+	if err != nil {
+		input.CaptureError = err.Error()
+		return
+	}
+	input.Captures = captures
 }
