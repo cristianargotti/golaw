@@ -62,12 +62,18 @@ func captureKeys(input json.RawMessage) ([]string, error) {
 	return slices.Sorted(maps.Keys(names)), nil
 }
 
+// inputError is the reason of a tool input the decoder could not read:
+// cannot judge, never a verdict the policy did not give.
+func inputError(err error) error {
+	return fmt.Errorf("%w: cursor tool_input: %w", model.ErrCannotJudge, err)
+}
+
 // collectKeys adds the keys of an object under prefix and descends into
 // what each value holds.
 func collectKeys(prefix string, raw json.RawMessage, names map[string]struct{}) error {
 	var object map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &object); err != nil {
-		return fmt.Errorf("%w: cursor tool_input: %w", model.ErrCannotJudge, err)
+		return inputError(err)
 	}
 	for name, value := range object {
 		full := prefix + name
@@ -92,7 +98,7 @@ func collectNested(prefix string, value json.RawMessage, names map[string]struct
 	case trimmed[0] == '[':
 		var items []json.RawMessage
 		if err := json.Unmarshal(trimmed, &items); err != nil {
-			return fmt.Errorf("%w: cursor tool_input: %w", model.ErrCannotJudge, err)
+			return inputError(err)
 		}
 		for _, item := range items {
 			if err := collectNested(prefix, item, names); err != nil {

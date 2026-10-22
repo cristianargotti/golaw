@@ -15,3 +15,7 @@ checks:
     code: delete-capture
     red: testdata/delete-capture/red
     near: testdata/delete-capture/near
+  - id: cursor.shell-observe
+    code: shell-observe
+    red: testdata/shell-observe/red
+    near: testdata/shell-observe/near

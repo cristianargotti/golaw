@@ -23,12 +23,16 @@ func decodeRequest(input payload, event model.Event, _ hook.Base, _ model.Snapsh
 	}
 }
 
-// preRequest is the request of a preToolUse event by its tool: a Write or
-// Delete is captured and allowed while writeEnforced is false (D8), and
-// once it is true the route cannot judge until a typed decoder exists, so
-// the switch alone never invents enforcement.
+// preRequest is the request of a preToolUse event by its tool: a Shell
+// command is judged by the shell family as beforeShellExecution judges it
+// (decision 13 of the plan); a Write or Delete is captured and allowed
+// while writeEnforced is false (D8), and once it is true the route cannot
+// judge until a typed decoder exists, so the switch alone never invents
+// enforcement.
 func preRequest(input payload, event model.Event) (hook.Request, error) {
 	switch event.Tool {
+	case shellTool:
+		return observeShell(input, event)
 	case writeTool, deleteTool:
 		if writeEnforced {
 			return hook.Request{}, fmt.Errorf("%w: cursor %s has no typed decoder yet", model.ErrCannotJudge, event.Tool)
