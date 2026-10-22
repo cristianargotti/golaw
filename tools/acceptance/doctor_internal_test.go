@@ -43,7 +43,8 @@ func healthyReport(c command) doctor.Report {
 	return doctor.Report{Schema: 1, Lines: lines}
 }
 
-// reportAnswer answers doctor with the healthy report after edit.
+// reportAnswer answers doctor with the healthy Claude report after edit,
+// followed by the healthy reports of the other agents, one document each.
 func reportAnswer(t *testing.T, edit func(*doctor.Report)) func(command) result {
 	t.Helper()
 	return func(c command) result {
@@ -55,7 +56,7 @@ func reportAnswer(t *testing.T, edit func(*doctor.Report)) func(command) result 
 		if err != nil {
 			t.Fatal(err)
 		}
-		return result{stdout: string(data)}
+		return result{stdout: string(data) + "\n" + agentDocuments(t, c, nil)}
 	}
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -26,37 +25,46 @@ const (
 )
 
 // doctorRow replays item 2 of section 10.3: once an installed hook ran in
-// the installed repository, doctor --json decodes, every artifact the
-// receipt lists matches, every hook of its definition blocks on failure,
-// the hook names the binary this run built, a source build is metadata,
-// never verified (section 11 M1), and the hook process left the dispatch
-// evidence of section 5.6.
+// the installed repository, doctor --json decodes into one report per
+// agent, every artifact the Claude receipt lists matches, every hook of its
+// definition blocks on failure, the hook names the binary this run built,
+// a source build is metadata, never verified (section 11 M1), the hook
+// process left the dispatch evidence of section 5.6, and the Codex and
+// Cursor reports say what agentWants holds.
 func (s *suite) doctorRow(ctx context.Context) row {
 	repo := filepath.Join(s.base, dirRepos, repoInstallation)
 	input, err := payload(s.root, repo, writeFixture(caseDoctor, pathNote, textSafe, wantAllow))
 	if err == nil {
 		err = expect(s.invoke(ctx, repo, eventPre, toolWrite, input), wantAllow)
 	}
-	if err != nil {
-		return measured(categoryInstallation, caseDoctor, err)
+	if err == nil {
+		err = s.judgeDoctorReports(ctx, repo)
 	}
+	return measured(categoryInstallation, caseDoctor, err)
+}
+
+// judgeDoctorReports runs doctor --json in the installed repository and
+// judges the Claude report against its receipt and every other report
+// against agentWants.
+func (s *suite) judgeDoctorReports(ctx context.Context, repo string) error {
 	got := s.execute(ctx, command{
 		program: s.binary, args: []string{"doctor", "--json"}, dir: repo, env: s.env,
 	})
 	if err := success(got); err != nil {
-		return measured(categoryInstallation, caseDoctor, err)
+		return err
 	}
-	var report doctor.Report
-	decoder := json.NewDecoder(bytes.NewReader([]byte(got.stdout)))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&report); err != nil {
-		return measured(categoryInstallation, caseDoctor, fmt.Errorf("decode doctor --json: %w", err))
+	reports, err := decodeReports(got.stdout)
+	if err != nil {
+		return err
 	}
-	owed, readErr := receiptKeys(s.home)
-	if readErr != nil {
-		return measured(categoryInstallation, caseDoctor, readErr)
+	owed, err := receiptKeys(s.home)
+	if err != nil {
+		return err
 	}
-	return measured(categoryInstallation, caseDoctor, judgeDoctor(report, owed, s.binary))
+	if judgeErr := judgeDoctor(reports[0], owed, s.binary); judgeErr != nil {
+		return judgeErr
+	}
+	return judgeAgentReports(reports, s.binary)
 }
 
 // owedLines come from the receipt the installer wrote, one key per artifact
