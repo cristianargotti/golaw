@@ -93,13 +93,14 @@ func readDocument(document permissionDocument) permissionDocument {
 
 // postReply is the answer of an event after its tool ran: the reason of
 // a finding or a cannot-judge result, which already holds any notice the
-// core joined to it, or the notice of an allow, or nothing; Cursor cannot
-// block a tool that ran, so the answer carries no permission field.
+// core joined to it, else its notice, or the notice of an allow, or
+// nothing; Cursor cannot block a tool that ran, so the answer carries no
+// permission field.
 func postReply(result hook.Result) hook.Reply {
 	var context string
 	switch {
 	case result.CannotJudge, result.Outcome == hook.Feedback, result.Outcome == hook.Deny:
-		context = orElse(result.Reason, emptyReason)
+		context = orElse(result.Reason, orElse(result.Notice, emptyReason))
 	case result.Outcome == hook.Allow:
 		context = result.Notice
 	default:
@@ -108,7 +109,8 @@ func postReply(result hook.Result) hook.Reply {
 	return encoded(postDocument{Context: context})
 }
 
-// orElse is text unless it is blank, else the fallback.
+// orElse keeps a field the agent or the person reads from leaving blank,
+// because a blank reason gives neither of them anything to act on.
 func orElse(text, fallback string) string {
 	if strings.TrimSpace(text) == "" {
 		return fallback

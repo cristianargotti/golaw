@@ -143,3 +143,16 @@ func curCheckRefusal(t *testing.T, document map[string]string, read bool) {
 		t.Fatalf("agent message = %#v", document)
 	}
 }
+
+// TestCursorPostReplyKeepsTheNoticeOfABlankFinding holds a post result
+// whose reason is blank to its notice, the core reason when present and
+// otherwise its notice, so the agent reads what the core said.
+func TestCursorPostReplyKeepsTheNoticeOfABlankFinding(t *testing.T) {
+	t.Parallel()
+	const notice = "The pipeline judges the unmeasured files."
+	result := hook.Result{Outcome: hook.Feedback, Notice: notice}
+	document := curDocument(t, cursor.Encode(model.Event{Shape: model.ShapePost}, result))
+	if !reflect.DeepEqual(document, map[string]string{"additional_context": notice}) {
+		t.Fatalf("document = %#v", document)
+	}
+}
