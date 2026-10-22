@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: init prints the go get and go mod tidy that apply its go.mod proposal of the rules module, the pre-commit lint step names that repair and leaves to the pipeline a lint golangci-lint cannot load without it, and the adoption sequence stages the M3 core files, go.mod and go.sum, because a fresh adoption refused every commit that staged a Go file with a type checker error and no repair.
 - 2026-10-22: policy.ci-target skips a recipe line whose command is a literal program that cannot start make, and the limit of a line that could names the targets ci misses with their repair, because an ordinary go build beside a missing vuln answered Unmeasured naming the unrelated recipe instead of the target to add.
 - 2026-10-22: the deadcode asset judges a generated method only when a sqlc query file declares it and never an exported function of a generated file, because sqlc's WithTx and the oapi-codegen handlers, which the next generate restores, failed make ci of the rendered service and of every adopter that never called them.
 - 2026-10-22: the optional pre-commit rung names declared-subset limits and leaves migration, API-breaking and generation execution to the pipeline, because a local refusal needs a recognized violation.

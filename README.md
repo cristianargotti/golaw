@@ -23,9 +23,12 @@ Review the complete init diff before applying it. The adoption commit stages eve
 ```sh
 golaw init
 golaw init --apply
+go get github.com/quasilyte/go-ruleguard/dsl@v0.3.23
+go mod tidy
 git add golaw.yml .editorconfig .gitattributes .github/dependabot.yml \
-  .gitleaks.toml .golangci.yml .gremlins.yaml .mockery.yaml Makefile \
-  golaw.mk lefthook.yml test/deadcode/reachability_test.go tools/go.mod \
+  .github/workflows/ci.yml .gitleaks.toml .golangci.yml .gremlins.yaml \
+  .mockery.yaml Makefile golaw.mk lefthook.yml scripts/lint/rules.go \
+  test/deadcode/reachability_test.go tools/go.mod go.mod go.sum \
   docs/adr/0001-inherited-baseline.md
 git commit -m "feat: adopt the golaw policy"
 ```

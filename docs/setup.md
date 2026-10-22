@@ -14,11 +14,15 @@ The sequence below shows the default core paths. Adjust the staging list to the 
 
 init distinguishes writes from proposals for existing files. init --apply leaves proposed bytes untouched. Review and apply the accepted proposal hunks yourself before staging, including the include of golaw.mk in an existing Makefile. Unapplied proposals can be displayed again on a repeated init.
 
+go.mod stays your file: init proposes the require of github.com/quasilyte/go-ruleguard/dsl, the module scripts/lint/rules.go imports, and prints the go get and go mod tidy that apply it with its go.sum lines. Until go.mod requires it, golangci-lint cannot load the rules file, make lint fails, and an armed pre-commit rung names that repair and leaves the lint to the pipeline.
+
 ```sh
 go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0
 golaw init
 golaw init --apply
-git add golaw.yml .editorconfig .gitattributes .github/dependabot.yml .gitleaks.toml .golangci.yml .gremlins.yaml .mockery.yaml Makefile golaw.mk lefthook.yml test/deadcode/reachability_test.go tools/go.mod docs/adr/0001-inherited-baseline.md
+go get github.com/quasilyte/go-ruleguard/dsl@v0.3.23
+go mod tidy
+git add golaw.yml .editorconfig .gitattributes .github/dependabot.yml .github/workflows/ci.yml .gitleaks.toml .golangci.yml .gremlins.yaml .mockery.yaml Makefile golaw.mk lefthook.yml scripts/lint/rules.go test/deadcode/reachability_test.go tools/go.mod go.mod go.sum docs/adr/0001-inherited-baseline.md
 git commit -m "feat: adopt the golaw policy"
 golaw setup
 golaw agent install --agent claude
