@@ -137,3 +137,19 @@ Remote CI or the platform pipeline is the only hard gate. The full make ci runs 
 If another guard exists, review the coexistence report before retiring it. Installation preserves unrelated entries and never silently disables another guard.
 
 Read agent-contracts.md for evidence boundaries and security.md for recovery.
+
+## Starting states golaw does not support
+
+Each starting state below is a stated limit of this release, with what the person or the platform does about it.
+
+When CODEOWNERS gives `.github/` to a team other than the catch-all owner, init writes no Actions file and no Dependabot file there, so the generated CI and the Dependabot cooldown stay out of the repository, and the remote gate is whatever the platform runs. The team that owns `.github/` adds a stage that runs `make ci`, or the owners move the path.
+
+A container test that needs a private registry or a cloud login is outside the kit: the `test` target of `golaw.mk` runs `go test` on the machine and needs neither. Run the container suite on demand.
+
+A Swagger 2.0 tree a generator wrote is inherited state the kit does not regenerate: the API path of the kit is OpenAPI 3 with oapi-codegen, and `policy.openapi-assertions` judges no Swagger 2.0 document and measures clean until the OpenAPI 3 contract `redocly.yaml` names exists. Writing that contract brings the API under the check.
+
+A go line past Go's support window adopts, and its standard library advisories close only through a go line bump, so the `vuln` target and the push rung need dated entries in `vulnerability_waivers` until the line moves; the kit never moves it.
+
+A repository born with lint debt is red on its first `make ci` until the debt is fixed: M3 ships no lint baseline, and the reviewed debt set that only `init --apply` seeds arrives with the inventory pass of a later release. Fix the debt, or keep `make ci` off the gate until then; the pre-commit rung reports only the lint a commit introduces.
+
+A generator that rewrites a file without the Go generated header flips with `make fmt`; naming such files is profile data of a later release. Commit the generator's output after `make fmt`.

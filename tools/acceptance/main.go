@@ -69,10 +69,7 @@ func (s *suite) collect(ctx context.Context, required bool) ([]row, string) {
 	vendors, version := s.vendorRows(ctx, required)
 	rows = append(rows, vendors...)
 	rows = append(rows, s.liveRows(ctx, required)...)
-	rows = append(rows,
-		row{categoryDependency, "internal-replace", statusSkip, "dependency checks enter in M3", false},
-		row{categoryDependency, "external-replace", statusSkip, "dependency checks enter in M3", false},
-		row{"adapter", "additional-patch-shapes", statusSkip, "additional adapters enter in M4", false},
-	)
+	rows = append(rows, s.dependencyRows(ctx)...)
+	rows = append(rows, row{"adapter", "additional-patch-shapes", statusSkip, "additional adapters enter in M4", false})
 	return rows, version
 }
