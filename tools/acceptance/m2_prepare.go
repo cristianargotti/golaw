@@ -15,20 +15,29 @@ import (
 const m2CandidateVersion = "0.2.0"
 
 type m2Shared struct {
-	Base  string
-	Bin   string
-	Ready bool
-	Live  bool
+	Base    string
+	Bin     string
+	Ready   bool
+	Live    bool
+	Overlay []string // the environment an M3 case adds over its own home
+	Make    string   // the make the M3 rows run
 }
 
 func (s *suite) prepareM2(ctx context.Context) error {
+	return s.prepareCandidate(ctx, m2CandidateVersion)
+}
+
+// prepareCandidate builds the candidate of a milestone behind the local
+// module proxy and records its digest, the identity every row of that
+// milestone carries.
+func (s *suite) prepareCandidate(ctx context.Context, version string) error {
 	s.m2 = &m2Shared{Base: s.base, Bin: filepath.Join(s.base, dirTools)}
 	s.m2OS = runtime.GOOS
 	s.env = m2Environment(s.env, s.home, filepath.Dir(s.binary), s.m2.Base)
 	if err := s.tools(); err != nil {
 		return err
 	}
-	binary, err := s.versionedBinary(ctx, m2CandidateVersion)
+	binary, err := s.versionedBinary(ctx, version)
 	if err != nil {
 		return err
 	}

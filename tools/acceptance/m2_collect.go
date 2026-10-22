@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -129,6 +130,10 @@ func (s *suite) runAcceptance(ctx context.Context, out io.Writer, required, only
 		var additional []row
 		additional, evidence = candidate.m2AcceptanceRows(ctx)
 		rows = append(rows, additional...)
+		// A release requires the M3 rows as it requires the M2 ones (A23).
+		m3Rows, m3Evidence := newSuite(s.root, filepath.Join(s.base, "m3"), s.execute, s.lookup).m3AcceptanceRows(ctx)
+		rows = append(rows, m3Rows...)
+		maps.Copy(evidence, m3Evidence)
 	}
 	return m2ReportCode(reportEvidence(out, rows, version, s.digest, evidence))
 }
@@ -142,7 +147,7 @@ func (s *suite) m2AcceptanceRows(ctx context.Context) ([]row, map[string]rowEvid
 		return execute(ctx, c)
 	}
 	if err := s.prepareM2(ctx); err != nil {
-		return s.m2PreparationFailure("candidate", err)
+		return s.m2PreparationFailure(candidateRow, err)
 	}
 	return s.collectM2(ctx)
 }
