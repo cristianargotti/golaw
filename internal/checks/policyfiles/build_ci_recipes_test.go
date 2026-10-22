@@ -169,3 +169,46 @@ func TestCITargetReadFailuresKeepTheActualPath(t *testing.T) {
 		}
 	}
 }
+
+// TestCITargetSkipsRecipesThatCannotRunMake holds the recipe reading to the
+// lines a verdict depends on: a literal program that is not make, a shell,
+// an interpreter or a wrapper reaches no target, so a missing check beside
+// it is the finding, while a line that could run make stays a limit whose
+// reason names the missing target and its repair.
+func TestCITargetSkipsRecipesThatCannotRunMake(t *testing.T) {
+	t.Parallel()
+	caps := []string{"go"}
+	withoutLint := strings.Replace(strings.Join(policyfiles.RequiredTargets(caps), " "), " lint ", " ", 1)
+	for _, tc := range []struct{ name, recipe, construct string }{
+		{"near literal program", "go build -o /dev/null .", ""},
+		{"near assignments before the program", "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o /dev/null .", ""},
+		{"near env prefix", "env GOFLAGS=-mod=mod go run ./tools/laws -root .", ""},
+		{"near prefixed generator", "@-buf generate", ""},
+		{"near make variable argument", "go build -ldflags \"$(LDFLAGS)\" ./...", ""},
+		{"red script path", "./scripts/ci.sh", "opaque recipe ./scripts/ci.sh"},
+		{"red shell", "bash -c 'make lint'", "opaque recipe bash -c"},
+		{"red chained make", "go build ./... && make lint", "opaque recipe go build ./... && make lint"},
+		{"red make argument", "go run ./tools/runner make lint", "opaque recipe go run"},
+		{"red shell function", "go build $(shell make lint)", "opaque recipe go build $(shell"},
+		{"red computed program", "$(GO) build ./...", "opaque recipe $(GO)"},
+		{"red versioned interpreter", "python3.12 scripts/ci.py", "opaque recipe python3.12"},
+		{"red env flag", "env -i make lint", "opaque recipe env -i"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			files := buildTree(caps, "")
+			files["Makefile"] += "ci: " + withoutLint + " extra\nextra:\n\t" + tc.recipe + "\n"
+			got := measure(t, policyfiles.CITarget(), fixture{files: files, capabilities: caps})
+			if tc.construct == "" {
+				if got.Status.Kind != model.StatusMeasured || !slices.Contains(codes(got), "ci-target-missing") {
+					t.Fatalf("a recipe that runs no make hid the missing lint: %+v", got)
+				}
+				return
+			}
+			if !model.IsOutsideSubset(got.Status) || len(got.Findings) != 0 || !strings.Contains(got.Status.Reason, tc.construct) ||
+				!strings.Contains(got.Status.Reason, "ci does not otherwise reach lint; add lint to ci") {
+				t.Fatalf("limit = %+v", got)
+			}
+		})
+	}
+}

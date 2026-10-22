@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: policy.ci-target skips a recipe line whose command is a literal program that cannot start make, and the limit of a line that could names the targets ci misses with their repair, because an ordinary go build beside a missing vuln answered Unmeasured naming the unrelated recipe instead of the target to add.
 - 2026-10-22: the deadcode asset judges a generated method only when a sqlc query file declares it and never an exported function of a generated file, because sqlc's WithTx and the oapi-codegen handlers, which the next generate restores, failed make ci of the rendered service and of every adopter that never called them.
 - 2026-10-22: the optional pre-commit rung names declared-subset limits and leaves migration, API-breaking and generation execution to the pipeline, because a local refusal needs a recognized violation.
 - 2026-10-20: the M2 acceptance record lists as inherited the nine commits whose body lines exceed 100 characters and the fifteen merges named after their branch, because rewording them rewrites the unpushed history the evidence names, which stays the owner's call before the first push.
