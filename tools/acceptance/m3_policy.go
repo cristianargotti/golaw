@@ -3,31 +3,99 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
+
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 const (
 	m3PolicyCategory = "m3-policy"
 	m3Baseline       = "baseline"
+	m3ProfileChecks  = "profile-checks"
 	m3ServiceCase    = "service"
 	// m3TailLines bounds the output a failed make leaves in a row's detail,
 	// enough to name the failing target and the finding before it.
 	m3TailLines = 12
 )
 
+// m3PolicyNames is the baseline, one row per violation in name order and
+// the profile row.
 func m3PolicyNames() []string {
-	return []string{m3Baseline}
+	violations := m3Violations()
+	names := make([]string, 0, len(violations)+2)
+	names = append(names, m3Baseline)
+	names = append(names, slices.Sorted(maps.Keys(violations))...)
+	return append(names, m3ProfileChecks)
 }
 
 func (s *suite) policyM3(ctx context.Context, name string) error {
-	if name != m3Baseline {
+	switch name {
+	case m3Baseline:
+		return s.baselineM3(ctx)
+	case m3ProfileChecks:
+		return s.profileM3(ctx)
+	}
+	violation, found := m3Violations()[name]
+	if !found {
 		return fmt.Errorf("unknown M3 policy case %q: %w", name, ErrAcceptance)
 	}
+	return s.m3ViolationRow(ctx, name, violation)
+}
+
+// baselineM3 proves the rendered service passes its own make ci before any
+// edit, so a violation row fails on its edit alone.
+func (s *suite) baselineM3(ctx context.Context) error {
 	repo, err := s.m3ServiceRepository(ctx, m3ServiceCase, []string{"go"})
 	if err != nil {
 		return err
 	}
 	return s.m3PassesCI(ctx, repo)
+}
+
+// profileM3 proves D11 on the rendered service: without a profile the two
+// profile checks answer not applicable with a reason that names the
+// profile, never a finding and never a measurement.
+func (s *suite) profileM3(ctx context.Context) error {
+	repo, err := s.m3ServiceRepository(ctx, m3ServiceCase, []string{"go"})
+	if err != nil {
+		return err
+	}
+	doc, _, err := s.m3Scan(ctx, repo)
+	if err != nil {
+		return err
+	}
+	for _, check := range []string{"policy.hook-tests", "policy.codeowners-foreign"} {
+		status := m3Status(doc, check)
+		if status.Status != model.StatusNotApplicable.String() || !strings.Contains(status.Reason, "profile") {
+			return fmt.Errorf("%s without a profile is %q (%s), want not applicable naming the profile: %w",
+				check, status.Status, status.Reason, ErrAcceptance)
+		}
+	}
+	return nil
+}
+
+// m3ViolationRow is the smallest proof of the required row: the check is
+// measured clean on the rendered service, then the violation is applied
+// and make -k ci runs every target whatever an earlier one answers, exits
+// nonzero and names the check. The repository carries the row's name.
+func (s *suite) m3ViolationRow(ctx context.Context, name string, violation m3Violation) error {
+	repo, err := s.m3ServiceRepository(ctx, name, violation.capabilities)
+	if err != nil {
+		return err
+	}
+	doc, code, err := s.m3Scan(ctx, repo)
+	if err != nil {
+		return err
+	}
+	if err := m3JudgeClean(doc, violation.check); err != nil {
+		return fmt.Errorf("the scan before the violation exited %d: %w", code, err)
+	}
+	if err := violation.apply(repo); err != nil {
+		return err
+	}
+	return m3JudgeViolation(violation.check, s.m3Make(ctx, repo, "-k", "ci"))
 }
 
 // m3PassesCI runs the two steps the generated CI ends with: make ci, then

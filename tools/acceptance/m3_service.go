@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/cristianargotti/golaw"
 	"github.com/cristianargotti/golaw/internal/assets"
+	scanreport "github.com/cristianargotti/golaw/internal/report"
 )
 
 const (
@@ -151,4 +153,21 @@ func m3CopyFile(path, destination string, entry fs.DirEntry) error {
 
 func (s *suite) m3Make(ctx context.Context, repo string, args ...string) result {
 	return s.execute(ctx, command{program: s.m2.Make, args: args, dir: repo, env: s.env})
+}
+
+// m3Scan runs the candidate's scan over a repository and decodes its
+// document whatever the exit code, because a red scan is the measurement a
+// violation row expects; a document that does not decode names the exit
+// and the stderr.
+func (s *suite) m3Scan(ctx context.Context, repo string) (scanreport.Document, int, error) {
+	got := s.execute(ctx, command{program: s.binary, args: []string{commandScan, m2JSONFlag, "."}, dir: repo, env: s.env})
+	if got.err != nil {
+		return scanreport.Document{}, 0, fmt.Errorf("execute golaw scan: %w", got.err)
+	}
+	var doc scanreport.Document
+	if err := json.Unmarshal([]byte(got.stdout), &doc); err != nil {
+		return scanreport.Document{}, got.code, fmt.Errorf("decode the scan document after exit %d: %s: %w",
+			got.code, strings.TrimSpace(got.stderr), err)
+	}
+	return doc, got.code, nil
 }
