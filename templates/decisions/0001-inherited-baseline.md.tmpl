@@ -27,6 +27,6 @@ This list records existing direct dependencies. A denied entry requires replacem
 
 | Module | Version | Status |
 {{end}}| --- | --- | --- |
-{{range .DirectRequires}}| {{.Path}} | {{.Version}} | {{if or (eq .Path "github.com/sirupsen/logrus") (hasPrefix .Path "github.com/sirupsen/logrus/") (eq .Path "github.com/swaggo") (hasPrefix .Path "github.com/swaggo/")}}denied{{else}}inherited{{end}} |
+{{range .DirectRequires}}| {{.Path}} | {{.Version}} | {{if or (eq .Path "github.com/pkg/errors") (hasPrefix .Path "github.com/pkg/errors/") (eq .Path "github.com/sirupsen/logrus") (hasPrefix .Path "github.com/sirupsen/logrus/") (eq .Path "github.com/swaggo") (hasPrefix .Path "github.com/swaggo/")}}denied{{else}}inherited{{end}} |
 {{end}}{{if not $dsl}}| github.com/quasilyte/go-ruleguard/dsl | v0.3.23 | kit |
 {{end}}

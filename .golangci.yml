@@ -144,6 +144,9 @@ linters:
       check-type-assertions: true
       check-blank: true
       exclude-functions: [(io.Closer).Close, (io.ReadCloser).Close, (io/fs.File).Close, (*os.File).Close]
+    gosec:
+      # G104 repeats errcheck, which keeps the unchecked error.
+      excludes: [G104]
     dupl:
       threshold: 80
     goconst:
@@ -186,7 +189,8 @@ linters:
       allow-time-local: false
     gocritic:
       enabled-tags: [diagnostic, style, performance]
-      disabled-checks: [hugeParam, unnamedResult]
+      # deferInLoop repeats the defer rule of revive, which keeps the defect.
+      disabled-checks: [hugeParam, unnamedResult, deferInLoop]
       settings:
         # The ruleguard rules of the standard (scripts/lint/rules.go); the
         # ruleguard check itself comes with the style tag.
@@ -223,7 +227,8 @@ linters:
       context: scope
       key-naming-case: snake
     staticcheck:
-      checks: [all]
+      # ST1000 and ST1003 repeat package-comments and var-naming of revive, which keep those defects.
+      checks: [all, -ST1000, -ST1003]
   exclusions:
     generated: lax
     rules:
@@ -265,6 +270,8 @@ formatters:
         group-params: true
 
 issues:
+  # A fixed line shows its next defect in the same run, not the next.
+  uniq-by-line: false
   max-issues-per-linter: 0
   max-same-issues: 0
 
