@@ -1,8 +1,122 @@
 # Agent integration contracts
 
+One binary answers three agents: Claude Code, the Codex CLI and Cursor, which is a compatibility preview. This page states, per agent, event, tool and operating system, what is proven live, proven offline or documented only, then the wire contract of each agent. [Setup](setup.md) covers installation, scopes, trust, duplicates and doctor; [security](security.md) covers what each guard stops and cannot stop, the fail modes, the Windows launchers and the residuals.
+
+## Versions
+
+| Agent | Version | Standing |
+| --- | --- | --- |
+| Claude Code | 2.1.295 | Minimum supported host, required for onFailure: block |
+| Claude Code | 2.1.299 | Historical validated host, the live macOS record of 2026-10-14 |
+| Claude Code | 2.1.306 | Observed installed on 2026-10-21; no golaw hook ran on it |
+| Codex CLI | 0.159.3 | Historical live probes on macOS dated 2026-10-14, no longer retained |
+| Codex CLI | 0.163.0 | M4 patch grammar pin, codex.PatchGrammar, read from its tagged source |
+| Cursor | None | No validated version; its contract is read from its documentation |
+
+Installed version is not validation evidence. The survey of 2026-10-21 observed the installed versions and read the Codex source at its tag; it ran no Codex 0.163.0 hook and no Cursor host. The Codex patch grammar is pinned to 0.163.0. doctor reports an installed Codex CLI of another version as unvalidated.
+
+## Assurance matrix
+
+Each row names one agent, event, tool and operating system. Tools stay separate, so a record for Write never promotes Edit or NotebookEdit. The labels:
+
+- documented only: a documented or source-derived contract, without retained native installed-invocation evidence for the row.
+- proven offline: the exact installed adapter invocation passed on that OS for the named cases.
+- proven live: a dated host record proves the stated cases for its identified version and binary.
+
+A row's label applies only to the cases its evidence names. Offline acceptance does not prove host dispatch, trust or host timeout behavior. No Cursor row becomes proven live in M4. Every row starts documented only until retained native evidence is reconciled into it; that initial state erases none of the historical evidence the sections below state.
+
+| Agent | Event | Tool | OS | Assurance | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| claude | PreToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Edit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Edit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Edit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | NotebookEdit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | NotebookEdit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | NotebookEdit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Read | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Read | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Read | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | PowerShell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | PowerShell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | PowerShell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Edit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Edit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Edit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | NotebookEdit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | NotebookEdit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | NotebookEdit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | PowerShell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | PowerShell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUse | PowerShell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUseFailure | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUseFailure | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUseFailure | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUseFailure | PowerShell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUseFailure | PowerShell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PostToolUseFailure | PowerShell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PreToolUse | apply_patch | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PreToolUse | apply_patch | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PreToolUse | apply_patch | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PreToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PreToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PreToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PostToolUse | apply_patch | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PostToolUse | apply_patch | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PostToolUse | apply_patch | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PostToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PostToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| codex | PostToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Delete | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Delete | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Delete | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | preToolUse | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | beforeReadFile | Read | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | beforeReadFile | Read | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | beforeReadFile | Read | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | beforeShellExecution | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | beforeShellExecution | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | beforeShellExecution | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUse | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUse | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUse | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUseFailure | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUseFailure | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUseFailure | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUseFailure | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUseFailure | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
+| cursor | postToolUseFailure | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+
+## Shared normalization and reason
+
+Every adapter validates the envelope for the agent named on the command line, refuses an envelope of another agent as cannot judge, and normalizes each event into one of the four shapes: write, read, shell and post. A positively unenrolled location gets a valid allow; missing or weakened policy in an enrolled repository is refused. The English reason comes from hook.Result.Reason without rewriting. hook.Result, defined in internal/hook/types.go, carries Outcome, Reason, Human, CannotJudge and Notice: each adapter preserves Reason byte for byte wherever its protocol carries an English reason, and gives Human, in the configured language, to the person. Cursor beforeReadFile has no documented agent_message field. None is added there to claim transport parity. Codex may wrap the emitted reason in host text; the bytes golaw prints stay the engine's. Unknown payloads receive the agent's cannot-judge answer. An unsupported event or tool, malformed input and a payload the decoder cannot read never get a silent allow, with the one Cursor capture exception stated below.
+
+Each adapter reads one JSON object of at most 8 MiB, and an input over that bound is read to its end in bounded memory as the Claude Code section states, its envelope checked whole; a field a route judges by that the bounded copy could not keep makes the event cannot judge. A malformed post payload gets the cannot-judge answer of its agent, while an ordinary gap of post detection, such as a file over the read bound or a missing baseline, is a notice naming what was not measured, which leaves it to the pipeline and never blocks.
+
+## Claude Code
+
 M1 targets Claude Code. The validated host version is 2.1.299. The minimum supported version is 2.1.295 because installed handlers require onFailure: block.
 
-## Installation and exec form
+### Installation and exec form
 
 The plugin owns hooks/hooks.json and its verbatim skill copy. Hooks do not live in settings.json. The installer adds narrow permissions.deny Read rules for private key and keystore files, the Terraform variable files Terraform loads by itself (terraform.tfvars and *.auto.tfvars, and their JSON form), the service account files whose name ends in service-account.json or service_account.json, SSH keys, and cloud credential files.
 
@@ -23,7 +137,7 @@ Each handler uses exec form:
 
 No shell parses that invocation. doctor checks that executable resolution identifies the running binary. Windows acceptance proves that the bare name resolves to golaw.exe through PATH. The fallback of the installer copying the binary under ${CLAUDE_PLUGIN_DATA} is not built in M1: it waits for the Windows live record and ships only if the bare name fails there.
 
-## Events
+### Events
 
 | Event | Matcher | Contract |
 | --- | --- | --- |
@@ -40,7 +154,7 @@ The location of a write or read is the deepest existing directory above tool_inp
 
 Change detection after a shell command asks git status, with the ignore rules of the universe and without taking the index lock, for the paths that differ from HEAD in the index, from the index in the worktree, or that git would add, before the command and after it, and identifies only those: a path git status reports clean at both ends is unchanged and never read, unless the command moved HEAD: then git diff-tree names, once, the paths that differ between the HEAD of the pre event and the HEAD after the command, the HEAD of an unborn branch read as the empty tree, and each is compared with the blob the earlier HEAD held there; of the paths it finds changed that git status reports clean after the command, only those the commits the command created changed are judged: the commits git log names, once, between the two HEADs, every commit of HEAD after an unborn branch, that were committed in the second the pre event started or later, git recording whole seconds, and carry the name and email git var GIT_COMMITTER_IDENT answers in the repository. Of a merge among them, the files it holds apart both from every parent, as git log --cc names them in the same question, and from the merge git makes of its parents by itself, as git log --remerge-diff names them, once for every such merge, are judged: its resolution of a conflict and the files it added or edited, while a file it took from one side whole and one git merged by itself are named in the notice; a git older than 2.36, which has no --remerge-diff, or a remerge git fails leaves each file such a merge holds apart from every parent to a notice naming it. So a file a command writes and commits is judged, the first commit of its branch included, as is a file an amend, a cherry-pick, a rebase that replays a commit or a merge --squash followed by a commit brings and the resolution a merge commit of the command holds, while every file a pull, a checkout, a merge or a reset brings from commits the command did not create is named in a notice, twenty by name and the rest counted, that asks for no fix and leaves it to the pipeline; a path git status names after the command is judged as any other, bytes a developer left dirty that the command commits unchanged report nothing, and an orphan checkout, which leaves every file with the bytes the commit it left held, reports nothing. A commit the command created on the parents of the HEAD the pre event started from by a git commit --amend its text runs plainly, an amend, rewrites that HEAD: every file the rewrite changed against it is judged, a file the amended commit drops from its delta and restores to the bytes of its parent included, the parents of that HEAD asked of git rev-parse once for the event, only when the move or a merge the command started brought a file no commit of the command changed and no commit of the command builds on that HEAD, and the files of the rewrite asked of git diff-tree once more only when commits follow it; a reset followed by a commit on the same parents is no amend, so the notice names what the reset brought, and an amend a script runs is not read as one, a stated limit. The pre event reads the words of the text as the shell reads quotes and comments, so an --amend or an -X inside a quoted commit message or value, a separator in it included, is no option of git, and neither is one in a shell comment, from an unquoted # that starts a word to the end of its line. Git log and git var run only when the move brought such a path, and git log --remerge-diff only when a merge the command made holds one apart from every parent, so a command that leaves HEAD in place asks git nothing more, unless it starts a merge it leaves in progress. A path git status reports unmerged after the command that it did not name before holds the conflict git wrote from both sides: it is named in a notice and judged by the event that writes its resolution, whatever left the conflict, a merge, a pull, a rebase, a cherry-pick or a stash. When the command started the merge, its bytes are first compared with that conflict, the merge git makes by itself, and bytes it does not hold with the merge git makes with each strategy option of the command alone, because the text does not tell which of its merges stopped, git merge-tree --write-tree, one git cat-file --batch-check that sizes the blobs and one git cat-file --batch that reads those within the read bound asked once for each such merge, only for the paths no merge before it holds and whose bytes on disk are within that bound, so a path over it waits without a merge made for it, line for line with a carriage return before a line end and the names after a conflict marker of seven or more <, | or > ignored, the separator of seven or more = compared whole, as git writes nothing after it: bytes the commit MERGE_HEAD names holds whole are named in the notice, bytes HEAD holds whole are unchanged and report nothing, the conflict waits, and any other bytes, a resolution the command wrote without git add, are judged in the same event; a resolution the command writes for a conflict a rebase, a cherry-pick, a revert or a stash left, which no MERGE_HEAD names, waits for a later event, a stated limit. Bytes that carry the base marker of the diff3 and zdiff3 styles, a line that opens with seven or more |, and that no such merge holds are compared last with the merge git makes by itself in each of those styles, git merge-tree --write-tree once for each style and one git cat-file --batch-check and one git cat-file --batch for both, asked only then, so a conflict the command writes again in such a style, through git checkout --conflict or a git -c merge.conflictStyle of its own, waits too; a conflict a later command writes again in such a style, a path git status named before it, is judged like any other, the teammate's side included, a stated limit. A command that starts a merge it leaves in progress, MERGE_HEAD present after it and not before, read as a file, has git merge-tree --write-tree make, once, the merge of HEAD and the commit MERGE_HEAD names as git makes it by itself, a conflict it cannot resolve in its markers, and git cat-file name, once, the blob that merge and that commit hold at each file staged with its bytes on disk, both with a temporary object directory in front of the objects of the repository, removed after, so the repository receives no object; a file whose staged blob is one of those two is named in a notice that asks for no fix, a file git merged from both sides and a conflict resolved with the side of that commit taken whole included, while a file whose staged blob is neither, the command's resolution of a conflict or its own edit, a file only the local side added or changed since the fork included, is judged, as is a file the command wrote after the merge or left unstaged, and a merge already in progress before the command leaves the files the command writes judged as any other. A file a commit the command created before it started that merge changed, as when it commits its own change and then merges, is judged whatever the merge staged there, as is such a file the command left unmerged with the bytes HEAD holds, the commits of the command asked of git log and git var once for the event, as after any move; when git cannot tell them, each such file is a notice naming it. So is a file an amend of the command changed against the HEAD it rewrote before it started that merge, a file the amend restored to the bytes of its parent included, the files of the amend those of the move when the amend is HEAD. A merge git cannot make by itself to compare, an octopus merge, one under a git older than 2.38, which has no merge-tree --write-tree, or one git fails, leaves each file the merge staged to a notice naming it. A merge made with the strategy option -X ours or -X theirs, left in progress or committed, is also compared with the merge git makes with that option, which the pre event reads from a git merge or git pull the text of the command runs plainly, in each spelling git takes, -X ours, -Xours, --strategy-option ours and --strategy-option=ours, the last one a git merge or git pull gives, as git takes it, and which git merge-tree --write-tree makes once more, only for the files the merge without it leaves apart, with one git cat-file for a merge in progress and one git diff-tree for every such merge commit: a file whose bytes that merge holds is named in the notice. A text that names both options, as a merge -X theirs with a fallback -X ours after ||, has each merge made apart, the second only for the files the first leaves, because the text does not tell which of its merges ran, so a file whose bytes either merge holds is named in the notice. Another strategy option, an -X of another program or after the git command ends, and an option an alias, a script or the configuration gives, is not read, so a file such an option resolved hunk by hunk is judged as the command's resolution, a stated limit. A move git cannot compare, such as one from a commit the command pruned, is a notice naming the changes of the command and each path whose status alone changed, and commits git cannot list, or a committer it cannot name, leave each path the move brought to such a notice, while a path whose bytes changed since the pre event named it is still judged. A commit the command makes under another identity, through a git -c user.name or -c user.email of its own or GIT_COMMITTER_NAME or GIT_COMMITTER_EMAIL set for that command alone, which the git var of the hook does not see, or dates before the pre event, through GIT_COMMITTER_DATE or a rebase that keeps the dates of the commits it replays, reads as a commit it did not create, a stated limit: its files are named in the notice and left to the pipeline. A commit of the same identity made before the pre event within the second it started, git recording whole seconds, reads as a commit of the command, so a move over it judges its files, a stated limit. A file the command changed is judged whole, so a line a merge brought into a file that the command's own commit or resolution also changed is judged with it, a stated limit. Git status trusts what the index records: a file the index marks assume-unchanged, by git update-index or core.ignorestat, or skip-worktree reads clean whatever its bytes, and so does a file rewritten to its size with its modification time put back, as cp -p, tar or touch -r leave it, while its stat data still matches the index, which core.checkStat minimal with core.trustctime false always lets it; a command that rewrites such a file is invisible to detection at both ends, without a notice, and left to the pipeline. A path git status names at one end only is compared by its bytes: one named before the command only is identified as it is after it, and one named after it only is unchanged while its bytes are still the blob the HEAD of the pre event held there, so a mode change, a commit of bytes already dirty and a soft reset that leaves a committed file staged report nothing, while a file written back to its committed content is judged; bytes that are not that blob as they lie on disk are named as git would store them, through the end of line rules and the filters of the path, asked of git hash-object once for every such path and writing no object, so a file git converts on its way in is left alone when only its status changed, and one git cannot convert, as when a required filter fails, is a notice naming it and never a change, while a path git status found edited under its own mode, whose bytes git already compared through those conversions, is judged changed without that question unless its bytes hold a carriage return, so an edit only a filter undoes is judged. It identifies a symbolic link by its class and the length of its link text and a submodule by its class alone, because the snapshot holds the bytes of neither, the model contract carries neither a link text nor a submodule revision, and no check follows a link or enters a submodule: a link already changed against the index and retargeted again to a text of the same length and a submodule moved to another revision are excluded from detection. Neither carries a content rule, so the exclusion hides no finding.
 
-## Exit and output contract
+### Exit and output contract
 
 | Situation | Exit | Output |
 | --- | --- | --- |
@@ -57,13 +171,13 @@ The internal deadline is shorter than the ten second host timeout. Reaching it b
 
 Post detection never blocks on what it could not measure: a file over the read bound that the command changed, a change set over 65536 paths or 64 MiB, a pre event that left no baseline, a move of HEAD git cannot compare, a file git cannot convert to compare and the deadline each leave a notice the agent reads, naming the path when there is one, the paths of one cause in one sentence that names twenty and counts the rest, for the agent and in the language of the policy for the person, so a pull git cannot classify, when git var cannot name the committer, is one bounded sentence, and the pipeline judges what they left; a file it could measure is still judged, and a finding still blocks. A file over the read bound is identified by the size, modification time, change time and inode of its lstat, on Windows its size and modification time only: a command that leaves it alone leaves no notice, a rewrite that changes any of them is named, and a rewrite that restores them all is the stat limit of git status stated above. The name rules judge every file, one over the read bound included, so a name the tree forbids is fed back after a command and denied before a write although its bytes are not measured; only a rule that needs the bytes the hook does not hold leaves the file to the notice. A rule that reads a file beside its target, the files of a package goast.secret-fields reads for a redaction and goast.goleak for the goleak import, and the files a command stages for shell.shape, leaves to the notice only the verdict that file could change: a redaction or an import a readable file holds is still found, and a commit whose files alone break its theme is still refused. A Write over a file beyond the read bound is judged on its whole content, and an Edit of such a file, which cannot be reconstructed within the bound, is judged by the name rules and otherwise allowed with the same notice.
 
-## Trust
+### Trust
 
 Interactive settings-file hooks wait for folder trust. Noninteractive sessions can run those hooks without that dialog. Those facts do not establish plugin behavior before workspace trust. doctor reports plugin trust as unknown until live evidence establishes it.
 
 Keeping hooks in the plugin avoids the settings-file hook import used by Cursor. Installation, enablement, integrity, trust, and observed dispatch remain separate facts.
 
-## Offline acceptance
+### Offline acceptance
 
 The M1 matrix runs on Linux, macOS, and Windows. It installs twice, checks unchanged receipts and foreign settings, and invokes the exact installed command with closed stdin in an isolated home without credentials.
 
@@ -78,6 +192,65 @@ Each result identifies category, agent, OS, agent version, binary digest, PASS, 
 claude plugin validate --strict is a required row. claude plugin test is the host's runner for hook modules written against its testing kit; the plugin ships command hooks and no module, so the host refuses the command and the row is recorded as not applicable, never as a pass. Neither proves installation or live dispatch. The kit also validates handler fields because the vendor validator accepted an unknown field during the initial investigation.
 
 Offline acceptance proves the adapter and installed invocation. Only a live record proves dispatch, trust behavior, host failure behavior, and resulting target state.
+
+### Live record: 2026-10-14
+
+Host: Claude Code 2.1.299 on macOS. The daily denials of 2026-10-14 came from the predecessor guard during normal use.
+
+The timeout probe was a standalone project settings hook, separate from that guard. Its PreToolUse Write handler ran sleep 20 with timeout 3 and onFailure: block. It was executed through claude -p in two turns at 0.53 USD. The host refused the write, hello.txt remained absent, and the reported reason was: timed out; blocking because onFailure is "block".
+
+Both records are host evidence for Claude Code 2.1.299 on macOS. Neither identifies a golaw binary or its digest, establishes dispatch of the golaw plugin, or authenticates a release. The timeout probe does not prove the missing-binary case.
+
+Before M1 release, the owner records one dated golaw session on macOS in docs/live/claude-darwin.json: an allowed control, a denied write, a host timeout and a missing binary, each with its outcome and target state. The denied write, the timeout and the missing binary must leave the target unchanged. The timeout case puts a program named golaw that sleeps past the ten second timeout first on PATH; the missing binary case takes golaw off PATH.
+
+That record names the owner, environment, credential boundary, spending limit, schedule, retention, agent version, and the SHA-256 of the binary the session installed: the reproducible darwin/arm64 build of the tagged source, CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -buildvcs=false ./cmd/golaw with Go 1.27.2, the go-version of release.yml. A commit that only adds the record leaves that build unchanged; a toolchain bump changes it and needs a new record.
+
+go run ./tools/acceptance reads the record: the host-timeout and host-missing-binary rows pass only when the record is complete and names the candidate digest. An absent record, or one naming another binary, is SKIP. The release lane runs the harness with -release before any draft, and SKIP never counts as PASS there, so no tag publishes without the record.
+
+Linux and Windows have no live M1 enforcement claim. Codex CLI and Cursor are outside M1.
+
+## Codex CLI
+
+### Codex events and payloads
+
+The installed groups select PreToolUse and PostToolUse with the matcher ^(Bash|apply_patch)$, one handler each with timeout 10. tool_input.command holds the shell text of Bash or the patch text of apply_patch, and tool_response is the response of a post event, kept as the host wrote it. The grammar is the one of 0.163.0: Add File gives the whole content; an Update File whose chunks apply exactly to the file on disk reconstructs the whole candidate, while one that does not apply exactly is judged on its added lines, its size measurement deferred to the post event; Delete File and Move to are judged by path. A Bash command whose whole text is an apply_patch here-document, alone or after a cd into one directory, is judged as that patch, because Codex intercepts it and runs no other event for it; a cat here-document redirected to one visible file is judged as that write before the command, and its post event's detection judges what it wrote. Codex has no failure event: PostToolUse also fires after a failed command, its tool_response the output text without an exit status, and the detection pass judges what the command changed. A failed patch gets no post event.
+
+### Codex answers
+
+| Case | Response |
+| --- | --- |
+| Pre or post allow without notice | Empty stdout and stderr, exit 0 |
+| Pre deny or pre cannot judge | Deny JSON using `hookSpecificOutput.hookEventName`, `permissionDecision`, `permissionDecisionReason` and `systemMessage`; non-empty `Result.Reason` on stderr; exit 0 |
+| Pre cannot judge with empty reason | Non-empty `cannot judge` fallback on stderr, never empty stderr |
+| Post finding | `decision: block`, `reason` from `Result.Reason`, `systemMessage` from `Result.Human`; exit 0 |
+| Post cannot judge | Empty stdout, non-empty English stderr, exit 2 |
+| Pre or post notice | Correct `hookEventName`, `additionalContext` from `Result.Notice`, and `systemMessage`; exit 0 |
+
+Empty stdout with exit 0 is the normal Codex allow. An explicit allow decision without an input rewrite is a failed hook to Codex, never the normal allow. The JSON uses only the fields of the pinned output schemas, because Codex treats an answer with any other field as invalid and runs the tool. Every Codex pre denial exits 0 with the deny JSON, the answer that blocks through every shell. Under powershell -Command a child's exit 2 becomes 1, which Codex reads as a failed hook, which is why exit 0 was chosen for every pre denial and pre cannot-judge on 2026-10-21. Codex shows the configured-language systemMessage of such a denial, and the stderr line carries the English reason for the person at the terminal. Every Codex exit 2 answer has a non-empty English stderr line. Exit 2 with an empty stderr fails open. On exit 2 Codex reads stderr, not the deny JSON or systemMessage. A post cannot-judge therefore reaches the agent in English only.
+
+Codex runs a hook only when its hooks feature is on, the project is trusted for a project hook and the hash of its definition is trusted, and it fails open on every host failure; [setup](setup.md) gives the trust steps and [security](security.md) the mitigations. Codex is supported only with a dated live record of macOS and the m4 job green on Linux, macOS and Windows; until both exist, Codex is not yet supported.
+
+## Cursor
+
+Cursor is a compatibility preview: its contract is read from the Cursor documentation and no Cursor host has run a golaw hook, so each of its rows stays documented only or proven offline.
+
+### Cursor events and payloads
+
+The installed hooks file, version 1, holds preToolUse with the matcher ^(Write|Delete|Shell)$, beforeReadFile, beforeShellExecution, and postToolUse and postToolUseFailure with Write|Shell, every handler with timeout 10 and failClosed: true; afterFileEdit is not used.
+
+- preToolUse Write and Delete record the key names of tool_input, never a value, keep the baseline and answer the allow JSON. Cursor Write and Delete stay capture and allow. Enforcement waits for a live record that proves the Write payload. Cursor captures a Write or Delete tool_input that is no object by its JSON type and allows it. The type is recorded as one of `<array>`, `<string>`, `<null>`, `<number>` or `<boolean>`. Malformed input and an envelope of another agent remain cannot judge.
+- preToolUse Shell and beforeShellExecution both judge the command, any denial winning; preToolUse Shell also keeps the baseline. Both give the same English reason, so a build that fires only one of the two still judges its shell commands. beforeShellExecution carries no tool_use_id and keeps no baseline.
+- beforeReadFile judges file_path by the secret names and drops the file content the event carries, so it prevents exposure to the model, not the disk read.
+- postToolUse and postToolUseFailure detect what a Write or a Shell command changed since its baseline and answer it as advisory additional_context. A postToolUseFailure caused by a permission denial can legitimately find no change.
+
+The A15 key reads the session from conversation_id, the agent identity field from generation_id and the tool identity from tool_use_id, the same for a pre event and its post events. generation_id is a turn identity. It changes with every user message. The working directory is the payload's cwd, falling back to the first workspace_roots entry when the event carries none, never the directory of the user hook process, which runs from ~/.cursor. The repository identity remains the result of enrollment discovery.
+
+### Cursor answers
+
+- preToolUse and beforeShellExecution answer an allow with `{"permission":"allow"}`. Their deny and cannot-judge responses contain `permission`, `user_message` from `Result.Human` and `agent_message` from `Result.Reason`, with exit 0.
+- beforeReadFile answers an allow with the same minimal allow JSON; its denial contains only `permission` and `user_message`.
+- A post event answers a finding, a cannot-judge reason or a notice as `additional_context`, and an empty post answer is `{}`.
+- Every Cursor reply with exit 0 is a JSON document. Under failClosed an empty output is a failure that blocks the action.
 
 ## M2 rung assurance
 
@@ -98,22 +271,6 @@ The installed-rung rows invoke the installed git hook routing. They execute the 
 The following Windows requirements describe what a successful native row must demonstrate. With Git's shell as the only shell on the constrained PATH, the Windows row proves that the rungs never start make, awk or tar. Each name resolves to its recorder in the same shell before the rungs run, and all recorder logs remain empty afterward. Resolution to another program fails the row. All three installed hooks must succeed, and any recorder invocation fails the row. This establishes non-use in that execution; it makes no claim that those programs are absent from the machine.
 
 Functional acceptance runs through go run ./tools/acceptance -m2. The separate gated measurement test publishes native logs and job summaries; release acceptance adds the functional M2 rows to its M1 requirements without rerunning measurements. An unexecuted system remains not run, and a failed measurement attempt remains Unmeasured with its reason. Only retained native output with the completion marker can establish a completed measurement attempt. Rung execution supplies no new evidence of an agent host's dispatch, trust or failure handling.
-
-## Live record: 2026-10-14
-
-Host: Claude Code 2.1.299 on macOS. The daily denials of 2026-10-14 came from the predecessor guard during normal use.
-
-The timeout probe was a standalone project settings hook, separate from that guard. Its PreToolUse Write handler ran sleep 20 with timeout 3 and onFailure: block. It was executed through claude -p in two turns at 0.53 USD. The host refused the write, hello.txt remained absent, and the reported reason was: timed out; blocking because onFailure is "block".
-
-Both records are host evidence for Claude Code 2.1.299 on macOS. Neither identifies a golaw binary or its digest, establishes dispatch of the golaw plugin, or authenticates a release. The timeout probe does not prove the missing-binary case.
-
-Before M1 release, the owner records one dated golaw session on macOS in docs/live/claude-darwin.json: an allowed control, a denied write, a host timeout and a missing binary, each with its outcome and target state. The denied write, the timeout and the missing binary must leave the target unchanged. The timeout case puts a program named golaw that sleeps past the ten second timeout first on PATH; the missing binary case takes golaw off PATH.
-
-That record names the owner, environment, credential boundary, spending limit, schedule, retention, agent version, and the SHA-256 of the binary the session installed: the reproducible darwin/arm64 build of the tagged source, CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -buildvcs=false ./cmd/golaw with Go 1.27.2, the go-version of release.yml. A commit that only adds the record leaves that build unchanged; a toolchain bump changes it and needs a new record.
-
-go run ./tools/acceptance reads the record: the host-timeout and host-missing-binary rows pass only when the record is complete and names the candidate digest. An absent record, or one naming another binary, is SKIP. The release lane runs the harness with -release before any draft, and SKIP never counts as PASS there, so no tag publishes without the record.
-
-Linux and Windows have no live M1 enforcement claim. Codex CLI and Cursor are outside M1.
 
 ## Compatibility history
 
