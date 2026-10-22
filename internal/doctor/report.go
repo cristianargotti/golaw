@@ -15,9 +15,12 @@ type Line struct {
 }
 
 // Report makes the JSON surface versioned and deterministic.
+// Summary is the sentence the person reads under the lines in the text
+// output, in the configured language; the JSON never carries it.
 type Report struct {
-	Schema int    `json:"schema"`
-	Lines  []Line `json:"lines"`
+	Schema  int    `json:"schema"`
+	Lines   []Line `json:"lines"`
+	Summary string `json:"-"`
 }
 
 // Snapshot retains collected inputs so each diagnosis can be reproduced.
@@ -56,7 +59,7 @@ func assessments() []assessment {
 		{"doctor.enrollment", enrollmentLines},
 		{idPython, pythonLines},
 		{"doctor.trust", trustLines},
-		{"doctor.dispatch", dispatchLines},
+		{idDispatch, dispatchLines},
 	}
 }
 

@@ -30,6 +30,12 @@ func WriteText(writer io.Writer, report Report) error {
 			return fmt.Errorf("write doctor line: %w", err)
 		}
 	}
+	if report.Summary == "" {
+		return nil
+	}
+	if _, err := fmt.Fprintln(writer, report.Summary); err != nil {
+		return fmt.Errorf("write doctor summary: %w", err)
+	}
 	return nil
 }
 

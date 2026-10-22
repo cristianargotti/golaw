@@ -48,6 +48,7 @@ func (b binding) doctorInput(ctx context.Context, agent agents.Agent, root, scop
 	if err := b.agentDirs(agent, scope, &input); err != nil {
 		return doctor.Input{}, err
 	}
+	input.Language = b.doctorLanguage(ctx, root, now)
 	return input, nil
 }
 
