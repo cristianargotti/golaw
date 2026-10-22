@@ -43,11 +43,11 @@ func dispatches() []dispatch {
 	}
 }
 
-// Matrix proves that every registered check declares the condition of its
+// matrix proves that every registered check declares the condition of its
 // family, or its own, and that the engine runs it exactly where that
 // condition holds: in every dispatch, under every capability, under none,
 // and under every capability but each one it needs.
-func Matrix(reg *engine.Registry) []Failure {
+func matrix(reg *engine.Registry) []Failure {
 	var out []Failure
 	for _, c := range reg.Checks() {
 		spec := c.Spec()

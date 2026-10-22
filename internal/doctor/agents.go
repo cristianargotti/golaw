@@ -1,6 +1,9 @@
 package doctor
 
-import "context"
+import (
+	"context"
+	"slices"
+)
 
 // Claude is the report of the Claude Code agent: the evidence of its plugin,
 // its settings and its hook process, assessed, with the lines that tell
@@ -26,14 +29,9 @@ func Cursor(_ context.Context, input Input, _ EnrollmentReader) Report {
 // the frame of the agent before the dispatch line, which stays the last.
 func claudeReport(input Input, snapshot Snapshot) Report {
 	facts := claudeFacts(input, snapshot)
-	report := Report{Schema: 1, Lines: []Line{}}
-	for _, item := range assessments() {
-		lines := item.run(snapshot)
-		if item.id == idDispatch {
-			report.Lines = append(report.Lines, frame(facts, lineWith(lines, idDispatch))...)
-		}
-		report.Lines = append(report.Lines, lines...)
-	}
+	report := Assess(snapshot)
+	at := slices.IndexFunc(report.Lines, func(line Line) bool { return line.ID == idDispatch })
+	report.Lines = slices.Insert(report.Lines, at, frame(facts, report.Lines[at])...)
 	report.Summary = summary(input.Language, facts, lineWith(report.Lines, idState))
 	return report
 }

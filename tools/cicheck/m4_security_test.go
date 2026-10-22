@@ -8,7 +8,7 @@ import (
 )
 
 func m4AgentName(id string) string {
-	return strings.ToUpper(id[:1]) + id[1:]
+	return strings.ToUpper(id[:1]) + id[1:] //nolint:gocritic // an agent id is lower case ASCII by construction
 }
 
 func m4TextOK(text string, required, forbidden []string) bool {

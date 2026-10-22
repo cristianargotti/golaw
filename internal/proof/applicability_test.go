@@ -1,4 +1,4 @@
-package checks_test
+package proof_test
 
 import (
 	"slices"
