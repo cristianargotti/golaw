@@ -1,0 +1,1 @@
+{"session_id":"session","turn_id":"turn","transcript_path":null,"cwd":"/project","hook_event_name":"PreToolUse","model":"model","permission_mode":"default","tool_name":"apply_patch","tool_input":{"command":"*** Begin Patch\n*** Delete File: golaw.yml\n*** End Patch\n"},"tool_use_id":"tool"}

@@ -19,14 +19,18 @@ func notBuilt() error {
 }
 
 // Parse decodes an event once: the envelope of D16, the header enrollment
-// reads and the decoder of its request, which reads none of the bytes of
-// the event again.
+// reads, with every file an apply_patch writes exposed as a target so the
+// core enrolls the patch where it writes, and the decoder of its request.
 func Parse(data []byte) (hook.Parsed, error) {
 	event, in, err := parse(data)
 	if err != nil {
 		return hook.Parsed{}, err
 	}
-	return hook.Parsed{Event: event, Decode: func(base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
+	var targets []string
+	if event.Shape == model.ShapeWrite && in.command != nil {
+		event.Target, targets = patchTargets(event.Cwd, *in.command)
+	}
+	return hook.Parsed{Event: event, Targets: targets, Decode: func(base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 		return decode(event, in, base, snapshot)
 	}}, nil
 }

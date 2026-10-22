@@ -58,7 +58,7 @@ func decode(event model.Event, in toolInput, base hook.Base, snapshot model.Snap
 		return hook.Request{}, err
 	}
 	if event.Tool == patchTool {
-		return hook.Request{}, fmt.Errorf("%w: the apply_patch route is not decoded yet", model.ErrCannotJudge)
+		return patchRequest(event, command, base, snapshot)
 	}
 	return shellRequest(event, command, base, snapshot)
 }

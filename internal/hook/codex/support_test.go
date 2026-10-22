@@ -43,7 +43,7 @@ func rewrite(tb testing.TB, data []byte, edit func(map[string]any)) []byte {
 	return out
 }
 
-func commandPayload(tb testing.TB, seed, command string) []byte { //nolint:unused // the patch route tests of the next task call it
+func commandPayload(tb testing.TB, seed, command string) []byte {
 	tb.Helper()
 	return rewrite(tb, corpus(tb, seed), func(value map[string]any) {
 		value["tool_input"] = map[string]any{"command": command}
@@ -64,7 +64,7 @@ func decodeRequest(tb testing.TB, data []byte, files map[string][]byte) hook.Req
 	return request
 }
 
-func routeResult(tb testing.TB, directory string) (model.Event, hook.Result) { //nolint:unused // the patch route tests of the next task call it
+func routeResult(tb testing.TB, directory string) (model.Event, hook.Result) {
 	tb.Helper()
 	fixture, err := proof.LoadFixture(filepath.Join("proof", "testdata", directory))
 	if err != nil {

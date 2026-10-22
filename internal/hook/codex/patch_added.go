@@ -6,7 +6,7 @@ package codex
 // text the grammar refuses answers nothing; the lines keep their plus
 // provenance, which the chunk shape loses, because a chunk that does not
 // apply is judged on those lines alone (D3).
-func patchAdded(text string) [][]string { //nolint:unused // the patch write candidates of the next task read it
+func patchAdded(text string) [][]string {
 	_, added, err := parseDoc(text)
 	if err != nil {
 		return nil
