@@ -94,7 +94,7 @@ func judgeAllowlists(in model.Input) ([]model.Finding, error) {
 	if config.Extend.Path != "" || config.Extend.URL != "" {
 		return nil, outside(gitleaksFile, 1, "an [extend] path or url, whose allowlists golaw does not read")
 	}
-	return judgeGitleaksPaths(configuredAllowlists(config))
+	return judgeGitleaksPaths(in, configuredAllowlists(config))
 }
 
 func configuredAllowlists(config gitleaksSettings) []gitleaksAllowlist {
@@ -149,12 +149,12 @@ func appendAllowlists(out []gitleaksAllowlist, legacy *gitleaksAllowlist, curren
 	return out
 }
 
-func judgeGitleaksPaths(lists []gitleaksAllowlist) ([]model.Finding, error) {
+func judgeGitleaksPaths(in model.Input, lists []gitleaksAllowlist) ([]model.Finding, error) {
 	var out []model.Finding
 	for i := range lists {
 		list := &lists[i]
 		for _, pattern := range list.Paths {
-			if sample, ok := generatedMatch(pattern); ok {
+			if sample, ok := generatedMatch(in, pattern); ok {
 				if err := allowlistLimit(list); err != nil {
 					return nil, err
 				}
@@ -190,8 +190,11 @@ func allowlistLimit(list *gitleaksAllowlist) error {
 }
 
 // generatedMatch answers the first generated sample an allowlist path
-// matches; validation of malformed expressions belongs to gitleaks.
-func generatedMatch(pattern string) (string, bool) {
+// matches, then the first file of the snapshot it matches whose header marks
+// it generated, so a tree of the repository's own no sample spells is
+// judged too; the snapshot reads only the paths the expression matches.
+// Validation of malformed expressions belongs to gitleaks.
+func generatedMatch(in model.Input, pattern string) (string, bool) {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return "", false
@@ -199,6 +202,11 @@ func generatedMatch(pattern string) (string, bool) {
 	for _, sample := range generatedSamples() {
 		if re.MatchString(sample) {
 			return sample, true
+		}
+	}
+	for _, file := range model.Select(in.Snapshot, re.MatchString) {
+		if file.Class == model.ClassGenerated {
+			return file.Path, true
 		}
 	}
 	return "", false
