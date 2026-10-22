@@ -1,0 +1,1 @@
+{"hook_event_name":"postToolUseFailure","conversation_id":"conversation","generation_id":"generation","workspace_roots":["/project"],"cwd":"/project","tool_name":"Write","tool_use_id":"tool","tool_input":{"__undocumented__":true},"error_message":"Write failed","failure_type":"error","duration":1,"is_interrupt":false}
