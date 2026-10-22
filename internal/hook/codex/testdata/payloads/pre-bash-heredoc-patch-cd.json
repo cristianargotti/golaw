@@ -1,0 +1,14 @@
+{
+  "session_id": "session",
+  "turn_id": "turn",
+  "transcript_path": null,
+  "cwd": "/project",
+  "hook_event_name": "PreToolUse",
+  "model": "model",
+  "permission_mode": "default",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "cd sub/dir && apply_patch <<'EOF'\n*** Begin Patch\n*** Update File: main.go\n@@\n-old\n+new\n*** End Patch\nEOF"
+  },
+  "tool_use_id": "tool"
+}

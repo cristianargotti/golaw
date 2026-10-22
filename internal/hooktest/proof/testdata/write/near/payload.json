@@ -1,0 +1,9 @@
+{
+  "session_id": "session",
+  "agent_id": "agent",
+  "tool_use_id": "tool",
+  "cwd": "/project",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Write",
+  "tool_input": { "file_path": "/project/notes.md", "content": "one-two" }
+}

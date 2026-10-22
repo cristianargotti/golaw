@@ -196,23 +196,41 @@ func existingDir(path, fallback string) string {
 // opens, then every directory that holds a link the name passes through,
 // so a link, of a file or of a directory, moves neither a write nor a read
 // out of an enrolled repository in either direction; a read then falls
-// back to the session's working directory. A shell command and an event
-// without a target are judged where they run.
-func enrollmentDirs(event model.Event, home string) ([]string, error) {
-	if event.Target == "" {
+// back to the session's working directory. A write of several files is
+// looked up at its target and then at each further target of its parse,
+// in order. An event without a target, a shell command whose parse names
+// no file it writes among them, is judged where it runs.
+func enrollmentDirs(event model.Event, targets []string, home string) ([]string, error) {
+	if event.Target == "" && len(targets) == 0 {
 		return []string{event.Cwd}, nil
 	}
-	path, err := absolute(home, event.Cwd, event.Target)
-	if err != nil {
-		return nil, err
+	var dirs []string
+	for _, name := range append([]string{event.Target}, targets...) {
+		if name == "" {
+			continue
+		}
+		found, err := targetDirs(home, event.Cwd, name)
+		if err != nil {
+			return nil, err
+		}
+		dirs = append(dirs, found...)
 	}
-	resolved, holders := resolveLinks(path)
-	dirs := []string{existingDir(resolved, event.Cwd), existingDir(entryLocation(path), event.Cwd)}
-	dirs = append(dirs, holders...)
 	if event.Shape == model.ShapeRead {
 		dirs = append(dirs, event.Cwd)
 	}
 	return distinct(dirs), nil
+}
+
+// targetDirs are the directories one name of an event leads to: the one
+// above the file through every link, the one above the entry it opens and
+// each directory that holds a link it passes through.
+func targetDirs(home, cwd, name string) ([]string, error) {
+	path, err := absolute(home, cwd, name)
+	if err != nil {
+		return nil, err
+	}
+	resolved, holders := resolveLinks(path)
+	return append([]string{existingDir(resolved, cwd), existingDir(entryLocation(path), cwd)}, holders...), nil
 }
 
 // distinct keeps the first of each directory, in order.

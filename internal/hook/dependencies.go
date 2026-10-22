@@ -58,7 +58,9 @@ type Repository struct {
 // only for bytes that carry the base marker of those styles and that no
 // other merge holds. Parents answers the commits a commit was made on,
 // asked only when a commit of the command may rewrite the HEAD the pre
-// event started from.
+// event started from. Capture, when set, records the capture of a request
+// of an enrolled repository before the answer leaves; its error changes no
+// answer, because the record is evidence for doctor, never a verdict.
 type Dependencies struct {
 	Home      string
 	Begin     func()
@@ -82,6 +84,8 @@ type Dependencies struct {
 	Conflicts     func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string]Conflict, error)
 	Restyled      func(ctx context.Context, repository Repository, ours, theirs string, paths []string) (map[string][][]byte, error)
 	Parents       func(ctx context.Context, repository Repository, commit string) ([]string, error)
+
+	Capture func(ctx context.Context, repository Repository, capture Capture) error
 }
 
 // Commit is a commit git log named between two HEADs: its name, its

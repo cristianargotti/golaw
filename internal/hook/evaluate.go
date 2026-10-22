@@ -38,7 +38,7 @@ func evaluateParsed(ctx context.Context, agent string, parse func() (Parsed, err
 	if !knownAgent(agent) || event.Agent != agent {
 		return completed{event: event, result: failure(event, fmt.Errorf("%w: agent envelope mismatch", model.ErrCannotJudge))}
 	}
-	repository, err := enroll(ctx, event, dependencies)
+	repository, err := enroll(ctx, event, parsed.Targets, dependencies)
 	if err != nil {
 		return completed{event: event, result: failure(event, err)}
 	}
@@ -46,18 +46,10 @@ func evaluateParsed(ctx context.Context, agent string, parse func() (Parsed, err
 		return completed{event: event, result: Result{Outcome: Allow}}
 	}
 	run, err := loadExecution(ctx, repository, parsed.Decode, dependencies)
-	answer := completed{event: event, language: run.language()}
-	switch {
-	case err != nil:
-		answer.result = failureLanguage(event, err, run.language())
-	case run.request.Denial != "":
-		answer.result = rejectionLanguage(event, run.request.Denial, false, run.language())
-	case len(run.request.Gaps) > 0:
-		answer.event, answer.result = run.request.Event, run.unmeasured(ctx, dependencies)
-	default:
-		answer.event, answer.result = run.request.Event, run.evaluate(ctx, data, dependencies)
+	if err != nil {
+		return completed{event: event, result: failureLanguage(event, err, run.language()), language: run.language()}
 	}
-	return answer
+	return run.answer(ctx, event, data, dependencies)
 }
 
 // unmeasured answers a write whose bytes the hook cannot hold, an edit of a
@@ -90,9 +82,9 @@ func (run execution) unmeasured(ctx context.Context, dependencies Dependencies) 
 // the session's repository, because the secret boundary guards what enters
 // the session's context and the person's credential stores live outside
 // every repository; a write there is a positively unenrolled location.
-func enroll(ctx context.Context, event model.Event, dependencies Dependencies) (Repository, error) {
+func enroll(ctx context.Context, event model.Event, targets []string, dependencies Dependencies) (Repository, error) {
 	var repository Repository
-	dirs, err := enrollmentDirs(event, dependencies.Home)
+	dirs, err := enrollmentDirs(event, targets, dependencies.Home)
 	if err != nil {
 		return repository, err
 	}
@@ -181,7 +173,7 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 		return failureLanguage(run.request.Event, err, run.language())
 	}
 	decision := engine.Decide(dispatched)
-	gaps = withUnread(gaps, decision.Unread)
+	gaps = withUnread(append(gaps, unapplied(run.request.Event.Candidates)...), decision.Unread)
 	result := decisionResult(run.request.Event, decision, run.language())
 	if result.Outcome != Allow {
 		return withGaps(result, gaps, run.language())
