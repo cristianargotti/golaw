@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -245,4 +246,45 @@ func TestM3PipelineNoticeReplacesTemplateDeferrals(t *testing.T) {
 	}
 	requireText(t, "docs/security.md",
 		"The pre-commit rung leaves migration, API-breaking and generation execution to the pipeline targets.")
+}
+
+func TestM3ChangelogDatesBehaviorAndReason(t *testing.T) {
+	t.Parallel()
+	lines := []string{
+		"policy-file checks judge configuration through declared readers and capabilities, because unsupported constructs must not become false findings.",
+		"capability proposals add to the enrolled set and select their templates, because existing capabilities may not disappear during adoption.",
+		"the core CI template runs the required targets with external enrollment, because remote CI or the platform pipeline is the only gate.",
+		"the rules catalog maps every retained S-class row to delivered prose, because always-loaded instructions must stay small.",
+		"builder and reviewer checklists and the context guide make judgment rules explicit, because those rules cannot be measured by syntax alone.",
+		"the profile guide documents the existing schema and generic remote-gate limitation, because a local installation does not prove remote enforcement.",
+		"kit tests hold the skill, instruction-block and editor-rule budgets, because always-loaded kit prose must stay within A12 limits.",
+		"the optional pre-commit rung names declared-subset limits and leaves migration, API-breaking and generation execution to the pipeline, because a local refusal needs a recognized violation.",
+	}
+	text := string(kitBytes(t, "CHANGELOG.md"))
+	for _, line := range lines {
+		pattern := regexp.MustCompile(`(?m)^- \d{4}-\d{2}-\d{2}: ` +
+			regexp.QuoteMeta(line) + `$`)
+		if !pattern.MatchString(text) {
+			t.Errorf("missing dated M3 change: %s", line)
+		}
+		rows := []struct {
+			name string
+			text string
+			want bool
+		}{
+			{"near dated reason", "- 2026-10-20: " + line, true},
+			{"near later date", "- 2026-10-21: " + line, true},
+			{"red missing date", "- " + line, false},
+			{"red malformed date", "- 2026-1-2: " + line, false},
+			{"red missing behavior", "- 2026-10-20: changed", false},
+		}
+		for _, row := range rows {
+			if got := pattern.MatchString(row.text); got != row.want {
+				t.Errorf("%s: dated entry accepted=%v", row.name, got)
+			}
+		}
+	}
+	if got := lineCount([]byte(text)); got > 300 {
+		t.Fatalf("changelog has %d lines, maximum 300", got)
+	}
 }
