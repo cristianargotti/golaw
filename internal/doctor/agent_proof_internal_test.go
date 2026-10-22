@@ -65,6 +65,12 @@ func agentProofCases() []agentProofCase {
 		{idState, codeTrustUnknown, state},
 		{idState, codeTrustedInactive, state},
 		{idState, codePreviewActive, state},
+		{idPreview, codeWritesNotEnforced, facts(previewLines)},
+		{idCapture, codeCaptureRecorded, facts(captureLines)},
+		{idCapture, codeCaptureAbsent, facts(captureLines)},
+		{idDuplicate, codeDuplicateHook, facts(duplicateLines)},
+		{idDuplicate, codeSkillDuplicate, facts(duplicateLines)},
+		{idCompanion, codeCompanionFound, facts(companionLines)},
 	}
 }
 

@@ -1,10 +1,14 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/cristianargotti/golaw/internal/doctor"
+	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/hook/agents"
+	"github.com/cristianargotti/golaw/internal/install"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
@@ -38,6 +42,43 @@ func TestDoctorInputCarriesTheLanguageOfThePolicy(t *testing.T) {
 	}
 	if got := b.doctorLanguage(t.Context(), t.TempDir(), now()); got != model.DefaultLanguage {
 		t.Fatalf("a directory without a policy = %q", got)
+	}
+}
+
+// TestDoctorInputCarriesTheCapturesOfTheRepository reads the record the
+// capture binding of the hook writes, for the agent at the last position
+// of the registry, which captures; a record that cannot be read is named.
+func TestDoctorInputCarriesTheCapturesOfTheRepository(t *testing.T) {
+	t.Parallel()
+	b, _ := testBinding(t)
+	root := repository(t, true)
+	agent := agents.All()[len(agents.All())-1]
+	state, err := b.installState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, identity, err := install.ProjectIdentity(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest, err := hookDigest(agent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write := hook.Capture{Event: "preToolUse", Tool: "Write", Keys: []string{"file_path"}}
+	path := agents.CapturePath(state, agent.ID, identity)
+	if err = doctor.SaveCapture(path, doctor.CaptureRecord{Identity: identity, HookDigest: digest, Captures: []hook.Capture{write}, SeenAt: now()}); err != nil {
+		t.Fatal(err)
+	}
+	input, err := b.doctorInput(t.Context(), agent, root, scopeUser, now())
+	if err != nil || len(input.Captures) != 1 || input.Captures[0].Tool != "Write" || input.CaptureError != "" {
+		t.Fatalf("captures = %+v, %q, %v", input.Captures, input.CaptureError, err)
+	}
+	if err = os.WriteFile(path, []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if input, err = b.doctorInput(t.Context(), agent, root, scopeUser, now()); err != nil || input.Captures != nil || input.CaptureError == "" {
+		t.Fatalf("an unreadable record = %+v, %v", input, err)
 	}
 }
 
