@@ -52,6 +52,12 @@ func (s *buildSnapshot) Select(match func(string) bool) []model.File {
 	return model.Select(s.Snapshot, match)
 }
 
+// Prefetch forwards the batched load of the wrapped snapshot, so a read
+// through this wrapper still asks git once for the configuration.
+func (s *buildSnapshot) Prefetch(match func(string) bool) {
+	model.Prefetch(s.Snapshot, match)
+}
+
 // Any forwards the existence test of the wrapped snapshot for the same reason.
 func (s *buildSnapshot) Any(match func(string) bool) bool {
 	return model.Any(s.Snapshot, match)

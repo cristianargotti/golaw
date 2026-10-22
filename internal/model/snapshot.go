@@ -130,6 +130,22 @@ type Selector interface {
 	Any(match func(path string) bool) bool
 }
 
+// Prefetcher is a snapshot that loads many paths in one question of its
+// store, so a caller that reads several of them one by one asks once.
+type Prefetcher interface {
+	// Prefetch loads the paths that match; a later read answers from it.
+	Prefetch(match func(path string) bool)
+}
+
+// Prefetch has a snapshot load the matching paths at once when it can, and
+// does nothing otherwise: a snapshot that reads a path cheaply needs no
+// batch.
+func Prefetch(s Snapshot, match func(path string) bool) {
+	if prefetcher, ok := s.(Prefetcher); ok {
+		prefetcher.Prefetch(match)
+	}
+}
+
 // Select answers the files of a snapshot whose paths match, in path order,
 // through the snapshot's own Select when it has one.
 func Select(s Snapshot, match func(path string) bool) []File {
