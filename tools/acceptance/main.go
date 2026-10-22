@@ -28,6 +28,7 @@ func runArgs(out io.Writer, execute executor, lookup locator, args []string) int
 	flags.SetOutput(out)
 	required := flags.Bool("release", false, "require every release evidence row")
 	onlyM2 := flags.Bool("m2", false, "require M2 functional evidence rows")
+	modes := m4FlagSet(flags)
 	if err := flags.Parse(args); err != nil || flags.NArg() != 0 {
 		return 1
 	}
@@ -45,6 +46,9 @@ func runArgs(out io.Writer, execute executor, lookup locator, args []string) int
 	}
 	defer os.RemoveAll(base) //nolint:errcheck // Every path belongs to the disposable acceptance home.
 	s := newSuite(root, base, execute, lookup)
+	if code, routed := modes.route(ctx, out, s, *required); routed {
+		return code
+	}
 	return s.runAcceptance(ctx, out, *required, *onlyM2)
 }
 
