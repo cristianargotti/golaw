@@ -42,7 +42,13 @@ type NativeRunner struct{}
 // Version resolves the agent through the observed search path, because the
 // terminal PATH may name another executable.
 func (NativeRunner) Version(ctx context.Context, environment AgentEnvironment) (string, error) {
-	path, err := ResolveAgentBinary(agentClaude, environment)
+	return runVersion(ctx, agentClaude, environment)
+}
+
+// runVersion runs the agent of a command, resolved through the observed
+// search path, with --version, and keeps what it printed.
+func runVersion(ctx context.Context, agent string, environment AgentEnvironment) (string, error) {
+	path, err := ResolveAgentBinary(agent, environment)
 	if err != nil {
 		return "", err
 	}
