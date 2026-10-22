@@ -4,16 +4,24 @@
     "preToolUse": [
       {
         "command": "golaw hook cursor",
-        "matcher": "Write|Delete|Shell",
+        "matcher": "^(Write|Delete|Shell)$",
         "timeout": 10,
         "failClosed": true
       }
     ],
     "beforeReadFile": [
-      { "command": "golaw hook cursor", "timeout": 10, "failClosed": true }
+      {
+        "command": "golaw hook cursor",
+        "timeout": 10,
+        "failClosed": true
+      }
     ],
     "beforeShellExecution": [
-      { "command": "golaw hook cursor", "timeout": 10, "failClosed": true }
+      {
+        "command": "golaw hook cursor",
+        "timeout": 10,
+        "failClosed": true
+      }
     ],
     "postToolUse": [
       {

@@ -1,0 +1,1 @@
+{"hook_event_name":"postToolUse","conversation_id":"conversation","generation_id":"generation","workspace_roots":["/project"],"cwd":"/project","tool_name":"Shell","tool_use_id":"tool","tool_input":{"command":"printf x > notes.md"},"tool_output":"{\"exitCode\":0}","duration":1}
