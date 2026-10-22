@@ -23,7 +23,7 @@ func (b binding) doctorReport(ctx context.Context, agent agents.Agent, root, sco
 	if err != nil {
 		return doctor.Report{}, err
 	}
-	return doctor.Assess(doctor.Collect(ctx, input, port, doctor.NativeRunner{})), nil
+	return agent.Doctor(ctx, input, port), nil
 }
 
 // doctorInput gathers what doctor needs: the receipt, the running binary,
@@ -45,6 +45,9 @@ func (b binding) doctorInput(ctx context.Context, agent agents.Agent, root, scop
 	input := doctor.Input{Root: root, ReceiptPath: receipt, RunningBinary: running, RequiredRead: rules}
 	input.PolicyDigest, input.ProfileDigest, input.PinnedVersion = b.policyFacts(ctx, root, now)
 	b.observed(agent, root, &input)
+	if err := b.agentDirs(agent, scope, &input); err != nil {
+		return doctor.Input{}, err
+	}
 	return input, nil
 }
 

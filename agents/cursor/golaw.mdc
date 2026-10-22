@@ -1,0 +1,6 @@
+---
+description: golaw engineering standards
+alwaysApply: true
+---
+
+This repository follows the golaw engineering standards. Read .agents/skills/golaw/SKILL.md before you change code, ask before a push or a pull request, and run golaw scan --staged before you finish.
