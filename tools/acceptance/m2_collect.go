@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -129,6 +130,9 @@ func (s *suite) runAcceptance(ctx context.Context, out io.Writer, required, only
 		var additional []row
 		additional, evidence = candidate.m2AcceptanceRows(ctx)
 		rows = append(rows, additional...)
+		m4Rows, m4Evidence := s.collectM4(ctx, true)
+		rows = append(rows, m4Rows...)
+		maps.Copy(evidence, m4Evidence)
 	}
 	return m2ReportCode(reportEvidence(out, rows, version, s.digest, evidence))
 }
