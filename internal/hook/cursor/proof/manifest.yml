@@ -1,0 +1,9 @@
+checks:
+  - id: cursor.envelope
+    code: envelope
+    red: testdata/envelope/red
+    near: testdata/envelope/near
+  - id: cursor.shell
+    code: shell
+    red: testdata/shell/red
+    near: testdata/shell/near

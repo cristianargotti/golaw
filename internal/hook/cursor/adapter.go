@@ -9,8 +9,8 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-// notBuilt is the cause of every event until the adapter is built: the
-// hook fails closed meanwhile.
+// notBuilt is the cause of an input over the bound until its parse is
+// built: the hook fails closed meanwhile.
 func notBuilt() error {
 	return fmt.Errorf("%w: the cursor adapter is not built yet", model.ErrCannotJudge)
 }
@@ -23,9 +23,20 @@ type denial struct {
 }
 
 // Parse decodes an event once: the envelope, the header enrollment reads
-// and the decoder of its request.
-func Parse([]byte) (hook.Parsed, error) {
-	return hook.Parsed{}, notBuilt()
+// and the decoder of its request, which reads the fields the envelope
+// kept and none of the bytes again.
+func Parse(data []byte) (hook.Parsed, error) {
+	input, err := parsePayload(data)
+	if err != nil {
+		return hook.Parsed{}, err
+	}
+	event, err := eventHeader(input)
+	if err != nil {
+		return hook.Parsed{}, err
+	}
+	return hook.Parsed{Event: event, Decode: func(base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
+		return decodeRequest(input, event, base, snapshot)
+	}}, nil
 }
 
 // Oversized parses an event over the bound of the hook in bounded memory.
