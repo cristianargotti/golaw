@@ -147,3 +147,11 @@ checks:
     code: agent-version-unavailable
     red: testdata/version-agent-version-unavailable/red
     near: testdata/version-agent-version-unavailable/near
+  - id: doctor.binary-binary-differs
+    code: binary-differs
+    red: testdata/binary-binary-differs/red
+    near: testdata/binary-binary-differs/near
+  - id: doctor.binary-binary-unresolved
+    code: binary-unresolved
+    red: testdata/binary-binary-unresolved/red
+    near: testdata/binary-binary-unresolved/near

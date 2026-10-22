@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"maps"
 	"os"
+	"runtime"
 	"slices"
 
 	"github.com/cristianargotti/golaw/internal/hook"
@@ -44,6 +45,8 @@ type agentFacts struct {
 
 	Version      string `json:"version"`
 	VersionError string `json:"version_error"`
+
+	Binaries []binaryFact `json:"binaries"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the
@@ -78,6 +81,7 @@ func collectAgent(input Input) agentFacts {
 		slots, err := readSlots(receipt.HooksPath, input.Agent == agentCursor)
 		facts.Receipt.Drift = receiptDrift(receipt, input.Agent, slots, err)
 		facts.Events = eventFacts(receipt, slots)
+		facts.Binaries = collectBinaries(receipt, slots, input.Agent, input.RunningBinary, runtime.GOOS)
 	}
 	facts.Duplicates = collectDuplicates(input, receipt.HooksPath)
 	facts.Companions = collectCompanions(input, receipt)

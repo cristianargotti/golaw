@@ -44,6 +44,7 @@ type agentAssessment struct {
 func agentAssessments() []agentAssessment {
 	return []agentAssessment{
 		{idInstalled, installedLines},
+		{idBinary, hookBinaryLines},
 		{idTrusted, trustedLines},
 		{idFailMode, failModeLines},
 		{idVersion, codexVersionLines},
