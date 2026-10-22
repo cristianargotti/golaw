@@ -40,6 +40,7 @@ type agentFacts struct {
 	CaptureError string         `json:"capture_error"`
 
 	Duplicates []duplicateFact `json:"duplicates"`
+	Companions []companionFact `json:"companions"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the
@@ -76,6 +77,7 @@ func collectAgent(input Input) agentFacts {
 		facts.Events = eventFacts(receipt, slots)
 	}
 	facts.Duplicates = collectDuplicates(input, receipt.HooksPath)
+	facts.Companions = collectCompanions(input, receipt)
 	return facts
 }
 

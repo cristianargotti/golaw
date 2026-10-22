@@ -49,6 +49,7 @@ func agentAssessments() []agentAssessment {
 		{idPreview, previewLines},
 		{idCapture, captureLines},
 		{idDuplicate, duplicateLines},
+		{idCompanion, companionLines},
 	}
 }
 

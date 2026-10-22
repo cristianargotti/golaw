@@ -135,3 +135,7 @@ checks:
     code: skill-duplicate
     red: testdata/duplicate-skill-duplicate/red
     near: testdata/duplicate-skill-duplicate/near
+  - id: doctor.companion-companion-found
+    code: companion-found
+    red: testdata/companion-companion-found/red
+    near: testdata/companion-companion-found/near

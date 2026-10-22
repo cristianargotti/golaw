@@ -70,6 +70,7 @@ func agentProofCases() []agentProofCase {
 		{idCapture, codeCaptureAbsent, facts(captureLines)},
 		{idDuplicate, codeDuplicateHook, facts(duplicateLines)},
 		{idDuplicate, codeSkillDuplicate, facts(duplicateLines)},
+		{idCompanion, codeCompanionFound, facts(companionLines)},
 	}
 }
 
