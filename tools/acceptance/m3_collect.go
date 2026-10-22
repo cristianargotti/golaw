@@ -23,6 +23,7 @@ func m3Catalogs() []m3Catalog {
 	return []m3Catalog{
 		{category: m3PolicyCategory, names: m3PolicyNames(), run: (*suite).policyM3},
 		{category: m3TemplateCategory, names: m3TemplateNames(), only: m3ReplayOS, run: (*suite).templateM3},
+		{category: m3AdoptionCategory, names: m3AdoptionNames(), run: (*suite).adoptionM3},
 	}
 }
 
