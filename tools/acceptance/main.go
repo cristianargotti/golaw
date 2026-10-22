@@ -13,7 +13,7 @@ import (
 // collectedRows is the number of rows beyond the fixtures a run adds.
 const (
 	categoryDependency = "dependency"
-	collectedRows      = 21
+	collectedRows      = 20
 )
 
 func main() { os.Exit(run(os.Stdout, runCommand, exec.LookPath)) }
@@ -72,7 +72,6 @@ func (s *suite) collect(ctx context.Context, required bool) ([]row, string) {
 	rows = append(rows,
 		row{categoryDependency, "internal-replace", statusSkip, "dependency checks enter in M3", false},
 		row{categoryDependency, "external-replace", statusSkip, "dependency checks enter in M3", false},
-		row{"adapter", "additional-patch-shapes", statusSkip, "additional adapters enter in M4", false},
 	)
 	return rows, version
 }
