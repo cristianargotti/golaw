@@ -27,8 +27,7 @@ func DependabotCooldown() model.Check { return dependabotCooldown{} }
 func (dependabotCooldown) Spec() model.Spec { return spec("dependabot-cooldown", ruleSupply) }
 
 func (dependabotCooldown) Run(_ context.Context, in model.Input) (model.Result, error) {
-	const file = ".github/dependabot.yml"
-	data, found, err := read(in, file)
+	file, data, found, err := dependabotFile(in)
 	if err != nil {
 		return answer(file, err), nil
 	}
@@ -49,6 +48,27 @@ func (dependabotCooldown) Run(_ context.Context, in model.Input) (model.Result, 
 		}
 	}
 	return result, nil
+}
+
+// dependabotFile reads the configuration under either name Dependabot
+// reads; both at once is a stated limit, because which one it obeys is not
+// the reader's to decide.
+func dependabotFile(in model.Input) (string, []byte, bool, error) {
+	const yml, yaml = ".github/dependabot.yml", ".github/dependabot.yaml"
+	data, found, err := read(in, yml)
+	if err != nil {
+		return yml, nil, false, err
+	}
+	other, present, err := read(in, yaml)
+	switch {
+	case err != nil:
+		return yaml, nil, false, err
+	case found && present:
+		return yaml, nil, false, outside(yaml, 1, "both "+yml+" and "+yaml+", of which Dependabot reads one; keep one")
+	case present:
+		return yaml, other, true, nil
+	}
+	return yml, data, found, nil
 }
 
 func cooldownRepairs(update dependabotUpdate) []string {
