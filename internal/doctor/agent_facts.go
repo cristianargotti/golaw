@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 
+	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/install"
 )
 
@@ -34,6 +35,9 @@ type agentFacts struct {
 	Receipt  receiptFact `json:"receipt"`
 	Events   []eventFact `json:"events"`
 	Dispatch Dispatch    `json:"dispatch"`
+
+	Captures     []hook.Capture `json:"captures"`
+	CaptureError string         `json:"capture_error"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the
@@ -58,7 +62,10 @@ type eventFact struct {
 // file: the receipt, every artifact, entry and block it lists, the fail
 // mode of every event it answers and the dispatch the binding observed.
 func collectAgent(input Input) agentFacts {
-	facts := agentFacts{Agent: input.Agent, Scope: input.Scope, Dispatch: input.Dispatch}
+	facts := agentFacts{
+		Agent: input.Agent, Scope: input.Scope, Dispatch: input.Dispatch,
+		Captures: input.Captures, CaptureError: input.CaptureError,
+	}
 	receipt, fact := readReceiptFact(input.ReceiptPath)
 	facts.Receipt = fact
 	if fact.State != receiptRead {

@@ -49,6 +49,7 @@ func (b binding) doctorInput(ctx context.Context, agent agents.Agent, root, scop
 		return doctor.Input{}, err
 	}
 	input.Language = b.doctorLanguage(ctx, root, now)
+	b.captured(agent, root, &input)
 	return input, nil
 }
 
