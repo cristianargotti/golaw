@@ -122,7 +122,7 @@ The lint configuration delivers most engineering rules: the required linters, th
 
 | Check | Rule | Needs | Why and boundary |
 | --- | --- | --- | --- |
-| policy.golangci | rules/4.5@1 | go | A root .golangci.yml missing, a required linter off or disabled, a required linter freed by an exclusion the allowed_exclusions of golaw.yml do not name, govet without shadow, an inner layer without a strict depguard rule under hexagonal, or float32 not forbidden, because make lint enforces only what the configuration enables. |
+| policy.golangci | rules/4.5@1 | go | A root .golangci.yml missing, a required linter off or disabled, a required linter freed by an exclusion the allowed_exclusions of golaw.yml do not name (a text or source pattern that matches every issue, such as .*, narrows nothing), govet without shadow, an inner layer without a strict depguard rule under hexagonal, or float32 not forbidden, because make lint enforces only what the configuration enables. |
 | policy.ruleguard | rules/4.5@1 | go | A gocritic without its ruleguard check, a ruleguard without the rules file it names, or a rules file without the byte cut rule, because no linter golangci-lint ships carries that rule; a go.mod without the dsl stops make lint and is init's proposal, not a finding. |
 
 ## rules/4.6@1
