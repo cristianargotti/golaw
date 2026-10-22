@@ -10,6 +10,10 @@ checks:
     code: dependabot-cooldown-short
     red: testdata/policy.dependabot-cooldown/red
     near: testdata/policy.dependabot-cooldown/near
+  - id: policy.deps-age-config
+    code: deps-age-minimum
+    red: testdata/policy.deps-age-config/red
+    near: testdata/policy.deps-age-config/near
   - id: policy.image-digest
     code: image-digest-missing
     red: testdata/policy.image-digest/red
