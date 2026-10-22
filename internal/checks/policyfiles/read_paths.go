@@ -7,7 +7,7 @@ import (
 
 // The configuration files a reader of the family may read: at the root of
 // the repository, and below it, beside the make includes, the Dockerfiles,
-// the Actions workflows and the decision records.
+// the Actions files and the decision records.
 const (
 	rootConfigurations = "Makefile GNUmakefile makefile go.mod go.work lefthook.yml lefthook.yaml lefthook-local.yml " +
 		".golangci.yml .golangci.yaml .golangci.toml .golangci.json .gitleaks.toml .squawk.toml CODEOWNERS " +

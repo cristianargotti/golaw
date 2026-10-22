@@ -241,7 +241,7 @@ Each reader of `internal/checks/policyfiles/` reads one format through the subse
 
 ## Repository laws
 
-Files contain at most 300 lines. Functions contain at most 40 lines under funlen semantics, with comments ignored. Tests retain the file limit and lose the function limit.
+Files contain at most 300 lines. Functions contain at most 40 lines under funlen semantics, with comments ignored. Tests retain the file limit and lose the function limit. Generated code, a file whose header marks it generated, has no author to hold to either limit and is exempt, as scan exempts it; the templates under templates/examples/service/api/generated render the output of oapi-codegen with that header, so their size is the generator's.
 
 Coverage is at least 80 percent total, per package, and per file, with the 20 statement minimum and no kit exemptions.
 
