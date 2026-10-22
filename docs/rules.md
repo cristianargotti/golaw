@@ -166,7 +166,7 @@ A version enters seven days after publication, every direct module has a decisio
 
 | Check | Rule | Needs | Why and boundary |
 | --- | --- | --- | --- |
-| policy.openapi-assertions | rules/4.10@1 | api | A redocly.yaml missing or without the error-level number-double, response-example and example-validation rules, or a contract it names whose number schemas lack format double or whose responses lack an example, because consumers hold the contract to those assertions; a contract not written yet is skipped. |
+| policy.openapi-assertions | rules/4.10@1 | api | A redocly.yaml missing or without the error-level number-double, response-example and example-validation rules, or a contract it names whose number schemas lack format double or whose responses lack an example, because consumers hold the contract to those assertions; a contract not written yet is skipped, and a redocly.yml, .redocly.yaml or .redocly.yml in place of an absent redocly.yaml is a stated limit whose reason names the rename. |
 
 ## rules/4.12@1
 
