@@ -3,7 +3,6 @@ package install
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -61,20 +60,6 @@ func TestClaudeReceiptCarriesNoFieldOfTheOtherAgents(t *testing.T) {
 	for _, key := range []string{`"agent"`, `"hooks_path"`, `"hooks_created"`, `"entries"`, `"blocks"`} {
 		if strings.Contains(string(data), key) {
 			t.Fatalf("a receipt without the fields of M4 writes %s: %s", key, data)
-		}
-	}
-}
-
-func TestPlannersOfAgentsNotBuiltRefuse(t *testing.T) {
-	t.Parallel()
-	options := Options{Root: t.TempDir(), Scope: "user"}
-	receipt := filepath.Join(t.TempDir(), "receipt.json")
-	for name, plan := range map[string]func() (Plan, error){
-		"cursor install":   func() (Plan, error) { return PlanCursor(options) },
-		"cursor uninstall": func() (Plan, error) { return UninstallCursor(receipt) },
-	} {
-		if _, err := plan(); !errors.Is(err, ErrNotBuilt) {
-			t.Errorf("%s: %v", name, err)
 		}
 	}
 }

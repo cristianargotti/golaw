@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {"command":"first-check","matcher":"Write","timeout":3,"failClosed":true},
+      {"command":"second-check","matcher":"Shell","timeout":4,"failClosed":true}
+    ],
+    "beforeReadFile": [
+      {"command":"read-check","timeout":2,"failClosed":true}
+    ]
+  }
+}
