@@ -1,7 +1,5 @@
 package install
 
-import "fmt"
-
 // codexProjectNote is the step a project installation needs on top of the
 // hook review: Codex loads the .codex folder of a project only once the
 // person trusts that project.
@@ -34,7 +32,28 @@ func PlanCodex(options Options) (Plan, error) {
 	return plan, nil
 }
 
-// UninstallCodex plans the removal of what a Codex receipt lists.
+// UninstallCodex plans the removal of exactly what a Codex receipt lists:
+// its handlers, its rules file, the shared skill when no other agent still
+// lists it, its marked block, and the receipt last. Without a receipt
+// nothing is guessed, and the trust record of Codex is never touched.
 func UninstallCodex(receiptPath string) (Plan, error) {
-	return Plan{}, fmt.Errorf("codex receipt %s: %w", receiptPath, ErrNotBuilt)
+	receipt, err := ReadReceipt(receiptPath)
+	if err != nil {
+		return Plan{}, err
+	}
+	stateDir, err := codexReceiptState(receiptPath, receipt)
+	if err != nil {
+		return Plan{}, err
+	}
+	plan := Plan{Receipt: receipt, ReceiptPath: receiptPath, Uninstall: true}
+	if err := removeCodexHooks(&plan); err != nil {
+		return Plan{}, err
+	}
+	if err := removeCodexArtifacts(&plan, stateDir); err != nil {
+		return Plan{}, err
+	}
+	if err := addChange(&plan, receiptPath, nil, true); err != nil {
+		return Plan{}, err
+	}
+	return plan, nil
 }
