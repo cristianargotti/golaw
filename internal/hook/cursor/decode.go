@@ -20,6 +20,8 @@ func decodeRequest(input payload, event model.Event, base hook.Base, _ model.Sna
 		return preRequest(input, event)
 	case readEvent:
 		return readRequest(input, event, base)
+	case postEvent, failureEvent:
+		return postRequest(input, event)
 	default:
 		return hook.Request{}, fmt.Errorf("%w: unsupported cursor event %s", model.ErrCannotJudge, name)
 	}

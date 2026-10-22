@@ -1,0 +1,1 @@
+{"hook_event_name":"preToolUse","conversation_id":"conversation","generation_id":"generation","workspace_roots":["/project"],"cwd":"/project","tool_name":"Write","tool_use_id":"tool","tool_input":{"__undocumented__":true}}
