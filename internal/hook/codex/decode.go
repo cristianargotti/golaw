@@ -11,10 +11,11 @@ import (
 // toolInput is the tool input of an event decoded once: the command both
 // canonical tools carry in tool_input.command, with what the decoding met,
 // which the decoder answers once the event is enrolled, so enrollment
-// precedes every reconstruction.
+// precedes every reconstruction, and the tool_response of a post event.
 type toolInput struct {
-	command *string
-	err     error
+	command  *string
+	err      error
+	response json.RawMessage
 }
 
 // readInput decodes the tool input of a Bash or apply_patch event once; the
@@ -26,7 +27,7 @@ func readInput(w wire) toolInput {
 	var shell struct {
 		Command *string `json:"command"`
 	}
-	in := toolInput{err: json.Unmarshal(w.Input, &shell)}
+	in := toolInput{err: json.Unmarshal(w.Input, &shell), response: w.Response}
 	in.command = shell.Command
 	return in
 }
@@ -43,13 +44,10 @@ func (in toolInput) text(tool string) (string, error) {
 	return *in.command, nil
 }
 
-// decode is the request of an event from its one parse: a post event and a
-// tool outside the two canonical ones are refused here, after enrollment,
-// so an unenrolled location keeps its valid allow.
+// decode is the request of an event from its one parse: a tool outside the
+// two canonical ones is refused here, after enrollment, so an unenrolled
+// location keeps its valid allow.
 func decode(event model.Event, in toolInput, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
-	if event.Shape == model.ShapePost {
-		return hook.Request{}, fmt.Errorf("%w: the Codex post routes are not decoded yet", model.ErrCannotJudge)
-	}
 	if event.Tool != bashTool && event.Tool != patchTool {
 		return hook.Request{}, fmt.Errorf("%w: unsupported Codex tool %s", model.ErrCannotJudge, event.Tool)
 	}
@@ -57,10 +55,14 @@ func decode(event model.Event, in toolInput, base hook.Base, snapshot model.Snap
 	if err != nil {
 		return hook.Request{}, err
 	}
-	if event.Tool == patchTool {
+	switch {
+	case event.Shape == model.ShapePost:
+		return postRequest(event, command, in.response, base)
+	case event.Tool == patchTool:
 		return patchRequest(event, command, base, snapshot)
+	default:
+		return shellRequest(event, command, base, snapshot)
 	}
-	return shellRequest(event, command, base, snapshot)
 }
 
 // shellRequest normalizes a Bash pre event: the command text as the shell
