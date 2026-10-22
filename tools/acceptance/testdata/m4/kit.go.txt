@@ -1,0 +1,60 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"os"
+)
+
+// marker is the text the second kit refuses wherever a payload holds it.
+const marker = "second-kit-deny"
+
+// The second kit of A13: a binary of its own with its own hook entry, which
+// refuses what it recognizes and allows everything else, in the answer of
+// the agent its one argument names.
+func main() {
+	input, err := io.ReadAll(os.Stdin)
+	if err != nil || len(os.Args) != 2 {
+		fail("second kit: unreadable input")
+	}
+	denied := bytes.Contains(input, []byte(marker))
+	switch os.Args[1] {
+	case "codex":
+		if denied {
+			deny("second kit: denied")
+		}
+	case "cursor":
+		answer := `{"permission":"allow"}`
+		if denied {
+			answer = `{"permission":"deny","user_message":"segundo kit: negado","agent_message":"second kit: denied"}`
+		}
+		if _, err := fmt.Println(answer); err != nil {
+			os.Exit(1)
+		}
+	default:
+		fail("second kit: unknown agent")
+	}
+}
+
+// deny is the Codex denial that blocks through every shell: the deny JSON
+// with exit 0 and the reason on stderr (D5 as the owner amended it on
+// 2026-10-21).
+func deny(reason string) {
+	answer := `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"` +
+		reason + `"},"systemMessage":"segundo kit: negado"}`
+	if _, err := fmt.Println(answer); err != nil {
+		os.Exit(1)
+	}
+	if _, err := fmt.Fprintln(os.Stderr, reason); err != nil {
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func fail(reason string) {
+	if _, err := fmt.Fprintln(os.Stderr, reason); err != nil {
+		os.Exit(1)
+	}
+	os.Exit(2)
+}

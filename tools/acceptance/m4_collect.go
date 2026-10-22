@@ -34,6 +34,7 @@ func m4Catalogs() []m4Catalog {
 		{agent: agentCursor, version: m4Unversioned, rows: (*suite).m4CursorRows},
 		{agent: m4AllAgents, version: codex.PatchGrammar, rows: (*suite).m4ReasonRows},
 		{agent: m4AllAgents, version: codex.PatchGrammar, rows: (*suite).m4FailureRows},
+		{agent: m4AllAgents, version: codex.PatchGrammar, rows: (*suite).m4OrderRows},
 	}
 }
 
