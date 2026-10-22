@@ -12,8 +12,9 @@ import (
 )
 
 // The agents of the registry by position, so this file names none: the
-// first answers through exit codes and stderr, the second through exit 2
-// and stderr, the third through the JSON it always prints.
+// first answers through exit codes and stderr, the second through its deny
+// JSON with exit 0 and the reason on stderr, the third through the JSON it
+// always prints.
 func registryIDs(t *testing.T) (string, string, string) {
 	t.Helper()
 	ids := agents.IDs()
@@ -26,12 +27,13 @@ func registryIDs(t *testing.T) (string, string, string) {
 func TestHookOfTheAgentsNotBuiltFailsClosed(t *testing.T) {
 	t.Parallel()
 	_, second, third := registryIDs(t)
-	for id, want := range map[string]int{second: exitFailure, third: exitClean} {
+	for id, want := range map[string]int{second: exitClean, third: exitClean} {
 		ta := newTestApp(t)
 		ta.stdin = bytes.NewReader([]byte(`{"hook_event_name":"PreToolUse"}`))
 		ta.hookDeps = func(agents.Agent, time.Time) (hook.Dependencies, error) { return hook.Dependencies{}, nil }
 		got := ta.run(t.Context(), []string{"hook", id})
-		denied := strings.Contains(ta.stdout.String(), `"permission":"deny"`) || strings.Contains(ta.stderr.String(), "cannot judge")
+		denied := strings.Contains(ta.stdout.String(), `"permission":"deny"`) ||
+			strings.Contains(ta.stdout.String(), `"permissionDecision":"deny"`) && strings.Contains(ta.stderr.String(), "cannot judge")
 		if got != want || !denied {
 			t.Errorf("%s: exit %d stdout %q stderr %q", id, got, ta.stdout.String(), ta.stderr.String())
 		}

@@ -23,3 +23,27 @@ checks:
     code: apply-patch-delete
     red: testdata/apply-patch-delete/red
     near: testdata/apply-patch-delete/near
+  - id: codex.bash
+    code: bash
+    red: testdata/bash/red
+    near: testdata/bash/near
+  - id: codex.heredoc-patch
+    code: heredoc-patch
+    red: testdata/heredoc-patch/red
+    near: testdata/heredoc-patch/near
+  - id: codex.heredoc-patch-cd
+    code: heredoc-patch-cd
+    red: testdata/heredoc-patch-cd/red
+    near: testdata/heredoc-patch-cd/near
+  - id: codex.heredoc-cat
+    code: heredoc-cat
+    red: testdata/heredoc-cat/red
+    near: testdata/heredoc-cat/near
+  - id: codex.post-apply-patch
+    code: post-apply-patch
+    red: testdata/post-apply-patch/red
+    near: testdata/post-apply-patch/near
+  - id: codex.post-bash
+    code: post-bash
+    red: testdata/post-bash/red
+    near: testdata/post-bash/near

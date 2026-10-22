@@ -1,0 +1,1 @@
+{"session_id":"session","turn_id":"turn","transcript_path":null,"cwd":"/project","hook_event_name":"PreToolUse","model":"model","permission_mode":"default","tool_name":"Bash","tool_input":{"command":"git commit --no-verify -m x"},"tool_use_id":"tool"}
