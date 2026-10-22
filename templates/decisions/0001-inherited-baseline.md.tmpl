@@ -18,15 +18,19 @@ modules:
 
 {{if eq .Language "pt-BR"}}# Dependências herdadas
 
-Esta lista registra as dependências diretas existentes. Uma entrada negada exige substituição ou remoção. A entrada kit é o módulo que scripts/lint/rules.go importa; o go.mod o recebe pela proposta do golaw init.
+Esta lista registra as dependências diretas existentes. Uma entrada negada exige substituição ou remoção. A entrada kit é o módulo que scripts/lint/rules.go importa; o go.mod o recebe pela proposta do golaw init. As entradas kit tool são os módulos de tools/go.mod, as ferramentas que o kit gerencia.
 
 | Módulo | Versão | Estado |
 {{else}}# Inherited dependencies
 
-This list records existing direct dependencies. A denied entry requires replacement or removal. The kit entry is the module scripts/lint/rules.go imports; go.mod receives it through the golaw init proposal.
+This list records existing direct dependencies. A denied entry requires replacement or removal. The kit entry is the module scripts/lint/rules.go imports; go.mod receives it through the golaw init proposal. The kit tool entries are the modules of tools/go.mod, the tools the kit manages.
 
 | Module | Version | Status |
 {{end}}| --- | --- | --- |
 {{range .DirectRequires}}| {{.Path}} | {{.Version}} | {{if or (eq .Path "github.com/pkg/errors") (hasPrefix .Path "github.com/pkg/errors/") (eq .Path "github.com/sirupsen/logrus") (hasPrefix .Path "github.com/sirupsen/logrus/") (eq .Path "github.com/swaggo") (hasPrefix .Path "github.com/swaggo/")}}denied{{else}}inherited{{end}} |
 {{end}}{{if not $dsl}}| github.com/quasilyte/go-ruleguard/dsl | v0.3.23 | kit |
-{{end}}
+{{end}}| github.com/evilmartians/lefthook/v2 | v{{.Tools.lefthook}} | kit tool |
+| github.com/golangci/golangci-lint/v2 | v{{index .Tools "golangci-lint"}} | kit tool |
+| github.com/zricethezav/gitleaks/v8 | v{{.Tools.gitleaks}} | kit tool |
+| golang.org/x/vuln | v{{.Tools.govulncheck}} | kit tool |
+
