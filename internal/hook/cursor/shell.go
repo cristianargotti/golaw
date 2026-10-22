@@ -6,7 +6,10 @@ import (
 )
 
 // shellRequest is the request of a beforeShellExecution event: its
-// command, judged by the shell family where the envelope says it runs.
+// command, judged by the shell family where the envelope says it runs, as
+// preToolUse Shell judges it (decision 13 of the plan); the two differ in
+// identity only, this one keeping no baseline because it carries no tool
+// use.
 func shellRequest(input payload, event model.Event) (hook.Request, error) {
 	command, err := input.required(commandField)
 	if err != nil {
