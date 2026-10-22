@@ -14,6 +14,7 @@ type makefile struct {
 	vars    []makeVar     // Every assignment, including exports, in read order.
 	missing []makeInclude // Include lines whose files the snapshot does not hold.
 	opaque  []makeOpaque  // Top-level function expressions kept without execution.
+	double  []makeRule    // Double-colon rules, their targets alone, outside the rules the checks read.
 }
 
 // makeRule preserves an explicit rule and its source for the checks' evidence.
@@ -75,7 +76,8 @@ type makeReader struct {
 // root-relative literal includes and snapshot globs, unevaluated conditional
 // blocks with else chains, define blocks, target-specific assignments and
 // opaque top-level functions. Only literal variable references are expanded;
-// computed includes, include cycles and double-colon rules are stated limits.
+// computed includes and include cycles are stated limits, and a double-colon
+// rule is recorded with its targets for the check that needs one of them.
 // Expansion preserves a raw token beyond 32 active references or MaxReadBytes
 // of work, because even a shallow chain can otherwise grow exponentially.
 func readMakefile(in model.Input, path string) (makefile, error) {

@@ -17,7 +17,6 @@ func TestMakeReaderNamesItsLimits(t *testing.T) {
 	}{
 		{"red computed include", "include $(PART)\n", "$(PART)"},
 		{"red cycle", "include Makefile\n", "cycle"},
-		{"red double colon", "ci:: lint\n", "::"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -30,6 +29,23 @@ func TestMakeReaderNamesItsLimits(t *testing.T) {
 				t.Fatalf("limit does not name its source: %v", err)
 			}
 		})
+	}
+}
+
+// TestMakeReaderRecordsDoubleColonRules keeps a double-colon rule out of
+// the rules the checks read and beside them with its targets, so only a
+// check that needs one of those targets states it as a limit.
+func TestMakeReaderRecordsDoubleColonRules(t *testing.T) {
+	t.Parallel()
+	got, err := readMakefile(makeInput(map[string]string{"Makefile": "lint:\nclean::\n\tgo clean\nci:: lint\n"}), "Makefile")
+	if err != nil || len(got.double) != 2 || slices.ContainsFunc(got.rules, func(r makeRule) bool { return slices.Contains(r.targets, "ci") }) {
+		t.Fatalf("double-colon reading = %+v, %v", got, err)
+	}
+	if err := makeTargetLimit(got, "ci"); !errors.Is(err, model.ErrOutsideSubset) || !strings.Contains(err.Error(), "Makefile:4: double-colon rule ci::") {
+		t.Fatalf("ci limit = %v", err)
+	}
+	if err := makeTargetLimit(got, "lint"); err != nil {
+		t.Fatalf("a single-colon target beside a double-colon rule = %v", err)
 	}
 }
 

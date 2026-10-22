@@ -12,6 +12,7 @@ func TestM3ReaderRowsNameEachRewrite(t *testing.T) {
 	t.Parallel()
 	rows := []struct{ reader, limit, resolve string }{
 		{"readMakefile", "an opaque recipe", "write the delegation as a prerequisite of ci or as make <target> on its own line"},
+		{"readMakefile", "named as double-colon rule <target>::, only for a check that needs one of them", "use a single-colon rule"},
 	}
 	lines := strings.Split(string(kitBytes(t, m3RulesPath)), "\n")
 	for _, row := range rows {
