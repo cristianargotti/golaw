@@ -22,7 +22,7 @@ func completeExecutor(t *testing.T) executor {
 	for i := range cross {
 		wants[cross[i].f.name] = cross[i].f.want
 	}
-	return reenrollAnswers(t, existingAnswers(doctorAnswers(faultExecutor(t, func(ctx context.Context, c command) result {
+	return dependencyAnswers(reenrollAnswers(t, existingAnswers(doctorAnswers(faultExecutor(t, func(ctx context.Context, c command) result {
 		if len(c.args) == 0 || c.args[0] != commandHook {
 			return base(ctx, c)
 		}
@@ -42,7 +42,7 @@ func completeExecutor(t *testing.T) executor {
 			want = wantAllow
 		}
 		return simulatedAnswer(want)
-	}), reportAnswer(t, nil)), refusalBeforeCommit(), result{}), "")
+	}), reportAnswer(t, nil)), refusalBeforeCommit(), result{}), ""))
 }
 
 func TestRunInProcess(t *testing.T) {
