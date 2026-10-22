@@ -1,6 +1,6 @@
-# M2 setup
+# Setup
 
-M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. Other agent adapters belong to later milestones.
+M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). Other agent adapters belong to later milestones; a warning about the chain of agent instruction files concerns that later adapter integration, not a new installation of M3.
 
 Adopting repositories need Go 1.24 or newer. Building the kit needs Go 1.27. Claude Code 2.1.295 is the minimum host version; 2.1.299 is validated.
 
@@ -32,7 +32,7 @@ The managed list in golaw.yml records kit-owned template paths and the hashes in
 
 Commit the reviewed golaw.yml before agent install; init --apply ends with a line that asks for that commit while HEAD does not hold the policy it enrolled. On a branch that already has a commit, the policy in force is the golaw.yml at HEAD, so until a commit holds the file agent install refuses the enrolled repository and names this step, and scan exits 2, while an installed agent guard judges with the enrolled golaw.yml the index or the checkout holds, as long as it is the policy init enrolled, and otherwise denies with a reason that asks for the commit. On a new repository without a commit, the enrollment record carries the policy until the first commit.
 
-init --apply never renders over a golaw.yml the checkout already holds: it keeps the reviewed policy and records managed template hashes without replacing its settings. It enrolls that policy. To start again from the defaults, remove the file first.
+init --apply never renders over a golaw.yml the checkout already holds: it keeps the reviewed policy and records managed template hashes without replacing its settings. It enrolls that policy. The one reviewed change init makes to such a policy is the additive capability proposal of golaw init --capabilities, described under Capabilities and policy-file limits. To start again from the defaults, remove the file first.
 
 A committed change that changes the policy digest leaves the enrollment record behind: scan exits 2 and the guard denies until agent install enrolls the policy in force, printing the old and the new digest. The record follows a tightening only, so agent install and init --apply refuse to enroll a policy that weakens the enrolled one and name the floor.
 
@@ -75,7 +75,24 @@ golaw init --update
 golaw init --update --apply
 ```
 
-The preview writes nothing and shows the managed-file changes and exact version pin. Local edits are kept and reported. Apply writes the reviewed updates and matching enrollment record, preserving locally edited managed files. Stage every file listed in the reviewed update diff, exclude unrelated edits, and commit with the feat type so HEAD holds the updated policy. Keep the installed binary, kit.version and enrollment digests together. Run golaw setup again if you want the local rungs armed with the updated tool pins, then golaw doctor.
+The preview writes nothing and shows the managed-file changes and exact version pin. Local edits are kept and reported. Apply writes the reviewed updates and matching enrollment record, preserving locally edited managed files. In a repository whose managed list records the kit templates, the update also writes the kit files a new version adds, each named in an `Arquivo novo do kit` line, and proposes the missing lines of a merged file such as the Makefile, which you apply as on adoption; a developer file and a repository that never adopted the templates are left alone. Stage every file listed in the reviewed update diff, exclude unrelated edits, and commit with the feat type so HEAD holds the updated policy. Keep the installed binary, kit.version and enrollment digests together. Run golaw setup again if you want the local rungs armed with the updated tool pins, then golaw doctor.
+
+## Capabilities and policy-file limits
+
+A capability names a shape of the repository and selects the checks and the templates that fit it: go for a Go module, cli for a command, api for a served contract, db for migrations and queries, hexagonal for the inner layers, image for a Dockerfile. api, cli, db and hexagonal each require go; image and go can stand alone. Unknown or repeated capabilities are invalid. A policy that breaks an implication is refused with the capability and the fix named. The capabilities in force are the reviewed capabilities line of golaw.yml and nothing else; nothing infers them from the files of the repository or from its remote.
+
+For a new repository, name the capabilities on the first init:
+
+```sh
+golaw init --capabilities go,api,db,hexagonal
+golaw init --capabilities go,api,db,hexagonal --apply
+```
+
+On an existing policy, the flag adds to the capabilities already enrolled. The preview writes nothing. It prints the diff of the capabilities line and the templates the new capabilities select, as a proposal over the reviewed policy. An explicit capability proposal adds to the existing set and never removes a capability. Apply writes the reviewed policy, matching enrollment and newly selected templates. Commit golaw.yml with the feat type, as on adoption. The flag beside --update is refused, because the update keeps the capabilities of golaw.yml: grow them first, commit, then update. doctor.capabilities reports the capabilities in force.
+
+A check applies only where its capability holds. With go off, coverage and Go rung steps are not applicable. golaw coverage answers not applicable and exits 0, the pre-commit rung skips its Go steps, and every check that needs go answers NotApplicable. A disabled rung returns without a finding. The pre-push rung runs govulncheck only. M3 leaves migration, API-breaking and generation execution to their pipeline targets. The pre-commit rung names migrate-lint when a .sql file under a migrations directory is staged under db, openapi-breaking when openapi.yaml, openapi.yml or openapi.json is staged under api, and generate-check when a source of a generator configuration the index tracks is staged, and runs no tool for them.
+
+The policy checks read each configuration through a declared subset, stated reader by reader in [rules.md](rules.md) with the rewrite that clears each limit. Outside the declared subset is Unmeasured, never a finding. The reason names the file, line and construct and ends with a pointer to that page. In scan and in the pipeline a required Unmeasured check exits 2. The pre-commit rung names that limit and continues unless another result refuses the commit. The remote gate of an adopting platform, and what a profile adds, is what [profiles.md](profiles.md) says.
 
 ## Read the result
 
