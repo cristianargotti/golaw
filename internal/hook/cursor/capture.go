@@ -55,10 +55,12 @@ func captureKeys(input json.RawMessage) ([]string, error) {
 	if len(trimmed) == 0 || trimmed[0] != '{' {
 		return []string{jsonType(trimmed)}, nil
 	}
-	names := map[string]struct{}{}
-	if err := collectKeys("", trimmed, names); err != nil {
-		return nil, err
+	var object map[string]any
+	if err := json.Unmarshal(trimmed, &object); err != nil {
+		return nil, inputError(err)
 	}
+	names := map[string]struct{}{}
+	collectKeys("", object, names)
 	return slices.Sorted(maps.Keys(names)), nil
 }
 
@@ -70,43 +72,26 @@ func inputError(err error) error {
 
 // collectKeys adds the keys of an object under prefix and descends into
 // what each value holds.
-func collectKeys(prefix string, raw json.RawMessage, names map[string]struct{}) error {
-	var object map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &object); err != nil {
-		return inputError(err)
-	}
+func collectKeys(prefix string, object map[string]any, names map[string]struct{}) {
 	for name, value := range object {
 		full := prefix + name
 		names[full] = struct{}{}
-		if err := collectNested(full+".", value, names); err != nil {
-			return err
-		}
+		collectNested(full+".", value, names)
 	}
-	return nil
 }
 
 // collectNested descends into a value that may hold objects: an object by
 // its keys under prefix, an array by the objects it holds, and a scalar
 // adds nothing.
-func collectNested(prefix string, value json.RawMessage, names map[string]struct{}) error {
-	trimmed := bytes.TrimSpace(value)
-	switch {
-	case len(trimmed) == 0:
-		return nil
-	case trimmed[0] == '{':
-		return collectKeys(prefix, trimmed, names)
-	case trimmed[0] == '[':
-		var items []json.RawMessage
-		if err := json.Unmarshal(trimmed, &items); err != nil {
-			return inputError(err)
-		}
-		for _, item := range items {
-			if err := collectNested(prefix, item, names); err != nil {
-				return err
-			}
+func collectNested(prefix string, value any, names map[string]struct{}) {
+	switch typed := value.(type) {
+	case map[string]any:
+		collectKeys(prefix, typed, names)
+	case []any:
+		for _, item := range typed {
+			collectNested(prefix, item, names)
 		}
 	}
-	return nil
 }
 
 // jsonType names the JSON type of a value by its first byte, exact because
