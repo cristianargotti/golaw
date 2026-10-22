@@ -29,9 +29,7 @@ func judgeMakefile(in model.Input) model.Result {
 		return answer(snapshot.failed, err)
 	}
 	if !found {
-		return model.Result{Status: model.Measured(), Findings: []model.Finding{
-			finding(buildMakefile, 0, "make-file-missing", "add Makefile with the required targets"),
-		}}
+		return makeFileMissing(in)
 	}
 	m, err := readMakefile(in, buildMakefile)
 	if err != nil {
@@ -45,6 +43,20 @@ func judgeMakefile(in model.Input) model.Result {
 		return model.Result{Status: model.Measured(), Findings: findings}
 	}
 	return makeRequiredTargets(m, in.Policy.Capabilities)
+}
+
+// makeFileMissing names an absent Makefile, unless the snapshot holds a
+// make file of another name GNU make reads, which golaw does not: that is a
+// stated limit naming the file and the rename, never a missing Makefile.
+func makeFileMissing(in model.Input) model.Result {
+	for _, name := range []string{"GNUmakefile", "makefile"} {
+		if model.Any(in.Snapshot, func(path string) bool { return path == name }) {
+			return answer(name, outside(name, 1, "a make file named "+name+", which golaw does not read; rename it to Makefile"))
+		}
+	}
+	return model.Result{Status: model.Measured(), Findings: []model.Finding{
+		finding(buildMakefile, 0, "make-file-missing", "add Makefile with the required targets"),
+	}}
 }
 
 // makeMissingIncludes names each unconditional required include the

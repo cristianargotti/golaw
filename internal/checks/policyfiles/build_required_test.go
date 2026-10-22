@@ -166,3 +166,24 @@ func TestMakefileNamesARecipeTwoFilesDefine(t *testing.T) {
 		t.Fatalf("a renamed target = %+v", near)
 	}
 }
+
+// TestMakefileStatesAnotherMakeFileName holds an absent Makefile beside a
+// file GNU make reads first or reads on a case-sensitive system to a stated
+// limit that names the file and the rename, never to a missing Makefile.
+func TestMakefileStatesAnotherMakeFileName(t *testing.T) {
+	t.Parallel()
+	targets := buildTree([]string{"go"}, "")["Makefile"]
+	for _, name := range []string{"GNUmakefile", "makefile"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got := measure(t, policyfiles.Makefile(), fixture{files: map[string]string{name: targets}, capabilities: []string{"go"}})
+			if !model.IsOutsideSubset(got.Status) || !strings.Contains(got.Status.Reason, name+":1:") || !strings.Contains(got.Status.Reason, "rename it to Makefile") {
+				t.Fatalf("%s alone = %+v", name, got)
+			}
+		})
+	}
+	got := measure(t, policyfiles.Makefile(), fixture{files: map[string]string{"Makefile": targets, "makefile.md": "notes\n"}, capabilities: []string{"go"}})
+	if got.Status.Kind != model.StatusMeasured || len(got.Findings) != 0 {
+		t.Fatalf("near a Makefile beside notes = %+v", got)
+	}
+}
