@@ -127,3 +127,11 @@ checks:
     code: capture-absent
     red: testdata/capture-capture-absent/red
     near: testdata/capture-capture-absent/near
+  - id: doctor.duplicate-duplicate-hook
+    code: duplicate-hook
+    red: testdata/duplicate-duplicate-hook/red
+    near: testdata/duplicate-duplicate-hook/near
+  - id: doctor.duplicate-skill-duplicate
+    code: skill-duplicate
+    red: testdata/duplicate-skill-duplicate/red
+    near: testdata/duplicate-skill-duplicate/near

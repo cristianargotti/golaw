@@ -38,6 +38,8 @@ type agentFacts struct {
 
 	Captures     []hook.Capture `json:"captures"`
 	CaptureError string         `json:"capture_error"`
+
+	Duplicates []duplicateFact `json:"duplicates"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the
@@ -68,12 +70,12 @@ func collectAgent(input Input) agentFacts {
 	}
 	receipt, fact := readReceiptFact(input.ReceiptPath)
 	facts.Receipt = fact
-	if fact.State != receiptRead {
-		return facts
+	if fact.State == receiptRead {
+		slots, err := readSlots(receipt.HooksPath, input.Agent == agentCursor)
+		facts.Receipt.Drift = receiptDrift(receipt, input.Agent, slots, err)
+		facts.Events = eventFacts(receipt, slots)
 	}
-	slots, err := readSlots(receipt.HooksPath, input.Agent == agentCursor)
-	facts.Receipt.Drift = receiptDrift(receipt, input.Agent, slots, err)
-	facts.Events = eventFacts(receipt, slots)
+	facts.Duplicates = collectDuplicates(input, receipt.HooksPath)
 	return facts
 }
 
