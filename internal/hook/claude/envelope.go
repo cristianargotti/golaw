@@ -39,12 +39,6 @@ type wire struct {
 	Version      json.RawMessage `json:"cursor_version"`
 }
 
-// Header separates identity validation from enrolled target reconstruction.
-func Header(data []byte) (model.Event, error) {
-	parsed, err := Parse(data)
-	return parsed.Event, err
-}
-
 // header is the event of an envelope before any target is reconstructed:
 // its identities, the shape its event and tool give it and the path its
 // tool input names.

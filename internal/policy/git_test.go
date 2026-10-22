@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -20,18 +19,10 @@ func TestReadHeadAndIndex(t *testing.T) {
 	if err != nil || !found || string(data) != minimalPolicy {
 		t.Errorf("ReadHead = %q, %v, %v", data, found, err)
 	}
-	_, found, err = policy.ReadIndex(t.Context(), root)
-	if err != nil || !found {
-		t.Errorf("the index holds the committed file too: %v, %v", found, err)
-	}
 	staged := minimalPolicy + "language: pt-BR\n"
 	write(t, root, "golaw.yml", staged)
 	gitRun(t, root, "add", "golaw.yml")
 	write(t, root, "golaw.yml", "golaw: [\n")
-	data, found, err = policy.ReadIndex(t.Context(), root)
-	if err != nil || !found || string(data) != staged {
-		t.Errorf("ReadIndex reads the index, never the working tree: %q, %v, %v", data, found, err)
-	}
 	if data, found, err := policy.ReadHead(t.Context(), root); err != nil || !found || string(data) != minimalPolicy {
 		t.Errorf("ReadHead reads HEAD, never the index: %q, %v, %v", data, found, err)
 	}
@@ -45,15 +36,9 @@ func TestReadAbsentAndFailing(t *testing.T) {
 	if data, found, err := policy.ReadHead(t.Context(), root); err != nil || found || data != nil {
 		t.Errorf("absent at HEAD = %q, %v, %v", data, found, err)
 	}
-	if _, found, err := policy.ReadIndex(t.Context(), root); err != nil || found {
-		t.Errorf("absent in the index = %v, %v", found, err)
-	}
 	unborn := initRepo(t)
 	if _, _, err := policy.ReadHead(t.Context(), unborn); !errors.Is(err, model.ErrPolicy) {
 		t.Errorf("an unborn HEAD cannot be listed: %v", err)
-	}
-	if _, _, err := policy.ReadIndex(t.Context(), t.TempDir()); !errors.Is(err, model.ErrPolicy) {
-		t.Errorf("outside git: %v", err)
 	}
 	if err := os.RemoveAll(filepath.Join(root, ".git", "objects")); err != nil {
 		t.Fatal(err)
@@ -85,23 +70,16 @@ func conflicted(t *testing.T, base string) string {
 	return root
 }
 
-func TestReadIndexRefusesAnUnresolvedMerge(t *testing.T) {
+func TestProposedRefusesAnUnresolvedMerge(t *testing.T) {
 	t.Parallel()
 	for name, base := range map[string]string{"modify/modify": minimalPolicy, "add/add": ""} {
 		root := conflicted(t, base)
-		if _, found, err := policy.ReadIndex(t.Context(), root); !errors.Is(err, model.ErrPolicy) || !strings.Contains(err.Error(), "unresolved") || found {
-			t.Errorf("%s: ReadIndex = %v, %v, want ErrPolicy naming the unresolved merge", name, found, err)
-		}
 		l, err := policy.Load(t.Context(), input(root, dirs(t)))
 		if err != nil {
 			t.Fatal(err)
 		}
 		if _, found, err := policy.Proposed(t.Context(), l, schemas()); !errors.Is(err, model.ErrPolicy) || found {
 			t.Errorf("%s: Proposed = %v, %v, want ErrPolicy", name, found, err)
-		}
-		gitRun(t, root, "add", "golaw.yml")
-		if data, found, err := policy.ReadIndex(t.Context(), root); err != nil || !found || !strings.Contains(string(data), "pt-BR") {
-			t.Errorf("%s resolved: ReadIndex = %q, %v, %v, want the staged file", name, data, found, err)
 		}
 	}
 }

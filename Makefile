@@ -44,7 +44,7 @@ build:
 	go build ./...
 
 deadcode:
-	go mod tidy -diff
+	go test -tags=deadcode ./test/deadcode/
 
 licenses:
 	go run github.com/google/go-licenses/v2@v2.0.1 check --disallowed_types=forbidden,restricted ./...

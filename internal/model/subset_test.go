@@ -14,7 +14,8 @@ import (
 // construct and ends with the sentinel the rungs recognize.
 func TestOutsideSubsetIsAStatedLimitNeverClean(t *testing.T) {
 	t.Parallel()
-	status := model.OutsideSubset("Makefile:12: $(shell) in the prerequisites of ci")
+	reader := fmt.Errorf("%s: %w", "Makefile:12: $(shell) in the prerequisites of ci", model.ErrOutsideSubset)
+	status := model.Unmeasured(reader.Error())
 	if status.Kind != model.StatusUnmeasured {
 		t.Fatalf("kind = %s, want unmeasured", status.Kind)
 	}

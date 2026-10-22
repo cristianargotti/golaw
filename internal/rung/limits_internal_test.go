@@ -2,6 +2,7 @@ package rung
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -14,6 +15,13 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/runnertest"
 )
+
+// statedLimit is the status a policy check answers for a construct outside
+// the subset its reader declares: the reader's error, which wraps the
+// sentinel after the construct, as the Unmeasured reason.
+func statedLimit(what string) model.Status {
+	return model.Unmeasured(fmt.Errorf("%s: %w", what, model.ErrOutsideSubset).Error())
+}
 
 // limitRun is a staged run whose policy check met a construct outside the
 // subset its reader declares, beside a check that measured.
@@ -30,7 +38,7 @@ func limitRun(status model.Status) *engine.Run {
 // left unmeasured still refuses it.
 func TestRungLeavesAStatedLimitToThePipeline(t *testing.T) {
 	t.Parallel()
-	limit := model.OutsideSubset("Makefile:3: $(shell) in the prerequisites of ci")
+	limit := statedLimit("Makefile:3: $(shell) in the prerequisites of ci")
 	out := judged(PreCommit, model.DefaultLanguage, limitRun(limit))
 	want := "golaw pre-commit: policy.makefile left to the pipeline: Makefile:3: $(shell) in the prerequisites of ci: outside the declared subset, a stated limit; docs/rules.md names the rewrite"
 	if out.Code != codeClean || !slices.Contains(out.Lines, want) {
@@ -48,10 +56,10 @@ func TestRungLeavesAStatedLimitToThePipeline(t *testing.T) {
 
 func TestLimitedNamesEachCheckOnce(t *testing.T) {
 	t.Parallel()
-	run := limitRun(model.OutsideSubset("Makefile:3: an include of a computed name"))
+	run := limitRun(statedLimit("Makefile:3: an include of a computed name"))
 	run.Outcomes = append(run.Outcomes, engine.Outcome{
 		Spec:   model.Spec{ID: "policy.ci-target", Rule: "rules/4.13@1"},
-		Result: model.Result{Status: model.OutsideSubset("Makefile:3: an include of a computed name")},
+		Result: model.Result{Status: statedLimit("Makefile:3: an include of a computed name")},
 	})
 	limits := limited(run)
 	if len(limits) != 2 || run.Outcomes[0].Result.Status.Kind != model.StatusMeasured || run.Outcomes[2].Result.Status.Kind != model.StatusMeasured {
@@ -97,7 +105,7 @@ func TestPreCommitLeavesAStatedLimitToThePipeline(t *testing.T) {
 			Load: l.load, Registry: reg, State: l.state, Stdin: strings.NewReader(""),
 		})
 	}
-	limit := commit(model.OutsideSubset("Makefile:3: $(shell) in the prerequisites of ci"))
+	limit := commit(statedLimit("Makefile:3: $(shell) in the prerequisites of ci"))
 	want := "golaw pre-commit: fixture.stated-limit left to the pipeline: Makefile:3: $(shell) in the prerequisites of ci: outside the declared subset, a stated limit; docs/rules.md names the rewrite"
 	if limit.Code != codeClean || !strings.HasPrefix(limit.Lines[0], "verdict clean") || !slices.Contains(limit.Lines, want) {
 		t.Fatalf("a staged stated limit = %+v", limit)

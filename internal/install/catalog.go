@@ -23,8 +23,8 @@ type catalog struct {
 	} `json:"plugins"`
 }
 
-// ValidateCatalog prevents distribution from following an unpinned branch.
-func ValidateCatalog(data []byte) error {
+// validateCatalog prevents distribution from following an unpinned branch.
+func validateCatalog(data []byte) error {
 	var value catalog
 	if err := strictJSON(data, &value); err != nil {
 		return err

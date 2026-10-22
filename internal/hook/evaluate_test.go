@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/proof"
@@ -195,13 +194,6 @@ func TestDecisionAndSelectionMutations(t *testing.T) {
 	_, overfire := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
 	if overfire.Outcome != hook.Deny {
 		t.Fatal("near miss did not expose forced denial")
-	}
-	got := hook.DecisionResult(model.Event{}, engine.Decision{
-		Verdict: engine.VerdictDeny, Reason: "check: not measured: unreadable",
-		Unmeasured: []engine.Unmeasured{{Check: "check", Reason: "unreadable"}},
-	})
-	if !got.CannotJudge || got.Reason != "check: not measured: unreadable" {
-		t.Fatal(got)
 	}
 }
 

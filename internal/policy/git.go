@@ -22,22 +22,6 @@ func ReadHead(ctx context.Context, root string) ([]byte, bool, error) {
 	return readListed(ctx, root, listing, 2)
 }
 
-// ReadIndex reads golaw.yml as the index holds it: the proposed next
-// policy a staged change carries; found is false when nothing is staged
-// at that path. A merge that left golaw.yml unresolved holds its sides at
-// stages 1 to 3 and no proposed policy at all, so it is ErrPolicy rather
-// than whichever side the listing names first.
-func ReadIndex(ctx context.Context, root string) ([]byte, bool, error) {
-	listing, err := plumbing(ctx, root, "ls-files", "-z", "--stage", "--", FileName)
-	if err != nil {
-		return nil, false, err
-	}
-	if unmerged(listing) {
-		return nil, false, unresolved()
-	}
-	return readListed(ctx, root, listing, 1)
-}
-
 // unmerged reads the stage, the third field of a --stage line: 0 for a
 // resolved entry, 1 to 3 for the sides of a conflict.
 func unmerged(listing []byte) bool {
