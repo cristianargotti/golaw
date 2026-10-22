@@ -8,6 +8,13 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Added
 
+- 2026-10-22: policy-file checks judge configuration through declared readers and capabilities, because unsupported constructs must not become false findings.
+- 2026-10-22: capability proposals add to the enrolled set and select their templates, because existing capabilities may not disappear during adoption.
+- 2026-10-22: the core CI template runs the required targets with external enrollment, because remote CI or the platform pipeline is the only gate.
+- 2026-10-22: the rules catalog maps every retained S-class row to delivered prose, because always-loaded instructions must stay small.
+- 2026-10-22: builder and reviewer checklists and the context guide make judgment rules explicit, because those rules cannot be measured by syntax alone.
+- 2026-10-22: the profile guide documents the existing schema and generic remote-gate limitation, because a local installation does not prove remote enforcement.
+- 2026-10-22: kit tests hold the skill, instruction-block and editor-rule budgets, because always-loaded kit prose must stay within A12 limits.
 - 2026-10-20: the policy family, rules rules/4.5@1 (the lint configuration), rules/4.6@1 (hook script tests), rules/4.7@1 (secret scanning), rules/4.8@1 (the supply chain), rules/4.9@1 (migrations), rules/4.10@1 (the API contract), rules/4.12@1 (ownership) and rules/4.13@1 (the ci target): the checks that read the configuration of a repository through a declared subset, each over the tree so a half-written file of an agent is never judged, and a construct outside the subset named as a stated limit and never a finding, because the pipeline is the only gate and its configuration must carry the standard.
 - 2026-10-20: scan --staged compares index findings with the base as a multiset and evaluates the proposed policy separately, so unstaged edits cannot hide a staged violation.
 - 2026-10-20: scan --enrolled accepts externally provisioned digests, because a clean CI runner must not trust enrollment supplied by its checkout.
@@ -33,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: the optional pre-commit rung names declared-subset limits and leaves migration, API-breaking and generation execution to the pipeline, because a local refusal needs a recognized violation.
 - 2026-10-20: the M2 acceptance record lists as inherited the nine commits whose body lines exceed 100 characters and the fifteen merges named after their branch, because rewording them rewrites the unpushed history the evidence names, which stays the owner's call before the first push.
 - 2026-10-20: the command reader of the agent hooks ends a part at a shell comment, an unquoted # that starts a word, because a reset and a commit followed by a comment that named --amend were read as an amend and the post event blocked on a file the reset brought from the parent.
 - 2026-10-20: the staged comparison holds back a goast.goleak finding of a package whose committed Go file the base left over the read bound, and names that file, because a goroutine added beside a 9 MiB file that already started one was refused as new while the file that made it inherited was never named.
