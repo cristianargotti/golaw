@@ -3,8 +3,11 @@ package cicheck_test
 import (
 	"maps"
 	"os"
+	"slices"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 // safeWorkflow is the near-miss lane of ci.safety as text.
@@ -135,9 +138,87 @@ func TestVulnerabilityLaneFailsWithItsScanner(t *testing.T) {
 // a timeout above the slowest package under -race: go test's default of ten
 // minutes per package panicked in internal/rung on a loaded machine, and a
 // slower CI runner would fail make ci on the timeout, not on a test. The
-// bound stays below the thirty minutes of the make ci job.
+// make ci job bounds each system at its run there plus those 25 minutes, so
+// a hung test reaches go test's deadline before the job is canceled.
 func TestKitTestTargetOutlastsTheSlowestPackage(t *testing.T) {
 	t.Parallel()
 	requireText(t, "Makefile", "test:\n\tgo test -race -timeout=25m -coverprofile=coverage.out -covermode=atomic ./...\n")
-	requireText(t, ".github/workflows/ci.yml", "timeout-minutes: 30")
+	root, err := document(kitBytes(t, ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{"ubuntu-latest": "50", "macos-latest": "40", "windows-latest": "75"}
+	if got := matrixTimeouts(at(root, "jobs", "ci")); !maps.Equal(got, want) {
+		t.Fatalf("make ci bounds = %v, want %v", got, want)
+	}
+}
+
+// matrixTimeout is the timeout-minutes of a job whose matrix gives each
+// system its own bound.
+const matrixTimeout = "${{ matrix.timeout }}"
+
+// matrixTimeouts is the bound of a job on each system of its matrix: its
+// one timeout-minutes, or with matrixTimeout the timeout of the include
+// entry of that system. A system with no number has no key, and an include
+// entry naming a system the matrix lacks, which adds a job, keys the
+// system with a mark, so a comparison with the intended bounds fails.
+func matrixTimeouts(job *yaml.Node) map[string]string {
+	bound := value(at(job, "timeout-minutes"))
+	listed := children(at(job, "strategy", "matrix", "os"))
+	systems := make([]string, 0, len(listed))
+	for _, system := range listed {
+		systems = append(systems, value(system))
+	}
+	bounds := make(map[string]string)
+	for _, entry := range children(at(job, "strategy", "matrix", "include")) {
+		system := value(at(entry, "os"))
+		if !slices.Contains(systems, system) {
+			system += " added by include"
+		}
+		bounds[system] = value(at(entry, "timeout"))
+	}
+	got := make(map[string]string)
+	for _, system := range systems {
+		switch {
+		case bound == matrixTimeout && bounds[system] != "":
+			got[system] = bounds[system]
+		case bound != "" && bound != matrixTimeout:
+			got[system] = bound
+		}
+	}
+	for system, minutes := range bounds {
+		if !slices.Contains(systems, system) {
+			got[system] = minutes
+		}
+	}
+	return got
+}
+
+func TestMatrixTimeoutsReadEachSystemsBound(t *testing.T) {
+	t.Parallel()
+	const head = "timeout-minutes: %s\nstrategy:\n  matrix:\n    os: [ubuntu-latest, windows-latest]\n"
+	one, each := strings.Replace(head, "%s", "30", 1), strings.Replace(head, "%s", matrixTimeout, 1)
+	both := "    include:\n      - {os: ubuntu-latest, timeout: 15}\n      - {os: windows-latest, timeout: 90}\n"
+	windows := "    include:\n      - {os: windows-latest, timeout: 90}\n"
+	added := "    include:\n      - {os: macos-latest, timeout: 30}\n"
+	for _, row := range []struct {
+		name, job string
+		want      map[string]string
+	}{
+		{"near one bound", one, map[string]string{"ubuntu-latest": "30", "windows-latest": "30"}},
+		{"near a bound per system", each + both, map[string]string{"ubuntu-latest": "15", "windows-latest": "90"}},
+		{"red a system without its bound", each + windows, map[string]string{"windows-latest": "90"}},
+		{"red a system the include adds", one + added, map[string]string{
+			"ubuntu-latest": "30", "windows-latest": "30", "macos-latest added by include": "30",
+		}},
+		{"red no bound", "strategy:\n  matrix:\n    os: [ubuntu-latest]\n", map[string]string{}},
+	} {
+		job, err := document([]byte(row.job))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := matrixTimeouts(job); !maps.Equal(got, row.want) {
+			t.Errorf("%s: bounds = %v, want %v", row.name, got, row.want)
+		}
+	}
 }

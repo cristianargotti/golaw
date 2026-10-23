@@ -1,6 +1,7 @@
 package cicheck_test
 
 import (
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -11,6 +12,14 @@ import (
 )
 
 const m4Replay = "go run ./tools/acceptance -m4"
+
+// m4Bounds are the minutes of the m4 job on each system: the replay took
+// under 3 minutes on Linux and macOS, while on Windows, where every row
+// runs the PowerShell launcher under two shells, it was still running at
+// 45 minutes, so Windows has the bound of the other native replays.
+func m4Bounds() map[string]string {
+	return map[string]string{"ubuntu-latest": "15", "macos-latest": "15", "windows-latest": "90"}
+}
 
 // rulesAgent is the agent whose prefix rules the kit ships, the CLI whose
 // execpolicy check the M4 rows run and the lanes install.
@@ -32,11 +41,15 @@ func m4LaneFixture(agent string) string {
 jobs:
   m4:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - {os: ubuntu-latest, timeout: 15}
+          - {os: macos-latest, timeout: 15}
+          - {os: windows-latest, timeout: 90}
     steps:
       - name: Install the pinned CLI
         run: npm install --global @vendor/` + agent + `@0.163.0
@@ -57,7 +70,9 @@ func TestM4Lane(t *testing.T) {
 		{"red absent", "jobs: {}\n", "missing M4 job"},
 		{"missing Windows", strings.ReplaceAll(fixture, ", windows-latest", ""), "M4 requires three native systems"},
 		{"wrong runner", strings.ReplaceAll(fixture, "runs-on: ${{ matrix.os }}", "runs-on: ubuntu-latest"), "M4 must use its native matrix"},
-		{"short timeout", strings.ReplaceAll(fixture, "timeout-minutes: 45", "timeout-minutes: 10"), "M4 requires its bounded job"},
+		{"short timeout", strings.ReplaceAll(fixture, "windows-latest, timeout: 90", "windows-latest, timeout: 10"), "M4 requires its bounded job"},
+		{"one bound", strings.ReplaceAll(fixture, matrixTimeout, "45"), "M4 requires its bounded job"},
+		{"unbounded system", strings.ReplaceAll(fixture, "          - {os: macos-latest, timeout: 15}\n", ""), "M4 requires its bounded job"},
 		{"fast cancellation", strings.ReplaceAll(fixture, "fail-fast: false", "fail-fast: true"), "M4 must finish all native systems"},
 		{"wrong replay", strings.ReplaceAll(fixture, m4Replay, "go version"), "missing M4 replay"},
 		{"conditional replay", strings.ReplaceAll(fixture, "- name: Replay M4 rows", "- if: false\n        name: Replay M4 rows"), "missing M4 replay"},
@@ -87,8 +102,6 @@ func m4LaneReason(data []byte, agent string) string {
 		return "M4 job must be required"
 	case value(at(job, "runs-on")) != "${{ matrix.os }}":
 		return "M4 must use its native matrix"
-	case value(at(job, "timeout-minutes")) != "45":
-		return "M4 requires its bounded job"
 	case value(at(job, "strategy", "fail-fast")) != "false":
 		return "M4 must finish all native systems"
 	}
@@ -96,8 +109,11 @@ func m4LaneReason(data []byte, agent string) string {
 	for _, item := range children(at(job, "strategy", "matrix", "os")) {
 		systems = append(systems, value(item))
 	}
-	if !slices.Equal(systems, []string{"ubuntu-latest", "macos-latest", "windows-latest"}) {
+	switch {
+	case !slices.Equal(systems, []string{"ubuntu-latest", "macos-latest", "windows-latest"}):
 		return "M4 requires three native systems"
+	case !maps.Equal(matrixTimeouts(job), m4Bounds()):
+		return "M4 requires its bounded job"
 	}
 	return m4StepsReason(children(at(job, "steps")), agent)
 }
