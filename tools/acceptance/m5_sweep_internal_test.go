@@ -8,9 +8,9 @@ import (
 	"github.com/cristianargotti/golaw/internal/doctor"
 )
 
-// m5Installed is what the install fake prints, so a row can judge the
+// m5InstalledLine is what the install fake prints, so a row can judge the
 // line the candidate answered.
-const m5Installed = "Perfil fixture 1.2.3 instalado\n"
+const m5InstalledLine = "Perfil fixture 1.2.3 instalado\n"
 
 // m5SharedCase serves the fixture bundle, installs it, adopts a
 // repository under it and reads its doctor line: every shared step a row
@@ -25,7 +25,7 @@ func m5SharedCase() m5Case {
 		if err != nil {
 			return err
 		}
-		if got.stdout != m5Installed {
+		if got.stdout != m5InstalledLine {
 			return fmt.Errorf("the install printed %q: %w", got.stdout, ErrAcceptance)
 		}
 		repo, err := s.m5Repository(ctx, "adopted", true)
@@ -46,7 +46,7 @@ func TestM5SharedStepsFailWithEveryCommandTheyRun(t *testing.T) {
 	m5Sweep(t, "m5-sample", m5SharedCase(), func(t *testing.T, _ *suite) []m5Reply {
 		t.Helper()
 		return []m5Reply{
-			{prefix: []string{m5ProfileCommand, m5InstallSub}, answer: m5After(m5FakeInstall(m5Version), result{stdout: m5Installed})},
+			{prefix: []string{m5ProfileCommand, m5InstallSub}, answer: m5After(m5FakeInstall(m5Version), result{stdout: m5InstalledLine})},
 			{prefix: []string{commandInit}, answer: m5After(m5FakeInit, result{})},
 			{prefix: []string{m5DoctorCommand}, answer: m5Answer(result{stdout: m5DoctorStream(t, installed)})},
 		}
