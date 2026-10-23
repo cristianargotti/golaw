@@ -1,0 +1,1 @@
+{ "name": "fixture", "pinned_version": "1.2.3", "pinned_digest": "sha256:aa", "source": "https://example.test/profiles/fixture", "installed_version": "", "installed_digest": "", "date": "", "age": 0, "error": "profile fixture is not installed: run golaw profile install https://example.test/profiles/fixture@1.2.3" }
