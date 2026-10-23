@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/model"
-	"github.com/cristianargotti/golaw/internal/policy"
 	"github.com/cristianargotti/golaw/internal/profile"
-	"github.com/cristianargotti/golaw/internal/profiletest"
 )
 
 func TestParseSourceSplitsTheURLAndTheTag(t *testing.T) {
@@ -56,29 +54,6 @@ func TestParseSourceRefusesWhatIsNotASource(t *testing.T) {
 				t.Fatalf("ParseSource(%q) = %v, want %q", tc.arg, err, tc.want)
 			}
 		})
-	}
-}
-
-func TestLifecycleAnswersNotBuiltUntilItsPart(t *testing.T) {
-	t.Parallel()
-	dirs := policy.Dirs{State: t.TempDir(), Config: t.TempDir()}
-	url, tag := profiletest.BareSource(t)
-	src, err := profile.ParseSource(url + "@" + tag)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, err = profile.Install(t.Context(), dirs, src, nil, now())
-	if !errors.Is(err, profile.ErrNotBuilt) {
-		t.Fatalf("Install = %v", err)
-	}
-	if _, err := profile.Refresh(t.Context(), dirs, profiletest.Name, nil, now()); !errors.Is(err, profile.ErrNotBuilt) {
-		t.Fatalf("Refresh = %v", err)
-	}
-	if _, err := profile.Rollback(dirs, profiletest.Name, now()); !errors.Is(err, profile.ErrNotBuilt) {
-		t.Fatalf("Rollback = %v", err)
-	}
-	if err := profile.Remove(dirs, profiletest.Name); !errors.Is(err, profile.ErrNotBuilt) {
-		t.Fatalf("Remove = %v", err)
 	}
 }
 
