@@ -32,7 +32,7 @@ func TestM4SetupCommandsAndPaths(t *testing.T) {
 		"." + ids[2] + "/rules/golaw.mdc",
 		"~/.agents/skills/golaw/SKILL.md",
 		".agents/skills/golaw/SKILL.md",
-		"CODEX_HOME",
+		strings.ToUpper(ids[1]) + "_HOME",
 		"/hooks",
 		"hooks.state",
 	} {
