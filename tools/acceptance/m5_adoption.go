@@ -32,6 +32,8 @@ func m5AdoptionCases() []m5Case {
 		{name: "init-profile-refresh", run: (*suite).m5InitRefresh},
 		{name: "template-born-no-github-write", run: (*suite).m5TemplateBorn},
 		{name: "init-profile-ci-line", run: (*suite).m5CILine},
+		{name: "debt-seeded-once", run: (*suite).m5SeededOnce},
+		{name: "debt-broadening-refused", run: (*suite).m5Broadening},
 	}
 }
 
