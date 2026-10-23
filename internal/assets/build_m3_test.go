@@ -1,6 +1,8 @@
 package assets_test
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -101,5 +103,30 @@ func TestBuildAssetLicensesJudgeTheDependenciesAlone(t *testing.T) {
 	want := "\tgo run github.com/google/go-licenses/v2@v2.0.1 check --disallowed_types=forbidden,restricted --ignore example.test/service ./...\n"
 	if !strings.Contains(body, want) {
 		t.Fatalf("the licenses recipe does not ignore the module's own packages:\n%s", body)
+	}
+}
+
+// TestBuildAssetLicensesStateTheirPrefixLimit pins the limit of the ignore
+// beside the recipe: go-licenses compares an ignored path as a plain prefix,
+// so a sibling module whose path extends the module's as a string is skipped
+// too, and docs/rules.md must say so while the recipe ignores the bare path.
+func TestBuildAssetLicensesStateTheirPrefixLimit(t *testing.T) {
+	t.Parallel()
+	body := string(renderedAsset(t, "golaw.mk", assetContext()).Data)
+	if !strings.Contains(body, "--ignore example.test/service ./...") {
+		t.Fatalf("the licenses recipe changed its ignore; update the limit docs/rules.md states:\n%s", body)
+	}
+	rules, err := os.ReadFile(filepath.Join("..", "..", "docs", "rules.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fragment := range []string{
+		"go-licenses compares an ignored path as a plain string prefix with no path boundary",
+		"such as github.com/acme/svc-client beside github.com/acme/svc, is skipped too",
+		"review the license of such a sibling module by hand",
+	} {
+		if !strings.Contains(string(rules), fragment) {
+			t.Errorf("docs/rules.md lacks the licenses prefix limit %q", fragment)
+		}
 	}
 }
