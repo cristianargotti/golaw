@@ -52,3 +52,29 @@ func TestWindowsLauncherScriptKeepsTheBytes(t *testing.T) {
 		t.Fatalf("the launcher script = %q", launcher)
 	}
 }
+
+// cmdletName finds a Verb-Noun command in a script, the form of a cmdlet
+// PowerShell loads a module to run.
+func cmdletName(script string) string {
+	return regexp.MustCompile(`[A-Za-z]+-[A-Za-z]+`).FindString(script)
+}
+
+// TestWindowsLauncherScriptWritesNothingOfItsOwn holds the fixed text of
+// the launcher to no cmdlet and to progress silenced before anything
+// runs, because under -EncodedCommand with a redirected error stream the
+// progress record of a module load reaches stderr as CLIXML ahead of the
+// reason the binary writes; the red row proves the check finds the
+// cmdlet the first launcher ran.
+func TestWindowsLauncherScriptWritesNothingOfItsOwn(t *testing.T) {
+	t.Parallel()
+	fixed := scriptOpen + scriptArgs + scriptClose
+	if got := cmdletName(fixed); got != "" {
+		t.Errorf("the launcher runs the cmdlet %s", got)
+	}
+	if got := cmdletName("$process = New-Object System.Diagnostics.Process"); got != "New-Object" {
+		t.Errorf("red a cmdlet: found %q", got)
+	}
+	if !strings.HasPrefix(fixed, "$ProgressPreference = 'SilentlyContinue'\n") {
+		t.Errorf("the launcher reports progress: %q", fixed)
+	}
+}
