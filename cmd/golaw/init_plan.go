@@ -20,6 +20,7 @@ type initPlan struct {
 	policy        *model.EffectivePolicy
 	suggestions   []bootstrap.Suggestion
 	notice        string
+	debt          string // the line that counts the seeded debt set, empty without --seed-debt
 	status        string
 	update        bool
 	refusal       error
@@ -147,6 +148,9 @@ func printInitPolicy(out io.Writer, plan initPlan) error {
 	var lines []string
 	if plan.notice != "" {
 		lines = append(lines, plan.notice)
+	}
+	if plan.debt != "" {
+		lines = append(lines, plan.debt)
 	}
 	// The update names its local edits in its notice already.
 	if !plan.update {
