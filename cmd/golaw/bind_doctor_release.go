@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
-	"time"
 
 	"github.com/cristianargotti/golaw/internal/doctor"
 	"github.com/cristianargotti/golaw/internal/release"
@@ -22,8 +21,8 @@ const sourceKey = "source"
 // verified under the identity a release of the kit is signed with: the
 // release lane at the tag and the Actions issuer (section 4.2), bound here
 // once.
-func (b binding) releaseDoctor(dir, trustDir string, now time.Time) doctor.Line {
-	return b.releaseLine(dir, trustDir, release.Identity{Lane: release.Lane, Issuer: release.DefaultIssuer}, now)
+func (b binding) releaseDoctor(dir, trustDir string) doctor.Line {
+	return b.releaseLine(dir, trustDir, release.Identity{Lane: release.Lane, Issuer: release.DefaultIssuer})
 }
 
 // releaseLine is the release line under an identity, the seam a test
@@ -35,7 +34,7 @@ func (b binding) releaseDoctor(dir, trustDir string, now time.Time) doctor.Line 
 // build that records a module sum is a go install build, a source build
 // whatever files sit beside it (cut 9). Every input it cannot read is a
 // red line naming it, never an error.
-func (b binding) releaseLine(dir, trustDir string, id release.Identity, now time.Time) doctor.Line {
+func (b binding) releaseLine(dir, trustDir string, id release.Identity) doctor.Line {
 	version := b.pin()
 	if version == "" || b.info.Sum != "" {
 		return doctor.AssessRelease(sourceKey, release.Verify(release.Inputs{}))
@@ -51,7 +50,6 @@ func (b binding) releaseLine(dir, trustDir string, id release.Identity, now time
 	if !ok {
 		return doctor.AssessRelease(asset, verdict)
 	}
-	in.Now = now
 	line := doctor.AssessRelease(asset, release.Verify(in))
 	if trustDir != "" {
 		line.Detail += "; under the trust root of " + trustDir

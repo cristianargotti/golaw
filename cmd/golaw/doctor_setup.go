@@ -28,7 +28,7 @@ func (a *app) doctorReports(ctx context.Context, root string, opts doctorOptions
 		reports = append(reports, report)
 	}
 	// The release of the running binary needs no repository.
-	release := a.bind().releaseDoctor(opts.release, opts.trustRoot, a.now())
+	release := a.bind().releaseDoctor(opts.release, opts.trustRoot)
 	reports = verifiedBuild(reports, release)
 	// Setup refuses a directory outside git, so a setup line there would
 	// name a fix that cannot work, and no policy is in force there.

@@ -3,7 +3,6 @@ package release
 import (
 	"crypto"
 	"crypto/x509"
-	"time"
 )
 
 // The verdict codes of the release line of doctor (D11), one per outcome.
@@ -67,7 +66,6 @@ type Inputs struct {
 	Attestation  []byte    // the attestation bundle of the asset
 	Identity     Identity  // the identity the signature must carry
 	Trust        TrustRoot // the roots and the log keys
-	Now          time.Time // the clock, for the certificate validity at signing time
 }
 
 // Verdict is the one line doctor prints for the release.

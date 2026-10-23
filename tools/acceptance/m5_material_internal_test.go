@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/cristianargotti/golaw/internal/release"
 )
@@ -35,7 +34,7 @@ func m5Verdict(t *testing.T, m m5Material, running []byte, version string) relea
 		Checksums: read(release.ChecksumsFile), Bundle: read(release.ChecksumsFile + release.BundleSuffix),
 		Attestation: read(m.asset + release.BundleSuffix),
 		Identity:    release.Identity{Lane: release.Lane, Issuer: release.DefaultIssuer},
-		Trust:       trust, Now: m5Moment().Add(48 * time.Hour),
+		Trust:       trust,
 	})
 }
 

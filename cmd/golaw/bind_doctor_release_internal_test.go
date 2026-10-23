@@ -42,11 +42,11 @@ func releaseDir(t *testing.T, files map[string]string) string {
 
 func TestReleaseLineWithoutADirectory(t *testing.T) {
 	t.Parallel()
-	source := releaseBinding(t, "0.0.0-devel").releaseDoctor("", "", now())
+	source := releaseBinding(t, "0.0.0-devel").releaseDoctor("", "")
 	if source.ID != "doctor.release" || source.Key != "source" || source.State != "unknown" || source.Code != release.CodeSourceBuild {
 		t.Fatalf("a source build = %+v", source)
 	}
-	built := releaseBinding(t, "1.2.3").releaseDoctor("", "", now())
+	built := releaseBinding(t, "1.2.3").releaseDoctor("", "")
 	asset := release.AssetName("1.2.3", "linux", runtime.GOARCH)
 	if built.Key != asset || built.State != "unknown" || built.Code != release.CodeUnverified || !strings.Contains(built.Detail, "golaw doctor --release <dir>") {
 		t.Fatalf("a release build = %+v", built)
@@ -74,7 +74,7 @@ func TestReleaseLineOverTheDownloadedFiles(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			line := releaseBinding(t, "1.2.3").releaseDoctor(tc.dir, tc.trust, now())
+			line := releaseBinding(t, "1.2.3").releaseDoctor(tc.dir, tc.trust)
 			if line.Key != asset || line.State != tc.state || line.Code != tc.code {
 				t.Fatalf("line = %+v", line)
 			}
@@ -92,7 +92,7 @@ func TestReleaseLineCallsAGoInstallBuildASourceBuild(t *testing.T) {
 	for name, dir := range map[string]string{"without a directory": "", "with the release files": releaseDir(t, files)} {
 		b := releaseBinding(t, "1.2.3")
 		b.info.Sum = "h1:x"
-		line := b.releaseDoctor(dir, "", now())
+		line := b.releaseDoctor(dir, "")
 		if line.Key != "source" || line.State != "unknown" || line.Code != release.CodeSourceBuild {
 			t.Errorf("%s: %+v", name, line)
 		}
@@ -120,7 +120,7 @@ func TestReleaseLineNamesAnExecutableItCannotHash(t *testing.T) {
 	t.Parallel()
 	b, _ := testBinding(t)
 	b.info.Version = "1.2.3"
-	line := b.releaseDoctor(t.TempDir(), "", now())
+	line := b.releaseDoctor(t.TempDir(), "")
 	if line.State != "red" || line.Code != release.CodeInputMissing || !strings.Contains(line.Detail, "golaw") {
 		t.Fatalf("line = %+v", line)
 	}

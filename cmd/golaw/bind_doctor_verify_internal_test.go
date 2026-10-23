@@ -52,7 +52,7 @@ func TestReleaseLineOverAGeneratedRelease(t *testing.T) {
 			if tc.tamper != "" {
 				m = m.Tamper(t, tc.tamper)
 			}
-			got := b.releaseLine(m.Dir, m.Trust, m.Identity, now())
+			got := b.releaseLine(m.Dir, m.Trust, m.Identity)
 			if got.Key != m.Asset || got.State != tc.state || got.Code != tc.code {
 				t.Fatalf("line = %+v", got)
 			}
@@ -69,14 +69,14 @@ func TestReleaseLineOverAGeneratedRelease(t *testing.T) {
 func TestReleaseLineReadsTheEmbeddedRootAndTheDownloadedAttestation(t *testing.T) {
 	t.Parallel()
 	m, b := generatedRelease(t, releaseBinary)
-	if got := b.releaseLine(m.Dir, "", m.Identity, now()); got.Code != release.CodeSignatureInvalid || !strings.Contains(got.Detail, "trust root does not hold") || strings.Contains(got.Detail, "under the trust root of") {
+	if got := b.releaseLine(m.Dir, "", m.Identity); got.Code != release.CodeSignatureInvalid || !strings.Contains(got.Detail, "trust root does not hold") || strings.Contains(got.Detail, "under the trust root of") {
 		t.Fatalf("the embedded root refuses a test signer and names no directory: %+v", got)
 	}
 	digest := releaseDigest()
 	if err := os.Rename(m.Attestation, filepath.Join(m.Dir, "sha256-"+digest+".jsonl")); err != nil {
 		t.Fatal(err)
 	}
-	if got := b.releaseLine(m.Dir, m.Trust, m.Identity, now()); got.Code != release.CodeVerified {
+	if got := b.releaseLine(m.Dir, m.Trust, m.Identity); got.Code != release.CodeVerified {
 		t.Fatalf("the file gh attestation download writes: %+v", got)
 	}
 	colon := func(name string) bool { return strings.Contains(name, ":") }

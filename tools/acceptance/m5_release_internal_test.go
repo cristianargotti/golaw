@@ -38,7 +38,7 @@ func m5FakeVerdict(t *testing.T, c command, version string) release.Verdict {
 	return release.Verify(release.Inputs{
 		BinaryDigest: hex.EncodeToString(sum[:]), Asset: asset, Version: version,
 		Checksums: read(release.ChecksumsFile), Bundle: read(release.ChecksumsFile + release.BundleSuffix),
-		Attestation: read(asset + release.BundleSuffix), Identity: m5Identity(), Trust: trust, Now: m5Moment(),
+		Attestation: read(asset + release.BundleSuffix), Identity: m5Identity(), Trust: trust,
 	})
 }
 
