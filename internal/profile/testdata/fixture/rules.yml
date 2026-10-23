@@ -1,0 +1,38 @@
+golaw_profile: 1
+terms: [legacyci]
+paths: ["AGENT-NOTES.md", ".agentconfig/"]
+layout: { main: root, decisions: docs/adr }
+templates: { exclude: [".github/"] }
+targets: [hooks-test, image-lint]
+dockerfile:
+  stages: [certs, base, ci, builder]
+  final_image: scratch
+  installs:
+    - { stage: ci, packages: [ca-certificates, git, tzdata] }
+  pinned_installs: true
+  ignore_comments: ["# lint ignore"]
+registry: { pattern: "^registry\\.example\\.test/" }
+assertions:
+  - {
+      path: deploy/values.yaml,
+      key: [securityContext, runAsNonRoot],
+      kind: bool,
+      equals: "true",
+      missing: finding,
+      files: required,
+    }
+  - {
+      path: deploy/values.yaml,
+      key: [podAnnotations, example.test/do-not-disrupt],
+      kind: string,
+      equals: "true",
+      missing: finding,
+      files: required,
+    }
+  - {
+      path: "deploy/jobs/*.yaml",
+      key: [spec, activeDeadlineSeconds],
+      kind: int,
+      missing: finding,
+      files: optional,
+    }

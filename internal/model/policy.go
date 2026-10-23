@@ -104,6 +104,7 @@ type EffectivePolicy struct {
 	Ladder       Ladder             // the optional local rungs this checkout arms; never a floor
 	Waivers      []Waiver           // every committed vulnerability waiver, sorted by id; the push rung judges their expiry
 	Layout       Layout             // where the main package and the decision records live
+	ProfileData  *ProfileData       // the data of the enrolled bundle (section 5.4), nil for core only
 }
 
 // CoreDefaults is the policy every repository gets before its golaw.yml
