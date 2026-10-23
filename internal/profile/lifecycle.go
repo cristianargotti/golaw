@@ -50,14 +50,6 @@ func ParseSource(arg string) (Source, error) {
 	return Source{URL: url, Tag: tag, Version: match[1]}, nil
 }
 
-// Install clones src, verifies the bundle and makes it the current one of
-// its name, keeping every installed version in the store (D3, D9); the
-// bool reports a version the store already held with the same digest. It
-// never reads or writes a golaw.yml.
-func Install(_ context.Context, _ policy.Dirs, _ Source, _ []string, _ time.Time) (Installed, bool, error) {
-	return Installed{}, false, ErrNotBuilt
-}
-
 // Refresh installs the current version of a name again from the URL and
 // tag its record holds, the way out of a damaged current bundle.
 func Refresh(_ context.Context, _ policy.Dirs, _ string, _ []string, _ time.Time) (Installed, error) {
