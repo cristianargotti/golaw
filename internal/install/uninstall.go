@@ -3,6 +3,7 @@ package install
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 )
 
 // PlanUninstall refuses to infer ownership when a receipt is absent.
@@ -20,7 +21,7 @@ func PlanUninstall(receiptPath string) (Plan, error) {
 			return Plan{}, err
 		}
 	}
-	if err := restoreSettingsChange(&plan); err != nil {
+	if err := releaseSettings(&plan); err != nil {
 		return Plan{}, err
 	}
 	if err := addChange(&plan, receiptPath, nil, true); err != nil {
@@ -44,14 +45,45 @@ func removeArtifact(plan *Plan, artifact Artifact) error {
 	return addChange(plan, artifact.Path, nil, true)
 }
 
-func restoreSettingsChange(plan *Plan) error {
-	data, exists, err := readOptional(plan.Receipt.SettingsPath)
-	if err != nil || !exists {
-		return err
-	}
-	restored, err := RestoreSettings(data, plan.Receipt.Ownership)
+// releaseSettings restores the settings file the receipt names and takes
+// the exclude line out once that file is gone.
+func releaseSettings(plan *Plan) error {
+	removed, err := settingsRemoved(plan)
 	if err != nil {
 		return err
 	}
-	return addChange(plan, plan.Receipt.SettingsPath, restored, restored == nil)
+	return removeExclude(plan, removed)
+}
+
+// settingsRemoved restores the settings file the receipt names and
+// reports whether it is gone after the uninstall: absent already, or
+// removed because the installation created it and nothing of the person
+// is left in it.
+func settingsRemoved(plan *Plan) (bool, error) {
+	path := plan.Receipt.SettingsPath
+	_, exists, err := readOptional(path)
+	if err != nil {
+		return false, err
+	}
+	if err := restoreSettingsChange(plan, path, plan.Receipt.Ownership); err != nil {
+		return false, err
+	}
+	return !exists || slices.ContainsFunc(plan.Changes, func(change Change) bool {
+		return change.Path == path && change.Remove
+	}), nil
+}
+
+// restoreSettingsChange plans the settings file at path without the
+// entries owned records, removing it when the installation created it
+// and nothing else is left; an absent file needs nothing.
+func restoreSettingsChange(plan *Plan, path string, owned Ownership) error {
+	data, exists, err := readOptional(path)
+	if err != nil || !exists {
+		return err
+	}
+	restored, err := RestoreSettings(data, owned)
+	if err != nil {
+		return err
+	}
+	return addChange(plan, path, restored, restored == nil)
 }
