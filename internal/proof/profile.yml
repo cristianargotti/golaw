@@ -3,4 +3,9 @@
 # finding code its red fixture must yield, its two fixture directories
 # relative to this file and the profile the fixtures run under, which is
 # always the synthetic fixture bundle of internal/profile/testdata/fixture.
-checks: []
+checks:
+  - id: policy.image-stages
+    code: image-stage-order
+    red: testdata/policy.image-stages/red
+    near: testdata/policy.image-stages/near
+    profile: fixture

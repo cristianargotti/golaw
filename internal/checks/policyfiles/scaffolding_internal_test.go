@@ -37,7 +37,7 @@ func TestChecksJoinsTheThreeHalvesInOrder(t *testing.T) {
 		}
 		return out
 	}
-	want := ids(slices.Concat(lintChecks(), buildChecks(), depsChecks()))
+	want := ids(slices.Concat(lintChecks(), buildChecks(), depsChecks(), profileChecks()))
 	if got := ids(Checks()); !slices.Equal(got, want) {
 		t.Fatalf("Checks() = %v, want %v", got, want)
 	}

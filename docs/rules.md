@@ -229,6 +229,7 @@ Inventory section 4.14 is profile data, so the prose mapping holds no 4.14 row: 
 
 | Check | Rule | Needs | Why and boundary |
 | --- | --- | --- | --- |
+| policy.image-stages | rules/4.14@1 | image | A root Dockerfile that lacks a stage the profile names, names them out of the profile's order, or whose last stage starts from another image than the profile's final image, because the platform builds every image through the same stages; a construct outside the Dockerfile reader's subset is a stated limit. |
 
 ## Reader subsets and stated limits
 
