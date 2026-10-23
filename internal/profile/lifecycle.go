@@ -49,12 +49,6 @@ func ParseSource(arg string) (Source, error) {
 	return Source{URL: url, Tag: tag, Version: match[1]}, nil
 }
 
-// Rollback makes the previously current stored version of a name current
-// again.
-func Rollback(_ policy.Dirs, _ string, _ time.Time) (Installed, error) {
-	return Installed{}, ErrNotBuilt
-}
-
 // Remove deletes the current bundle of a name, its store and its record.
 func Remove(_ policy.Dirs, _ string) error {
 	return ErrNotBuilt
