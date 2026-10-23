@@ -60,3 +60,10 @@ func (a *app) uninstallInstalled(ctx context.Context, out io.Writer, path string
 func installedLines(plan install.Plan) []string {
 	return append([]string{"installed: " + plan.ReceiptPath}, plan.Notes...)
 }
+
+// uninstalledLines close a removal as installedLines close an
+// installation: the receipt it removed, then the notes of its planner,
+// such as a foreign handler whose trust identity moved.
+func uninstalledLines(receipt string, plan install.Plan) []string {
+	return append([]string{"uninstalled: " + receipt}, plan.Notes...)
+}
