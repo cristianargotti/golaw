@@ -214,6 +214,8 @@ jobs:
       - name: Restore automatic toolchain selection
         shell: bash
         run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
+      - name: Download modules
+        run: go mod download
       - name: Verify pins and release decisions
         env:
           GH_TOKEN: ${{ github.token }}
