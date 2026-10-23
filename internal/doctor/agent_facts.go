@@ -48,6 +48,7 @@ type agentFacts struct {
 
 	Binaries []binaryFact `json:"binaries"`
 	Trust    trustFact    `json:"trust"`
+	Chain    chainFact    `json:"chain"`
 }
 
 // receiptFact is the installation as its receipt records it: whether the

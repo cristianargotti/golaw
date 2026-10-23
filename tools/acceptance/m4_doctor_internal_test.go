@@ -110,6 +110,8 @@ func TestDoctorRowJudgesEveryAgentReport(t *testing.T) {
 		{"red Codex reported trusted with no trust record", setAgentLine(agentCodex, "doctor.trusted", "ok", "trusted"), "", "is ok trusted"},
 		{"red an untrusted Codex hook reported protecting", setAgentLine(agentCodex, "doctor.state", "ok", "protecting"), "", "is ok protecting"},
 		{"red Codex reported fail closed", setAgentLine(agentCodex, "doctor.fail-mode", "ok", "fail-closed"), "", "is ok fail-closed"},
+		{"red the Codex chain over its budget", setAgentLine(agentCodex, "doctor.agents-chain", "red", "agents-chain-over"), "", "is red agents-chain-over"},
+		{"red the Codex chain line absent", dropAgentLine(agentCodex, "doctor.agents-chain"), "", "lacks doctor.agents-chain"},
 		{"red Cursor reported protecting", setAgentLine(agentCursor, "doctor.state", "ok", "protecting"), "", "is ok protecting"},
 		{"red the Cursor preview line absent", dropAgentLine(agentCursor, "doctor.preview"), "", "lacks doctor.preview"},
 		{"red a duplicate skill", setAgentLine(agentCursor, "doctor.duplicate", "unknown", "skill-duplicate"), "", "skill-duplicate"},

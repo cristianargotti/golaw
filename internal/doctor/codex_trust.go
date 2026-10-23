@@ -28,6 +28,7 @@ const (
 	projectAncestor  = "ancestor"
 	projectUntrusted = "untrusted"
 	featureOff       = "off"
+	codexConfigName  = "config.toml"
 )
 
 // trustFact is what decides whether Codex runs the installed handlers: the
@@ -51,7 +52,8 @@ type hookTrust struct {
 }
 
 // codexConfig is the part of the Codex user configuration beside the trust
-// record that decides whether a hook runs.
+// record that decides whether a hook runs, and the bytes Codex reads of the
+// AGENTS.md chain.
 type codexConfig struct {
 	Features struct {
 		Hooks *bool `toml:"hooks"`
@@ -64,6 +66,7 @@ type codexConfig struct {
 			Enabled *bool `toml:"enabled"`
 		} `toml:"state"`
 	} `toml:"hooks"`
+	ProjectDocMaxBytes *int64 `toml:"project_doc_max_bytes"`
 }
 
 // codexRecordTrust reads the trust of every installed handler from the
@@ -75,7 +78,7 @@ func codexRecordTrust(input Input) trustFact {
 	if fact.State != receiptRead {
 		return trustFact{}
 	}
-	trust := trustFact{Source: sourceRecord, Config: filepath.Join(input.ConfigDir, "config.toml")}
+	trust := trustFact{Source: sourceRecord, Config: filepath.Join(input.ConfigDir, codexConfigName)}
 	config, err := readCodexConfig(trust.Config)
 	if err != nil {
 		trust.Error = err.Error()

@@ -14,6 +14,7 @@ func Codex(ctx context.Context, input Input, _ EnrollmentReader) Report {
 	facts := collectAgent(input)
 	facts.Version, facts.VersionError = readVersion(ctx, agentVersion{command: agentCodex}, input.Environment)
 	facts.Trust = codexTrust(ctx, input, appServer{version: RunningMetadata().Version})
+	facts.Chain = collectChain(input)
 	return agentReport(input.Language, facts)
 }
 

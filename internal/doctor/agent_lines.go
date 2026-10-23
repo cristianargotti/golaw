@@ -48,6 +48,7 @@ func agentAssessments() []agentAssessment {
 		{idTrusted, trustedLines},
 		{idFailMode, failModeLines},
 		{idVersion, codexVersionLines},
+		{idAgentsChain, agentsChainLines},
 		{idPreview, previewLines},
 		{idCapture, captureLines},
 		{idDuplicate, duplicateLines},

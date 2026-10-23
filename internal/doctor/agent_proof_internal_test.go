@@ -73,6 +73,7 @@ func agentProofCases() []agentProofCase {
 		{idCompanion, codeCompanionFound, facts(companionLines)},
 		{idVersion, codeVersionUnvalidated, facts(codexVersionLines)},
 		{idVersion, codeVersionUnavailable, facts(codexVersionLines)},
+		{idAgentsChain, codeChainOver, facts(agentsChainLines)},
 		{idBinary, codeBinaryDiffers, facts(hookBinaryLines)},
 		{idBinary, codeBinaryUnresolved, facts(hookBinaryLines)},
 		{idTrusted, codeUntrusted, facts(trustedLines)},

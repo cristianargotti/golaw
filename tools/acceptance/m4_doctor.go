@@ -23,7 +23,8 @@ type lineWant struct {
 // agentWants are the lines of the Codex and Cursor reports section 10.3
 // item 2 judges: every artifact present and matching, the hook naming the
 // built binary, Codex trust absent, so never trusted and never protecting,
-// Codex failing open as its stated limit, Cursor trusted at user scope,
+// Codex failing open as its stated limit, the AGENTS.md at the root of the
+// fixture within the budget of Codex, Cursor trusted at user scope,
 // failing closed, never protecting, a preview whose writes are not
 // enforced and whose capture is unknown.
 func agentWants(agent string) map[string]lineWant {
@@ -42,6 +43,7 @@ func agentWants(agent string) map[string]lineWant {
 		wants["doctor.version"] = lineWant{[]string{
 			"ok agent-version-validated", "unknown agent-version-unvalidated", "unknown agent-version-unavailable",
 		}, true}
+		wants["doctor.agents-chain"] = lineWant{[]string{"ok agents-chain-within"}, true}
 		return wants
 	}
 	wants["doctor.trusted"] = lineWant{[]string{"ok trusted"}, true}

@@ -20,7 +20,7 @@ func codexTrust(ctx context.Context, input Input, lister hookLister) trustFact {
 	if _, fact := readReceiptFact(input.ReceiptPath); fact.State != receiptRead {
 		return trustFact{}
 	}
-	if config, err := readCodexConfig(filepath.Join(input.ConfigDir, "config.toml")); err == nil && config.feature() == featureOff {
+	if config, err := readCodexConfig(filepath.Join(input.ConfigDir, codexConfigName)); err == nil && config.feature() == featureOff {
 		return codexRecordTrust(input)
 	}
 	listed, err := lister.ListHooks(ctx, input.Environment, input.Root)
