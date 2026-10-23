@@ -172,3 +172,20 @@ checks:
     code: checksum-mismatch
     red: testdata/release/red
     near: testdata/release/near
+  # M5 profile-install: one entry per red code the profile line adds.
+  - id: doctor.profile-version-mismatch
+    code: profile-version-mismatch
+    red: testdata/profile-version-mismatch/red
+    near: testdata/profile-version-mismatch/near
+  - id: doctor.profile-digest-mismatch
+    code: profile-digest-mismatch
+    red: testdata/profile-digest-mismatch/red
+    near: testdata/profile-digest-mismatch/near
+  - id: doctor.profile-stale
+    code: profile-stale
+    red: testdata/profile-stale/red
+    near: testdata/profile-stale/near
+  - id: doctor.profile-data-invalid
+    code: profile-data-invalid
+    red: testdata/profile-data-invalid/red
+    near: testdata/profile-data-invalid/near
