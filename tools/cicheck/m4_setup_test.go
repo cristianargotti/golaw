@@ -32,7 +32,7 @@ func TestM4SetupCommandsAndPaths(t *testing.T) {
 		"." + ids[2] + "/rules/golaw.mdc",
 		"~/.agents/skills/golaw/SKILL.md",
 		".agents/skills/golaw/SKILL.md",
-		"CODEX_HOME",
+		strings.ToUpper(ids[1]) + "_HOME",
 		"/hooks",
 		"hooks.state",
 	} {
@@ -60,7 +60,8 @@ func TestM4SetupAssuranceAndRemoval(t *testing.T) {
 		"A changed owned file is refused with ErrChanged and is not removed.",
 		"Capture does not turn on write enforcement.",
 		m4AgentName(ids[1]) + " uses features.hooks in config.toml, on by default; enable it if it is disabled.",
-		m4AgentName(ids[1]) + " stops reading the AGENTS.md chain at 32 KiB, the golaw block stays under 1,000 bytes, and doctor does not measure the chain in M4.",
+		m4AgentName(ids[1]) + " stops reading the AGENTS.md chain at 32 KiB and the golaw block stays under 1,000 bytes; doctor.agents-chain measures the AGENTS.md at the repository root against that budget.",
+		"a root file over the budget is certain for every session",
 		m4AgentName(ids[2]) + " imports " + m4AgentName(ids[0]) + " settings-file hooks by default and maps Edit to Write and Bash to Shell, so a golaw hook command in ~/." + ids[0] + "/settings.json would run twice; the hooks live in the plugin, and doctor reports duplicate-hook.",
 		"A golaw skill under ~/." + ids[1] + "/skills or ~/." + ids[2] + "/skills beside ~/.agents/skills produces skill-duplicate.",
 		"duplicate-hook", "skill-duplicate",
@@ -74,6 +75,8 @@ func TestM4SetupAssuranceAndRemoval(t *testing.T) {
 		"doctor.capture",
 		"doctor.duplicate",
 		"doctor.companion",
+		"doctor.agents-chain",
+		"agents-chain-over",
 		"host-fails-open",
 		"revalidation-required",
 		"trusted-inactive",
@@ -84,6 +87,7 @@ func TestM4SetupAssuranceAndRemoval(t *testing.T) {
 	forbidden := []string{
 		"A zero doctor exit code proves protection.",
 		"Installing an agent arms the git rungs.",
+		"doctor does not measure the chain in M4.",
 	}
 	rows := []struct {
 		name, text string
@@ -93,6 +97,7 @@ func TestM4SetupAssuranceAndRemoval(t *testing.T) {
 		{"red-missing-trust", strings.ReplaceAll(text, required[0], ""), false},
 		{"red-exit-overclaim", text + "\n" + forbidden[0], false},
 		{"red-rung-overclaim", text + "\n" + forbidden[1], false},
+		{"red-unmeasured-chain", text + "\n" + forbidden[2], false},
 		{"near-other-installation", text + "\nForeign entries retain their order.\n", true},
 	}
 	for _, row := range rows {

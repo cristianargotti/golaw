@@ -163,6 +163,10 @@ checks:
     code: revalidation-required
     red: testdata/trusted-revalidation-required/red
     near: testdata/trusted-revalidation-required/near
+  - id: doctor.agents-chain-agents-chain-over
+    code: agents-chain-over
+    red: testdata/agents-chain-agents-chain-over/red
+    near: testdata/agents-chain-agents-chain-over/near
   # M5: the pinned profile bundle and the release of the running binary.
   - id: doctor.profile
     code: profile-not-installed

@@ -14,7 +14,7 @@ import (
 // the file knows that the hook, not the file, judges those forms.
 const rulesHeader = "# Generated from the hook's shared shell patterns.\n" +
 	"# A prefix cannot express an option anywhere, git -C, or wrappers.\n" +
-	"# User-scope rules also apply outside enrolled repositories.\n"
+	"# Written only with --scope project; applies in this repository.\n"
 
 // prefixFamilies lists the two checks a prefix may come from (D26), read
 // from the checks themselves: the ones the hook denies in every enrolled

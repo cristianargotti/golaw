@@ -115,3 +115,26 @@ func TestCodexReportAsksCodexThroughTheObservedPath(t *testing.T) {
 func jsonText(value string) string {
 	return strings.ReplaceAll(value, `\`, `\\`)
 }
+
+// TestCodexTrustNamesTheHooksFeatureOff holds doctor to A20 when the hooks
+// feature is off: Codex lists none of the handlers then, and the cause the
+// person can fix is the feature, never a /hooks approval or the project
+// trust, at either scope.
+func TestCodexTrustNamesTheHooksFeatureOff(t *testing.T) {
+	t.Parallel()
+	for _, scope := range []string{"user", scopeProject} {
+		in := trustedCodex(t, "[features]\nhooks = false\n", true)
+		in.input.Scope, in.input.Root = scope, t.TempDir()
+		facts := collectAgent(in.input)
+		facts.Trust = codexTrust(t.Context(), in.input, &listerDouble{})
+		line := trustedLines(facts)[0]
+		if line.State != stateRed || line.Code != codeUntrusted || !strings.Contains(line.Detail, "the hooks feature is off") || strings.Contains(line.Detail, "/hooks") {
+			t.Errorf("%s: %+v", scope, line)
+		}
+		for language, want := range map[string]string{"pt-BR": "ative features.hooks", "en": "turn features.hooks on"} {
+			if got := summary(language, facts, Line{State: stateRed, Code: codeInstalledUntrusted}); !strings.Contains(got, want) || strings.Contains(got, "/hooks") {
+				t.Errorf("%s %s summary: %q", scope, language, got)
+			}
+		}
+	}
+}

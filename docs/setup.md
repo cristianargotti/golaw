@@ -1,6 +1,6 @@
 # Setup
 
-M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). M4 adds the Codex CLI guard and the Cursor compatibility preview, installed as the [agent section](#codex-and-cursor-agents) below describes; a warning about the chain of agent instruction files concerns that agent integration, not a new installation of M3.
+M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). M4 adds the Codex CLI guard and the Cursor compatibility preview, installed as the [agent section](#codex-and-cursor-agents) below describes.
 
 Adopting repositories need Go 1.24 or newer. Building the kit needs Go 1.27. Claude Code 2.1.295 is the minimum host version; 2.1.299 is validated.
 
@@ -14,11 +14,15 @@ The sequence below shows the default core paths. Adjust the staging list to the 
 
 init distinguishes writes from proposals for existing files. init --apply leaves proposed bytes untouched. Review and apply the accepted proposal hunks yourself before staging, including the include of golaw.mk in an existing Makefile. Unapplied proposals can be displayed again on a repeated init.
 
+go.mod stays your file: init proposes the require of github.com/quasilyte/go-ruleguard/dsl, the module scripts/lint/rules.go imports, and prints the go get and go mod tidy that apply it with its go.sum lines. Until go.mod requires it, golangci-lint cannot load the rules file, make lint fails, and an armed pre-commit rung names that repair and leaves the lint to the pipeline.
+
 ```sh
 go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0
 golaw init
 golaw init --apply
-git add golaw.yml .editorconfig .gitattributes .github/dependabot.yml .gitleaks.toml .golangci.yml .gremlins.yaml .mockery.yaml Makefile golaw.mk lefthook.yml test/deadcode/reachability_test.go tools/go.mod docs/adr/0001-inherited-baseline.md
+go get github.com/quasilyte/go-ruleguard/dsl@v0.3.23
+go mod tidy
+git add golaw.yml .editorconfig .gitattributes .github/dependabot.yml .github/workflows/ci.yml .gitleaks.toml .golangci.yml .gremlins.yaml .mockery.yaml Makefile golaw.mk lefthook.yml scripts/lint/rules.go test/deadcode/reachability_test.go tools/go.mod go.mod go.sum docs/adr/0001-inherited-baseline.md
 git commit -m "feat: adopt the golaw policy"
 golaw setup
 golaw agent install --agent claude
@@ -75,7 +79,7 @@ golaw init --update
 golaw init --update --apply
 ```
 
-The preview writes nothing and shows the managed-file changes and exact version pin. Local edits are kept and reported. Apply writes the reviewed updates and matching enrollment record, preserving locally edited managed files. In a repository whose managed list records the kit templates, the update also writes the kit files a new version adds, each named in an `Arquivo novo do kit` line, and proposes the missing lines of a merged file such as the Makefile, which you apply as on adoption; a developer file and a repository that never adopted the templates are left alone. Stage every file listed in the reviewed update diff, exclude unrelated edits, and commit with the feat type so HEAD holds the updated policy. Keep the installed binary, kit.version and enrollment digests together. Run golaw setup again if you want the local rungs armed with the updated tool pins, then golaw doctor.
+The preview writes nothing and shows the managed-file changes and exact version pin. Local edits are kept and reported. Apply writes the reviewed updates and matching enrollment record, preserving locally edited managed files. In a repository whose managed list records the kit templates, the update also writes the kit files a new version adds, each named in an `Arquivo novo do kit` line, and proposes the missing lines of a merged file such as the Makefile, and, in the modules of the baseline decision record, the modules of the kit's go.mod lines and tools/go.mod that no decision record lists, which policy.dependency-records measures since M3; you apply both as on adoption; a developer file and a repository that never adopted the templates are left alone. Stage every file listed in the reviewed update diff, exclude unrelated edits, and commit with the feat type so HEAD holds the updated policy. Keep the installed binary, kit.version and enrollment digests together. Run golaw setup again if you want the local rungs armed with the updated tool pins, then golaw doctor.
 
 ## Capabilities and policy-file limits
 
@@ -174,22 +178,6 @@ If another guard exists, review the coexistence report before retiring it. Insta
 
 Read agent-contracts.md for evidence boundaries and security.md for recovery.
 
-## Starting states golaw does not support
-
-Each starting state below is a stated limit of this release, with what the person or the platform does about it.
-
-When CODEOWNERS gives `.github/` to a team other than the catch-all owner, init writes no Actions file and no Dependabot file there, so the generated CI and the Dependabot cooldown stay out of the repository, and the remote gate is whatever the platform runs. The team that owns `.github/` adds a stage that runs `make ci`, or the owners move the path.
-
-A container test that needs a private registry or a cloud login is outside the kit: the `test` target of `golaw.mk` runs `go test` on the machine and needs neither. Run the container suite on demand.
-
-A Swagger 2.0 tree a generator wrote is inherited state the kit does not regenerate: the API path of the kit is OpenAPI 3 with oapi-codegen, and `policy.openapi-assertions` judges no Swagger 2.0 document and measures clean until the OpenAPI 3 contract `redocly.yaml` names exists. Writing that contract brings the API under the check.
-
-A go line past Go's support window adopts, and its standard library advisories close only through a go line bump, so the `vuln` target and the push rung need dated entries in `vulnerability_waivers` until the line moves; the kit never moves it.
-
-A repository born with lint debt is red on its first `make ci` until the debt is fixed: M3 ships no lint baseline, and the reviewed debt set that only `init --apply` seeds arrives with the inventory pass of a later release. Fix the debt, or keep `make ci` off the gate until then; the pre-commit rung reports only the lint a commit introduces.
-
-A generator that rewrites a file without the Go generated header flips with `make fmt`; naming such files is profile data of a later release. Commit the generator's output after `make fmt`.
-
 ## Codex and Cursor agents
 
 M4 adds the Codex CLI guard and the Cursor compatibility preview beside the Claude Code guard. Cursor's shell and read guards judge, while its writes are captured, not enforced. Each agent installation is its own opt-in: run only the agents you use, at the scope you want.
@@ -241,7 +229,7 @@ Codex reads the project hooks of a linked git worktree from the .codex folder of
 
 ### What install and uninstall change
 
-The installer computes every change first and shows the diff before it writes; a repeated installation finds nothing to change and writes nothing. golaw's handlers are appended after the foreign ones of each event and an owned handler is replaced in place, so foreign hook entries keep their order; the marked block, from `<!-- golaw:begin -->` to `<!-- golaw:end -->`, is replaced in place or appended. When a change moves a Codex handler, golaw's or a foreign one, to another position, the install names its old and new trust identity, and that handler needs review in /hooks again, because Codex keeps the approval under the old key.
+The installer computes every change first and shows the diff before it writes; a repeated installation finds nothing to change and writes nothing. golaw's handlers are appended after the foreign ones of each event and an owned handler is replaced in place, so foreign hook entries keep their order; the marked block, from `<!-- golaw:begin -->` to `<!-- golaw:end -->`, is replaced in place or appended. When a change moves a Codex handler, golaw's or a foreign one, to another position, the install or the uninstall names its old and new trust identity, and that handler needs review in /hooks again, because Codex keeps the approval under the old key.
 
 One receipt per agent and scope records what the installation owns: the hash of every file it owns whole, the exact JSON of each handler it owns with its event and position, and the hash of each marked block it wrote into a file you own. Its path comes from agents.ReceiptPath, `<state>/<agent>/<scope>/receipt.json`, with the project identity as one more directory at project scope. The state directory comes from policy.DefaultDirs: XDG_STATE_HOME when set, otherwise LOCALAPPDATA on Windows and ~/.local/state on macOS and Linux, with the golaw suffix.
 
@@ -264,28 +252,45 @@ On macOS and Linux each hook command is the quoted absolute path of the golaw bi
 
 Installed, trusted and active are separate facts. golaw doctor prints one report per agent for the scope it inspects, user by default or --scope project, with a pt-BR summary after the lines of each agent. doctor --json prints one JSON document per agent. doctor exits 0 after printing a report, including findings; collection failure exits 2. Exit 0 says the report was collected, not that a guard protects: read the state line.
 
-| Line             | Codes                                                                                           | Meaning                                                                                                                     |
-| ---------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| doctor.installed | installed, installed-drift, not-installed                                                       | the receipt exists and every artifact, entry and block it lists is present and matches                                      |
-| doctor.binary    | binary-matches, binary-differs, binary-unresolved                                               | the binary each hook command names, against the running one                                                                 |
-| doctor.trusted   | trusted, untrusted, revalidation-required, trust-unknown                                        | whether the host will run the hook                                                                                          |
-| doctor.dispatch  | observed, stale, unobserved                                                                     | the current definition's dispatch evidence: the host ran it for this repository, ran an earlier definition, or never ran it |
-| doctor.state     | protecting, installed-untrusted, trusted-inactive, not-installed, trust-unknown, preview-active | the one line that tells the three facts apart                                                                               |
-| doctor.fail-mode | fail-closed, host-fails-open                                                                    | per event, whether the host blocks the tool when the hook fails                                                             |
-| doctor.version   | agent-version-validated, agent-version-unvalidated, agent-version-unavailable                   | Codex: codex --version against the pinned patch grammar                                                                     |
-| doctor.preview   | cursor-writes-not-enforced                                                                      | Cursor only, always: writes not enforced, payload unknown                                                                   |
-| doctor.capture   | capture-recorded, capture-absent                                                                | per Cursor write event, the key names a payload carried, never a value                                                      |
-| doctor.duplicate | no-duplicate, duplicate-hook, skill-duplicate                                                   | a second copy of the hook or the skill the agent would load                                                                 |
-| doctor.companion | companion-absent, companion-found                                                               | the companion gate in the agent's hooks file, before or after golaw                                                         |
+| Line                | Codes                                                                                           | Meaning                                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| doctor.installed    | installed, installed-drift, not-installed                                                       | the receipt exists and every artifact, entry and block it lists is present and matches                                      |
+| doctor.binary       | binary-matches, binary-differs, binary-unresolved                                               | the binary each hook command names, against the running one                                                                 |
+| doctor.trusted      | trusted, untrusted, revalidation-required, trust-unknown                                        | whether the host will run the hook                                                                                          |
+| doctor.dispatch     | observed, stale, unobserved                                                                     | the current definition's dispatch evidence: the host ran it for this repository, ran an earlier definition, or never ran it |
+| doctor.state        | protecting, installed-untrusted, trusted-inactive, not-installed, trust-unknown, preview-active | the one line that tells the three facts apart                                                                               |
+| doctor.fail-mode    | fail-closed, host-fails-open                                                                    | per event, whether the host blocks the tool when the hook fails                                                             |
+| doctor.version      | agent-version-validated, agent-version-unvalidated, agent-version-unavailable                   | Codex: codex --version against the pinned patch grammar                                                                     |
+| doctor.agents-chain | agents-chain-within, agents-chain-over, agents-chain-unread                                     | Codex: the AGENTS.md at the repository root against the bytes Codex reads of the chain                                      |
+| doctor.preview      | cursor-writes-not-enforced                                                                      | Cursor only, always: writes not enforced, payload unknown                                                                   |
+| doctor.capture      | capture-recorded, capture-absent                                                                | per Cursor write event, the key names a payload carried, never a value                                                      |
+| doctor.duplicate    | no-duplicate, duplicate-hook, skill-duplicate                                                   | a second copy of the hook or the skill the agent would load                                                                 |
+| doctor.companion    | companion-absent, companion-found                                                               | the companion gate in the agent's hooks file, before or after golaw                                                         |
 
-protecting requires matching installation, established trust and current observed dispatch. An agent with no receipt at a scope is not-installed in state unknown, never red. An installation that drifted, or a receipt that cannot be read, is installed-drift, and its state is not-installed in state red with the install command that repairs it. An installed hook the host will not run is installed-untrusted; one whose trust doctor cannot read is trust-unknown; a trusted one that has not run with the current definition is trusted-inactive. Cursor is never protecting: an installed, trusted and observed Cursor hook is preview-active, because its writes are captured, not enforced.
+protecting requires matching installation, established trust and current observed dispatch. An agent with no receipt at a scope is not-installed in state unknown, never red. The Claude report keeps the M1 lines of its guard unchanged, so with no Claude receipt at the scope doctor.artifacts, doctor.plugin, doctor.read, doctor.hooks and doctor.pin stay red as M1 printed them before an installation; its doctor.state line says not-installed in state unknown, and if you do not use Claude Code those lines ask for nothing. An installation that drifted, or a receipt that cannot be read, is installed-drift, and its state is not-installed in state red with the install command that repairs it. An installed hook the host will not run is installed-untrusted; one whose trust doctor cannot read is trust-unknown; a trusted one that has not run with the current definition is trusted-inactive. Cursor is never protecting: an installed, trusted and observed Cursor hook is preview-active, because its writes are captured, not enforced.
 
-Codex trust comes first from codex app-server hooks/list, when the installed CLI answers within the doctor's deadline, and otherwise from the fallback that compares each receipt definition's hash with the record in config.toml; the line names its source. A handler changed since it was trusted is revalidation-required; one never trusted, turned off, under a disabled hooks feature or in a project Codex does not trust is untrusted. Claude plugin trust remains trust-unknown without suitable live evidence, even after the hook ran. Cursor runs user hooks without a trust step, so its user trust is trusted, and runs project hooks only in a trusted workspace doctor cannot read, so its project trust is unknown. Cursor user trust does not turn captured writes into enforced writes. Capture does not turn on write enforcement.
+Codex trust comes first from codex app-server hooks/list, when the installed CLI answers within the doctor's deadline, and otherwise from the fallback that compares each receipt definition's hash with the record in config.toml; the line names its source. When config.toml turns features.hooks off, Codex lists no hook at all, so doctor reads the record, which names the feature as the cause, without starting codex app-server. Starting codex app-server in your CODEX_HOME lets Codex create its own state there, as any Codex start does; security.md lists what Codex 0.163.0 creates. A handler changed since it was trusted is revalidation-required; one never trusted, turned off, under a disabled hooks feature or in a project Codex does not trust is untrusted. Claude plugin trust remains trust-unknown without suitable live evidence, even after the hook ran. Cursor runs user hooks without a trust step, so its user trust is trusted, and runs project hooks only in a trusted workspace doctor cannot read, so its project trust is unknown. Cursor user trust does not turn captured writes into enforced writes. Capture does not turn on write enforcement.
 
 Claude's onFailure: block and Cursor's failClosed: true are fail-closed. Codex has no fail-closed setting, so its line is host-fails-open in state unknown, its stated limit; a Claude or Cursor handler without its blocking setting is host-fails-open in state red. The version line is agent-version-validated when Codex answers the version its patch grammar is pinned to; Claude keeps its floor line, and Cursor, with no validated version, has none.
 
 Cursor imports Claude settings-file hooks by default and maps Edit to Write and Bash to Shell, so a golaw hook command in ~/.claude/settings.json would run twice; the hooks live in the plugin, and doctor reports duplicate-hook. A golaw skill under ~/.codex/skills or ~/.cursor/skills beside ~/.agents/skills produces skill-duplicate. Remove the extra copy in either case.
 
-Codex stops reading the AGENTS.md chain at 32 KiB, the golaw block stays under 1,000 bytes, and doctor does not measure the chain in M4. Keep your own AGENTS.md files within that budget.
+Codex stops reading the AGENTS.md chain at 32 KiB and the golaw block stays under 1,000 bytes; doctor.agents-chain measures the AGENTS.md at the repository root against that budget. The chain of every session starts at that file, or at AGENTS.override.md when the root holds one, which Codex reads in its place, so a root file over the budget is certain for every session: the line is red with the file and its size, and Codex drops the rest of the file, the golaw block included when install appended it there. A project_doc_max_bytes that the Codex configuration of the person or of the project sets replaces 32 KiB; when both set one, doctor measures against the larger, so a budget it cannot pin never makes the line red. The files below the root, which differ per session, a fallback file name, a budget given on the command line or in a profile, and a project root other than the git root are stated limits doctor does not measure. Keep your own AGENTS.md files within that budget.
 
 doctor.companion finds a companion gate by its neutral names: a handler whose command runs standards_gate.py in the agent's hooks file, reported before or after golaw's handler of the same event; for Claude the coexistence report also reads its registry, standards-gate.json. No file may receive two blocking verdicts: retire from the companion gate each family golaw owns before both run.
+
+## Starting states golaw does not support
+
+Each starting state below is a stated limit of this release, with what the person or the platform does about it.
+
+When CODEOWNERS gives `.github/` to a team other than the catch-all owner, init writes no Actions file and no Dependabot file there, so the generated CI and the Dependabot cooldown stay out of the repository, and the remote gate is whatever the platform runs. The team that owns `.github/` adds a stage that runs `make ci`, or the owners move the path.
+
+A container test that needs a private registry or a cloud login is outside the kit: the `test` target of `golaw.mk` runs `go test` on the machine and needs neither. Run the container suite on demand.
+
+A Swagger 2.0 tree a generator wrote is inherited state the kit does not regenerate: the API path of the kit is OpenAPI 3 with oapi-codegen, and `policy.openapi-assertions` judges no Swagger 2.0 document and measures clean until the OpenAPI 3 contract `redocly.yaml` names exists. Writing that contract brings the API under the check.
+
+A go line past Go's support window adopts, and its standard library advisories close only through a go line bump, so the `vuln` target and the push rung need dated entries in `vulnerability_waivers` until the line moves; the kit never moves it.
+
+A repository born with lint debt is red on its first `make ci` until the debt is fixed: M3 ships no lint baseline, and the reviewed debt set that only `init --apply` seeds arrives with the inventory pass of a later release. Fix the debt, or keep `make ci` off the gate until then; the pre-commit rung reports only the lint a commit introduces.
+
+A generator that rewrites a file without the Go generated header flips with `make fmt`; naming such files is profile data of a later release. Commit the generator's output after `make fmt`.

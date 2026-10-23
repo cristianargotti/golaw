@@ -11,7 +11,7 @@ import (
 func lineOf(t *testing.T, input Snapshot, id string) Line {
 	t.Helper()
 	var found []Line
-	for _, line := range Assess(input).Lines {
+	for _, line := range assess(input).Lines {
 		if line.ID == id {
 			found = append(found, line)
 		}
@@ -81,7 +81,7 @@ func TestDispatchIsTheFinalLine(t *testing.T) {
 	} {
 		input := baseline(t)
 		input.Dispatch = tc.dispatch
-		lines := Assess(input).Lines
+		lines := assess(input).Lines
 		last := lines[len(lines)-1]
 		if last.ID != "doctor.dispatch" || last.State != tc.state || last.Code != tc.code {
 			t.Errorf("%#v: %#v", tc.dispatch, last)

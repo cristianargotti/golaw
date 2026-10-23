@@ -158,8 +158,9 @@ func m2Uninstall(t *testing.T, s *suite, c command, corrupt bool) result {
 	return result{stdout: "golaw setup: disarmed " + receipt.Root + "\n"}
 }
 
-// m2Doctor answers doctor --json from the receipt setup left: a line per
-// tool with its pin, the receipt path and the hooks directory.
+// m2Doctor answers doctor --json from the receipt setup left, as the M4
+// doctor prints it: one document per agent, the Claude one first with a
+// line per tool and its pin, the receipt path and the hooks directory.
 func m2Doctor(t *testing.T, s *suite, c command) result {
 	t.Helper()
 	path := m2ReceiptPath(t, s, c)
@@ -177,11 +178,19 @@ func m2Doctor(t *testing.T, s *suite, c command) result {
 			Detail: tool.Name + " " + tool.Version + " at " + tool.Path,
 		})
 	}
-	data, err := json.Marshal(doctor.Report{Schema: 1, Lines: lines})
-	if err != nil {
-		t.Fatal(err)
+	var documents []string
+	for _, report := range []doctor.Report{
+		{Schema: 1, Lines: lines},
+		{Schema: 1, Lines: []doctor.Line{{ID: "doctor.state", Key: "codex", State: "unknown", Code: "not-installed"}}},
+		{Schema: 1, Lines: []doctor.Line{{ID: "doctor.state", Key: "cursor", State: "unknown", Code: "not-installed"}}},
+	} {
+		data, err := json.Marshal(report)
+		if err != nil {
+			t.Fatal(err)
+		}
+		documents = append(documents, string(data)+"\n")
 	}
-	return result{stdout: string(data) + "\n"}
+	return result{stdout: strings.Join(documents, "")}
 }
 
 // m2Update stands in for init --update: the preview names each template a

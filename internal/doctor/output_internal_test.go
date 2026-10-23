@@ -9,7 +9,7 @@ import (
 
 func TestJSONOutputAndHumanOutput(t *testing.T) {
 	t.Parallel()
-	report := Assess(baseline(t))
+	report := assess(baseline(t))
 	var first, second bytes.Buffer
 	if err := Print(&first, report, true); err != nil {
 		t.Fatal(err)

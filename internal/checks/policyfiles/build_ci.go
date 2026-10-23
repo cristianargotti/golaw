@@ -3,6 +3,7 @@ package policyfiles
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -77,13 +78,24 @@ func ciCoverage(in model.Input, m makefile) (model.Result, error) {
 	demand, demandLimit := demandTargets(in)
 	missing = ciMissing(missing, demand)
 	if len(missing) != 0 && graphLimit != nil {
-		return model.Result{}, graphLimit
+		return model.Result{}, ciLimitNaming(graphLimit, missing)
 	}
 	if len(missing) != 0 && demandLimit != nil {
 		return model.Result{}, demandLimit
 	}
 	rule, _ := m.rule("ci")
 	return ciMissingFindings(missing, rule), nil
+}
+
+// ciLimitNaming names the targets ci misses beside a stated limit of its
+// graph, because the repair is the missing target, not the construct.
+func ciLimitNaming(limit error, missing []string) error {
+	construct, stated := strings.CutSuffix(limit.Error(), ": "+model.ErrOutsideSubset.Error())
+	if !stated {
+		return limit
+	}
+	targets := strings.Join(missing, ", ")
+	return fmt.Errorf("%s; ci does not otherwise reach %s; add %s to ci: %w", construct, targets, targets, model.ErrOutsideSubset)
 }
 
 func ciMissing(required, reached []string) []string {

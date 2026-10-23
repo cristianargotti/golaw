@@ -96,6 +96,25 @@ func TestCollectAgentKeepsAReformattedFileAndRefusesAForeignReceipt(t *testing.T
 	}
 }
 
+// TestCollectAgentKeepsReorderedHandlerKeys holds doctor to the comparison
+// the installers make: a handler whose keys another tool reordered is the
+// same handler, for Codex and for Cursor, and never installed-drift.
+func TestCollectAgentKeepsReorderedHandlerKeys(t *testing.T) {
+	t.Parallel()
+	codex := installCodex(t)
+	reordered := `{"timeout":10,"command":"'/opt/golaw' hook codex","type":"command"}`
+	writeFile(t, codex.hooks, strings.ReplaceAll(codexHooks(""), codexHandler, reordered))
+	if facts := collectAgent(codex.input); len(facts.Receipt.Drift) != 0 || len(facts.Events) != 2 || !facts.Events[0].Present || !facts.Events[1].Present {
+		t.Fatalf("a Codex handler with reordered keys drifted: %+v", facts)
+	}
+	cursor := installCursor(t)
+	reordered = `{"failClosed":true,"timeout":10,"matcher":"Write|Delete|Shell","command":"'/opt/golaw' hook cursor"}`
+	writeFile(t, cursor.hooks, `{"version":1,"hooks":{"preToolUse":[{"command":"/usr/local/bin/audit","timeout":5},`+reordered+`]}}`)
+	if facts := collectAgent(cursor.input); len(facts.Receipt.Drift) != 0 || !reflect.DeepEqual(facts.Events, []eventFact{{Event: "preToolUse", Present: true, FailClosed: true}}) {
+		t.Fatalf("a Cursor handler with reordered keys drifted: %+v", facts)
+	}
+}
+
 func TestCollectAgentTellsAnAbsentReceiptFromAnUnreadableOne(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

@@ -26,11 +26,7 @@ func (r *makeReader) variable(line makeLine, condition string) bool {
 		}
 		targets, text = makeWords(text[:colon]), strings.TrimSpace(text[colon+1:])
 	}
-	export := ""
-	words := makeWords(text)
-	if len(words) != 0 && (words[0] == makeExport || words[0] == makeUnexport) {
-		export, text = words[0], strings.TrimSpace(strings.TrimPrefix(text, words[0]))
-	}
+	export, text := makeExportPrefix(text)
 	name, op, value := makeAssignment(text)
 	names := []string{name}
 	if op == "" {
@@ -39,15 +35,27 @@ func (r *makeReader) variable(line makeLine, condition string) bool {
 		}
 		names, op = makeWords(text), export
 	}
+	if len(names) == 0 && export == makeExport {
+		r.result.exportAll = append(r.result.exportAll, makeVar{file: line.file, line: line.line, condition: condition})
+	}
 	for _, target := range targets {
 		for _, name := range names {
 			r.recordVar(makeVar{
-				name: name, value: value, exported: export == makeExport,
+				name: name, value: value, exported: export == makeExport, unexport: op == makeUnexport,
 				target: target, file: line.file, line: line.line, condition: condition,
 			}, op)
 		}
 	}
 	return true
+}
+
+// makeExportPrefix splits an export or unexport word off a line.
+func makeExportPrefix(text string) (string, string) {
+	words := makeWords(text)
+	if len(words) != 0 && (words[0] == makeExport || words[0] == makeUnexport) {
+		return words[0], strings.TrimSpace(strings.TrimPrefix(text, words[0]))
+	}
+	return "", text
 }
 
 func makeAssignment(text string) (string, string, string) {

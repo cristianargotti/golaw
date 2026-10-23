@@ -89,24 +89,7 @@ func (s *suite) recoveryRow(ctx context.Context, repo string, original []byte) r
 }
 
 func (s *suite) buildFault(ctx context.Context, source string) (string, error) {
-	body, err := readFile(source)
-	if err != nil {
-		return "", err
-	}
-	dir := filepath.Join(s.base, "fault")
-	source = filepath.Join(dir, "main.go")
-	if err := writeFile(source, body, fileMode); err != nil {
-		return "", err
-	}
-	binary := filepath.Join(dir, executable("fault"))
-	got := s.execute(ctx, command{
-		program: s.goTool, args: []string{goBuild, "-o", binary, source},
-		dir: s.root, env: s.env,
-	})
-	if err := success(got); err != nil {
-		return "", err
-	}
-	return binary, nil
+	return s.buildProgram(ctx, source, "fault")
 }
 
 func (s *suite) faultRow(ctx context.Context, mode, repo string, input, original, replacement []byte) row {

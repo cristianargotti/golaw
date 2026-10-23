@@ -38,7 +38,7 @@ func failOpenReported(t *testing.T, base Snapshot, event string, index int, key 
 	input := base
 	input.Hooks = string(encoded)
 	found := false
-	for _, line := range Assess(input).Lines {
+	for _, line := range assess(input).Lines {
 		if line.ID == idHooks && line.Key == key {
 			found = line.State == stateRed && line.Code == codeHookFailOpen
 		}
@@ -52,7 +52,7 @@ func TestTrustNeverBecomesVerified(t *testing.T) {
 		input := baseline(t)
 		input.Plugin = plugin
 		found := false
-		for _, line := range Assess(input).Lines {
+		for _, line := range assess(input).Lines {
 			if line.ID == "doctor.trust" {
 				found = line.State == "unknown"
 			}

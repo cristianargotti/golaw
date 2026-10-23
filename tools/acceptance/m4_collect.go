@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"io"
+
+	"github.com/cristianargotti/golaw/internal/hook/codex"
 )
 
 // The M4 rows of section 11: the preparation row a failed build answers
@@ -27,7 +29,16 @@ type m4Catalog struct {
 
 // m4Catalogs are the categories of the M4 rows in report order.
 func m4Catalogs() []m4Catalog {
-	return []m4Catalog{}
+	return []m4Catalog{
+		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4CodexRows},
+		{agent: agentCursor, version: m4Unversioned, rows: (*suite).m4CursorRows},
+		{agent: m4AllAgents, version: codex.PatchGrammar, rows: (*suite).m4ReasonRows},
+		{agent: m4AllAgents, version: codex.PatchGrammar, rows: (*suite).m4FailureRows},
+		{agent: m4AllAgents, version: codex.PatchGrammar, rows: (*suite).m4OrderRows},
+		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4TrustRows},
+		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4VendorRows},
+		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4LiveRows},
+	}
 }
 
 // collectM4 measures every M4 category over a prepared suite.
@@ -75,20 +86,28 @@ func (s *suite) m4Run(ctx context.Context, out io.Writer, catalogs []m4Catalog) 
 	return m2ReportCode(reportEvidence(out, rows, "", s.digest, evidence))
 }
 
-// m4Flags are the flags of the M4 runs: -m4 reports the M4 rows alone.
+// m4Flags are the flags of the M4 runs: -m4 reports the M4 rows alone,
+// -live-codex runs the live lane of D21 with the facts file it names.
 type m4Flags struct {
 	only *bool
+	live *string
 }
 
 func m4FlagSet(flags *flag.FlagSet) m4Flags {
-	return m4Flags{only: flags.Bool("m4", false, "require M4 functional evidence rows")}
+	return m4Flags{
+		only: flags.Bool("m4", false, "require M4 functional evidence rows"),
+		live: flags.String(m4LaneFlag, "", "record the Codex live session of macOS with the facts of this JSON file"),
+	}
 }
 
 // route runs the M4 mode a flag selects and reports whether one did; a
-// release run keeps every row, so it never routes here.
+// release run keeps every row, so -m4 never routes it.
 func (f m4Flags) route(ctx context.Context, out io.Writer, s *suite, release bool) (int, bool) {
-	if release || !*f.only {
-		return 0, false
+	switch {
+	case *f.live != "":
+		return s.runCodexLane(ctx, out, *f.live), true
+	case *f.only && !release:
+		return s.runM4(ctx, out), true
 	}
-	return s.runM4(ctx, out), true
+	return 0, false
 }

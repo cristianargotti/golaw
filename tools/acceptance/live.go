@@ -99,6 +99,15 @@ func liveRowsWith(status, detail string, required bool) []row {
 }
 
 func readLiveRecord(path string) (liveRecord, error) {
+	record, err := decodeLiveRecord(path)
+	if err != nil {
+		return liveRecord{}, err
+	}
+	return record, validLiveRecord(record)
+}
+
+// decodeLiveRecord reads a live record strictly, whatever agent it names.
+func decodeLiveRecord(path string) (liveRecord, error) {
 	body, err := os.ReadFile(path) //nolint:gosec // The record path is fixed under the module root or a test directory.
 	if err != nil {
 		return liveRecord{}, fmt.Errorf("read the live record: %w", err)
@@ -109,18 +118,28 @@ func readLiveRecord(path string) (liveRecord, error) {
 	if err := decoder.Decode(&record); err != nil {
 		return liveRecord{}, fmt.Errorf("decode the live record: %w", err)
 	}
-	return record, validLiveRecord(record)
+	return record, nil
 }
 
 func validLiveRecord(record liveRecord) error {
-	if _, err := time.Parse(time.DateOnly, record.Date); err != nil {
-		return fmt.Errorf("the live record date: %w", err)
-	}
 	if record.Agent != agentClaude || record.OS != liveOS || record.Arch != liveArch {
 		return fmt.Errorf("the live record is not a Claude Code session on darwin/arm64: %w", ErrAcceptance)
 	}
 	if err := versionFloor(record.AgentVersion); err != nil {
 		return err
+	}
+	if err := recordFacts(record); err != nil {
+		return err
+	}
+	return liveCases(record.Cases)
+}
+
+// recordFacts holds a record to what every live record keeps (section
+// 10.4): its date, the facts of the person who ran it and the digest of
+// the binary it ran.
+func recordFacts(record liveRecord) error {
+	if _, err := time.Parse(time.DateOnly, record.Date); err != nil {
+		return fmt.Errorf("the live record date: %w", err)
 	}
 	facts := []string{
 		record.Owner, record.Environment, record.CredentialBoundary,
@@ -132,7 +151,7 @@ func validLiveRecord(record liveRecord) error {
 	if !digestPattern.MatchString(record.Binary) {
 		return fmt.Errorf("the live record names no binary digest: %w", ErrAcceptance)
 	}
-	return liveCases(record.Cases)
+	return nil
 }
 
 // liveCases holds the record to the four cases of the M1 live session: the

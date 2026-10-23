@@ -27,6 +27,10 @@ const (
 	noGoFile  = "skipped, no Go file staged"
 )
 
+// ruleguardModule is the module and version the rules file of the kit
+// imports, the require init proposes for go.mod.
+const ruleguardModule = "github.com/quasilyte/go-ruleguard/dsl@v0.3.23"
+
 // golangci runs the two golangci-lint steps over the commit, the pinned
 // version verified once, whenever the commit touches a package, a change
 // of go.mod alone included: the format of the staged Go files and the
@@ -88,8 +92,11 @@ func (p *precommit) lint(ctx context.Context, t goTree, path string, env []strin
 }
 
 // linted reads what golangci-lint answered: 0 nothing on the staged lines,
-// 1 issues there.
+// 1 issues there. A go.mod that does not require the rules module stops the
+// linters before they judge a line, which no staged change caused, so it is
+// named with its repair and left to the pipeline.
 func linted(packages int, out runner.Output, err error) Outcome {
+	module, _, _ := strings.Cut(ruleguardModule, "@")
 	switch {
 	case err != nil:
 		return stepFailed(lintStep, err)
@@ -97,6 +104,9 @@ func linted(packages int, out runner.Output, err error) Outcome {
 		return passed(lintStep, fmt.Sprintf("golangci-lint found no issue on the staged lines of %d affected packages", packages))
 	case out.Code == 1:
 		return refusedBy(lintStep, "golangci-lint reports issues on the staged lines; fix them before the commit", out)
+	case strings.Contains(string(out.Stdout)+string(out.Stderr), "could not import "+module):
+		return passed(lintStep, "left to the pipeline, golangci-lint cannot load scripts/lint/rules.go while go.mod does not require "+module+
+			"; run go get "+ruleguardModule+" and then go mod tidy, and commit go.mod and go.sum")
 	default:
 		return broke(lintStep, linter, out)
 	}

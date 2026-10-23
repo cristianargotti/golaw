@@ -59,7 +59,7 @@ func TestMatrixRefusesACheckOffItsCondition(t *testing.T) {
 		"a dropped need":             {scopedCheck{id: "goast.file-length", scope: model.ScopeFile}, "declares scope file and needs [], its condition is scope file and needs [go]"},
 		"a policy check in a hook":   {scopedCheck{id: "policy.makefile", scope: model.ScopeFile, needs: []string{"go"}}, "declares scope file and needs [go], its condition is scope tree and needs [go]"},
 		"the wrong capability":       {scopedCheck{id: "policy.squawk-config", scope: model.ScopeTree, needs: []string{"api"}}, "its condition is scope tree and needs [db]"},
-		"a family without condition": {scopedCheck{id: "web.thing", scope: model.ScopeFile}, "no condition: write the scope and the needs of the check in internal/proof/conditions.go"},
+		"a family without condition": {scopedCheck{id: "web.thing", scope: model.ScopeFile}, "no condition: write the scope and the needs of the check in internal/proof/conditions_export_test.go"},
 		"a policy check without row": {scopedCheck{id: "policy.other", scope: model.ScopeTree}, "no condition"},
 		"a need the engine cannot meet": {
 			scopedCheck{id: "text.todo", scope: model.ScopeFile, requires: []string{"external-evidence"}},

@@ -174,7 +174,7 @@ func TestAFailedListingSpeaksThePolicyLanguage(t *testing.T) {
 	}
 	adapter = decoding(adapter, func(snapshot model.Snapshot) { snapshot.Class("a.go") })
 	_, got := hook.Evaluate(t.Context(), "claude", []byte("{}"), adapter, dependencies)
-	if got.Human != "The operation was blocked by check golaw at path not given." || !got.CannotJudge {
+	if got.Human != "golaw could not read what it needs to judge the operation; the reason given to the agent names the cause." || !got.CannotJudge {
 		t.Fatal(got)
 	}
 }

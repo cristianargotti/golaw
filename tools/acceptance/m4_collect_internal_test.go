@@ -97,8 +97,8 @@ func TestRunArgsRoutesTheM4Flag(t *testing.T) {
 		!strings.Contains(out.String(), "m4-preparation\t") || !strings.Contains(out.String(), "\tFAIL\trequired\tcandidate\t") {
 		t.Fatalf("a failed M4 candidate = %d\n%s", code, out.String())
 	}
-	only := true
-	if code, routed := (m4Flags{only: &only}).route(t.Context(), &out, nil, true); routed || code != 0 {
+	only, live := true, ""
+	if code, routed := (m4Flags{only: &only, live: &live}).route(t.Context(), &out, nil, true); routed || code != 0 {
 		t.Fatal("a release run routed to the M4 rows alone")
 	}
 }

@@ -89,7 +89,7 @@ func m3Append(file, text string) func(string) error {
 func m3Remove(file string) func(string) error {
 	return func(repo string) error {
 		if err := os.Remove(filepath.Join(repo, filepath.FromSlash(file))); err != nil {
-			return fmt.Errorf("remove %s: %w", file, errors.Join(ErrAcceptance, err))
+			return fmt.Errorf(removeFailed, file, errors.Join(ErrAcceptance, err))
 		}
 		return nil
 	}
@@ -170,7 +170,7 @@ func m3EditYAML(path string, edit func(*yaml.Node) error) error {
 	encoder := yaml.NewEncoder(&out)
 	encoder.SetIndent(2)
 	if err := errors.Join(encoder.Encode(&document), encoder.Close()); err != nil {
-		return fmt.Errorf("encode %s: %w", path, err)
+		return fmt.Errorf(encodeFailed, path, err)
 	}
 	return writeFile(path, out.Bytes(), fileMode)
 }

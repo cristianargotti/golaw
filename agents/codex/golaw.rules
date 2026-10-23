@@ -1,5 +1,5 @@
 # Generated from the hook's shared shell patterns.
 # A prefix cannot express an option anywhere, git -C, or wrappers.
-# User-scope rules also apply outside enrolled repositories.
+# Written only with --scope project; applies in this repository.
 prefix_rule(pattern=["git","commit",["--no-verify","-n"]], decision="forbidden", justification="the command skips the git hooks; the hooks are the rule")
 prefix_rule(pattern=["git",["merge","rebase","push"],"--no-verify"], decision="forbidden", justification="the command skips the git hooks; the hooks are the rule")

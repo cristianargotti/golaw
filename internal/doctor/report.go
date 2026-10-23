@@ -62,12 +62,3 @@ func assessments() []assessment {
 		{idDispatch, dispatchLines},
 	}
 }
-
-// Assess keeps collection failures from suppressing independent diagnostics.
-func Assess(snapshot Snapshot) Report {
-	report := Report{Schema: 1, Lines: []Line{}}
-	for _, item := range assessments() {
-		report.Lines = append(report.Lines, item.run(snapshot)...)
-	}
-	return report
-}

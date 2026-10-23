@@ -27,84 +27,90 @@ A row's label applies only to the cases its evidence names. Offline acceptance d
 
 | Agent | Event | Tool | OS | Assurance | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| claude | PreToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Edit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Edit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Edit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | NotebookEdit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | NotebookEdit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | NotebookEdit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Read | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Read | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Read | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | PowerShell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | PowerShell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PreToolUse | PowerShell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Edit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Edit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Edit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | NotebookEdit | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | NotebookEdit | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | NotebookEdit | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | PowerShell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | PowerShell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUse | PowerShell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUseFailure | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUseFailure | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUseFailure | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUseFailure | PowerShell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUseFailure | PowerShell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| claude | PostToolUseFailure | PowerShell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PreToolUse | apply_patch | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PreToolUse | apply_patch | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PreToolUse | apply_patch | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PreToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PreToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PreToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PostToolUse | apply_patch | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PostToolUse | apply_patch | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PostToolUse | apply_patch | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PostToolUse | Bash | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PostToolUse | Bash | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| codex | PostToolUse | Bash | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Delete | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Delete | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Delete | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | preToolUse | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | beforeReadFile | Read | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | beforeReadFile | Read | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | beforeReadFile | Read | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | beforeShellExecution | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | beforeShellExecution | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | beforeShellExecution | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUse | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUse | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUse | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUse | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUse | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUse | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUseFailure | Write | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUseFailure | Write | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUseFailure | Write | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUseFailure | Shell | Linux | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUseFailure | Shell | macOS | documented only | Contract only; native execution evidence has not been reconciled. |
-| cursor | postToolUseFailure | Shell | Windows | documented only | Contract only; native execution evidence has not been reconciled. |
+| claude | PreToolUse | Write | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | Write | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: write/{dash-write,clean-write,forbidden-path,allowed-path,write-300,write-301,function-40,function-41,test-function-41}; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PreToolUse | Write | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | Edit | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | Edit | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: edit/{dash-edit,clean-edit,edit-300,edit-301}; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PreToolUse | Edit | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | NotebookEdit | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | NotebookEdit | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: protocol/notebook, the compatibility denial; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PreToolUse | NotebookEdit | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | Read | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | Read | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: read/{secret-read,source-read}; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PreToolUse | Read | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | Bash | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | Bash | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: the 65 shell/*-Bash rows; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PreToolUse | Bash | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | PowerShell | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PreToolUse | PowerShell | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: the 62 shell/*-PowerShell rows; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PreToolUse | PowerShell | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | Write | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | Write | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: post/{post-Write,post-control-Write}; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PostToolUse | Write | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | Edit | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | Edit | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: post/{post-Edit,post-control-Edit}; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PostToolUse | Edit | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | NotebookEdit | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | NotebookEdit | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: post/{post-NotebookEdit,post-control-NotebookEdit}; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PostToolUse | NotebookEdit | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | Bash | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | Bash | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: post/post-Bash; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PostToolUse | Bash | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | PowerShell | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUse | PowerShell | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: post/post-PowerShell; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PostToolUse | PowerShell | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUseFailure | Bash | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUseFailure | Bash | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: post/failure-Bash; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PostToolUseFailure | Bash | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUseFailure | PowerShell | Linux | documented only | No native Linux run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| claude | PostToolUseFailure | PowerShell | macOS | proven offline | native macOS, the M1 catalog run local-m1 through the installed exec form, PASS: post/failure-PowerShell; date=2026-10-23 version=2.1.299 (Claude Code) binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| claude | PostToolUseFailure | PowerShell | Windows | documented only | No native Windows run of the M1 catalog is retained for this candidate; macOS runs and cross builds do not count. |
+| codex | PreToolUse | apply_patch | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| codex | PreToolUse | apply_patch | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-codex/{pre-apply-patch-add,pre-apply-patch-update-move-delete} and m4-codex/apply-patch-{add,update,unapplied,move,delete}-{red,near}; date=2026-10-23 version=0.163.0 binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| codex | PreToolUse | apply_patch | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| codex | PreToolUse | Bash | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| codex | PreToolUse | Bash | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-codex/{pre-bash-plain,pre-bash-spawned,pre-bash-heredoc-patch,pre-bash-heredoc-patch-cd} and m4-codex/{envelope,bash,heredoc-patch,heredoc-patch-cd,heredoc-cat}-{red,near}; date=2026-10-23 version=0.163.0 binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| codex | PreToolUse | Bash | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| codex | PostToolUse | apply_patch | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| codex | PostToolUse | apply_patch | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-codex/post-apply-patch and m4-codex/post-apply-patch-{red,near}; date=2026-10-23 version=0.163.0 binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| codex | PostToolUse | apply_patch | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| codex | PostToolUse | Bash | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| codex | PostToolUse | Bash | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-codex/post-bash and m4-codex/post-bash-{red,near}; date=2026-10-23 version=0.163.0 binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| codex | PostToolUse | Bash | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | preToolUse | Write | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | preToolUse | Write | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/pre-tool-use-write-unknown and m4-cursor/write-capture-{red,near}, capture and allow only, never enforcement; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | preToolUse | Write | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | preToolUse | Delete | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | preToolUse | Delete | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/delete-capture-{red,near}, capture and allow only, never enforcement; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | preToolUse | Delete | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | preToolUse | Shell | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | preToolUse | Shell | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/pre-tool-use-shell and m4-cursor/shell-observe-{red,near}; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | preToolUse | Shell | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | beforeReadFile | Read | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | beforeReadFile | Read | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/before-read-file and m4-cursor/read-{red,near}; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | beforeReadFile | Read | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | beforeShellExecution | Shell | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | beforeShellExecution | Shell | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/before-shell-execution and m4-cursor/{envelope,shell}-{red,near}; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | beforeShellExecution | Shell | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | postToolUse | Write | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | postToolUse | Write | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/post-write-{red,near}, advisory feedback only; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | postToolUse | Write | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | postToolUse | Shell | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | postToolUse | Shell | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/post-tool-use-shell and m4-cursor/post-shell-{red,near}; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | postToolUse | Shell | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | postToolUseFailure | Write | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | postToolUseFailure | Write | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/post-write-failure-{red,near}, advisory feedback only; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | postToolUseFailure | Write | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+| cursor | postToolUseFailure | Shell | Linux | documented only | No native Linux run of the m4 job is retained for this candidate; macOS runs and cross builds do not count. |
+| cursor | postToolUseFailure | Shell | macOS | proven offline | native macOS, the run local-m4 through sh -c, PASS: m4-cursor/post-tool-use-failure-shell and m4-cursor/post-shell-failure-{red,near}; date=2026-10-23 version=none binary_sha256=f4c39afea8ba7993a1d2beeff0d2f82db30e149fa898f4ebb7036755f3d2e7b4; [M4 acceptance record](acceptance/m4.md) |
+| cursor | postToolUseFailure | Shell | Windows | documented only | No native Windows run of the m4 job is retained for this candidate, so neither cmd.exe /c nor powershell.exe -Command ran the launcher; macOS runs and cross builds do not count. |
+
+## M4 evidence review
+
+On 2026-10-22 each cell above was reconciled with the native runs the [M4 acceptance record](acceptance/m4.md) retains: local-m4, go run ./tools/acceptance -m4, for the Codex and Cursor cells, and local-m1, the M1 catalog, for the Claude cells, both on darwin/arm64 with one candidate binary. A missing or skipped row remains documented only. A dated record applies only to its recorded binary, version and cases. Source inspection and simulated replies do not establish native execution. In an offline cell, version= is the candidate version printed by the acceptance report. In a live cell, version= is the record's agent_version. No native run of the m4 job exists yet, so every Linux and Windows cell stays documented only, and no live record exists, so the live rows are SKIP and no cell is proven live; the Claude host record of 2026-10-14 stays host evidence and promotes no cell.
+
+Codex support needs the contracted live record docs/live/codex-darwin.json and the m4 job green natively on Linux, macOS and Windows; until both exist, every Codex cell stays documented only or proven offline from its own native evidence, and Codex is not yet supported. Cursor remains a compatibility preview even when every offline adapter and launcher row passes: its Write and Delete cells prove capture and allow, and its post cells advisory feedback, never enforcement. This review runs again when the native runs and the record exist.
 
 ## Shared normalization and reason
 
@@ -213,7 +219,7 @@ Linux and Windows have no live M1 enforcement claim. Codex CLI and Cursor are ou
 
 ### Codex events and payloads
 
-The installed groups select PreToolUse and PostToolUse with the matcher ^(Bash|apply_patch)$, one handler each with timeout 10. tool_input.command holds the shell text of Bash or the patch text of apply_patch, and tool_response is the response of a post event, kept as the host wrote it. The grammar is the one of 0.163.0: Add File gives the whole content; an Update File whose chunks apply exactly to the file on disk reconstructs the whole candidate, while one that does not apply exactly is judged on its added lines, its size measurement deferred to the post event; Delete File and Move to are judged by path. A Bash command whose whole text is an apply_patch here-document, alone or after a cd into one directory, is judged as that patch, because Codex intercepts it and runs no other event for it; a cat here-document redirected to one visible file is judged as that write before the command, and its post event's detection judges what it wrote. Codex has no failure event: PostToolUse also fires after a failed command, its tool_response the output text without an exit status, and the detection pass judges what the command changed. A failed patch gets no post event.
+The installed groups select PreToolUse and PostToolUse with the matcher ^(Bash|apply_patch)$, one handler each with timeout 10. tool_input.command holds the shell text of Bash or the patch text of apply_patch, and tool_response is the response of a post event, kept as the host wrote it. The grammar is the one of 0.163.0: Add File gives the whole content; an Update File whose chunks apply exactly to the file on disk reconstructs the whole candidate, while one that does not apply exactly is judged on its added lines, its size measurement deferred to the post event; Delete File and Move to are judged by path. A Bash command whose whole text is an apply_patch here-document, alone or after a cd into one directory, is judged as that patch, because Codex intercepts it and runs no other event for it, so its pre event keeps no shell baseline and asks git the five questions of a plain Bash pre event; a cat here-document redirected to one visible file is judged as that write before the command, and its post event's detection judges what it wrote. That cat pre event asks git six questions where a plain Bash pre event asks five, a stated limit of the per-event count: the worktree listing its write judgment reads beside the status of the baseline its post event reads, because the write is judged before the command runs and the status names only the changed files, never the whole worktree the write judgment reads. Codex has no failure event: PostToolUse also fires after a failed command, its tool_response the output text without an exit status, and the detection pass judges what the command changed. A failed patch gets no post event.
 
 ### Codex answers
 
@@ -241,7 +247,8 @@ The installed hooks file, version 1, holds preToolUse with the matcher ^(Write|D
 - preToolUse Write and Delete record the key names of tool_input, never a value, keep the baseline and answer the allow JSON. Cursor Write and Delete stay capture and allow. Enforcement waits for a live record that proves the Write payload. Cursor captures a Write or Delete tool_input that is no object by its JSON type and allows it. The type is recorded as one of `<array>`, `<string>`, `<null>`, `<number>` or `<boolean>`. Malformed input and an envelope of another agent remain cannot judge.
 - preToolUse Shell and beforeShellExecution both judge the command, any denial winning; preToolUse Shell also keeps the baseline. Both give the same English reason, so a build that fires only one of the two still judges its shell commands. beforeShellExecution carries no tool_use_id and keeps no baseline.
 - beforeReadFile judges file_path by the secret names and drops the file content the event carries, so it prevents exposure to the model, not the disk read.
-- postToolUse and postToolUseFailure detect what a Write or a Shell command changed since its baseline and answer it as advisory additional_context. A postToolUseFailure caused by a permission denial can legitimately find no change.
+- postToolUse and postToolUseFailure detect what a Write or a Shell command changed since its baseline and answer it as advisory additional_context. A postToolUseFailure whose failure_type is permission_denied answers {} without detection, because the denied tool never ran and a preToolUse golaw denied keeps no baseline.
+- beforeTabFileRead and beforeMCPExecution are not installed and not judged: a Tab read of a secret file reaches the model, and a Cursor MCP call runs without a golaw judgment. Both are stated limits of the preview.
 
 The A15 key reads the session from conversation_id, the agent identity field from generation_id and the tool identity from tool_use_id, the same for a pre event and its post events. generation_id is a turn identity. It changes with every user message. The working directory is the payload's cwd, falling back to the first workspace_roots entry when the event carries none, never the directory of the user hook process, which runs from ~/.cursor. The repository identity remains the result of enrollment discovery.
 

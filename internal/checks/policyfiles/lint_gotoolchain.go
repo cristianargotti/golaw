@@ -73,6 +73,11 @@ func judgeMakeToolchain(in model.Input) ([]model.Finding, string, error) {
 	if exported && value == toolchainLocal {
 		return nil, "", nil
 	}
+	if value == toolchainLocal {
+		if all, err := mk.exportsAll(toolchainVar); err != nil || all {
+			return nil, makefileName, err
+		}
+	}
 	return []model.Finding{finding(makefileName, 0, codeToolchainMake,
 		"the Makefile does not export GOTOOLCHAIN=local, so a make target may run a toolchain go downloads by itself; add export GOTOOLCHAIN=local to the Makefile or a file it includes")}, "", nil
 }

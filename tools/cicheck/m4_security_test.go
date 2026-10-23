@@ -3,12 +3,15 @@ package cicheck_test
 import (
 	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/cristianargotti/golaw/internal/hook/agents"
 )
 
 func m4AgentName(id string) string {
-	return strings.ToUpper(id[:1]) + id[1:] //nolint:gocritic // an agent id is lower case ASCII by construction
+	first, size := utf8.DecodeRuneInString(id)
+	return string(unicode.ToUpper(first)) + id[size:]
 }
 
 func m4TextOK(text string, required, forbidden []string) bool {

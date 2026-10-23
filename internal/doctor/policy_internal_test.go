@@ -24,7 +24,7 @@ func TestEnrollmentStatesAndBuildAssurance(t *testing.T) {
 	}
 	input := baseline(t)
 	input.Receipt.Version = "0.1.1"
-	for _, line := range Assess(input).Lines {
+	for _, line := range assess(input).Lines {
 		if line.ID == "doctor.pin" && line.State != "red" {
 			t.Fatal("newer installed version matched an older pin")
 		}
@@ -36,7 +36,7 @@ func TestEnrollmentStatesAndBuildAssurance(t *testing.T) {
 func enrollmentLine(t *testing.T, input Snapshot) string {
 	t.Helper()
 	state := ""
-	for _, line := range Assess(input).Lines {
+	for _, line := range assess(input).Lines {
 		if line.ID == "doctor.enrollment" {
 			state = line.State
 		}

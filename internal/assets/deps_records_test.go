@@ -1,6 +1,7 @@
 package assets_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw"
@@ -41,5 +42,24 @@ func TestBaselineCoversApplicationAndRenderedTools(t *testing.T) {
 				t.Fatalf("rendered records = %+v, error %v", result, err)
 			}
 		})
+	}
+}
+
+// TestBaselineTableListsTheKitTools holds the human table of the baseline
+// record to its front matter: the modules of tools/go.mod it records are
+// listed with their pinned versions and marked as the kit's tools.
+func TestBaselineTableListsTheKitTools(t *testing.T) {
+	t.Parallel()
+	context := assetContext()
+	record := renderedAsset(t, "docs/adr/0001-inherited-baseline.md", context)
+	tools := map[string]string{
+		"github.com/evilmartians/lefthook/v2": "lefthook", "github.com/golangci/golangci-lint/v2": "golangci-lint",
+		"github.com/zricethezav/gitleaks/v8": "gitleaks", "golang.org/x/vuln": "govulncheck",
+	}
+	for module, tool := range tools {
+		row := "| " + module + " | v" + context.Tools[tool] + " | kit tool |"
+		if !strings.Contains(string(record.Data), row+"\n") {
+			t.Errorf("the baseline table lacks %q:\n%s", row, record.Data)
+		}
 	}
 }

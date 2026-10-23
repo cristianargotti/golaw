@@ -41,7 +41,23 @@ func TestGotoolchainLocalJudgesTheMakefile(t *testing.T) {
 		{"no toolchain line", map[string]string{"Makefile": "build:\n\tgo build ./...\n"}, []string{"gotoolchain-make-local"}},
 		{"the automatic toolchain", map[string]string{"Makefile": "export GOTOOLCHAIN=auto\n"}, []string{"gotoolchain-make-local"}},
 		{"local but not exported", map[string]string{"Makefile": "GOTOOLCHAIN = local\n"}, []string{"gotoolchain-make-local"}},
+		{"near: local beside a bare export", map[string]string{"Makefile": "GOTOOLCHAIN = local\nexport\n"}, nil},
+		{"near: local beside the special target", map[string]string{"Makefile": ".EXPORT_ALL_VARIABLES:\nGOTOOLCHAIN = local\n"}, nil},
+		{"local unexported beside a bare export", map[string]string{"Makefile": "export\nGOTOOLCHAIN = local\nunexport GOTOOLCHAIN\n"}, []string{"gotoolchain-make-local"}},
+		{"auto beside a bare export", map[string]string{"Makefile": "GOTOOLCHAIN = auto\nexport\n"}, []string{"gotoolchain-make-local"}},
 	})
+}
+
+func TestGotoolchainLocalStatesAConditionalExportOfEverything(t *testing.T) {
+	t.Parallel()
+	got := measure(t, policyfiles.GotoolchainLocal(), fixture{files: map[string]string{"Makefile": "GOTOOLCHAIN = local\nifdef CI\nexport\nendif\n"}, capabilities: []string{"go"}})
+	if !model.IsOutsideSubset(got.Status) || !strings.Contains(got.Status.Reason, "Makefile:3:") {
+		t.Fatalf("a conditional bare export = %+v", got)
+	}
+	auto := measure(t, policyfiles.GotoolchainLocal(), fixture{files: map[string]string{"Makefile": "GOTOOLCHAIN = auto\nifdef CI\nexport\nendif\n"}, capabilities: []string{"go"}})
+	if !slices.Contains(codes(auto), "gotoolchain-make-local") {
+		t.Fatalf("auto beside a conditional bare export, which no export can repair = %+v", auto)
+	}
 }
 
 func TestGotoolchainLocalJudgesEveryDockerfileUnderImage(t *testing.T) {

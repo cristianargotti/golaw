@@ -40,7 +40,10 @@ func (r *makeReader) addRule(line makeLine, condition string) (int, error) {
 		return -1, nil
 	}
 	if strings.HasPrefix(line.text[colon:], "::") {
-		return -1, outside(line.file, line.line, "::")
+		r.result.double = append(r.result.double, makeRule{
+			targets: makeWords(line.text[:colon]), file: line.file, line: line.line, condition: condition,
+		})
+		return -1, nil
 	}
 	tail := line.text[colon+1:]
 	var recipe []string

@@ -2,6 +2,7 @@ package doctor
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 
 	"github.com/cristianargotti/golaw/internal/install"
@@ -13,9 +14,14 @@ const sourceHooksList = "codex app-server hooks/list"
 // codexTrust asks Codex itself which installed handlers it would run and,
 // when codex app-server does not answer within its deadline, reads the
 // trust record instead, naming why (A20). Nothing installed starts nothing.
+// With the hooks feature off Codex lists no handler at all, so the record,
+// which names the feature as the cause, answers without asking Codex.
 func codexTrust(ctx context.Context, input Input, lister hookLister) trustFact {
 	if _, fact := readReceiptFact(input.ReceiptPath); fact.State != receiptRead {
 		return trustFact{}
+	}
+	if config, err := readCodexConfig(filepath.Join(input.ConfigDir, codexConfigName)); err == nil && config.feature() == featureOff {
+		return codexRecordTrust(input)
 	}
 	listed, err := lister.ListHooks(ctx, input.Environment, input.Root)
 	if err == nil {

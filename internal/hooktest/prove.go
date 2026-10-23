@@ -98,7 +98,7 @@ func split(snapshot model.Snapshot) ([]byte, []byte, map[string][]byte, map[stri
 // capability passes of internal/proof run over them.
 func Prove(t *testing.T, manifest, agent string, adapter hook.Adapter) {
 	t.Helper()
-	m, err := proof.LoadManifests(manifest)
+	m, err := proof.LoadManifest(manifest)
 	if err != nil {
 		t.Fatal(err)
 	}

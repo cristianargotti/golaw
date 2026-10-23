@@ -1,6 +1,9 @@
 package codex
 
 import (
+	"bytes"
+	"encoding/json"
+
 	"github.com/cristianargotti/golaw/internal/hook"
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -16,7 +19,7 @@ const PatchGrammar = "0.163.0"
 func Parse(data []byte) (hook.Parsed, error) {
 	event, in, err := parse(data)
 	if err != nil {
-		return hook.Parsed{}, err
+		return hook.Parsed{Event: event}, err
 	}
 	var targets []string
 	switch {
@@ -35,11 +38,25 @@ func Parse(data []byte) (hook.Parsed, error) {
 func parse(data []byte) (model.Event, toolInput, error) {
 	w, err := envelope(data)
 	if err != nil {
-		return model.Event{}, toolInput{}, err
+		return refusedEvent(data), toolInput{}, err
 	}
 	event, err := header(w)
 	if err != nil {
 		return model.Event{}, toolInput{}, err
 	}
 	return event, readInput(w), nil
+}
+
+// refusedEvent is the event of an envelope golaw refuses, shaped by its
+// hook_event_name alone: a refused PostToolUse gets the post cannot-judge
+// answer, exit 2 with the reason on stderr, the one answer Codex reads
+// after its tool ran, never the PreToolUse deny JSON it rejects there.
+func refusedEvent(data []byte) model.Event {
+	var named struct {
+		Name string `json:"hook_event_name"`
+	}
+	if json.NewDecoder(bytes.NewReader(data)).Decode(&named) != nil || named.Name != postEvent {
+		return model.Event{}
+	}
+	return model.Event{Shape: model.ShapePost}
 }

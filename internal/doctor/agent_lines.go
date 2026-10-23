@@ -48,6 +48,7 @@ func agentAssessments() []agentAssessment {
 		{idTrusted, trustedLines},
 		{idFailMode, failModeLines},
 		{idVersion, codexVersionLines},
+		{idAgentsChain, agentsChainLines},
 		{idPreview, previewLines},
 		{idCapture, captureLines},
 		{idDuplicate, duplicateLines},
@@ -121,7 +122,7 @@ func failModeLines(f agentFacts) []Line {
 		switch {
 		case f.Agent == agentCodex:
 			line.State, line.Code = stateUnknown, codeHostFailsOpen
-			line.Detail = "Codex runs the tool when its hook fails, times out or is skipped; the internal deadline, the rules file, the post feedback, the staged scan and the pipeline are the mitigations"
+			line.Detail = "Codex runs the tool when its hook fails, times out or is skipped; " + codexMitigations(f.Scope) + " are the mitigations"
 		case !event.Present || !event.FailClosed:
 			line.State, line.Code = stateRed, codeHostFailsOpen
 			line.Detail = "the handler is absent or does not block on failure; run " + f.installCommand()
@@ -129,6 +130,16 @@ func failModeLines(f agentFacts) []Line {
 		lines = append(lines, line)
 	}
 	return lines
+}
+
+// codexMitigations are what still holds when a Codex hook fails open; the
+// rules file exists only at project scope, because a user-scope
+// installation writes none (decision 4).
+func codexMitigations(scope string) string {
+	if scope == scopeProject {
+		return "the internal deadline, the rules file, the post feedback, the staged scan and the pipeline"
+	}
+	return "the internal deadline, the post feedback, the staged scan and the pipeline"
 }
 
 // failClosedDetail names the setting that makes the host block.
@@ -178,7 +189,7 @@ func stateLine(f agentFacts, installed, trusted, dispatch Line) Line {
 		line.Detail = "installed and trusted, and no hook process ran for this repository with the current definition yet"
 	case f.Agent == agentCursor:
 		line.State, line.Code = stateUnknown, codePreviewActive
-		line.Detail = "shell and read guards ran; writes are captured, not enforced"
+		line.Detail = "a hook process of " + f.Agent + " ran; writes are captured, not enforced"
 	}
 	return line
 }

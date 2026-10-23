@@ -46,7 +46,7 @@ func WriteTemplateDiff(out io.Writer, plan TemplatePlan) error {
 		return err
 	}
 	writes, proposals := "Gravações:", "Propostas sem gravação:"
-	if plan.Language != "" && plan.Language != "pt-BR" {
+	if english(plan.Language) {
 		writes, proposals = "Writes:", "Proposals without writes:"
 	}
 	for _, group := range []struct {
@@ -63,7 +63,13 @@ func WriteTemplateDiff(out io.Writer, plan TemplatePlan) error {
 			return fmt.Errorf("bootstrap: write template diff: %w", err)
 		}
 	}
-	return nil
+	return writeModuleCommands(out, plan)
+}
+
+// english answers whether the human channel of a plan is not pt-BR, the
+// language init writes when none is given.
+func english(language string) bool {
+	return language != "" && language != "pt-BR"
 }
 
 func writeTemplate(root string, change install.Change) error {

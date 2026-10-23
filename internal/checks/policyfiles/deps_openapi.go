@@ -37,6 +37,11 @@ func (openapiAssertions) Run(_ context.Context, in model.Input) (model.Result, e
 	}
 	result := model.Result{Status: model.Measured(), Scope: redoclyFile}
 	if !found {
+		for _, name := range []string{"redocly.yml", ".redocly.yaml", ".redocly.yml"} {
+			if model.Any(in.Snapshot, func(path string) bool { return path == name }) {
+				return answer(name, outside(name, 1, "a Redocly configuration named "+name+", which golaw does not read; rename it to redocly.yaml")), nil
+			}
+		}
 		result.Findings = []model.Finding{openapiFinding(redoclyFile, 0,
 			"add redocly.yaml with error-level number-double, response-example and example-validation rules; init writes it under the api capability")}
 		return result, nil

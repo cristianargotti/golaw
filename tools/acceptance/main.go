@@ -13,7 +13,17 @@ import (
 // collectedRows is the number of rows beyond the fixtures a run adds.
 const (
 	categoryDependency = "dependency"
-	collectedRows      = 21
+	collectedRows      = 20
+)
+
+// The words and error formats the M3 and M4 rows share: red, the side of a
+// fixture and the state of a doctor line, the rules directory and key, and
+// the failures of removing or encoding a file.
+const (
+	redWord      = "red"
+	rulesWord    = "rules"
+	removeFailed = "remove %s: %w"
+	encodeFailed = "encode %s: %w"
 )
 
 func main() { os.Exit(run(os.Stdout, runCommand, exec.LookPath)) }
@@ -48,14 +58,14 @@ func runArgs(out io.Writer, execute executor, lookup locator, args []string) int
 	}
 	defer os.RemoveAll(base) //nolint:errcheck // Every path belongs to the disposable acceptance home.
 	s := newSuite(root, base, execute, lookup)
-	if *onlyM3 && !*required {
-		return s.runM3(ctx, out)
-	}
 	if code, routed := modes.route(ctx, out, s, *required); routed {
 		return code
 	}
 	if code, routed := m5Modes.route(ctx, out, s, *required); routed {
 		return code
+	}
+	if *onlyM3 && !*required {
+		return s.runM3(ctx, out)
 	}
 	return s.runAcceptance(ctx, out, *required, *onlyM2)
 }
@@ -78,6 +88,5 @@ func (s *suite) collect(ctx context.Context, required bool) ([]row, string) {
 	rows = append(rows, vendors...)
 	rows = append(rows, s.liveRows(ctx, required)...)
 	rows = append(rows, s.dependencyRows(ctx)...)
-	rows = append(rows, row{"adapter", "additional-patch-shapes", statusSkip, "additional adapters enter in M4", false})
 	return rows, version
 }

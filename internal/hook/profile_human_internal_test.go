@@ -30,7 +30,7 @@ func TestProfileRefusalSpeaksToThePersonInTheirLanguage(t *testing.T) {
 		if want := "Perfil fixture ausente ou divergente: execute " + command; got.Human != want {
 			t.Errorf("%s: human = %q, want %q", name, got.Human, want)
 		}
-		if english := humanMessage("en", event, reason); english != "Profile fixture is missing or differs from its pin: run "+command {
+		if english := humanMessage("en", event, reason, false); english != "Profile fixture is missing or differs from its pin: run "+command {
 			t.Errorf("%s: english = %q", name, english)
 		}
 	}
@@ -47,7 +47,7 @@ func TestOtherRefusalsKeepTheirSentence(t *testing.T) {
 		"invalid policy: the pipeline asks to run golaw profile install https://example.test/x@1.0.0",
 		"invalid policy: golaw.yml pins kit version 0.0.1 and this binary is 9.9.9: install the pinned version or run init --update",
 	} {
-		if got, generic := humanMessage(model.DefaultLanguage, event, reason), "A operação foi bloqueada pela verificação golaw no caminho"; len(got) < len(generic) || got[:len(generic)] != generic {
+		if got, generic := humanMessage(model.DefaultLanguage, event, reason, false), "A operação foi bloqueada pela verificação golaw no caminho"; len(got) < len(generic) || got[:len(generic)] != generic {
 			t.Errorf("%q: human = %q", reason, got)
 		}
 	}

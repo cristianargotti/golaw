@@ -77,11 +77,11 @@ func TestCollectInstalledEvidenceAndCurrentEnrollment(t *testing.T) {
 	if snapshot.Enrollment.State != model.EnrollmentEnrolled || runner.calls != 1 {
 		t.Fatalf("collection lost evidence: %#v", snapshot)
 	}
-	assertInstalledLines(t, Assess(snapshot).Lines)
+	assertInstalledLines(t, assess(snapshot).Lines)
 	if err := os.Remove(plan.Receipt.Artifacts[0].Path); err != nil {
 		t.Fatal(err)
 	}
-	if !reportsCode(Assess(Collect(t.Context(), input, store, runner)).Lines, "artifact-missing") {
+	if !reportsCode(assess(Collect(t.Context(), input, store, runner)).Lines, "artifact-missing") {
 		t.Fatal("missing artifact was not reported")
 	}
 }

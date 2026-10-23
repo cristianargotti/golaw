@@ -19,13 +19,13 @@ func heredocCat(request hook.Request, form heredoc, base hook.Base, snapshot mod
 	if !inside {
 		return request, nil
 	}
-	candidate, err := catCandidate(path, form.appends, snapshot)
+	candidate, content, err := catCandidate(path, form, snapshot)
 	if err != nil {
 		return hook.Request{}, err
 	}
 	request.Writes = &hook.Writes{
 		Candidates: []model.Candidate{candidate},
-		Content:    map[string][]byte{path: []byte(form.body)},
+		Content:    map[string][]byte{path: content},
 	}
 	return request, nil
 }
@@ -37,28 +37,37 @@ func catPath(base hook.Base, cwd, target string) (string, bool) {
 	return path, err == nil
 }
 
-// catCandidate is the candidate of the file a cat writes. A replacement
-// is the whole new file, bound to the readable base it replaces. An append
-// to an absent file is the whole new file as well, the appended bytes; an
-// append to a present one is an edit holding only the appended bytes,
-// not reconstructed, bound to its readable base, so the core judges the
-// added lines and names what it could not measure (D9). A base over the
-// read bound binds no hash, as a patch's does.
-func catCandidate(path string, appends bool, snapshot model.Snapshot) (model.Candidate, error) {
+// catCandidate is the candidate of the file a cat writes, with its bytes.
+// A replacement is the whole new file, bound to the readable base it
+// replaces. An append to an absent file is the whole new file as well, the
+// appended bytes; an append to a readable file is its bytes followed by
+// the body, exactly what the shell leaves, bound to that base as an edit
+// of Claude is, since the recognizer accepts only a body the shell writes
+// as it reads. An append to a base over the read bound holds only the
+// appended bytes, not reconstructed, so the core judges the added lines
+// and names what it could not measure (D9); such a base binds no hash, as
+// a patch's does.
+func catCandidate(path string, form heredoc, snapshot model.Snapshot) (model.Candidate, []byte, error) {
+	body := []byte(form.body)
 	candidate := model.Candidate{Path: path, Op: model.CandidateCreate, Reconstructed: true}
 	if snapshot.Class(path) == model.ClassUnknown {
-		return candidate, nil
+		return candidate, body, nil
 	}
 	candidate.Op = model.CandidateReplace
-	if appends {
-		candidate.Op, candidate.Reconstructed = model.CandidateEdit, false
+	if form.appends {
+		candidate.Op = model.CandidateEdit
 	}
 	base, err := snapshot.Read(path)
 	switch {
+	case err == nil && form.appends:
+		candidate.BaseHash = hook.Hash(base)
+		return candidate, append(append(make([]byte, 0, len(base)+len(body)), base...), body...), nil
 	case err == nil:
 		candidate.BaseHash = hook.Hash(base)
-	case !errors.Is(err, model.ErrTooLarge):
-		return model.Candidate{}, fmt.Errorf("%w: here-document target %s: %w", model.ErrCannotJudge, path, err)
+	case errors.Is(err, model.ErrTooLarge):
+		candidate.Reconstructed = !form.appends
+	default:
+		return model.Candidate{}, nil, fmt.Errorf("%w: here-document target %s: %w", model.ErrCannotJudge, path, err)
 	}
-	return candidate, nil
+	return candidate, body, nil
 }

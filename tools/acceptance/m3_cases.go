@@ -77,7 +77,7 @@ func (s *suite) caseM3(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	if err := s.m3CaseSide(ctx, repo, "red", named.check, named.red); err != nil {
+	if err := s.m3CaseSide(ctx, repo, redWord, named.check, named.red); err != nil {
 		return fmt.Errorf("the red side of %s: %w", name, err)
 	}
 	if err := s.m3CaseSide(ctx, repo, "near", named.check, named.near); err != nil {
@@ -100,7 +100,7 @@ func (s *suite) m3CaseSide(ctx context.Context, repo, side, check string, edit f
 	if err != nil {
 		return err
 	}
-	return m3JudgeCase(check, side == "red", doc, code)
+	return m3JudgeCase(check, side == redWord, doc, code)
 }
 
 // m3JudgeCase requires the check measured on both sides, because a stated
@@ -143,7 +143,7 @@ func m3Disable(linter string) func(string) error {
 func m3Exclude(path, linter string) func(string) error {
 	return func(repo string) error {
 		return m3EditYAML(filepath.Join(repo, m3LintFile), func(root *yaml.Node) error {
-			rules, err := m3Child(root, yaml.SequenceNode, m3LintersKey, "exclusions", "rules")
+			rules, err := m3Child(root, yaml.SequenceNode, m3LintersKey, "exclusions", rulesWord)
 			if err != nil {
 				return err
 			}

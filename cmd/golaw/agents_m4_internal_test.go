@@ -93,3 +93,15 @@ func TestInstallEndsWithTheNotesOfItsPlan(t *testing.T) {
 		t.Fatalf("lines = %q", got)
 	}
 }
+
+// TestUninstallEndsWithTheNotesOfItsPlan holds uninstall to section 5.6:
+// a removal that moves a foreign handler names its old and new trust
+// identity after the receipt line, as install does.
+func TestUninstallEndsWithTheNotesOfItsPlan(t *testing.T) {
+	t.Parallel()
+	plan := install.Plan{Notes: []string{"moved: PreToolUse:1:0 becomes PreToolUse:0:0; review it in /hooks"}}
+	got := uninstalledLines("receipt.json", plan)
+	if len(got) != 2 || got[0] != "uninstalled: receipt.json" || got[1] != plan.Notes[0] {
+		t.Fatalf("lines = %q", got)
+	}
+}

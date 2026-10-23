@@ -146,6 +146,36 @@ jobs:
       - name: Replay M3 rows
         run: go run ./tools/acceptance -m3
 
+  m4:
+    name: M4 acceptance / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.2'
+          cache: true
+      - name: Use the toolchain named in go.mod
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.19.0'
+          package-manager-cache: false
+      - name: Install the pinned Codex CLI
+        run: npm install --global @openai/codex@0.163.0
+      - name: Replay M4 rows
+        run: go run ./tools/acceptance -m4
+
   m5:
     name: M5 acceptance / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

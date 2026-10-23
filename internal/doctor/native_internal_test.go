@@ -111,7 +111,7 @@ func TestAgentVersionStaysUnknownUntilItIsRead(t *testing.T) {
 		{"at the floor", stateOK, "agent-version-supported", "2.1.295", &versionDouble{output: "2.1.295 (Claude Code)"}},
 	} {
 		var line Line
-		for _, candidate := range Assess(Collect(t.Context(), input, nil, tc.runner)).Lines {
+		for _, candidate := range assess(Collect(t.Context(), input, nil, tc.runner)).Lines {
 			if candidate.ID == "doctor.version" {
 				line = candidate
 			}

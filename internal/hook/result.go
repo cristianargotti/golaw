@@ -42,7 +42,7 @@ func rejection(event model.Event, reason string, cannot bool) Result {
 func rejectionLanguage(event model.Event, reason string, cannot bool, language string) Result {
 	result := Result{
 		Outcome: Deny, Reason: reason, CannotJudge: cannot,
-		Human: humanMessage(language, event, reason),
+		Human: humanMessage(language, event, reason, cannot),
 	}
 	if event.Shape == model.ShapePost {
 		result.Outcome = Feedback

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -77,6 +78,37 @@ func imageFindings(document dockerfile, patterns []string) ([]model.Finding, err
 		}
 		if stage.name != "" {
 			aliases[strings.ToLower(stage.name)] = true
+		}
+	}
+	references, err := imageReferenceFindings(document, patterns)
+	return append(findings, references...), err
+}
+
+// imageReferenceFindings judges the images a stage reads as its base is
+// judged: a stage index, the alias of an earlier stage or a digest is clean,
+// a reference with a registry, a tag or a digest separator is an image, and
+// a bare name no earlier stage carries may be a build context, a limit.
+func imageReferenceFindings(document dockerfile, patterns []string) ([]model.Finding, error) {
+	var findings []model.Finding
+	for _, ref := range document.refs {
+		earlier := slices.ContainsFunc(document.stages[:ref.stages], func(s dockerStage) bool { return strings.EqualFold(s.name, ref.from) })
+		if _, index := strconv.Atoi(ref.from); ref.digest != "" || index == nil || earlier {
+			continue
+		}
+		if strings.Contains(ref.from, "$") {
+			return nil, outside(document.path, ref.line, ref.flag+", an expansion golaw does not resolve")
+		}
+		if !strings.ContainsAny(ref.from, ":/@") {
+			return nil, outside(document.path, ref.line, ref.flag+", a name no earlier stage carries: a build context or an image golaw does not resolve")
+		}
+		allowed, err := imageTagAllowed(ref.from, patterns)
+		if err != nil {
+			return nil, err
+		}
+		if !allowed {
+			message := "pin the image " + ref.from + " that " + ref.flag + " reads in " + document.path +
+				" to a complete digest: write the reference with @sha256: and its 64 hexadecimal digits"
+			findings = append(findings, finding(document.path, ref.line, "image-digest-missing", message))
 		}
 	}
 	return findings, nil

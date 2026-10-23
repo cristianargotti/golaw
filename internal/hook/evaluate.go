@@ -188,7 +188,9 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 			return failureLanguage(run.request.Event, fresh, run.language())
 		}
 	case model.ShapeShell:
-		run.saveBefore(ctx, data, dependencies)
+		if writes := run.request.Writes; writes == nil || !writes.Intercepted {
+			run.saveBefore(ctx, data, dependencies)
+		}
 	case model.ShapeRead, model.ShapePost:
 	}
 	return withGaps(result, gaps, run.language())

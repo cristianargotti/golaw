@@ -15,6 +15,13 @@ const (
 	errorField  = "error_message"
 )
 
+// failureTypeField says why a postToolUseFailure tool did not finish;
+// permissionDenied is a tool a hook or the person denied before it ran.
+const (
+	failureTypeField = "failure_type"
+	permissionDenied = "permission_denied"
+)
+
 // postRequest is the request of a postToolUse or postToolUseFailure event
 // of a Shell or Write tool, after the tool ran, with the identities the
 // header read, the same the preToolUse event of the call kept its baseline
@@ -32,6 +39,11 @@ func postRequest(input payload, event model.Event) (hook.Request, error) {
 		return hook.Request{}, err
 	}
 	event.Post = &model.PostResult{Response: response, Failed: failed}
+	// A denied tool never ran, so there is nothing to detect, and the pre
+	// event golaw denied kept no baseline to compare with (decision 13).
+	if failed && input.text(failureTypeField) == permissionDenied {
+		return hook.Request{Event: event}, nil
+	}
 	return hook.Request{Event: event, Detect: true}, nil
 }
 

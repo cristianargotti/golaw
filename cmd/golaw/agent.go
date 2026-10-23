@@ -132,7 +132,7 @@ func (a *app) agentUninstall(ctx context.Context, out io.Writer, path string, op
 	if err := install.Apply(ctx, plan, out, nil); err != nil {
 		return uninstallFailed(err)
 	}
-	return uninstallFailed(writeLines(out, []string{"uninstalled: " + receipt}))
+	return uninstallFailed(writeLines(out, uninstalledLines(receipt, plan)))
 }
 
 // agentTarget checks the flags before it discovers the repository, so a

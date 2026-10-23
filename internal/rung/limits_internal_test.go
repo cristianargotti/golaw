@@ -87,13 +87,15 @@ func (c limitCheck) Run(context.Context, model.Input) (model.Result, error) {
 // rung that dispatches the tree checks over the index: the staged scan of
 // the pre-commit rung counts it measured and names it after the scan, so
 // the commit goes on, while any other check left unmeasured still refuses.
-// It runs alone because the fake gitleaks is found through PATH.
+// The commit stages the file the limit names, which HEAD already held the
+// limit of, so the line names it. It runs alone because the fake gitleaks
+// is found through PATH.
 func TestPreCommitLeavesAStatedLimitToThePipeline(t *testing.T) {
 	dir := t.TempDir()
 	runnertest.Install(t, dir, "gitleaks", runnertest.Behavior{Probe: []string{"version"}, Version: "8.30.1"})
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	r := repository(t, pinned("0.1.0", ""))
-	r.Stage(map[string]string{"notes.md": "why\n"})
+	r.Stage(map[string]string{"Makefile": "ci:\n"})
 	commit := func(status model.Status) Outcome {
 		reg, err := checks.Build(append(checks.Catalog(), limitCheck{status: status}))
 		if err != nil {
@@ -112,5 +114,35 @@ func TestPreCommitLeavesAStatedLimitToThePipeline(t *testing.T) {
 	}
 	if other := commit(model.Unmeasured("read Makefile: path unreadable")); other.Code != codeFailure {
 		t.Errorf("an unreadable configuration = %+v, want the failure code", other)
+	}
+}
+
+// TestPreCommitNamesOnlyTheLimitsTheCommitIntroduces keeps the limit lines
+// of the pre-commit rung to what the commit brings: a limit HEAD already
+// held with the same reason is counted measured and left unnamed, unless
+// the commit stages the file it names, while a new or moved one is named.
+func TestPreCommitNamesOnlyTheLimitsTheCommitIntroduces(t *testing.T) {
+	t.Parallel()
+	limit := statedLimit("Makefile:3: opaque recipe ./ci.sh")
+	for _, tc := range []struct {
+		name   string
+		held   []model.Status
+		staged map[string]bool
+		named  bool
+	}{
+		{"near held at HEAD", []model.Status{limit, model.Measured()}, nil, false},
+		{"red held but its file staged", []model.Status{limit, model.Measured()}, map[string]bool{"Makefile": true}, true},
+		{"red moved by the commit", []model.Status{statedLimit("Makefile:2: opaque recipe ./ci.sh"), model.Measured()}, nil, true},
+		{"red new at the index", []model.Status{model.Measured(), model.Measured()}, nil, true},
+		{"red without a base run", nil, nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			run := limitRun(limit)
+			limits := newLimits(run, tc.held, tc.staged)
+			if (len(limits) == 1) != tc.named || run.Outcomes[0].Result.Status.Kind != model.StatusMeasured {
+				t.Fatalf("limits = %q, outcome %+v", limits, run.Outcomes[0].Result)
+			}
+		})
 	}
 }
