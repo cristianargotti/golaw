@@ -53,7 +53,7 @@ func TestWindowsLauncherStreamsAndStatus(t *testing.T) {
 		{"cmd-allow-keeps-0", "cmd.exe", 0, 0},
 		{"cmd-post-cannot-judge-keeps-2", "cmd.exe", 2, 2},
 		{"powershell-command-allow-keeps-0", "powershell.exe", 0, 0},
-		{"powershell-command-deny-keeps-0", "powershell.exe", 0, 0},
+		{"powershell-command-post-cannot-judge-becomes-1", "powershell.exe", 2, 1},
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
