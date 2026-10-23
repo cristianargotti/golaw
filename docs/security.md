@@ -68,7 +68,7 @@ Codex trust is read, never written: the installer prints the /hooks step when a 
 
 ## The Cursor guard
 
-Cursor is a compatibility preview with no supported-enforcement claim in M4. Cursor stops a secret read by name at beforeReadFile, for exposure to the model only, and the shell denials at beforeShellExecution. A shell command is judged at preToolUse Shell as well, with the same English reason, any denial winning. Cursor cannot stop the disk read, and cannot stop writes until a live record proves the Write payload (A4, cut 13).
+Cursor is a compatibility preview with no supported-enforcement claim in M4. Cursor stops a secret read by name at beforeReadFile, for exposure to the model only, and the shell denials at beforeShellExecution. A shell command is judged at preToolUse Shell as well, with the same English reason, any denial winning. Cursor cannot stop the disk read, and cannot stop writes until a live record proves the Write payload (A4, cut 13). golaw installs neither beforeTabFileRead nor beforeMCPExecution, so a Tab read of a secret file reaches the model and a Cursor MCP call runs without a golaw judgment; both are stated limits of the preview.
 
 Cursor's beforeReadFile prevents exposure to the model, not the disk read. The event already carries the file content; the decoder drops that content and judges the name, so the boundary is model exposure.
 
