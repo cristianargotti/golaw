@@ -17,6 +17,7 @@ const (
 	ruleContract = "rules/4.10@1"
 	ruleDelivery = "rules/4.12@1"
 	ruleLadder   = "rules/4.13@1"
+	ruleProfile  = "rules/4.14@1"
 )
 
 // spec builds the specification of one check of the family: the id is the

@@ -30,7 +30,8 @@ type Entry struct {
 
 // Manifest is manifest.yml decoded.
 type Manifest struct {
-	Checks []Entry `yaml:"checks"`
+	Checks   []Entry                       `yaml:"checks"`
+	Profiles map[string]*model.ProfileData `yaml:"-"` // the data of each profile an entry may name; the test fills it
 }
 
 // LoadManifest reads and validates manifest.yml strictly: an unknown key,
@@ -91,6 +92,17 @@ func (m Manifest) Lookup(id string) (Entry, bool) {
 		}
 	}
 	return Entry{}, false
+}
+
+// PolicyOf is PolicyFor(e) with the data of the profile the entry names,
+// nil when the manifest holds none for it; every pass builds the policy of
+// an entry through it (D6).
+func (m Manifest) PolicyOf(e Entry) *model.EffectivePolicy {
+	p := PolicyFor(e)
+	if e.Profile != "" {
+		p.ProfileData = m.Profiles[e.Profile]
+	}
+	return p
 }
 
 // validate refuses an entry that breaks the format.

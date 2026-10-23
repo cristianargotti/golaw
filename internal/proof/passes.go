@@ -80,7 +80,7 @@ func OverFire(ctx context.Context, reg *engine.Registry, root string, m Manifest
 func eachEntry(reg *engine.Registry, root string, m Manifest, pass string, prove func(pair) []Failure) []Failure {
 	var out []Failure
 	for _, e := range m.Checks {
-		p, err := load(reg, root, e)
+		p, err := load(reg, root, m, e)
 		if err != nil {
 			out = append(out, Failure{Pass: pass, ID: e.ID, Reason: err.Error()})
 			continue
@@ -92,13 +92,14 @@ func eachEntry(reg *engine.Registry, root string, m Manifest, pass string, prove
 
 // pair is one entry with its spec and its two loaded fixtures.
 type pair struct {
-	entry Entry
-	spec  model.Spec
-	red   Fixture
-	near  Fixture
+	entry  Entry
+	spec   model.Spec
+	red    Fixture
+	near   Fixture
+	policy *model.EffectivePolicy // the policy of the entry, with the data of its profile (D6)
 }
 
-func load(reg *engine.Registry, root string, e Entry) (pair, error) {
+func load(reg *engine.Registry, root string, m Manifest, e Entry) (pair, error) {
 	c, ok := reg.Lookup(e.ID)
 	if !ok {
 		return pair{}, fmt.Errorf("%w: %s is not registered", ErrManifest, e.ID)
@@ -111,7 +112,7 @@ func load(reg *engine.Registry, root string, e Entry) (pair, error) {
 	if err != nil {
 		return pair{}, err
 	}
-	return pair{entry: e, spec: c.Spec(), red: red, near: near}, nil
+	return pair{entry: e, spec: c.Spec(), red: red, near: near, policy: m.PolicyOf(e)}, nil
 }
 
 // verdict is what one dispatch says about the entry's check.
@@ -123,7 +124,7 @@ type verdict struct {
 
 // run dispatches one fixture of the entry under the policy of its entry.
 func (p pair) run(ctx context.Context, reg *engine.Registry, f Fixture) (verdict, error) {
-	return p.runUnder(ctx, reg, f, PolicyFor(p.entry))
+	return p.runUnder(ctx, reg, f, p.policy)
 }
 
 func (p pair) baseline(ctx context.Context, reg *engine.Registry) []Failure {

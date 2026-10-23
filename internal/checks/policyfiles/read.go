@@ -59,6 +59,20 @@ func profiled(in model.Input) (model.Status, bool) {
 	return model.Status{}, true
 }
 
+// section answers whether the enrolled profile carries a section of its
+// data, and the status of a check the section turns on when it does not:
+// profiled's answer without a profile, NotApplicable naming the section
+// without the data for it, so a profile that omits a section adds nothing.
+func section(in model.Input, name string) (model.Status, bool) {
+	if status, ok := profiled(in); !ok {
+		return status, false
+	}
+	if !in.Policy.ProfileData.Section(name) {
+		return model.NotApplicable("the profile carries no " + name), false
+	}
+	return model.Status{}, true
+}
+
 // finding builds a finding of the family at a file and a line, 0 for the
 // whole file; the engine fills the check, the rule and the fingerprint.
 func finding(path string, line int, code, message string) model.Finding {

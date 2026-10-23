@@ -17,10 +17,7 @@ import (
 // where its capability is off.
 func TestEveryConditionedCheckOfTheCatalogAppliesOnlyWhereItsCapabilityHolds(t *testing.T) {
 	t.Parallel()
-	m, err := proof.LoadManifests("manifest.yml", "policyfiles-lint.yml", "policyfiles-build.yml", "policyfiles-deps.yml")
-	if err != nil {
-		t.Fatal(err)
-	}
+	m := production(t)
 	reg, err := checks.Registry(engine.WithProofs(m.Names()))
 	if err != nil {
 		t.Fatal(err)

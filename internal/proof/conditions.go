@@ -30,6 +30,7 @@ func familyConditions() map[string]Condition {
 // conditioned per check, because the family has no single capability.
 func checkConditions() map[string]Condition {
 	tree := func(needs ...string) Condition { return Condition{Scope: model.ScopeTree, Needs: needs} }
+	image := "image"
 	return map[string]Condition{
 		"paths.secret-material":      {Scope: model.ScopeEvent},
 		"goast.raw-error-response":   {Scope: model.ScopeFile, Needs: []string{"go", "api"}},
@@ -44,10 +45,15 @@ func checkConditions() map[string]Condition {
 		"policy.dependency-records":  tree("go"),
 		"policy.dependabot-cooldown": tree(),
 		"policy.deps-age-config":     tree("go"),
-		"policy.image-digest":        tree("image"),
+		"policy.image-digest":        tree(image),
 		"policy.codeowners-foreign":  tree(),
 		"policy.openapi-assertions":  tree("api"),
 		"policy.squawk-config":       tree("db"),
+		"policy.image-stages":        tree(image),
+		"policy.image-installs":      tree(image),
+		"policy.image-registry":      tree(image),
+		"policy.profile-targets":     tree("go"),
+		"policy.values-assertions":   tree(),
 	}
 }
 
