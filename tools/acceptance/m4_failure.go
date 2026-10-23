@@ -211,12 +211,17 @@ func (s *suite) m4SlowPath(ctx context.Context, repo, fault string) error {
 }
 
 // m4SlowUnbounded repeats a slow path that missed its bound under the
-// fault's own delay, between two progress lines a CI log stamps, so a
-// host where the installed command runs past the bound shows by how much;
-// the harness reads no clock, and the repeat never decides the row.
+// fault's own delay, then the same payload without the stall, then the
+// stalled payload straight to the binary, each between progress lines a
+// CI log stamps: the three spans tell the launcher's share from the
+// hook's. The harness reads no clock, and no repeat decides the row.
 func (s *suite) m4SlowUnbounded(ctx context.Context, t m4Target, agent string, payload []byte) {
 	label := "acceptance -m4: slow-path " + agent
 	_, _ = fmt.Fprintln(os.Stderr, label, "missed its bound; repeated without it")
 	_, err := s.m4Reason(ctx, t, agent, m4Deny, payload)
 	_, _ = fmt.Fprintln(os.Stderr, label, "repeat answered:", err)
+	_, err = s.m4Reason(ctx, s.m4Shared(t.repo), agent, m4Deny, payload)
+	_, _ = fmt.Fprintln(os.Stderr, label, "plain installed call answered:", err)
+	got := s.execute(ctx, command{program: s.binary, args: []string{"hook", agent}, dir: t.repo, env: t.env, input: string(payload)})
+	_, _ = fmt.Fprintln(os.Stderr, label, "stalled direct call answered:", got.code, got.err)
 }
