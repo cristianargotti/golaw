@@ -46,6 +46,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-23: doctor's assess, the applicability matrix of the proof with the conditions it reads, and the reading of several proof manifests live in test files, and a kit test holds the unexported functions of internal/doctor and internal/proof to the deadcode rule of D1 by name, because unexporting a function only tests call moved it out of the rule's reach without removing it from production code.
 - 2026-10-23: a Bash pre event of the patch adapter whose text is an apply_patch here-document keeps no shell baseline, because its host intercepts that patch and runs no post event for it, so the git status of the baseline was a sixth git command no event read; the cat here-document, whose post event reads the baseline, keeps its sixth command, the worktree listing its write judgment reads, as a stated limit in docs/agent-contracts.md that a test pins.
 - 2026-10-23: the kit's test target runs go test with -timeout=25m, because internal/rung under -race outlasts the default ten minutes per package on a loaded machine and a slower CI runner would fail make ci on the timeout, not on a test.
 - 2026-10-23: a table test holds the prefetch predicate of the policy family to the files its readers read, and another holds every check of the family to a prefetch before it runs, because a wrong predicate fails silently, in speed alone, with one git question per file, and only a frozen snapshot no policy-file test used ever ran it.

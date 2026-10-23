@@ -43,11 +43,12 @@ func dispatches() []dispatch {
 	}
 }
 
-// matrix proves that every registered check declares the condition of its
+// Matrix proves that every registered check declares the condition of its
 // family, or its own, and that the engine runs it exactly where that
 // condition holds: in every dispatch, under every capability, under none,
-// and under every capability but each one it needs.
-func matrix(reg *engine.Registry) []Failure {
+// and under every capability but each one it needs. No production code runs
+// it, so it lives with the tests.
+func Matrix(reg *engine.Registry) []Failure {
 	var out []Failure
 	for _, c := range reg.Checks() {
 		spec := c.Spec()
@@ -55,7 +56,7 @@ func matrix(reg *engine.Registry) []Failure {
 		want, ok := ConditionOf(spec.ID)
 		switch {
 		case !ok:
-			fail("no condition: write the scope and the needs of the check in internal/proof/conditions.go")
+			fail("no condition: write the scope and the needs of the check in internal/proof/conditions_export_test.go")
 			continue
 		case spec.Scope != want.Scope || !sameSet(spec.Needs, want.Needs):
 			fail(fmt.Sprintf("declares scope %s and needs %v, its condition is scope %s and needs %v", spec.Scope, spec.Needs, want.Scope, want.Needs))

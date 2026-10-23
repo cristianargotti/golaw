@@ -8,7 +8,8 @@ import (
 
 // Condition is where a check runs: the scope the engine dispatches it in
 // and the capabilities it needs, as section 6 gives its family the
-// Condition column and the contract of M3 gives each policy check.
+// Condition column and the contract of M3 gives each policy check. Only the
+// applicability matrix reads it, so it lives with the tests.
 type Condition struct {
 	Scope model.Scope
 	Needs []string
