@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -204,10 +205,20 @@ func generatedMatch(in model.Input, pattern string) (string, bool) {
 			return sample, true
 		}
 	}
-	for _, file := range model.Select(in.Snapshot, re.MatchString) {
+	inBuild := func(name string) bool { return !outsideBuild(name) && re.MatchString(name) }
+	for _, file := range model.Select(in.Snapshot, inBuild) {
 		if file.Class == model.ClassGenerated {
 			return file.Path, true
 		}
 	}
 	return "", false
+}
+
+// outsideBuild reports whether a path sits below a testdata or a vendor
+// directory, the trees the Go tool and golaw's coverage leave out: an
+// allowlist commonly frees the fake credentials of test fixtures there, and
+// removing it would fail the secrets target with no repair named.
+func outsideBuild(name string) bool {
+	dirs := strings.Split(name, "/")
+	return slices.ContainsFunc(dirs[:len(dirs)-1], func(dir string) bool { return dir == "testdata" || dir == "vendor" })
 }

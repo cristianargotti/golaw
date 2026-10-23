@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: policy.gitleaks-generic leaves out the files below a testdata or vendor directory when it matches an allowlist path against the tree, because those trees sit outside the Go build universe and coverage, and an allowlist of test fixtures beside a generated golden file was a finding whose repair, removing the allowlist, fails the secrets target on the fake fixtures.
 - 2026-10-22: policy.ci-target reads make or gmake anywhere on a recipe line, a quoted argument included, as able to start make, because a recipe such as docker run img sh -c "make vet" does reach vet and was skipped as running no make, a false finding where the contract requires a stated limit.
 - 2026-10-22: a snapshot frozen from git walks its paths for the policy prefetch once, and the configuration names of the family are split once per predicate, because a walk of every path on every configuration read made the staged scan of a 60,000 file repository about twice as slow as before the prefetch.
 - 2026-10-22: the licenses target of golaw.mk ignores the repository's own packages and still checks their dependencies, because go-licenses reports a package without a license file as an error, so the rendered service and every private repository failed make ci at licenses.

@@ -137,7 +137,7 @@ The test target runs the suite with the race detector and writes coverage.out; c
 
 | Check | Rule | Needs | Why and boundary |
 | --- | --- | --- | --- |
-| policy.gitleaks-generic | rules/4.7@1 | none | A .gitleaks.toml whose allowlist frees a generated file from the secret scan by path alone, a file of the tree whose header marks it generated or one of the common generated paths, because a credential written into generated code is as live as any other; an absent file and a conditional allowlist are no finding, and an [extend] path or url is a stated limit. |
+| policy.gitleaks-generic | rules/4.7@1 | none | A .gitleaks.toml whose allowlist frees a generated file from the secret scan by path alone, a file of the tree whose header marks it generated, outside the testdata and vendor trees the Go tool leaves out, or one of the common generated paths, because a credential written into generated code is as live as any other; an absent file and a conditional allowlist are no finding, and an [extend] path or url is a stated limit. |
 | shell.secret-tokens | rules/4.7@1 | none | A command line that names secret material, judged by name and never read, because the name list that denies a Read denies the command that prints the file. |
 | shell.credential-print | rules/4.7@1 | none | A command that prints a credential into the context (printenv, env with a credential name, gh auth token, security find-generic-password -w, aws configure get, op read, vault read, kubectl get secret), because the context of an agent is a log. |
 | shell.push | rules/4.7@1 | none | A git push, denied when the policy says so (deny_push) and reported as a note otherwise, because the core leaves the push to the person's judgment. |
