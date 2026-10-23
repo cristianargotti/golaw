@@ -17,6 +17,10 @@ var (
 	// ErrDigest marks a bundle whose recomputed digest differs from the
 	// stamp or from the pin; every return wraps it under model.ErrPolicy.
 	ErrDigest = errors.New("profile digest mismatch")
+	// ErrNotBuilt marks a lifecycle step whose body is not written yet; the
+	// command maps it to exit 2 like any other failure, so the tree and
+	// its flags exist before the steps do.
+	ErrNotBuilt = errors.New("the profile lifecycle is not built yet")
 	// errRules prefixes every cause found inside the data file, so the
 	// exported functions add the bundle and the profile name around it.
 	errRules = errors.New(RulesFile)
