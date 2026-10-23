@@ -142,6 +142,22 @@ The Read deny rules the installer writes for the @ reference gap cover only priv
 
 Inherited environment variables and secrets outside the recognized names remain exposed. Run the agent under an identity without long-lived credentials. Name checks do not prove that arbitrary file content is free of secrets.
 
+## Distribution and profile bundles
+
+golaw doctor --release <dir> verifies a downloaded binary inside the kit, with no network: the asset line of checksums.txt equals the SHA-256 of the running executable; the certificate of checksums.txt.sigstore.json chains to the trust root with the code signing usage at the integrated time of its log entry and names release.yml of this repository at the tag and the GitHub Actions issuer; its signature verifies over checksums.txt; the signed entry timestamp of its log entry verifies under the log key; and the attestation names the asset with the same digest under the same identity. A red result exits 1. These residuals remain:
+
+- The trust root is embedded. The public-good Fulcio chain and Rekor key ship inside the binary, so a rotation of either reaches a person only through a kit release; --trust-root <dir> replaces them with roots.crt and rekor.pub of a directory, for a private Sigstore instance.
+- The inclusion proof is not verified. The signed entry timestamp binds the entry to the log, and the body of the log entry is compared with the bundle (the signature, the certificate and the digest of checksums.txt; the payload and the signature of the attestation); the inclusion proof would bind the entry to a checkpoint.
+- Only the v0.3 bundle form is read, with ECDSA keys and log entries that carry a signed entry timestamp; another form is refused, never accepted.
+- The verifier reads no clock. A certificate is judged at the integrated time of its entry, so a later revocation of the signing identity is not detected.
+- A go install or source build is never verified. doctor reports its version, module sum and revision as metadata under the code source-build, whatever release files sit beside it; it tells a go install build by the module sum the module proxy served. In the other direction, a go build in a clean checkout of a tag records no module sum and stamps the version of the tag, so doctor judges it as the release it is not: doctor --release then answers checksum-mismatch, because its bytes are not the published ones.
+- doctor --release runs inside the binary it judges, so a binary built to lie can answer verified; the check catches a damaged or mismatched download run by an honest binary, and cosign verify-blob with the pinned identity verifies checksums.txt independently of the binary.
+- The attestation verifies only while the repository is public at the tag, because GitHub attests a private repository through its own Sigstore instance, which the embedded root does not hold.
+
+A profile bundle on disk is trusted by its digest alone. Install verifies the stamp, the digest and the schema of the clone it made, and every load recomputes the digest, so a changed file of an installed bundle is refused. The bundle carries no signature: the authenticity of its content rests on the git remote and on the URL and tag the person chose. Whoever can write the configuration directory can replace a bundle and its stamp together, but the replacement carries another digest, which no pin names and every governed operation refuses; a pin changed in golaw.yml changes the policy digest the enrollment holds, which scan and the guards refuse until a person enrolls it. Hooks never fetch a profile, so no hook reaches the network.
+
+The agent guards do not stop an agent from running golaw init --profile <name> --apply, golaw init --seed-debt --apply or golaw profile install, refresh, rollback or remove through its shell: no rule names the golaw binary, and init writes golaw.yml and enrolls it itself. What such a run leaves is caught where every change of the policy is: the pull request review of golaw.yml is the control, CheckTightening refuses at the commit a debt set that grows and a pin whose source changes or that disappears, and scan --enrolled refuses in remote CI a policy or profile digest the pipeline did not expect. A person runs these commands (A19, A24); a core rule that denies them in an enrolled repository is a decision of the owner.
+
 ## Recovery
 
 Run golaw doctor before upgrading the kit or agent. Compare installed and validated versions, artifact hashes, resolved executable, policy pin, enrollment digests, and fail mode.
