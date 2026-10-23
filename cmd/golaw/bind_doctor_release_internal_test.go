@@ -64,7 +64,7 @@ func TestReleaseLineOverTheDownloadedFiles(t *testing.T) {
 		state      string
 		code       string
 	}{
-		"checksums match":     {releaseDir(t, good), "", "unknown", release.CodeUnverified},
+		"no trust root bound": {releaseDir(t, good), "", "red", release.CodeTrustRootInvalid},
 		"checksums differ":    {releaseDir(t, other), "", "red", release.CodeChecksumMismatch},
 		"no checksums":        {releaseDir(t, map[string]string{bundle: "{}\n"}), "", "red", release.CodeInputMissing},
 		"no bundle":           {releaseDir(t, map[string]string{release.ChecksumsFile: good[release.ChecksumsFile]}), "", "red", release.CodeInputMissing},
@@ -131,17 +131,18 @@ func TestDoctorReleaseExitsOneOnARedLine(t *testing.T) {
 	asset := release.AssetName("1.2.3", "linux", runtime.GOARCH)
 	bundle := release.ChecksumsFile + release.BundleSuffix
 	cases := map[string]struct {
+		version  string
 		checksum string
 		want     int
 	}{
-		"verified so far": {releaseDigest(), exitClean},
-		"tampered":        {strings.Repeat("0", 64), exitFindings},
+		"a source build": {"0.0.0-devel", releaseDigest(), exitClean},
+		"tampered":       {"1.2.3", strings.Repeat("0", 64), exitFindings},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ta, _ := doctorApp(t)
-			b := releaseBinding(t, "1.2.3")
+			b := releaseBinding(t, tc.version)
 			ta.bind = func() binding { return b }
 			dir := releaseDir(t, map[string]string{release.ChecksumsFile: tc.checksum + "  " + asset + "\n", bundle: "{}\n"})
 			if got := ta.run(t.Context(), []string{"doctor", "--release", dir, t.TempDir()}); got != tc.want {
