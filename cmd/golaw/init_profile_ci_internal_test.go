@@ -1,12 +1,16 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/bootstrap"
 	"github.com/cristianargotti/golaw/internal/install"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/policy"
+	"github.com/cristianargotti/golaw/internal/profile"
 	"github.com/cristianargotti/golaw/internal/profiletest"
 )
 
@@ -42,6 +46,71 @@ func TestProfileCILineNamesTheInstallTheCIRuns(t *testing.T) {
 			t.Parallel()
 			if got := profileCILine(tc.plan); got != tc.want {
 				t.Fatalf("profileCILine = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// ciBundle installs the fixture bundle without its templates section, a
+// profile that leaves no destination to the platform, with the stamp
+// carrying the digest of that content.
+func ciBundle(t *testing.T, configDir string) {
+	t.Helper()
+	stamp := profiletest.Install(t, configDir)
+	dir := profile.Dir(configDir, profiletest.Name)
+	rules := filepath.Join(dir, profile.RulesFile)
+	data, err := os.ReadFile(rules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kept := strings.Replace(string(data), "templates: { exclude: [\".github/\"] }\n", "", 1)
+	if kept == string(data) {
+		t.Fatalf("the fixture rules carry no templates line:\n%s", data)
+	}
+	if err = os.WriteFile(rules, []byte(kept), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest, err := profile.Digest(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stampPath := policy.StampPath(configDir, profiletest.Name)
+	text, err := os.ReadFile(stampPath)
+	if err == nil {
+		err = os.WriteFile(stampPath, []byte(strings.Replace(string(text), stamp.Digest, digest, 1)), 0o600)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// The line reaches the person through the plan init prints: a profile
+// that keeps the CI lane names the install, and the fixture, which leaves
+// .github/ to the platform, names nothing.
+func TestInitPrintsTheCILineOfAProfileThatKeepsTheLane(t *testing.T) {
+	t.Parallel()
+	ref := profiletest.Ref(t)
+	line := "O CI de " + ciWorkflow + " roda make ci, cujo golaw scan precisa do perfil " + ref.Name +
+		": execute golaw profile install " + ref.Source + "@" + ref.Version + " no CI"
+	for name, keeps := range map[string]bool{"red a profile that keeps the lane": true, "near the lane left to the platform": false} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			ta, _ := initApp(t)
+			dirs, err := ta.bind().dirs()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if keeps {
+				ciBundle(t, dirs.Config)
+			} else {
+				profiletest.Install(t, dirs.Config)
+			}
+			root := checkout(t)
+			if code := ta.run(t.Context(), []string{"init", "--profile", profiletest.Name, root}); code != exitClean {
+				t.Fatalf("exit = %d: %s", code, ta.stderr.String())
+			}
+			if got := strings.Contains(ta.stdout.String(), line); got != keeps {
+				t.Errorf("the CI line printed = %v, want %v:\n%s", got, keeps, ta.stdout.String())
 			}
 		})
 	}
