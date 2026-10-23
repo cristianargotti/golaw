@@ -151,11 +151,12 @@ func appendAllowlists(out []gitleaksAllowlist, legacy *gitleaksAllowlist, curren
 }
 
 func judgeGitleaksPaths(in model.Input, lists []gitleaksAllowlist) ([]model.Finding, error) {
+	tree := generatedTree(in, lists)
 	var out []model.Finding
 	for i := range lists {
 		list := &lists[i]
 		for _, pattern := range list.Paths {
-			if sample, ok := generatedMatch(in, pattern); ok {
+			if sample, ok := generatedMatch(tree, pattern); ok {
 				if err := allowlistLimit(list); err != nil {
 					return nil, err
 				}
@@ -191,24 +192,69 @@ func allowlistLimit(list *gitleaksAllowlist) error {
 }
 
 // generatedMatch answers the first generated sample an allowlist path
-// matches, then the first file of the snapshot it matches whose header marks
-// it generated, so a tree of the repository's own no sample spells is
-// judged too; the snapshot reads only the paths the expression matches.
-// Validation of malformed expressions belongs to gitleaks.
-func generatedMatch(in model.Input, pattern string) (string, bool) {
+// matches, then the first generated file of the tree it matches, so a tree
+// of the repository's own no sample spells is judged too. Validation of
+// malformed expressions belongs to gitleaks.
+func generatedMatch(tree []string, pattern string) (string, bool) {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return "", false
 	}
+	if sample, ok := sampleMatch(re); ok {
+		return sample, true
+	}
+	for _, path := range tree {
+		if re.MatchString(path) {
+			return path, true
+		}
+	}
+	return "", false
+}
+
+// generatedTree answers the files of the snapshot whose header marks them
+// generated and that an allowlist path no sample matches selects, outside
+// testdata and vendor, through one selection over every such path: one
+// selection per path asked git once per path on each snapshot.
+func generatedTree(in model.Input, lists []gitleaksAllowlist) []string {
+	paths := unsampledPaths(lists)
+	if len(paths) == 0 {
+		return nil
+	}
+	selected := func(name string) bool {
+		return !outsideBuild(name) && slices.ContainsFunc(paths, func(re *regexp.Regexp) bool { return re.MatchString(name) })
+	}
+	var tree []string
+	for _, file := range model.Select(in.Snapshot, selected) {
+		if file.Class == model.ClassGenerated {
+			tree = append(tree, file.Path)
+		}
+	}
+	return tree
+}
+
+// unsampledPaths compiles the allowlist paths no generated sample matches;
+// a malformed one is left to gitleaks, which validates its configuration.
+func unsampledPaths(lists []gitleaksAllowlist) []*regexp.Regexp {
+	var paths []*regexp.Regexp
+	for i := range lists {
+		for _, pattern := range lists[i].Paths {
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				continue
+			}
+			if _, sampled := sampleMatch(re); !sampled {
+				paths = append(paths, re)
+			}
+		}
+	}
+	return paths
+}
+
+// sampleMatch answers the first generated sample an expression matches.
+func sampleMatch(re *regexp.Regexp) (string, bool) {
 	for _, sample := range generatedSamples() {
 		if re.MatchString(sample) {
 			return sample, true
-		}
-	}
-	inBuild := func(name string) bool { return !outsideBuild(name) && re.MatchString(name) }
-	for _, file := range model.Select(in.Snapshot, inBuild) {
-		if file.Class == model.ClassGenerated {
-			return file.Path, true
 		}
 	}
 	return "", false

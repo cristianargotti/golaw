@@ -223,11 +223,12 @@ func spec(name string, needs ...string) model.Spec {
 	}
 }
 
-// requireFile asks the snapshot for the class of a file at the root, so
-// the gate answers without a read.
+// requireFile asks the snapshot whether it lists a file at the root, so
+// the gate answers without a read: the class of a path makes a snapshot
+// frozen from git read its blob, alone, before any batch of the scan.
 func requireFile(name string) gate {
 	return func(in model.Input) (model.Status, bool) {
-		if in.Snapshot.Class(name) == model.ClassUnknown {
+		if !model.Any(in.Snapshot, func(path string) bool { return path == name }) {
 			return model.NotApplicable(name + " is absent"), false
 		}
 		return model.Status{}, true

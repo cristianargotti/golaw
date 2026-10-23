@@ -9,19 +9,12 @@ import (
 
 // read reads one configuration file through the snapshot of the input, so a
 // check judges the worktree, the index or a revision alike. It first has the
-// snapshot load every configuration path the family reads, which a snapshot
-// frozen from git does in one question the first time and from memory
-// after, because a question per file multiplied the git processes of a
-// staged scan. A path the
-// snapshot does not hold is no error: found is false and the check decides
-// what an absent file means. Any other read error is returned as the
-// snapshot gave it.
+// snapshot prefetch, for a check run outside Checks. A path the snapshot
+// does not hold is no error: found is false and the check decides what an
+// absent file means. Any other read error is returned as the snapshot gave
+// it.
 func read(in model.Input, path string) ([]byte, bool, error) {
-	decisions := model.DefaultDecisions
-	if in.Policy != nil {
-		decisions = in.Policy.Layout.Decisions
-	}
-	model.Prefetch(in.Snapshot, configured(decisions))
+	prefetch(in)
 	data, err := in.Snapshot.Read(path)
 	if errors.Is(err, model.ErrNotInSnapshot) {
 		return nil, false, nil
@@ -30,6 +23,18 @@ func read(in model.Input, path string) ([]byte, bool, error) {
 		return nil, false, err //nolint:wrapcheck // the snapshot names the path in its error
 	}
 	return data, true, nil
+}
+
+// prefetch has the snapshot load every configuration path the family
+// reads, which a snapshot frozen from git does in one question the first
+// time and not again, because a question per file multiplied the git
+// processes of a staged scan.
+func prefetch(in model.Input) {
+	decisions := model.DefaultDecisions
+	if in.Policy != nil {
+		decisions = in.Policy.Layout.Decisions
+	}
+	model.Prefetch(in.Snapshot, configured(decisions))
 }
 
 // answer is the result a check answers for an error of read or of a reader.
