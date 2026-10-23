@@ -112,6 +112,33 @@ A release asset is named golaw_<version>_<os>-<arch>, with .exe on Windows. Inst
 
 scan exits 0 when clean, 1 for findings, and 2 for usage errors, internal failures, or a required check left unmeasured.
 
+## Adopt a profile
+
+A profile is optional and chosen by a person; core only is the default, and [profiles.md](profiles.md) describes the bundle, its schema and its evaluators. Install the bundle your platform names, adopt it in the repository and commit the pin:
+
+```sh
+golaw profile install <git url>@<tag>
+golaw init --profile <name>
+golaw init --profile <name> --apply
+git add golaw.yml
+git commit -m "feat: adopt the golaw profile"
+golaw doctor
+```
+
+install verifies the bundle before it writes and prints `Perfil <name> <version> instalado de <url>@<tag>, digest <digest>`. init --profile previews the `profile:` line of golaw.yml from the installed stamp; under a profile that leaves destinations to the platform it names them after `Deixados para a plataforma:` and writes nothing there. doctor reports the pinned profile as `profile-installed` with its version, digest and the days since its date.
+
+Every teammate installs the same bundle once with the command the pin names. A machine without it gets one error naming that command from scan, the armed rungs, init --apply, agent install, setup, coverage, config explain and the agent guard, never a silent core-only answer; a clone that machine never enrolled keeps getting the valid allow of the guard. Run the printed command in a terminal: until the bundle loads, the agent guards deny every call of the agent, the install among them.
+
+A runner has no bundle until it installs one, and the kit provisions none. When the repository keeps the kit's CI lane, whose make ci runs golaw scan, the lane must run golaw profile install <source>@<version> with a credential that reads the bundle, before make ci, or every run refuses, the commit of the pin first; init names that step when it pins a profile that keeps the lane. A runner installs the bundle before golaw scan --enrolled too, whose optional second digest is the digest of the pin.
+
+To move to a newer version, install its tag, run golaw init --profile <name> --apply, review a diff that changes only the version and the digest of the pin, and commit it. To go back, run golaw profile rollback <name> and the same init and commit. golaw profile refresh <name> restores the current version from its source when its files changed, and golaw profile remove <name> deletes every installed copy. install, refresh, rollback and remove never change a pin.
+
+## Inherited debt
+
+On a repository that already holds findings, adopt with golaw init --seed-debt --apply instead of golaw init --apply. After a plain golaw init --apply, the refusal names how to start over before the first commit: delete golaw.yml and the enrollment record it names, then run golaw init --seed-debt --apply. It seeds one dated exception per finding that names a path, valid for 180 days, and writes docs/adr/0002-inherited-debt.md with every entry and why it exists; --coverage-profile <file> and --vulnerabilities <file> seed the coverage exemptions and the vulnerability waivers the same way. The debt set is seeded once: a second --seed-debt is refused, and later changes may remove an entry or bring its date closer, never add or broaden one, which scan --staged and the armed pre-commit rung refuse.
+
+Adopting a profile after the first init seeds nothing: the profile's findings meet a debt set that is already committed. Fix them before committing the pin, or adopt the profile at the first init with golaw init --profile <name> --seed-debt --apply.
+
 ## Enroll remote CI
 
 A runner without a local enrollment record uses scan --enrolled <digests>, with expected policy and optional profile digests provisioned outside the checkout by a repository variable or pipeline setting.
