@@ -91,6 +91,7 @@ The text family reads every text file of the tree, in scan and in the agent writ
 | paths.forbidden | rules/4.2@1 | none | An image or document outside public/, manual/, fixtures/ or testdata/, or a file named like secret material anywhere, because the repository holds code and its evidence, never binaries or credentials. |
 | paths.generated-tracked | rules/4.2@1 | none | An ignore file that hides gen/, sqlcgen/, test/mocks or api/generated, because generated code is versioned and proven fresh by the generate-check target of the pipeline. |
 | paths.secret-material | rules/4.2@1 | none | A read event whose path, or the file its links lead to, names secret material, because an agent must not load a credential into its context; a source file named like a credential passes. |
+| paths.profile-forbidden | rules/4.2@1 | none | A path the enrolled profile forbids, a glob over the whole path from the root whose trailing slash covers a tree, because a file another team owns or the platform refuses never enters the repository, and an agent write is denied before the file exists; a file under a testdata directory is never judged. |
 
 ## rules/4.3@1
 

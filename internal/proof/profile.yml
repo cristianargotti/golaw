@@ -29,3 +29,8 @@ checks:
     red: testdata/policy.values-assertions/red
     near: testdata/policy.values-assertions/near
     profile: fixture
+  - id: paths.profile-forbidden
+    code: profile-forbidden-path
+    red: testdata/paths.profile-forbidden/red
+    near: testdata/paths.profile-forbidden/near
+    profile: fixture

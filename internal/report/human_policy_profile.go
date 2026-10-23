@@ -18,5 +18,6 @@ func policyProfilePhrases() []sentence {
 		{"values-assertion", "valor de configuração diferente do que o perfil exige; ajuste o tipo e o valor da chave"},
 		{"values-key-missing", "chave exigida pelo perfil ausente do arquivo de valores; adicione a chave"},
 		{"values-file-missing", "arquivo de valores exigido pelo perfil ausente; crie o arquivo com as chaves exigidas"},
+		{"profile-forbidden-path", "caminho proibido pelo perfil; remova o arquivo ou mantenha-o fora do repositório"},
 	}
 }
