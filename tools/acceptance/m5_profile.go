@@ -27,6 +27,9 @@ func m5ProfileCases() []m5Case {
 		{name: "fixture-fails-with-profile", run: (*suite).m5FailsWithProfile},
 		{name: "fixture-passes-without", run: (*suite).m5PassesWithout},
 		{name: "fixture-passes-corrected", run: (*suite).m5PassesCorrected},
+		{name: "digest-mismatch", run: (*suite).m5DigestMismatch},
+		{name: "schema-mismatch", run: (*suite).m5SchemaMismatch},
+		{name: "stale-bundle", run: (*suite).m5StaleBundle},
 	}
 }
 
