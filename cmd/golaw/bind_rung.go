@@ -8,6 +8,7 @@ import (
 
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/policy"
+	"github.com/cristianargotti/golaw/internal/profile"
 	"github.com/cristianargotti/golaw/internal/rung"
 )
 
@@ -24,7 +25,7 @@ func (b binding) rungDependencies(dir string, now time.Time, stdin io.Reader, re
 		return rung.Dependencies{}, err
 	}
 	load := func(ctx context.Context, dir string) (*policy.Loaded, error) {
-		in := policy.Input{Dir: dir, Dirs: dirs, Version: b.pin(), Now: now, Schemas: schemas(), Discover: locate}
+		in := policy.Input{Dir: dir, Dirs: dirs, Version: b.pin(), Now: now, Schemas: schemas(), Discover: locate, Bundle: profile.Load}
 		l, err := policy.LoadNext(ctx, in)
 		if err != nil {
 			return nil, fmt.Errorf("load the policy of %s: %w", dir, err)
