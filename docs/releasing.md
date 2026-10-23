@@ -12,12 +12,23 @@ A release is a tag v<major>.<minor>.<patch> on a commit of main. The release lan
 
 ## What the lane runs
 
-1. The gate requires the tag to be reachable from main with a successful CI push run for the same commit, then runs go run ./tools/acceptance -release with the pinned host. Every required row must pass and SKIP never counts as PASS, so a missing or stale live record stops the release there.
+1. The gate requires the tag to be reachable from main with a successful CI push run for the same commit, which go run ./tools/releasegate decides as the next section replays, then runs go run ./tools/acceptance -release with the pinned host. Every required row must pass and SKIP never counts as PASS, so a missing or stale live record stops the release there.
 2. The publication job checks out that commit, builds the immutable candidate and scans the same commit with it. The first release has no earlier verified binary, so the candidate built from the tagged commit is its own scanner; later releases keep the step.
 3. goreleaser prepares a signed draft: six binaries, checksums.txt, its Sigstore bundle and one SBOM per binary.
 4. cosign verifies the bundle against the exact identity of release.yml at the tag, and every binary receives a provenance attestation.
 5. Only then is the draft published.
 
+## Replay the gate
+
+The gate's decision is go run ./tools/releasegate over the CI runs the GitHub API lists for the tagged commit: it exits 0 when the last push run of ci.yml on main for that commit completed successfully, 1 with one line naming the commit and the state it found otherwise, and 2 for a usage error or a file it cannot read. Anyone can replay it as a dry run before the tag:
+
+```sh
+gh api --method GET repos/cristianargotti/golaw/actions/workflows/ci.yml/runs -f head_sha=<commit> -f branch=main -f event=push -f per_page=100 > runs.json
+make release-gate-dry-run SHA=<commit> RUNS=runs.json
+```
+
+Neither release-gate-dry-run nor release-verify is part of make ci.
+
 ## After the release
 
-Verify a downloaded binary as setup.md describes before running it. Keep the previous validated combination in the compatibility history of agent-contracts.md, and record a new live session for the next candidate.
+Verify a downloaded binary as setup.md describes before running it: make release-verify BIN=<downloaded binary> DIST=<dir> runs golaw doctor --release <dir> with that binary, which exits 1 on any red result. Keep the previous validated combination in the compatibility history of agent-contracts.md, and record a new live session for the next candidate.

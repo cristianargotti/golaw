@@ -104,12 +104,6 @@ The version line compares the host with the 2.1.295 floor and the validated 2.1.
 
 A go install build reports version, module sum, and revision as metadata, with state source build, executable not verifiable.
 
-Signed release assets are the primary distribution path with checksums, a Sigstore bundle, SBOMs, and attestations. Verify checksums.txt and the accompanying bundle yourself; automatic release verification in doctor arrives in M5.
-
-For an independently downloaded release, verify checksums and the bundle before running the executable. Pin the certificate identity to this repository's release.yml under refs/tags and to the exact selected tag. The issuer is https://token.actions.githubusercontent.com.
-
-A release asset is named golaw_<version>_<os>-<arch>, with .exe on Windows. Install the verified asset on your PATH under the name golaw, golaw.exe on Windows, because the installed hook runs golaw from PATH.
-
 scan exits 0 when clean, 1 for findings, and 2 for usage errors, internal failures, or a required check left unmeasured.
 
 ## Adopt a profile
@@ -138,6 +132,21 @@ To move to a newer version, install its tag, run golaw init --profile <name> --a
 On a repository that already holds findings, adopt with golaw init --seed-debt --apply instead of golaw init --apply. After a plain golaw init --apply, the refusal names how to start over before the first commit: delete golaw.yml and the enrollment record it names, then run golaw init --seed-debt --apply. It seeds one dated exception per finding that names a path, valid for 180 days, and writes docs/adr/0002-inherited-debt.md with every entry and why it exists; --coverage-profile <file> and --vulnerabilities <file> seed the coverage exemptions and the vulnerability waivers the same way. The debt set is seeded once: a second --seed-debt is refused, and later changes may remove an entry or bring its date closer, never add or broaden one, which scan --staged and the armed pre-commit rung refuse.
 
 Adopting a profile after the first init seeds nothing: the profile's findings meet a debt set that is already committed. Fix them before committing the pin, or adopt the profile at the first init with golaw init --profile <name> --seed-debt --apply.
+
+## Verify a release
+
+Signed release assets are the primary distribution path with checksums, a Sigstore bundle, SBOMs, and attestations. Put the asset of your system, checksums.txt and checksums.txt.sigstore.json of the release in one directory, add the attestation of the asset, and run the downloaded binary's own verification before installing it:
+
+```sh
+gh attestation download golaw_<version>_<os>-<arch> --repo cristianargotti/golaw
+./golaw_<version>_<os>-<arch> doctor --release .
+```
+
+gh attestation download writes sha256:<hex>.jsonl, or sha256-<hex>.jsonl on Windows, which doctor reads as it reads <asset>.sigstore.json. From a checkout of the kit, make release-verify BIN=<downloaded binary> DIST=<dir> runs the same command. A verified release prints release-verified with the signer and exits 0; any other result is red, names the file and the cause, and exits 1. A private Sigstore instance passes its roots.crt and rekor.pub with --trust-root <dir>.
+
+doctor --release runs inside the binary it judges, so its verdict is only as honest as that binary. For a verification independent of it, verify checksums.txt and its bundle with cosign before running the executable. Pin the certificate identity to this repository's release.yml under refs/tags and to the exact selected tag. The issuer is https://token.actions.githubusercontent.com.
+
+A release asset is named golaw_<version>_<os>-<arch>, with .exe on Windows. Install the verified asset on your PATH under the name golaw, golaw.exe on Windows, because the installed hook runs golaw from PATH.
 
 ## Enroll remote CI
 
