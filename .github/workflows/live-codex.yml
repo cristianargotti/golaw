@@ -1,0 +1,91 @@
+# The Codex live lane of specification section 10.4: a person dispatches
+# it, never a pull request or a push, with the key as the repository
+# secret CODEX_API_KEY, which the owner provisions with its spending limit.
+# The record it writes is kept in the log and the summary of the run; the
+# person reviews it and commits it alone, as docs/live/codex.md says.
+name: Codex live record
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: The day of the session, as 2026-10-21
+        required: true
+        type: string
+      owner:
+        description: Who answers for the session
+        required: true
+        type: string
+      environment:
+        description: Where the session runs
+        required: true
+        type: string
+      credential_boundary:
+        description: What the key may reach
+        required: true
+        type: string
+      spending_limit:
+        description: The spending limit of the key
+        required: true
+        type: string
+      schedule:
+        description: When a new session is recorded
+        required: true
+        type: string
+      retention:
+        description: How long the record is kept
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GOFLAGS: -mod=readonly
+
+jobs:
+  codex-live:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.2'
+          cache: true
+      - name: Use the toolchain named in go.mod
+        run: echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.19.0'
+          package-manager-cache: false
+      - name: Install the pinned Codex CLI
+        run: npm install --global @openai/codex@0.163.0
+      - name: Write the facts of the session
+        env:
+          FACT_DATE: ${{ inputs.date }}
+          FACT_OWNER: ${{ inputs.owner }}
+          FACT_ENVIRONMENT: ${{ inputs.environment }}
+          FACT_CREDENTIAL_BOUNDARY: ${{ inputs.credential_boundary }}
+          FACT_SPENDING_LIMIT: ${{ inputs.spending_limit }}
+          FACT_SCHEDULE: ${{ inputs.schedule }}
+          FACT_RETENTION: ${{ inputs.retention }}
+        run: >-
+          jq -n --arg date "$FACT_DATE" --arg owner "$FACT_OWNER" --arg environment "$FACT_ENVIRONMENT"
+          --arg credential_boundary "$FACT_CREDENTIAL_BOUNDARY" --arg spending_limit "$FACT_SPENDING_LIMIT"
+          --arg schedule "$FACT_SCHEDULE" --arg retention "$FACT_RETENTION"
+          '{date: $date, owner: $owner, environment: $environment, credential_boundary: $credential_boundary,
+          spending_limit: $spending_limit, schedule: $schedule, retention: $retention}' > "$RUNNER_TEMP/facts.json"
+      - name: Record the Codex live session
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+        run: go run ./tools/acceptance -live-codex "$RUNNER_TEMP/facts.json"
+      - name: Keep the record in the log and the summary
+        run: |
+          cat docs/live/codex-darwin.json
+          { echo '```json'; cat docs/live/codex-darwin.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
