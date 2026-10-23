@@ -238,7 +238,7 @@ Claude's onFailure: block and Cursor's failClosed: true are fail-closed. Codex h
 
 Cursor imports Claude settings-file hooks by default and maps Edit to Write and Bash to Shell, so a golaw hook command in ~/.claude/settings.json would run twice; the hooks live in the plugin, and doctor reports duplicate-hook. A golaw skill under ~/.codex/skills or ~/.cursor/skills beside ~/.agents/skills produces skill-duplicate. Remove the extra copy in either case.
 
-Codex stops reading the AGENTS.md chain at 32 KiB, the golaw block stays under 1,000 bytes, and doctor does not measure the chain in M4. Keep your own AGENTS.md files within that budget.
+Codex stops reading the AGENTS.md chain at 32 KiB, the golaw block stays under 1,000 bytes, and doctor does not measure the chain in M4. Install appends the block at the end of AGENTS.md, so in a chain over that budget the block is the part Codex drops. Measuring the chain is a stated cut of A12 in M4: the chain runs from the repository root down to the directory each session starts in, so its size differs per session, and no live record of this release shows which files Codex counts toward the budget. Keep your own AGENTS.md files within that budget.
 
 doctor.companion finds a companion gate by its neutral names: a handler whose command runs standards_gate.py in the agent's hooks file, reported before or after golaw's handler of the same event; for Claude the coexistence report also reads its registry, standards-gate.json. No file may receive two blocking verdicts: retire from the companion gate each family golaw owns before both run.
 
