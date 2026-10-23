@@ -49,6 +49,9 @@ func sentencesFor(language string) sentences {
 }
 
 func humanMessage(language string, event model.Event, reason string) string {
+	if line, ok := profileHuman(language, reason); ok {
+		return line
+	}
 	words := sentencesFor(language)
 	check, path := reasonTarget(reason, words.unknown)
 	if event.Shape == model.ShapePost {
