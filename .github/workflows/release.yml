@@ -51,6 +51,8 @@ jobs:
           package-manager-cache: false
       - name: Install the pinned host
         run: npm install --global @anthropic-ai/claude-code@2.1.299
+      - name: Install the pinned Codex CLI
+        run: npm install --global @openai/codex@0.163.0
       - id: acceptance
         name: Require the release rows and the dated live record
         run: go run ./tools/acceptance -release
