@@ -163,3 +163,12 @@ checks:
     code: revalidation-required
     red: testdata/trusted-revalidation-required/red
     near: testdata/trusted-revalidation-required/near
+  # M5: the pinned profile bundle and the release of the running binary.
+  - id: doctor.profile
+    code: profile-not-installed
+    red: testdata/profile/red
+    near: testdata/profile/near
+  - id: doctor.release
+    code: checksum-mismatch
+    red: testdata/release/red
+    near: testdata/release/near
