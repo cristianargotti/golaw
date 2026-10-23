@@ -141,23 +141,19 @@ A location that is positively unenrolled gets the valid allow of the hook whatev
 
 doctor reports the pinned profile on one line: `profile-none` for core only, `profile-installed` with `version <v>, digest <d>, <n> days since <date>`, and as red `profile-not-installed`, `profile-version-mismatch`, `profile-digest-mismatch` and `profile-stale`, each naming the install command, and `profile-data-invalid` naming the schema cause.
 
-## Evaluator semantics
+## Evaluators
 
-The profile design supplies data to generic evaluators in the core. These categories describe semantics, not serialized payload keys or an executable schema that M3 defines:
+Seven generic checks of the core read the data of a profile. A profile needing new logic requires a generic core evaluator; it cannot execute bundle code. Each check answers NotApplicable without a profile and when the profile carries no section for it, and applies only where its capability holds; a missing capability makes it inapplicable, rather than a finding. The synthetic fixture bundle and the fixtures of internal/proof exercise every evaluator with a red case and a near miss, and no platform value.
 
-| Category | Meaning |
-| --- | --- |
-| Image stages and installation | Required ordering of image stages and allowlists for what tools or packages a stage may install. |
-| Targets and hook commands | Required make targets and permitted hook command structure, subject to the optional local-rung contract. |
-| Typed YAML assertions | Assertions on typed values with an explicit outcome for a missing key, not a match against raw text. |
-| Properties precedence | Properties interpreted with a declared precedence when more than one source can supply a value. |
-| Protected-base ownership | Ownership decisions taken from the protected base, including the catch-all owner, so a candidate edit cannot authorize itself. |
-| Forbidden terms | Additional terms the profile forbids under the core's matching and scope rules. |
-| Registry patterns | Allowed image registry patterns supplied as profile data. |
-| Branch patterns | The adopting repository's branch-name pattern. |
-| Layout defaults | Default locations for the main package and decision records. |
-
-A profile needing new logic requires a generic core evaluator; it cannot execute bundle code. Checks apply only where their capability holds. A missing capability makes a check inapplicable, rather than a finding.
+| Check | Section | Needs | Finding codes | Stated limits |
+| --- | --- | --- | --- | --- |
+| `policy.image-stages` | `dockerfile.stages`, `dockerfile.final_image` | image | `image-stage-missing`, `image-stage-order`, `image-final-image` | Only the root `Dockerfile` is judged, through the Dockerfile reader of rules.md. |
+| `policy.image-installs` | `dockerfile.installs`, `dockerfile.pinned_installs`, `dockerfile.ignore_comments` | image | `image-install-not-allowed`, `image-install-unpinned`, `image-inline-ignore` | Reads `apk add`, `apt-get install` and `apt install` with plain package words, joined continuations included; a variable, a substitution, an option with an argument, an exec form install and a heredoc install are stated limits. A comment prefix compares without the mark, case and extra spaces. |
+| `policy.image-registry` | `registry.pattern` | image | `image-registry` | Only the root `Dockerfile` is judged. |
+| `policy.profile-targets` | `targets` | go | `profile-target-missing`, naming `add <target> to the prerequisites of ci` | The ci closure and the scheduled or manual job allowance of policy.ci-target, with the Makefile reader's limits. |
+| `policy.values-assertions` | `assertions` | none | `values-assertion`, `values-key-missing`, `values-file-missing` | A parent that is not a mapping is a missing key; the YAML reader of rules.md reads the file. |
+| `paths.profile-forbidden` | `paths` | none | `profile-forbidden-path` | A glob matches the whole slash path from the root, a trailing slash covers a tree, names compare without case, and a file under testdata is never judged. Without case a name a case-insensitive filesystem aliases is the forbidden one (A14), and a case-sensitive filesystem is judged the same: a name that differs from a forbidden one in case alone is refused there too. An agent write is denied before the file exists. |
+| `text.tool-terms` | `terms` | none | the codes of the check | A policy whose own tool list holds only the profile's terms keeps the kit's default terms. |
 
 Unsupported syntax or unavailable external evidence is Unmeasured, never a text match. A text match over a construct the reader does not understand would give false findings and false clean results alike, so the check states its limit instead. A verdict that depends on a construct outside the declared subset names the file, line and construct as a stated limit. Unrelated unsupported syntax does not broaden the reader. An armed rung names the limit and leaves it to the pipeline; a required unmeasured result cannot establish a clean remote result and is not itself a finding.
 
