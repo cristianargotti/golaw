@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -14,8 +15,9 @@ import (
 type toolTerms struct{}
 
 // ToolTerms is text.tool-terms. The names come from the policy (Terms.Tools)
-// and, when the policy names none, from the two product names of section 3
-// of the specification; the allowed prefixes come from the policy
+// and, when the policy names none of its own, from the two product names of
+// section 3 of the specification, with the terms of an enrolled profile
+// beside them (toolNames); the allowed prefixes come from the policy
 // (Terms.AllowPaths) and, when it names none, from the narrow scopes of the
 // same section.
 func ToolTerms() model.Check { return toolTerms{} }
@@ -24,10 +26,7 @@ func (toolTerms) Spec() model.Spec { return spec("text.tool-terms") }
 
 // Run scans every text target outside the allowed prefixes for the names.
 func (toolTerms) Run(_ context.Context, in model.Input) (model.Result, error) {
-	names, scopes := in.Policy.Terms.Tools, in.Policy.Terms.AllowPaths
-	if len(names) == 0 {
-		names = defaultTools()
-	}
+	names, scopes := toolNames(in.Policy), in.Policy.Terms.AllowPaths
 	if len(scopes) == 0 {
 		scopes = defaultScopes()
 	}
@@ -42,6 +41,23 @@ func (toolTerms) Run(_ context.Context, in model.Input) (model.Result, error) {
 		findings = append(findings, matches(terms, path, number, line)...)
 	})
 	return result(read, err, findings), nil
+}
+
+// toolNames is the tool list in force: the policy's own names, or the two
+// default names when it names none, beside the terms the enrolled profile
+// adds (A1). CompileWith merged those terms into the list, so they never
+// count as a list of the policy's own, which would drop the defaults; a
+// list made only of the profile's terms reads as none.
+func toolNames(p *model.EffectivePolicy) []string {
+	var extra []string
+	if p.ProfileData != nil {
+		extra = p.ProfileData.Terms
+	}
+	own := slices.DeleteFunc(slices.Clone(p.Terms.Tools), func(name string) bool { return slices.Contains(extra, name) })
+	if len(own) == 0 {
+		own = defaultTools()
+	}
+	return slices.Concat(own, extra)
 }
 
 // defaultTools are the two product names of section 3, assembled from
