@@ -230,6 +230,7 @@ Inventory section 4.14 is profile data, so the prose mapping holds no 4.14 row: 
 | Check | Rule | Needs | Why and boundary |
 | --- | --- | --- | --- |
 | policy.image-stages | rules/4.14@1 | image | A root Dockerfile that lacks a stage the profile names, names them out of the profile's order, or whose last stage starts from another image than the profile's final image, because the platform builds every image through the same stages; a construct outside the Dockerfile reader's subset is a stated limit. |
+| policy.image-installs | rules/4.14@1 | image | An install line of a stage that adds a package outside the profile's allowlist for that stage, a package without a version when the profile pins installs, or an inline ignore comment the profile forbids, because an image carries only the reviewed tools; a variable, a substitution, an option with an argument, an exec form install or a heredoc install is a stated limit. |
 
 ## Reader subsets and stated limits
 

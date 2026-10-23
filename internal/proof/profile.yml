@@ -9,3 +9,8 @@ checks:
     red: testdata/policy.image-stages/red
     near: testdata/policy.image-stages/near
     profile: fixture
+  - id: policy.image-installs
+    code: image-install-not-allowed
+    red: testdata/policy.image-installs/red
+    near: testdata/policy.image-installs/near
+    profile: fixture
