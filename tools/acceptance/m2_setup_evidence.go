@@ -32,6 +32,10 @@ func (s *suite) m2ReceiptAt(repo string, env []string) (string, error) {
 	return setup.ReceiptPath(state, identity), nil
 }
 
+// m2EffectiveHooks is the hooks directory Git routes the repository to,
+// spelled the way golaw setup records it: Git for Windows prints forward
+// slashes and setup keeps the cleaned native path, so the raw report and
+// the receipt name one directory in two spellings there.
 func (s *suite) m2EffectiveHooks(ctx context.Context, repo string, env []string) (string, error) {
 	dir, err := s.m2ObserveGit(ctx, repo, env, m2RevParse, "--path-format=absolute", "--git-path", "hooks")
 	if err != nil {
@@ -40,7 +44,7 @@ func (s *suite) m2EffectiveHooks(ctx context.Context, repo string, env []string)
 	if !filepath.IsAbs(dir) {
 		return "", fmt.Errorf("M2 hooks directory is not absolute: %w", ErrAcceptance)
 	}
-	return dir, nil
+	return filepath.Clean(dir), nil
 }
 
 func (s *suite) m2VerifySetup(ctx context.Context, repo string, env []string) error {

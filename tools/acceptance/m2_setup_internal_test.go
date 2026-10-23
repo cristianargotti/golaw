@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -27,6 +28,32 @@ func TestM2SetupVerifiedEnvironment(t *testing.T) {
 	}
 	if environmentValue(env, "GOBIN") != s.m2.Bin {
 		t.Fatalf("shared tool directory missing from returned environment: %q", env)
+	}
+}
+
+// Git for Windows prints the hooks directory with forward slashes while
+// setup records the cleaned native path; the trailing slash gives the
+// report a spelling filepath.Clean folds on every system.
+func TestM2SetupComparesTheHooksDirectoryAsSetupRecordsIt(t *testing.T) {
+	t.Parallel()
+	s := m2TestSuite(t).m2Scope("setup-spelling")
+	fixture := m2LifecycleScript(t, s, "setup-idempotent", "answer").Execute
+	s.execute = func(ctx context.Context, c command) result {
+		got := fixture(ctx, c)
+		if c.program == s.git && slices.Contains(c.args, "--git-path") && slices.Contains(c.args, "hooks") {
+			got.stdout = filepath.ToSlash(strings.TrimSpace(got.stdout)) + "/\n"
+		}
+		return got
+	}
+	repo, err := s.repository(t.Context(), "setup-spelling", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.setupM2(t.Context(), repo, s.env); err != nil {
+		t.Fatalf("the hooks directory Git spells another way was refused: %v", err)
+	}
+	if _, err := s.m2InstalledPath(t.Context(), repo, "pre-commit", s.env); err != nil {
+		t.Fatalf("the installed rung under that spelling was refused: %v", err)
 	}
 }
 

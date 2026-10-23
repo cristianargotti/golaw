@@ -100,7 +100,7 @@ func m2HookBody(rung string) string {
 }
 
 // m2HooksDir is the hooks directory the real Git routes the repository of
-// a command to.
+// a command to, cleaned as golaw setup records it.
 func m2HooksDir(ctx context.Context, t *testing.T, s *suite, c command) string {
 	t.Helper()
 	got := runCommand(ctx, command{
@@ -110,7 +110,7 @@ func m2HooksDir(ctx context.Context, t *testing.T, s *suite, c command) string {
 	if err := success(got); err != nil {
 		t.Fatal(err)
 	}
-	return strings.TrimSpace(got.stdout)
+	return filepath.Clean(strings.TrimSpace(got.stdout))
 }
 
 // m2Armed reports whether the repository of a command holds a pre-commit
