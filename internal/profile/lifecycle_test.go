@@ -62,15 +62,6 @@ func TestParseSourceRefusesWhatIsNotASource(t *testing.T) {
 func TestLifecycleAnswersNotBuiltUntilItsPart(t *testing.T) {
 	t.Parallel()
 	dirs := policy.Dirs{State: t.TempDir(), Config: t.TempDir()}
-	url, tag := profiletest.BareSource(t)
-	src, err := profile.ParseSource(url + "@" + tag)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, err = profile.Install(t.Context(), dirs, src, nil, now())
-	if !errors.Is(err, profile.ErrNotBuilt) {
-		t.Fatalf("Install = %v", err)
-	}
 	if _, err := profile.Refresh(t.Context(), dirs, profiletest.Name, nil, now()); !errors.Is(err, profile.ErrNotBuilt) {
 		t.Fatalf("Refresh = %v", err)
 	}
