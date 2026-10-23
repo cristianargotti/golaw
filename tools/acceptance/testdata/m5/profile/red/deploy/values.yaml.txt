@@ -1,0 +1,4 @@
+securityContext:
+  runAsNonRoot: false
+podAnnotations:
+  example.test/do-not-disrupt: "true"
