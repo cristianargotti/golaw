@@ -1,0 +1,6 @@
+FROM registry.example.test/platform/certificates:1.0 AS certs
+FROM registry.example.test/platform/golang:1.27-alpine AS base
+FROM base AS ci
+RUN apk add --no-cache git=2.45.2-r0 curl=8.9.1-r0
+FROM base AS builder
+FROM scratch

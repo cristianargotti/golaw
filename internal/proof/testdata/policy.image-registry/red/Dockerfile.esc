@@ -1,0 +1,5 @@
+FROM registry.example.test/platform/certificates:1.0 AS certs
+FROM golang:1.27-alpine AS base
+FROM base AS ci
+FROM base AS builder
+FROM scratch
