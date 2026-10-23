@@ -13,9 +13,9 @@ type step func(in Inputs, v Verdict) (Verdict, bool)
 // would check by hand: a development build is a source build and is never
 // verified; then checksums.txt and its bundle must be there, the asset
 // line must name the running binary's digest, the trust root must hold an
-// authority and a log key, and the bundle must sign checksums.txt under
-// the pinned identity. What passes them all is not verified yet: the log
-// and attestation steps follow, and until they do the verdict says so.
+// authority and a log key, and the bundle, logged, must sign checksums.txt
+// under the pinned identity. What passes them all is not verified yet:
+// the attestation step follows, and until it does the verdict says so.
 func Verify(in Inputs) Verdict {
 	v := Verdict{Digest: in.BinaryDigest}
 	for _, judge := range []step{sourceStep, inputStep, checksumStep, trustStep, signatureStep} {
@@ -24,7 +24,7 @@ func Verify(in Inputs) Verdict {
 			return next
 		}
 	}
-	return unknown(v, CodeUnverified, "the log entry and the attestation are not verified yet")
+	return unknown(v, CodeUnverified, "the attestation is not verified yet")
 }
 
 func sourceStep(in Inputs, v Verdict) (Verdict, bool) {

@@ -10,11 +10,11 @@ import (
 )
 
 // signer is the certificate of a bundle once it verified for the release:
-// it chains to the trust root with the code signing usage at the time the
-// log integrated the signature, and it names the pinned identity at the
-// release tag (D11).
+// its log entry verifies, it chains to the trust root with the code
+// signing usage at the time the log integrated the signature, and it names
+// the pinned identity at the release tag (D11).
 func signer(b sigstoreBundle, in Inputs) (*x509.Certificate, error) {
-	at, err := entryTime(b.VerificationMaterial.TlogEntries)
+	at, err := logged(b.VerificationMaterial.TlogEntries, in.Trust)
 	if err != nil {
 		return nil, err
 	}

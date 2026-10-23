@@ -8,8 +8,9 @@ import (
 )
 
 // checksumsSigned proves the bundle of checksums.txt: its certificate is
-// the signer of the release and its signature verifies over the SHA-256
-// of the very file the person downloaded.
+// the signer of the release, its signature verifies over the SHA-256 of
+// the very file the person downloaded, and its log entry records that
+// signature.
 func checksumsSigned(in Inputs) error {
 	b, err := decodeBundle(in.Bundle)
 	if err != nil {
@@ -27,10 +28,14 @@ func checksumsSigned(in Inputs) error {
 		return err
 	}
 	sum := sha256.Sum256(in.Checksums)
-	if err := verifyECDSA(cert.PublicKey, sum[:], sig); err != nil {
+	if err = verifyECDSA(cert.PublicKey, sum[:], sig); err != nil {
 		return fmt.Errorf("%w over %s", err, ChecksumsFile)
 	}
-	return nil
+	r, err := recorded(b.VerificationMaterial.TlogEntries)
+	if err != nil {
+		return err
+	}
+	return rekordRecords(r, cert, sig, sum[:])
 }
 
 // verifyECDSA verifies an ASN.1 ECDSA signature over a digest, the one

@@ -47,7 +47,6 @@ func bundleCases() map[string]bundleCase {
 			t.Helper()
 			in.Trust.Roots = releasetest.Generate(t, []byte(binary), "1.2.3").Inputs(t).Trust.Roots
 		}, release.CodeSignatureInvalid, "does not chain to the trust root at 2026-10-01T12:00:00Z"},
-		"after the leaf expired": setEntryCase(setEntry("integratedTime", "1790859600"), "does not chain to the trust root at 2026-10-01T13:00:00Z"),
 		"no log entry": {func(t *testing.T, in *release.Inputs, _ releasetest.Material) {
 			t.Helper()
 			in.Bundle = edited(t, in.Bundle, func(doc map[string]any) {

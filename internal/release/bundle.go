@@ -10,9 +10,9 @@ import (
 
 // sigstoreBundle is the part of a Sigstore bundle the verifier reads, in
 // the protobuf JSON form of version 0.3 that cosign writes with the new
-// bundle format: the leaf certificate, the log entries and the message
-// signature. Every other field is ignored, so a newer writer that adds
-// one keeps verifying.
+// bundle format: the leaf certificate, the log entries with their signed
+// entry timestamps, and the message signature. Every other field is
+// ignored, so a newer writer that adds one keeps verifying.
 type sigstoreBundle struct {
 	VerificationMaterial verificationMaterial `json:"verificationMaterial"`
 	MessageSignature     *messageSignature    `json:"messageSignature"`
@@ -28,7 +28,19 @@ type rawCertificate struct {
 }
 
 type tlogEntry struct {
-	IntegratedTime protoInt `json:"integratedTime"`
+	LogIndex          protoInt          `json:"logIndex"`
+	LogID             logID             `json:"logId"`
+	IntegratedTime    protoInt          `json:"integratedTime"`
+	InclusionPromise  *inclusionPromise `json:"inclusionPromise"`
+	CanonicalizedBody string            `json:"canonicalizedBody"`
+}
+
+type logID struct {
+	KeyID string `json:"keyId"`
+}
+
+type inclusionPromise struct {
+	SignedEntryTimestamp string `json:"signedEntryTimestamp"`
 }
 
 type messageSignature struct {
@@ -58,6 +70,9 @@ func decodeBundle(data []byte) (sigstoreBundle, error) {
 	}
 	return b, nil
 }
+
+// b64 is the standard base64 a log signs a body in.
+func b64(data []byte) string { return base64.StdEncoding.EncodeToString(data) }
 
 // decode64 reads the standard base64 the protobuf JSON form writes for
 // bytes.
