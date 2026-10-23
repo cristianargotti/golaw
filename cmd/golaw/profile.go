@@ -81,7 +81,7 @@ func (a *app) profileInstall(ctx context.Context, out io.Writer, arg string) err
 	if err != nil {
 		return err //nolint:wrapcheck // the lifecycle error names the bundle; the subcommand wraps it
 	}
-	return writeLines(out, []string{installedLine(installed, already)})
+	return writeLines(out, installLines(installed, already))
 }
 
 func (a *app) profileRefresh(ctx context.Context, out io.Writer, name string) error {
@@ -93,7 +93,7 @@ func (a *app) profileRefresh(ctx context.Context, out io.Writer, name string) er
 	if err != nil {
 		return err //nolint:wrapcheck // the lifecycle error names the bundle; the subcommand wraps it
 	}
-	return writeLines(out, []string{installedLine(installed, false)})
+	return writeLines(out, refreshLines(installed))
 }
 
 func (a *app) profileRollback(_ context.Context, out io.Writer, name string) error {
@@ -105,7 +105,7 @@ func (a *app) profileRollback(_ context.Context, out io.Writer, name string) err
 	if err != nil {
 		return err //nolint:wrapcheck // the lifecycle error names the bundle; the subcommand wraps it
 	}
-	return writeLines(out, []string{rolledBackLine(installed)})
+	return writeLines(out, rolledBackLines(installed))
 }
 
 func (a *app) profileRemove(_ context.Context, out io.Writer, name string) error {
