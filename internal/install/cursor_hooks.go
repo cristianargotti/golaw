@@ -138,13 +138,13 @@ func (f *cursorHooksFile) owned(event string, previous []Entry) (int, bool, erro
 // with its keys in another order still shows golaw's handler, and answers
 // every index, so a copy is never missed.
 func (f *cursorHooksFile) locate(event string, definition json.RawMessage) []int {
-	want, ok := canonicalJSON(definition)
+	want, ok := CanonicalJSON(definition)
 	if !ok {
 		return nil
 	}
 	var found []int
 	for index, candidate := range f.handlers[event] {
-		if got, ok := canonicalJSON(candidate); ok && bytes.Equal(got, want) {
+		if got, ok := CanonicalJSON(candidate); ok && bytes.Equal(got, want) {
 			found = append(found, index)
 		}
 	}

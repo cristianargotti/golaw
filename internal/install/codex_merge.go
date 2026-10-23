@@ -112,7 +112,7 @@ func decodeCodexGroup(raw json.RawMessage) (codexGroup, error) {
 // another tool rewrote with its keys in another order still shows golaw's
 // handler, and answers every position, so a copy is never missed.
 func (f *codexHooksFile) locate(event, matcher string, definition json.RawMessage) []codexPosition {
-	want, ok := canonicalJSON(definition)
+	want, ok := CanonicalJSON(definition)
 	if !ok {
 		return nil
 	}
@@ -123,7 +123,7 @@ func (f *codexHooksFile) locate(event, matcher string, definition json.RawMessag
 			continue
 		}
 		for handler, candidate := range decoded.hooks {
-			if got, ok := canonicalJSON(candidate); ok && bytes.Equal(got, want) {
+			if got, ok := CanonicalJSON(candidate); ok && bytes.Equal(got, want) {
 				found = append(found, codexPosition{event: event, group: group, handler: handler})
 			}
 		}

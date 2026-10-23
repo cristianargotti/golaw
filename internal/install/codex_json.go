@@ -62,11 +62,11 @@ func rawArray(items []json.RawMessage) json.RawMessage {
 	return json.RawMessage("[" + strings.Join(fields, ",") + "]")
 }
 
-// canonicalJSON is the value with its object keys sorted and no
+// CanonicalJSON is the value with its object keys sorted and no
 // insignificant space, so a handler compares equal however an editor or
 // another tool ordered its keys or indented the file; false when the
 // bytes are no JSON at all.
-func canonicalJSON(raw json.RawMessage) ([]byte, bool) {
+func CanonicalJSON(raw json.RawMessage) ([]byte, bool) {
 	var value any
 	if json.Unmarshal(raw, &value) != nil {
 		return nil, false

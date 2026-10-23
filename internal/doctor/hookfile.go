@@ -112,27 +112,18 @@ func failsClosed(raw json.RawMessage) bool {
 	return fieldsOf(raw).FailClosed
 }
 
-// locate is the index of the slot that holds a definition, both compared
-// as compact JSON so indentation is not drift, or -1.
+// locate is the index of the slot that holds a definition, or -1. Both are
+// compared as the installers compare them, canonical JSON with sorted keys,
+// so neither indentation nor a key order another tool wrote is drift.
 func locate(slots []slot, definition json.RawMessage) int {
-	want, ok := compact(definition)
+	want, ok := install.CanonicalJSON(definition)
 	if !ok {
 		return -1
 	}
 	return slices.IndexFunc(slots, func(s slot) bool {
-		got, ok := compact(s.Raw)
+		got, ok := install.CanonicalJSON(s.Raw)
 		return ok && bytes.Equal(got, want)
 	})
-}
-
-// compact is the JSON without insignificant space, false when it is not
-// JSON at all.
-func compact(raw json.RawMessage) ([]byte, bool) {
-	var buffer bytes.Buffer
-	if json.Compact(&buffer, raw) != nil {
-		return nil, false
-	}
-	return buffer.Bytes(), true
 }
 
 // blockMatches reports whether the file holds the block with the hash the
