@@ -37,6 +37,7 @@ func m4Catalogs() []m4Catalog {
 		{agent: m4AllAgents, version: codex.PatchGrammar, rows: (*suite).m4OrderRows},
 		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4TrustRows},
 		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4VendorRows},
+		{agent: agentCodex, version: codex.PatchGrammar, rows: (*suite).m4LiveRows},
 	}
 }
 
