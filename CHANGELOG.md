@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-22: the licenses target of golaw.mk ignores the repository's own packages and still checks their dependencies, because go-licenses reports a package without a license file as an error, so the rendered service and every private repository failed make ci at licenses.
 - 2026-10-22: the inherited baseline record lists the modules of tools/go.mod in its table with their pinned versions, marked kit tool, because the table, which says it lists the direct dependencies, left out four modules the front matter records.
 - 2026-10-22: the pre-commit rung names a declared-subset limit only when the commit introduces it or stages the file it names, because a limit HEAD already held was printed on every commit, unrelated to what was staged.
 - 2026-10-22: docs/rules.md states that policy.ci-target ignores a lefthook construct outside the reader's subset, because the page said such constructs follow stated limits while the check, rightly for an optional rung, passes over them in silence.

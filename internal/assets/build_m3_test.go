@@ -90,3 +90,16 @@ func requireBuildDemandContract(t *testing.T, body string, ci []string) {
 		}
 	}
 }
+
+// TestBuildAssetLicensesJudgeTheDependenciesAlone holds the licenses target
+// to the modules the repository depends on: the repository's own packages
+// carry the license it chose, a private one none, and go-licenses reports a
+// package without a license file as an error.
+func TestBuildAssetLicensesJudgeTheDependenciesAlone(t *testing.T) {
+	t.Parallel()
+	body := string(renderedAsset(t, "golaw.mk", assetContext()).Data)
+	want := "\tgo run github.com/google/go-licenses/v2@v2.0.1 check --disallowed_types=forbidden,restricted --ignore example.test/service ./...\n"
+	if !strings.Contains(body, want) {
+		t.Fatalf("the licenses recipe does not ignore the module's own packages:\n%s", body)
+	}
+}

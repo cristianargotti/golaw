@@ -64,7 +64,7 @@ vuln:
 
 licenses: export GOTOOLCHAIN := auto
 licenses:
-	go run github.com/google/go-licenses/v2@v2.0.1 check --disallowed_types=forbidden,restricted ./...
+	go run github.com/google/go-licenses/v2@v2.0.1 check --disallowed_types=forbidden,restricted --ignore {{.ModulePath}} ./...
 
 mutation-changed: export GOTOOLCHAIN := auto
 mutation-changed:
