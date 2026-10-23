@@ -13,7 +13,6 @@ import (
 	"github.com/cristianargotti/golaw/internal/bootstrap"
 	"github.com/cristianargotti/golaw/internal/buildinfo"
 	"github.com/cristianargotti/golaw/internal/engine"
-	"github.com/cristianargotti/golaw/internal/gittest"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/policy"
 )
@@ -21,13 +20,17 @@ import (
 // testVersion is the version the test binding carries and the policy pins.
 const testVersion = "9.9.9"
 
-// gitRun runs one git command in a directory with the isolated environment
-// and fixed identity of gittest, and fails the test on error.
+// gitRun runs one git command in a directory without the global and the
+// system configuration, and fails the test on error. It sets no identity
+// and no configuration of its own, because the hook asks git var for the
+// committer through the configuration of the repository and several tests
+// commit under a git -c identity or set core.autocrlf there; a repository
+// whose configuration names no identity commits through gittest.
 func gitRun(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
-	cmd.Env = gittest.Isolated()
+	cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_SYSTEM="+os.DevNull)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git %v: %v\n%s", args, err, out)
 	}
