@@ -1,0 +1,3 @@
+# Agent notes
+
+Notes the team keeps for its coding agents.

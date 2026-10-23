@@ -23,6 +23,21 @@ func Install(ctx context.Context, dirs policy.Dirs, src Source, env []string, no
 	return installFrom(ctx, dirs, src, env, now, "")
 }
 
+// Refresh installs the current version of a name again from the URL and
+// tag its record holds: the way out of a damaged current bundle or stored
+// copy, held to the same name and refused like any install when the tag
+// moved since.
+func Refresh(ctx context.Context, dirs policy.Dirs, name string, env []string, now time.Time) (Installed, error) {
+	record, err := recordFor(dirs.State, name)
+	if err != nil {
+		return Installed{}, err
+	}
+	current := record.Versions[len(record.Versions)-1] // a read record holds its current version last
+	src := Source{URL: current.URL, Tag: current.Tag, Version: current.Version}
+	installed, _, err := installFrom(ctx, dirs, src, env, now, name)
+	return installed, err
+}
+
 // localSource makes a source that names a directory of this machine by a
 // relative path absolute, because the clone runs in the profiles directory
 // and a refresh may run from any other one; a URL, an ssh address and an
