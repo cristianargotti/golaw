@@ -19,29 +19,6 @@ func m5Notes() []string {
 	}
 }
 
-// m5ChangeNotesOK holds the Added section of Unreleased to every
-// expression and the whole changelog clear of every overclaim. It keeps a
-// name of its own beside the M4 helper of the same body, so the M5 pins
-// compile whichever milestone's change notes merge first.
-func m5ChangeNotesOK(text string, expressions []*regexp.Regexp, forbidden []string) bool {
-	_, unreleased, found := strings.Cut(text, "## Unreleased\n")
-	if !found {
-		return false
-	}
-	unreleased, _, _ = strings.Cut(unreleased, "\n## ")
-	_, added, found := strings.Cut(unreleased, "### Added\n")
-	if !found {
-		return false
-	}
-	added, _, _ = strings.Cut(added, "\n### ")
-	for _, expression := range expressions {
-		if !expression.MatchString(added) {
-			return false
-		}
-	}
-	return m4TextOK(text, nil, forbidden)
-}
-
 func TestM5DatedChangeNotes(t *testing.T) {
 	t.Parallel()
 	text := string(kitBytes(t, "CHANGELOG.md"))
@@ -72,7 +49,7 @@ func TestM5DatedChangeNotes(t *testing.T) {
 	for _, row := range rows {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
-			if got := m5ChangeNotesOK(row.text, expressions, forbidden); got != row.want {
+			if got := m4ChangeNotesOK(row.text, expressions, forbidden); got != row.want {
 				t.Fatalf("change notes = %v, want %v", got, row.want)
 			}
 		})
