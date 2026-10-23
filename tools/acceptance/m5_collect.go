@@ -32,7 +32,9 @@ type m5Catalog struct {
 
 // m5Catalogs are the categories of the M5 rows in report order.
 func m5Catalogs() []m5Catalog {
-	return []m5Catalog{}
+	return []m5Catalog{
+		{category: m5RemoteCategory, cases: m5RemoteCases()},
+	}
 }
 
 func (s *suite) collectM5(ctx context.Context) ([]row, map[string]rowEvidence) {
