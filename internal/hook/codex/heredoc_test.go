@@ -67,9 +67,12 @@ func TestRecognizedHeredocs(t *testing.T) {
 				t.Fatalf("unexpected request: %+v", request)
 			}
 			candidate := request.Writes.Candidates[0]
+			// Codex intercepts a patch and runs no post event for it, while the
+			// shell runs a cat, whose post event reads the baseline.
+			intercepted := !strings.HasPrefix(tt.name, "cat")
 			if request.Event.Shell.Command != tt.command ||
 				candidate.Path != tt.path || candidate.Reconstructed != tt.whole ||
-				string(request.Writes.Content[tt.path]) != tt.bytes {
+				string(request.Writes.Content[tt.path]) != tt.bytes || request.Writes.Intercepted != intercepted {
 				t.Fatalf("unexpected write: %+v", request.Writes)
 			}
 		})

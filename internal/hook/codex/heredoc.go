@@ -169,8 +169,9 @@ func heredocTargets(cwd, command string) (string, []string) {
 
 // heredocPatch is the request of a patch Codex applies itself, which runs
 // no other event (survey section 2.4): the shell event with the candidates
-// of the patch, reconstructed where Codex writes them, as its writes. An
-// empty patch writes nothing, and one whose base is over the read bound is
+// of the patch, reconstructed where Codex writes them, as its writes,
+// marked intercepted, since no post event reads a baseline of it. An empty
+// patch writes nothing, and one whose base is over the read bound is
 // answered as the patch tool's own event, judged by its names.
 func heredocPatch(request hook.Request, form heredoc, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
 	event := request.Event
@@ -184,6 +185,6 @@ func heredocPatch(request hook.Request, form heredoc, base hook.Base, snapshot m
 	case len(written.Gaps) > 0:
 		return written, nil
 	}
-	request.Writes = &hook.Writes{Candidates: written.Event.Candidates, Content: written.Content}
+	request.Writes = &hook.Writes{Candidates: written.Event.Candidates, Content: written.Content, Intercepted: true}
 	return request, nil
 }

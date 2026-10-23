@@ -50,6 +50,41 @@ func TestShellWritesAreJudgedBeforeTheCommand(t *testing.T) {
 	}
 }
 
+// TestInterceptedWritesKeepNoBaseline holds the command of writes its host
+// applies itself, which runs no post event, to the judgment of its writes:
+// an allowed one keeps no shell baseline, whose git status no post event
+// would read, while a red write is denied as any other.
+func TestInterceptedWritesKeepNoBaseline(t *testing.T) {
+	t.Parallel()
+	rows := []struct {
+		name, content string
+		intercepted   bool
+		want          hook.Outcome
+		kept          bool
+	}{
+		{"red intercepted write", "bad", true, hook.Deny, false},
+		{"near intercepted write", "safe", true, hook.Allow, false},
+		{"near shell write", "safe", false, hook.Allow, true},
+	}
+	for _, row := range rows {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			req := heredocRequest("notes.go", row.content)
+			req.Writes.Intercepted = row.intercepted
+			adapter, dependencies := harness(t, req)
+			event, got := hook.Evaluate(t.Context(), "codex", []byte("{}"), adapter, dependencies)
+			key, err := hook.StateKey(event.Cwd, event)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, loadErr := dependencies.State.Load(t.Context(), key)
+			if got.Outcome != row.want || (loadErr == nil) != row.kept {
+				t.Fatalf("%+v, baseline kept = %v", got, loadErr == nil)
+			}
+		})
+	}
+}
+
 func TestUnappliedCandidateIsNamedInTheNotice(t *testing.T) {
 	t.Parallel()
 	rows := []struct {

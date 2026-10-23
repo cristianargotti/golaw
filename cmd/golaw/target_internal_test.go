@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook"
+	"github.com/cristianargotti/golaw/internal/hook/agents"
 )
 
 // eventAt is a pre tool use event of a tool over a target from a session
@@ -34,6 +35,12 @@ type enrolled struct {
 
 func enrolledHook(t *testing.T) enrolled {
 	t.Helper()
+	return enrolledFor(t, agentUnderTest())
+}
+
+// enrolledFor is the binding of enrolledHook for an agent of the registry.
+func enrolledFor(t *testing.T, agent agents.Agent) enrolled {
+	t.Helper()
 	b, home := testBinding(t)
 	root := repository(t, true)
 	data := renderedPolicy(t)
@@ -44,11 +51,11 @@ func enrolledHook(t *testing.T) enrolled {
 	if err = b.enroll(root, data, p, now()); err != nil {
 		t.Fatal(err)
 	}
-	deps, err := b.hookDependencies(agentUnderTest(), now())
+	deps, err := b.hookDependencies(agent, now())
 	if err != nil {
 		t.Fatal(err)
 	}
-	return enrolled{deps: deps, root: root, home: home, config: agentUnderTest().ConfigDir(b.env, home)}
+	return enrolled{deps: deps, root: root, home: home, config: agent.ConfigDir(b.env, home)}
 }
 
 // TestHookJudgesTheRepositoryThatHoldsTheTarget drives the real binding

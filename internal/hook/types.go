@@ -29,10 +29,13 @@ type Request struct {
 
 // Writes are the files the text of a shell command writes, which its
 // decoder reconstructed: candidates with their bytes, judged as a write of
-// the same tool before the command is judged.
+// the same tool before the command is judged. Intercepted marks writes the
+// host applies itself, running no post event for the command, so its
+// allowed command keeps no baseline that no event would read.
 type Writes struct {
-	Candidates []model.Candidate
-	Content    map[string][]byte
+	Candidates  []model.Candidate
+	Content     map[string][]byte
+	Intercepted bool
 }
 
 // Capture is what an adapter records of a payload it cannot judge yet
