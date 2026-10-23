@@ -30,7 +30,7 @@ func TestGitAnswersForItsOwnDirectory(t *testing.T) {
 		t.Fatal(err, string(out))
 	}
 	out, err := exec.Command("git", "-C", dir, "rev-parse", "--absolute-git-dir").Output()
-	if err != nil || strings.TrimSpace(string(out)) != filepath.Join(dir, ".git") {
+	if err != nil || filepath.FromSlash(strings.TrimSpace(string(out))) != filepath.Join(dir, ".git") {
 		t.Fatalf("git answered %q, %v for %s", out, err, dir)
 	}
 }

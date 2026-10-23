@@ -58,9 +58,7 @@ func TestM2SetupPrerequisiteIsolation(t *testing.T) {
 	if err := m2MissingTools([]string{pathAssignment + foreign}); err == nil {
 		t.Fatal("resolving optional tool accepted as absent")
 	}
-	occupied := filepath.Join(t.TempDir(), "occupied")
-	m2Write(t, occupied, "occupied")
-	if err := m2MissingTools([]string{pathAssignment + occupied}); err == nil {
+	if err := m2MissingTools([]string{pathAssignment + m2UnreadableParent(t)}); err == nil {
 		t.Fatal("unreadable tool search accepted")
 	}
 }

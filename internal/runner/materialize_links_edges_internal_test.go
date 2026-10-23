@@ -48,7 +48,7 @@ func requireTreeLinks(t *testing.T, links map[string]string, bad bool) {
 		t.Fatal(err)
 	}
 	for name, want := range links {
-		if got, readErr := root.Readlink(name); readErr != nil || got != want {
+		if got, readErr := root.Readlink(name); readErr != nil || got != filepath.FromSlash(want) {
 			t.Fatalf("link %q = %q, %v, want %q", name, got, readErr, want)
 		}
 	}
@@ -65,7 +65,7 @@ func treeLinkHostLimit(t *testing.T, links map[string]string) bool {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got != target {
+		if got != filepath.FromSlash(target) { // Windows stores a target with its own separator
 			return true
 		}
 	}

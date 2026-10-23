@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -149,7 +150,7 @@ func TestReceiptIOAndUnsupportedSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := setup.ReadReceipt(path)
-	if !errors.Is(err, setup.ErrReceipt) || !strings.Contains(err.Error(), path) || !strings.Contains(strings.ToLower(err.Error()), "inspec") {
+	if !errors.Is(err, setup.ErrReceipt) || !strings.Contains(err.Error(), strconv.Quote(path)) || !strings.Contains(strings.ToLower(err.Error()), "inspec") {
 		t.Fatalf("unsupported schema lacks inspection guidance: %v", err)
 	}
 }

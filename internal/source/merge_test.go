@@ -55,7 +55,13 @@ func TestChangesNamesTheMergeInProgress(t *testing.T) {
 	if err != nil || st.Merge != side || !st.Staged["theirs.md"] || st.Staged["shared.md"] || !st.Unmerged["shared.md"] || st.Unmerged["theirs.md"] {
 		t.Fatalf("a merge in progress: merge %q, staged %v, unmerged %v, %v", st.Merge, st.Staged, st.Unmerged, err)
 	}
-	unreadable := source.Repo{Root: root, GitDir: filepath.Join(root, ".git", "MERGE_HEAD")}
+	// A MERGE_HEAD that is a directory cannot be read on any system, where
+	// a path through a file reads as absent on Windows.
+	gitDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(gitDir, "MERGE_HEAD"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	unreadable := source.Repo{Root: root, GitDir: gitDir}
 	if _, err := source.Changes(t.Context(), unreadable, nil); err == nil {
 		t.Fatal("a MERGE_HEAD that cannot be read answered no merge")
 	}
