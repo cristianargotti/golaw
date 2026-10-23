@@ -1,7 +1,9 @@
 package cursor_test
 
 import (
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hook"
@@ -88,6 +90,35 @@ func TestCursorDeniedCommandPostHasNoFinding(t *testing.T) {
 	)
 	if before.Outcome != hook.Allow || after.Outcome != hook.Allow || after.Notice != "" {
 		t.Fatalf("unchanged denied command: %+v, %+v", before, after)
+	}
+}
+
+// TestCursorPostAfterADenialAnswersNothing follows the real flow of D7 and
+// decision 13: golaw denies the preToolUse Shell, which keeps no baseline,
+// and Cursor then sends postToolUseFailure with permission_denied for a
+// command that never ran; the answer is {} with no advisory about it.
+func TestCursorPostAfterADenialAnswersNothing(t *testing.T) {
+	t.Parallel()
+	root := hooktest.Repository(t)
+	dependencies := hooktest.Dependencies(t, root, map[string][]byte{"notes.md": []byte("before\n")})
+	var red struct {
+		Command string `json:"command"`
+	}
+	if err := json.Unmarshal(curBytes(t, "proof/testdata/shell/red/payload.json"), &red); err != nil {
+		t.Fatal(err)
+	}
+	input := map[string]any{"command": red.Command, "working_directory": "/project"}
+	pre := curPatch(t, curBytes(t, "proof/testdata/post-shell-failure/near/pre.json"), map[string]any{"tool_input": input})
+	post := curPatch(t, curBytes(t, "proof/testdata/post-shell-failure/near/payload.json"), map[string]any{
+		"tool_input": input, "failure_type": "permission_denied", "error_message": "denied by a hook",
+	})
+	_, before := hook.Evaluate(t.Context(), "cursor", hooktest.Payload(pre, root), curAdapter(), dependencies)
+	event, after := hook.Evaluate(t.Context(), "cursor", hooktest.Payload(post, root), curAdapter(), dependencies)
+	if before.Outcome != hook.Deny || after.Outcome != hook.Allow || after.Notice != "" || after.Human != "" {
+		t.Fatalf("pre = %+v, post = %+v", before, after)
+	}
+	if reply := curAdapter().Encode(event, after); reply.ExitCode != 0 || strings.TrimSpace(string(reply.Stdout)) != "{}" {
+		t.Fatalf("reply = %+v", reply)
 	}
 }
 
