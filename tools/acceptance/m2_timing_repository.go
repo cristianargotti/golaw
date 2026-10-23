@@ -10,9 +10,12 @@ import (
 	"github.com/cristianargotti/golaw/internal/rung"
 )
 
+// The measured change is one comment after the package clause, set apart
+// by the blank line gofmt puts there, so the staged file is formatted as in
+// a clean commit and the format step gives its usual answer.
 const (
 	m2TimingSourcePath = "internal/source/doc.go"
-	m2TimingLine       = "// Frozen inputs keep measurement independent from checkout edits.\n"
+	m2TimingLine       = "\n// Frozen inputs keep measurement independent from checkout edits.\n"
 	m2TimingListFiles  = "ls-files"
 )
 
