@@ -8,6 +8,11 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Added
 
+- 2026-10-22: M4 adds a patch adapter pinned to 0.163.0 and bounded shell routes, because supported edits need the shared judgment before execution.
+- 2026-10-22: M4 adds a compatibility preview with key capture, read and shell guards and advisory post feedback, because unknown write payloads must remain available without an enforcement claim.
+- 2026-10-22: M4 adds per-agent receipts and shared skill ownership for user and project installation, because removing one integration must preserve another integration's skill.
+- 2026-10-22: M4 separates installed, trusted and active state in doctor, because a present hook can be inert.
+- 2026-10-22: M4 documents assurance per agent, event and operating system and the residual security boundaries in docs/agent-contracts.md, because source contracts, offline invocations and live dispatch prove different things.
 - 2026-10-20: the policy family, rules rules/4.5@1 (the lint configuration), rules/4.6@1 (hook script tests), rules/4.7@1 (secret scanning), rules/4.8@1 (the supply chain), rules/4.9@1 (migrations), rules/4.10@1 (the API contract), rules/4.12@1 (ownership) and rules/4.13@1 (the ci target): the checks that read the configuration of a repository through a declared subset, each over the tree so a half-written file of an agent is never judged, and a construct outside the subset named as a stated limit and never a finding, because the pipeline is the only gate and its configuration must carry the standard.
 - 2026-10-20: scan --staged compares index findings with the base as a multiset and evaluates the proposed policy separately, so unstaged edits cannot hide a staged violation.
 - 2026-10-20: scan --enrolled accepts externally provisioned digests, because a clean CI runner must not trust enrollment supplied by its checkout.
