@@ -19,6 +19,11 @@ func (b binding) initTemplates(ctx context.Context, root string, data []byte) (b
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", initOperation("decode template settings", err)
 	}
+	loaded, err := b.initBundle(config)
+	if err != nil {
+		return bootstrap.TemplatePlan{}, "", err
+	}
+	exclude, _ := profileTemplateRules(loaded)
 	owners, err := b.initOwnership(ctx, root)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, "", err
@@ -31,7 +36,7 @@ func (b binding) initTemplates(ctx context.Context, root string, data []byte) (b
 		_, ownership, filterErr := filterInitOwnership(nil, owners)
 		return bootstrap.TemplatePlan{Ownership: ownership, Language: inputs.Language}, notice, filterErr
 	}
-	plan, err := renderInitTemplates(root, inputs, owners, promoted)
+	plan, err := renderInitTemplates(root, inputs, owners, promoted, exclude)
 	return plan, "", err
 }
 
@@ -63,7 +68,7 @@ func (b binding) initTemplateContext(ctx context.Context, root string, config po
 	return inputs, promoted, "", nil
 }
 
-func renderInitTemplates(root string, inputs assets.Context, owners []byte, promoted []assets.Requirement) (bootstrap.TemplatePlan, error) {
+func renderInitTemplates(root string, inputs assets.Context, owners []byte, promoted []assets.Requirement, exclude []string) (bootstrap.TemplatePlan, error) {
 	rendered, err := assets.RenderAllContext(golaw.FS, inputs)
 	if err != nil {
 		return bootstrap.TemplatePlan{}, initOperation("render templates", err)
@@ -78,6 +83,7 @@ func renderInitTemplates(root string, inputs assets.Context, owners []byte, prom
 	}
 	plan, err := bootstrap.PlanTemplates(root, allowed)
 	plan.Language, plan.Ownership, plan.Irregular = inputs.Language, ownership, irregular
+	plan.Exclude(exclude)
 	if writesInheritedBaseline(plan, rendered) {
 		plan.Promoted = promoted
 	}
