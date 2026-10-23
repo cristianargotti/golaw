@@ -32,7 +32,7 @@ func TestVendorRows(t *testing.T) {
 	t.Parallel()
 	s := testSuite(t)
 	rows, version := s.vendorRows(t.Context(), true)
-	if version != "2.1.299 (Claude Code)" || len(rows) != 3 {
+	if version != "2.1.299 (Claude Code)" || len(rows) != 4 {
 		t.Fatalf("%q %+v", version, rows)
 	}
 	assertPass(t, rows[0])
@@ -40,6 +40,7 @@ func TestVendorRows(t *testing.T) {
 	if rows[2].status != statusSkip || rows[2].required {
 		t.Fatalf("the plugin test row must be an optional skip: %+v", rows[2])
 	}
+	assertPass(t, rows[3])
 	s.lookup = func(string) (string, error) { return "", ErrAcceptance }
 	rows, version = s.vendorRows(t.Context(), true)
 	if version != "absent" || len(rows) != 2 || rows[0].status != statusSkip || !rows[0].required {
@@ -58,7 +59,7 @@ func TestVendorRows(t *testing.T) {
 		return result{code: 1, stderr: "validator failed"}
 	}
 	rows, _ = s.vendorRows(t.Context(), false)
-	if len(rows) != 3 || rows[1].status != statusFail || rows[2].status != statusSkip {
+	if len(rows) != 4 || rows[1].status != statusFail || rows[2].status != statusSkip || rows[3].status != statusSkip {
 		t.Fatalf("%+v", rows)
 	}
 	s.execute = func(context.Context, command) result { return result{err: ErrAcceptance} }

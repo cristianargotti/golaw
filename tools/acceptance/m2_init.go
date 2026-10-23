@@ -108,7 +108,7 @@ func m2InitNoDiff(got result) error {
 		return fmt.Errorf("second init reported an error: %w", ErrAcceptance)
 	}
 	for _, marker := range []string{
-		"+++ ", "--- ", "Gravações:", "Propostas sem gravação:", "Writes:", "Proposals without writes:",
+		diffHeader, "--- ", "Gravações:", "Propostas sem gravação:", "Writes:", "Proposals without writes:",
 	} {
 		if strings.Contains(got.stdout, marker) {
 			return fmt.Errorf("second init reported a diff or write: %w", ErrAcceptance)

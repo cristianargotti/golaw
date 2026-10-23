@@ -13,7 +13,7 @@ import (
 // collectedRows is the number of rows beyond the fixtures a run adds.
 const (
 	categoryDependency = "dependency"
-	collectedRows      = 20
+	collectedRows      = 23
 )
 
 // The words and error formats the M3 and M4 rows share: red, the side of a
@@ -89,6 +89,7 @@ func (s *suite) collect(ctx context.Context, required bool) ([]row, string) {
 		rows = append(rows, s.runFixture(ctx, items[i]))
 	}
 	rows = append(rows, aliasRow(ctx, s), s.doctorRow(ctx), s.existingRow(ctx), s.reenrollRow(ctx))
+	rows = append(rows, s.projectRows(ctx)...)
 	rows = append(rows, s.crossRows(ctx)...)
 	rows = append(rows, s.failureRows(ctx)...)
 	vendors, version := s.vendorRows(ctx, required)
