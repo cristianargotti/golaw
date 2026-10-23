@@ -103,10 +103,25 @@ func finalImage(document dockerfile, image string) []model.Finding {
 	if image == "" || len(document.stages) == 0 {
 		return nil
 	}
-	last := document.stages[len(document.stages)-1]
-	if strings.EqualFold(last.from, image) {
+	at := len(document.stages) - 1
+	from := stageImage(document.stages, at)
+	if strings.EqualFold(from, image) {
 		return nil
 	}
-	message := fmt.Sprintf("the last stage of %s starts from %s: build the final image from %s, as the profile requires", document.path, last.from, image)
-	return []model.Finding{finding(document.path, last.line, "image-final-image", message)}
+	message := fmt.Sprintf("the last stage of %s starts from %s: build the final image from %s, as the profile requires", document.path, from, image)
+	return []model.Finding{finding(document.path, document.stages[at].line, "image-final-image", message)}
+}
+
+// stageImage resolves the from of a stage through the names of the stages
+// before it, the only ones it can name, to the image it is built from,
+// because a stage that starts from an earlier stage carries that image.
+// Names compare in lower case, as the builder resolves them.
+func stageImage(stages []dockerStage, at int) string {
+	from := stages[at].from
+	for i := at - 1; i >= 0; i-- {
+		if stages[i].name != "" && strings.EqualFold(stages[i].name, from) {
+			from = stages[i].from
+		}
+	}
+	return from
 }

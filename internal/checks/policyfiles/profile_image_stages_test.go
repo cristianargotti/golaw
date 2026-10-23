@@ -45,6 +45,15 @@ func TestImageStages(t *testing.T) {
 			want:  []string{"image-final-image"},
 		},
 		{
+			name:  "last stage from a stage of the final image near",
+			input: depsEdit(near, "Dockerfile", orderedStages+"FROM scratch AS final\nFROM final\n"),
+		},
+		{
+			name:  "last stage from a stage of another image red",
+			input: depsEdit(near, "Dockerfile", orderedStages+"FROM registry.example.test/platform/alpine:3.22 AS final\nFROM FINAL\n"),
+			want:  []string{"image-final-image"},
+		},
+		{
 			name:  "stage names in another case near",
 			input: depsEdit(near, "Dockerfile", "FROM registry.example.test/platform/certificates:1.0 AS Certs\nFROM registry.example.test/platform/golang:1.27-alpine as BASE\nFROM BASE AS ci\nFROM BASE AS Builder\nFROM SCRATCH\n"),
 		},
