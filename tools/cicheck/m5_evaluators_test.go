@@ -142,3 +142,91 @@ func TestM5EvaluatorLimits(t *testing.T) {
 		})
 	}
 }
+
+// m5Rewrite is the reader row of docs/rules.md a stated limit of a profile
+// evaluator points to: the reader, its file, and the fragments that name
+// its limits and the rewrite that clears each one.
+type m5Rewrite struct {
+	reader, file string
+	fragments    []string
+}
+
+func m5Rewrites() []m5Rewrite {
+	return []m5Rewrite{
+		{"readInstalls", "profile_installs_reader.go", []string{
+			"an install behind an assignment, a shell keyword, a subshell, sudo, a path or an option that takes an argument before its verb",
+			"an option after the verb the reader does not list",
+			"a pipe, a redirection or an OR list after the packages",
+			"write each install as its own plain apk add, apt-get install or apt install command of a && or ; chain",
+			"move an assignment to ENV or ARG",
+			"drop sudo, the path, the subshell and the if around it",
+			"move an option the reader does not list before the verb",
+			"drop an option that takes an argument, or write it as one word with its value before the verb",
+			"write each package literally as name or name=version",
+			"quote the text of a command that names an install without running one",
+		}},
+		{"assertValue", "profile_values.go", []string{
+			"a plain YAML 1.1 boolean",
+			"a key that is not a scalar, such as a template expression",
+			"write true or false for a bool",
+			"write every key of the mappings on the key path literally instead of a template expression",
+		}},
+	}
+}
+
+// m5GuideRewrites are the sentences of the evaluator table of the profile
+// guide that name the rewrite clearing each stated limit.
+func m5GuideRewrites() []string {
+	return []string{
+		"Each clears by the rewrite the reader table of rules.md names: write each install as its own plain `apk add`, `apt-get install` or `apt install` command, move an assignment to `ENV` or `ARG`, drop sudo, the path, the subshell and the `if`, put an option that table does not list before the verb, drop an option that takes an argument, write each package as `name` or `name=version` with no pipe, redirection or OR list after it, and write the install in the shell form outside a heredoc.",
+		"Each clears by a rewrite: write `true` or `false` for a bool, and write every key of the mappings on the key path literally instead of a template expression.",
+	}
+}
+
+// m5RewritesOK holds the reader table to one row for each reader of a
+// profile evaluator that states a limit, naming the limits and their
+// rewrites, and the profile guide to the rewrite sentences.
+func m5RewritesOK(rules, guide string) bool {
+	for _, row := range m5Rewrites() {
+		count := 0
+		for line := range strings.SplitSeq(rules, "\n") {
+			if strings.HasPrefix(line, "| "+row.reader+" | "+row.file+" | ") && strings.Count(line, "|") == 6 && m4TextOK(line, row.fragments, nil) {
+				count++
+			}
+		}
+		if count != 1 {
+			return false
+		}
+	}
+	return m4TextOK(guide, m5GuideRewrites(), nil)
+}
+
+// TestM5EvaluatorRewrites pins the page a stated limit of the install and
+// values readers points to: its reason ends with the sentinel that sends
+// the person or the agent to docs/rules.md, so the rewrite must be there.
+func TestM5EvaluatorRewrites(t *testing.T) {
+	t.Parallel()
+	rules, guide := string(kitBytes(t, m5RulesPath)), string(kitBytes(t, m5ProfilesPath))
+	installs, values, sentences := m5Rewrites()[0], m5Rewrites()[1], m5GuideRewrites()
+	row := "| " + values.reader + " | " + values.file + " | "
+	rows := []struct {
+		name, rules, guide string
+		want               bool
+	}{
+		{"repository", rules, guide, true},
+		{"red-install-row-without-rewrite", strings.Replace(rules, installs.fragments[4], "", 1), guide, false},
+		{"red-values-row-absent", strings.Replace(rules, row, "| values | "+values.file+" | ", 1), guide, false},
+		{"red-values-row-twice", rules + "\n" + row + strings.Join(values.fragments, "; ") + " | | |\n", guide, false},
+		{"red-guide-without-install-rewrite", rules, strings.Replace(guide, sentences[0], "", 1), false},
+		{"red-guide-without-values-rewrite", rules, strings.Replace(guide, sentences[1], "", 1), false},
+		{"near-reader-named-in-prose", rules + "\nreadInstalls reads the RUN lines of the root Dockerfile.\n", guide, true},
+	}
+	for _, row := range rows {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			if got := m5RewritesOK(row.rules, row.guide); got != row.want {
+				t.Fatalf("evaluator rewrites = %v, want %v", got, row.want)
+			}
+		})
+	}
+}
