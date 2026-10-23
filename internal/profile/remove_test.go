@@ -2,10 +2,12 @@ package profile_test
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/model"
@@ -104,6 +106,16 @@ func TestRemoveRefusesWhatIsNotInstalled(t *testing.T) {
 	}
 }
 
+// notDirIsAbsent holds on a system where Go reads a regular file in the
+// place of a directory as nothing there: Windows answers a file opened as
+// a directory, or a path under one, with ERROR_PATH_NOT_FOUND, the errno
+// Go names ENOTDIR there, which errors.Is matches to fs.ErrNotExist,
+// where Unix answers ENOTDIR.
+var notDirIsAbsent = errors.Is(syscall.ENOTDIR, fs.ErrNotExist)
+
+// TestRemoveNamesAProfilesDirectoryItCannotRead names the profiles
+// directory a file stands in for, or, where the system reads that file as
+// nothing there, the name as not installed.
 func TestRemoveNamesAProfilesDirectoryItCannotRead(t *testing.T) {
 	t.Parallel()
 	dirs := lifecycleDirs(t)
@@ -111,7 +123,11 @@ func TestRemoveNamesAProfilesDirectoryItCannotRead(t *testing.T) {
 	if err := os.WriteFile(root, []byte("a file where the profiles directory goes\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := profile.Remove(dirs, profiletest.Name); !errors.Is(err, profile.ErrBundle) || !strings.Contains(err.Error(), "read ") {
-		t.Fatalf("Remove over a file = %v", err)
+	want := "read "
+	if notDirIsAbsent {
+		want = "profile " + profiletest.Name + " is not installed"
+	}
+	if err := profile.Remove(dirs, profiletest.Name); !errors.Is(err, profile.ErrBundle) || !strings.Contains(err.Error(), want) {
+		t.Fatalf("Remove over a file = %v, want %q", err, want)
 	}
 }
