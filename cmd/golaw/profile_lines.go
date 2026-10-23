@@ -31,9 +31,11 @@ func removedLine(name string) string {
 }
 
 // pinHintLine says how the pin follows a version made current, because no
-// step of the lifecycle writes golaw.yml (A19): init does, committed.
+// step of the lifecycle writes golaw.yml (A19): init does, committed, and a
+// second init enrolls the committed pin, without which every governed
+// operation refuses it.
 func pinHintLine(i profile.Installed) string {
-	return fmt.Sprintf("golaw.yml não mudou: para fixar %s %s em um repositório, execute golaw init --profile %s --apply e faça commit de golaw.yml",
+	return fmt.Sprintf("golaw.yml não mudou: para fixar %s %s em um repositório, execute golaw init --profile %s --apply, faça commit de golaw.yml e rode golaw init --apply outra vez para registrar o pin",
 		i.Name, i.Version, i.Name)
 }
 

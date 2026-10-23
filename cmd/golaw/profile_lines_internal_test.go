@@ -20,7 +20,7 @@ func installedFixture() profile.Installed {
 func TestProfileLinesSpeakPortuguese(t *testing.T) {
 	t.Parallel()
 	installed := installedFixture()
-	pin := "golaw.yml não mudou: para fixar fixture 1.2.3 em um repositório, execute golaw init --profile fixture --apply e faça commit de golaw.yml"
+	pin := "golaw.yml não mudou: para fixar fixture 1.2.3 em um repositório, execute golaw init --profile fixture --apply, faça commit de golaw.yml e rode golaw init --apply outra vez para registrar o pin"
 	cases := map[string]struct{ got, want string }{
 		"installed":   {installedLine(installed, false), "Perfil fixture 1.2.3 instalado de /srv/fixture.git@v1.2.3, digest sha256:aa"},
 		"already":     {installedLine(installed, true), "Perfil fixture 1.2.3 já estava instalado"},

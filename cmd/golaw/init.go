@@ -101,7 +101,7 @@ func (a *app) finishInit(ctx context.Context, out io.Writer, root string, plan i
 		return initFailed(err)
 	}
 	if grown {
-		return initFailed(writeLines(out, []string{enrollAfterCommitLine(plan.policy.Language)}))
+		return initFailed(writeLines(out, []string{enrollAfterCommitLine(plan.policy.Language, movedProfile(plan.current, plan.data))}))
 	}
 	return a.enrollInit(ctx, out, root, plan.data, plan.policy)
 }

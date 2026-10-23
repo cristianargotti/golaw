@@ -81,7 +81,7 @@ func TestProfileLifecycleNeverTouchesThePin(t *testing.T) {
 	digest := profiletest.Ref(t).Digest
 	source := "  source: " + profiletest.Source + " (the source golaw.yml pins)"
 	pin := func(version string) string {
-		return "golaw.yml não mudou: para fixar fixture " + version + " em um repositório, execute golaw init --profile fixture --apply e faça commit de golaw.yml"
+		return "golaw.yml não mudou: para fixar fixture " + version + " em um repositório, execute golaw init --profile fixture --apply, faça commit de golaw.yml e rode golaw init --apply outra vez para registrar o pin"
 	}
 	steps := []lifecycleStep{
 		{[]string{"profile", "install", url + "@v1.2.3"}, []string{"Perfil fixture 1.2.3 instalado de " + url + "@v1.2.3, digest " + digest, source, pin("1.2.3")}},

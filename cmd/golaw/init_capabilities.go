@@ -64,11 +64,32 @@ func (a *app) capabilityBaseline(root string) (policy.File, bool, error) {
 	return config, true, initOperation("decode capability baseline", err)
 }
 
-// enrollAfterCommitLine asks for the commit of the grown policy and the run
-// of init that enrolls it, in the language of the policy.
-func enrollAfterCommitLine(language string) string {
+// enrollAfterCommitLine asks for the commit of the changed policy and the
+// run of init that enrolls it, in the language of the policy. It names the
+// profile whose pin moved, because until that second run every governed
+// operation refuses the committed pin as an enrollment mismatch.
+func enrollAfterCommitLine(language, profile string) string {
 	if language == model.DefaultLanguage {
-		return "Faça o commit de golaw.yml e rode golaw init --apply outra vez para registrar a política com as capacidades novas."
+		if profile != "" {
+			return "Faça o commit de golaw.yml e rode golaw init --apply outra vez para registrar o pin do perfil " + profile + "."
+		}
+		return "Faça o commit de golaw.yml e rode golaw init --apply outra vez para registrar a política alterada."
 	}
-	return "Commit golaw.yml, then run golaw init --apply again to enroll the policy with its new capabilities."
+	if profile != "" {
+		return "Commit golaw.yml, then run golaw init --apply again to enroll the pin of profile " + profile + "."
+	}
+	return "Commit golaw.yml, then run golaw init --apply again to enroll the changed policy."
+}
+
+// movedProfile names the profile whose pin data sets differently from
+// current, empty when the pin stays as it is or data cannot be read.
+func movedProfile(current, data []byte) string {
+	after, err := policy.Decode(data)
+	if err != nil || after.Profile == nil {
+		return ""
+	}
+	if before, err := policy.Decode(current); err == nil && before.Profile != nil && *before.Profile == *after.Profile {
+		return ""
+	}
+	return after.Profile.Name
 }

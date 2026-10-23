@@ -76,7 +76,7 @@ func TestInitGrowsTheCapabilitiesOfAReviewedPolicy(t *testing.T) {
 	}
 	applied := capabilityRun(t, ta, exitClean, "init", "--apply", "--capabilities", "hexagonal", repo.Root)
 	grown := currentPolicy(t, repo.Root)
-	if !strings.Contains(string(grown), "\ncapabilities: [go, hexagonal]\n") || !strings.HasSuffix(applied, enrollAfterCommitLine("pt-BR")+"\n") {
+	if !strings.Contains(string(grown), "\ncapabilities: [go, hexagonal]\n") || !strings.HasSuffix(applied, enrollAfterCommitLine("pt-BR", "")+"\n") {
 		t.Fatalf("applied = %q, policy = %q", applied, grown)
 	}
 	if got := enrolledDigest(t, ta, repo.Root); got != digestOf(before) {
@@ -165,7 +165,7 @@ func TestInitKeepsCapabilityEnrollmentUntilCommitOnEveryApply(t *testing.T) {
 			if got := enrolledDigest(t, ta, repo.Root); got != held {
 				t.Errorf("record moved before the commit: got %s, want %s", got, held)
 			}
-			if !strings.HasSuffix(out, enrollAfterCommitLine("pt-BR")+"\n") {
+			if !strings.HasSuffix(out, enrollAfterCommitLine("pt-BR", "")+"\n") {
 				t.Errorf("apply lacks the capability commit reminder: %q", out)
 			}
 			capabilityRun(t, ta, exitClean, "scan", repo.Root)
@@ -190,7 +190,7 @@ func TestInitDefersCapabilityGrowthAfterAnUnenrolledCommit(t *testing.T) {
 	if got := enrolledDigest(t, ta, repo.Root); got != held {
 		t.Errorf("record advanced ahead of HEAD after another growth: got %s, want %s", got, held)
 	}
-	if !strings.HasSuffix(out, enrollAfterCommitLine("pt-BR")+"\n") {
+	if !strings.HasSuffix(out, enrollAfterCommitLine("pt-BR", "")+"\n") {
 		t.Error("another growth lacks the capability commit reminder")
 	}
 	repo.Commit("build: enable database", map[string]string{bootstrap.PolicyFile: string(grown)})
