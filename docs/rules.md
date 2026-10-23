@@ -91,6 +91,7 @@ The text family reads every text file of the tree, in scan and in the agent writ
 | paths.forbidden | rules/4.2@1 | none | An image or document outside public/, manual/, fixtures/ or testdata/, or a file named like secret material anywhere, because the repository holds code and its evidence, never binaries or credentials. |
 | paths.generated-tracked | rules/4.2@1 | none | An ignore file that hides gen/, sqlcgen/, test/mocks or api/generated, because generated code is versioned and proven fresh by the generate-check target of the pipeline. |
 | paths.secret-material | rules/4.2@1 | none | A read event whose path, or the file its links lead to, names secret material, because an agent must not load a credential into its context; a source file named like a credential passes. |
+| paths.profile-forbidden | rules/4.2@1 | none | A path the enrolled profile forbids, a glob over the whole path from the root whose trailing slash covers a tree, because a file another team owns or the platform refuses never enters the repository, and an agent write is denied before the file exists; a file under a testdata directory is never judged. |
 
 ## rules/4.3@1
 
@@ -232,6 +233,8 @@ Inventory section 4.14 is profile data, so the prose mapping holds no 4.14 row: 
 | policy.image-stages | rules/4.14@1 | image | A root Dockerfile that lacks a stage the profile names, names them out of the profile's order, or whose last stage starts from another image than the profile's final image, because the platform builds every image through the same stages; a construct outside the Dockerfile reader's subset is a stated limit. |
 | policy.image-installs | rules/4.14@1 | image | An install line of a stage that adds a package outside the profile's allowlist for that stage, a package without a version when the profile pins installs, or an inline ignore comment the profile forbids, because an image carries only the reviewed tools; a variable, a substitution, an option with an argument, an exec form install or a heredoc install is a stated limit. |
 | policy.image-registry | rules/4.14@1 | image | A FROM image of the root Dockerfile that does not match the profile's registry pattern, because images come from the registry the platform trusts; a reference the Dockerfile reader cannot resolve is a stated limit. |
+| policy.profile-targets | rules/4.14@1 | go | A make target the profile adds that the ci target does not reach through its prerequisites, unless a scheduled or manually dispatched Actions job runs it, because a profile adds targets to the pipeline and never removes one; the finding names add <target> to the prerequisites of ci. |
+| policy.values-assertions | rules/4.14@1 | none | A typed YAML value of a file the profile names that differs from its assertion, a missing key the assertion counts as a finding, or an absent file the assertion requires, because platform values are judged by type and never as text; a parent that is not a mapping is a missing key. |
 
 ## Reader subsets and stated limits
 
