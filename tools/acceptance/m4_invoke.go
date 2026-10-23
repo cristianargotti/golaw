@@ -92,7 +92,8 @@ func (s *suite) m4Invoke(ctx context.Context, t m4Target, agent, event, tool str
 }
 
 // m4Through runs one command string under every shell of the system with
-// the payload on stdin, closed at its end.
+// the payload on stdin, closed at its end, each run within the target's
+// limit when it names one.
 func (s *suite) m4Through(ctx context.Context, t m4Target, agent, line string, payload []byte) ([]m4Reply, error) {
 	shells := m4Shells(s.m4System())
 	replies := make([]m4Reply, 0, len(shells))
@@ -103,7 +104,7 @@ func (s *suite) m4Through(ctx context.Context, t m4Target, agent, line string, p
 		}
 		args := append(slices.Clone(shell[1:]), line)
 		got := s.execute(ctx, command{
-			program: program, args: args, dir: m4WorkDir(agent, t), env: t.env, input: string(payload),
+			program: program, args: args, dir: m4WorkDir(agent, t), env: t.env, input: string(payload), timeout: t.limit,
 		})
 		replies = append(replies, m4Reply{shell: shell[0], got: got})
 	}

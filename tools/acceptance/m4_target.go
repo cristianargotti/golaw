@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // m4HomesDir holds the homes of the rows that install apart; codexDir is
@@ -21,6 +22,7 @@ const (
 type m4Target struct {
 	home, repo, binary string
 	env                []string
+	limit              time.Duration // the bound of each shell's replay, the executor's own when zero
 }
 
 // m4Shared is the target of the rows that replay through the installation

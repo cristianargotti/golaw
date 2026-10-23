@@ -41,7 +41,7 @@ func TestM4SecurityResiduals(t *testing.T) {
 		"Optional MCP matchers do not establish general MCP coverage.",
 		patch + " fails open on host failures and skips untrusted hooks silently.",
 		"The internal deadline, prefix rules, post feedback, optional staged scanning and doctor reduce these gaps.",
-		"The internal budget is 8 seconds, 6 on Windows, where the PowerShell launcher's cold start takes part of the host's time; the installed host timeout is 10 seconds.",
+		"The internal budget is 8 seconds; the installed host timeout is 10 seconds.",
 		"A user-scope rules file also applies outside enrolled repositories.",
 		"Prefix rules cannot express an option anywhere, git -C or arbitrary wrappers.",
 		"A malformed rules file can discard all user and project rules for the session.",

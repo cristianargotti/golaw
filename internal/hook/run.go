@@ -11,7 +11,10 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
-const hostBudget = 10 * time.Second
+const (
+	internalBudget = 8 * time.Second
+	hostBudget     = 10 * time.Second
+)
 
 // completed is the answer of an evaluation with the language of the
 // policy it reached, the default one before a policy is loaded.
