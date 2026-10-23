@@ -60,28 +60,111 @@ func LoadStamp(path string) (Stamp, error) {
 
 // VerifyProfile checks that the bundle golaw.yml names is installed under
 // the config directory and matches it on name, source, version and
-// digest. A missing bundle names the exact install command (A19); a
-// mismatch names the field, never falls back (decision 3).
+// digest, as the current bundle or as the stored copy of the pinned
+// version: it answers the stamp LocateProfile found, and its refusal.
 func VerifyProfile(configDir string, ref ProfileRef) (Stamp, error) {
-	s, err := LoadStamp(StampPath(configDir, ref.Name))
-	if errors.Is(err, fs.ErrNotExist) {
-		return Stamp{}, fmt.Errorf("%w: profile %s is not installed: run golaw profile install %s@%s",
-			model.ErrPolicy, ref.Name, ref.Source, ref.Version)
-	}
+	located, err := LocateProfile(configDir, ref)
 	if err != nil {
 		return Stamp{}, err
 	}
-	installed := ProfileRef{Name: s.Name, Source: s.Source, Version: s.Version, Digest: s.Digest}
-	for _, pair := range [][3]string{
-		{"name", ref.Name, installed.Name},
-		{"source", ref.Source, installed.Source},
-		{"version", ref.Version, installed.Version},
-		{"digest", ref.Digest, installed.Digest},
-	} {
-		if pair[1] != pair[2] {
-			return Stamp{}, fmt.Errorf("%w: profile %s: %s is %s in %s and %s in the installed bundle",
-				model.ErrPolicy, ref.Name, pair[0], pair[1], FileName, pair[2])
+	return located.Stamp, nil
+}
+
+// StoredStampPath is the stamp of the stored copy of a version (D3),
+// <config>/profiles/<name>@<version>/profile.yml, beside StampPath: the
+// store keeps every installed version, so a repository pinned at an
+// older one still loads after a newer install.
+func StoredStampPath(configDir, name, version string) string {
+	return filepath.Join(configDir, profilesDir, name+"@"+version, StampFile)
+}
+
+// Located is where the pinned bundle was found: the current bundle of the
+// name, or its stored copy at the pinned version.
+type Located struct {
+	Dir    string // the bundle directory the stamp was read from
+	Stamp  Stamp
+	Stored bool // the stored copy answered, the current bundle differs or is absent
+}
+
+// LocateProfile reads the current stamp first and the stored stamp of the
+// pinned version when the current one is absent or differs on version or
+// digest (D3). A missing bundle, or one that matches on neither, is
+// ErrPolicy naming the field and the exact install command (A19, D8); the
+// answer of a refusal still carries the bundle found, the zero value when
+// nothing is installed under the name, so doctor tells the cases apart.
+func LocateProfile(configDir string, ref ProfileRef) (Located, error) {
+	current, err := stampIn(StampPath(configDir, ref.Name), false)
+	absent := errors.Is(err, fs.ErrNotExist)
+	if err != nil && !absent {
+		return Located{}, err
+	}
+	field := ""
+	if !absent {
+		if field = differs(ref, current.Stamp); field == "" {
+			return current, nil
+		}
+		if field != fieldVersion && field != fieldDigest {
+			return current, mismatch(ref, field, current.Stamp)
 		}
 	}
-	return s, nil
+	stored, err := stampIn(StoredStampPath(configDir, ref.Name, ref.Version), true)
+	switch {
+	case err == nil:
+		if f := differs(ref, stored.Stamp); f != "" {
+			return stored, mismatch(ref, f, stored.Stamp)
+		}
+		return stored, nil
+	case !errors.Is(err, fs.ErrNotExist):
+		return Located{}, err
+	case absent:
+		return Located{}, fmt.Errorf("%w: profile %s is not installed: %s", model.ErrPolicy, ref.Name, installCommand(ref))
+	}
+	return current, mismatch(ref, field, current.Stamp)
+}
+
+// The fields of a pin a stamp may differ on, in the order they are judged.
+const (
+	fieldVersion = "version"
+	fieldDigest  = "digest"
+)
+
+// stampIn reads the stamp at a path into the answer of its directory.
+func stampIn(path string, stored bool) (Located, error) {
+	s, err := LoadStamp(path)
+	if err != nil {
+		return Located{}, err
+	}
+	return Located{Dir: filepath.Dir(path), Stamp: s, Stored: stored}, nil
+}
+
+// differs names the first field of the pin a stamp does not carry, empty
+// when it carries all four.
+func differs(ref ProfileRef, s Stamp) string {
+	for _, pair := range [][3]string{
+		{"name", ref.Name, s.Name},
+		{"source", ref.Source, s.Source},
+		{fieldVersion, ref.Version, s.Version},
+		{fieldDigest, ref.Digest, s.Digest},
+	} {
+		if pair[1] != pair[2] {
+			return pair[0]
+		}
+	}
+	return ""
+}
+
+// mismatch is the refusal of a field that differs: the pinned value, the
+// installed one and the command that installs the pin (A19).
+func mismatch(ref ProfileRef, field string, s Stamp) error {
+	pinned := map[string][2]string{
+		"name": {ref.Name, s.Name}, "source": {ref.Source, s.Source},
+		fieldVersion: {ref.Version, s.Version}, fieldDigest: {ref.Digest, s.Digest},
+	}[field]
+	return fmt.Errorf("%w: profile %s: %s is %s in %s and %s in the installed bundle: %s",
+		model.ErrPolicy, ref.Name, field, pinned[0], FileName, pinned[1], installCommand(ref))
+}
+
+// installCommand is the command that installs the pinned bundle.
+func installCommand(ref ProfileRef) string {
+	return "run golaw profile install " + ref.Source + "@" + ref.Version
 }
