@@ -218,9 +218,7 @@ func m2InterruptFaultInputs(t *testing.T, s *suite, mode string) {
 
 func TestM2InterruptionRefusesUnreadableAbsence(t *testing.T) {
 	t.Parallel()
-	parent := filepath.Join(t.TempDir(), "file")
-	m2Write(t, parent, "occupied\n")
-	if err := m2InterruptAbsent(filepath.Join(parent, "receipt")); err == nil {
+	if err := m2InterruptAbsent(filepath.Join(m2UnreadableParent(t), "receipt")); err == nil {
 		t.Fatal("failed absence inspection passed")
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"maps"
 	"os"
@@ -269,7 +270,8 @@ func seedRefusals(t *testing.T) []seedRefusal {
 			t.Helper()
 			repo.Write(seedRecord, "# notes\n")
 		}, "init: usage: the debt set is seeded once (A24): " + seedRecord + " exists"},
-		{"red unreadable profile", []string{"--apply", "--seed-debt", "--coverage-profile", absent}, nil, `open coverage profile "` + absent + `"`},
+		// The path is quoted as Go quotes it, a Windows backslash doubled.
+		{"red unreadable profile", []string{"--apply", "--seed-debt", "--coverage-profile", absent}, nil, fmt.Sprintf("open coverage profile %q", absent)},
 		{"red not a scan", []string{"--apply", "--seed-debt", "--vulnerabilities", notScan}, nil, "govulncheck stream is no complete scan"},
 	}
 }

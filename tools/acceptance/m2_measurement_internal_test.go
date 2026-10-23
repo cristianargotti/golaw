@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -134,9 +135,11 @@ func m2MeasuredResult(t *testing.T, rung string, got result) {
 // verdict line of a report, which always counts its unmeasured checks, the
 // line of a check left unmeasured, the push line of a scanner that could
 // not judge, the line of files over the read bound and every line that
-// leaves work to the pipeline. It also requires the line each rung prints
-// when its work ran to the end, so a silent rung, one that is not armed
-// or one that skipped its Go steps, never times as a completion.
+// leaves work to the pipeline, save the line of a step this version never
+// runs on the machine, and names the whole line it refuses. It also
+// requires the line each rung prints when its work ran to the end, so a
+// silent rung, one that is not armed or one that skipped its Go steps,
+// never times as a completion.
 func m2MeasuredReason(rung string, got result) string {
 	if got.err != nil {
 		return got.err.Error()
@@ -148,9 +151,12 @@ func m2MeasuredReason(rung string, got result) string {
 			return "the verdict counts " + match[1] + " unmeasured checks"
 		}
 	}
-	statuses := regexp.MustCompile(`(?m)^\S+ unmeasured |govulncheck could not judge it|over the read bound, not judged here|left to the pipeline|the pipeline judges|not judged against a base`)
-	if status := statuses.FindString(text); status != "" {
-		return "unmeasured: " + status
+	statuses := regexp.MustCompile(`^\S+ unmeasured |govulncheck could not judge it|over the read bound, not judged here|left to the pipeline|the pipeline judges|not judged against a base`)
+	pipeline := m2PipelineStep()
+	for line := range strings.Lines(text) {
+		if statuses.MatchString(line) && !pipeline.MatchString(line) {
+			return "unmeasured: " + strings.TrimSpace(line)
+		}
 	}
 	if !m2Completed(rung).MatchString(text) {
 		return "no line shows the " + rung + " work ran to the end"
@@ -160,6 +166,18 @@ func m2MeasuredReason(rung string, got result) string {
 		return ""
 	}
 	return "exit " + strconv.Itoa(got.code)
+}
+
+// m2PipelineStep matches the line of a step of section 7 this version never
+// runs on the machine and leaves to the make target of its name (D13). The
+// rung prints it on every commit that stages the sources of the step, such
+// as generate-check on any staged Go source once init has written
+// .mockery.yaml, so the line costs the rung nothing and leaves none of the
+// work it does run undone, unlike Go steps left to the pipeline.
+func m2PipelineStep() *regexp.Regexp {
+	return regexp.MustCompile(`^golaw pre-commit: (?:migrate-lint: left to the pipeline, make migrate-lint|` +
+		`openapi-breaking: left to the pipeline, make openapi-breaking|` +
+		`generate-check: left to the pipeline, make generate-check) judges the staged `)
 }
 
 // m2Completed matches the line a rung prints when its work ran to the end:
@@ -180,6 +198,7 @@ func TestM2MeasuredStatuses(t *testing.T) {
 	t.Parallel()
 	clean := "verdict clean: 0 findings (0 enforced, 0 notes), 32 excluded, 0 unmeasured\n"
 	vetted := clean + "golaw pre-commit: vet: go vet found nothing in 8 affected packages\n"
+	generator := "golaw pre-commit: generate-check: left to the pipeline, make generate-check judges the staged generator sources\n"
 	tests := []struct {
 		name     string
 		rung     string
@@ -208,6 +227,26 @@ func TestM2MeasuredStatuses(t *testing.T) {
 		{"a base it could not measure", "pre-commit", result{
 			stdout: vetted + "golaw pre-commit: not judged against a base it could not measure, the pipeline judges them: goast.sentinel-decl (parse a/a.go)\n",
 		}, false},
+		{"a step this version never runs", "pre-commit", result{
+			stdout: vetted + generator,
+		}, true},
+		{"every step this version never runs", "pre-commit", result{
+			stdout: vetted + generator +
+				"golaw pre-commit: migrate-lint: left to the pipeline, make migrate-lint judges the staged migrations\n" +
+				"golaw pre-commit: openapi-breaking: left to the pipeline, make openapi-breaking judges the staged contract\n",
+		}, true},
+		{"formatters over whole files", "pre-commit", result{
+			stdout: vetted + "golaw pre-commit: fmt: golangci-lint fmt would change the staged Go files as whole files; the lint step judges the formatters on the staged lines, the pipeline the rest\n",
+		}, true},
+		{"linters left to the pipeline", "pre-commit", result{
+			stdout: vetted + "golaw pre-commit: lint: left to the pipeline, golangci-lint cannot load scripts/lint/rules.go while go.mod does not require github.com/quasilyte/go-ruleguard/dsl\n",
+		}, false},
+		{"a step never run beside Go steps left to the pipeline", "pre-commit", result{
+			stdout: clean + generator + "golaw pre-commit: tree: the Go steps are left to the pipeline: tree over its bounds\n",
+		}, false},
+		{"a step never run named by another rung", "pre-commit", result{
+			stdout: vetted + "golaw pre-push: generate-check: left to the pipeline, make generate-check judges the staged generator sources\n",
+		}, false},
 		{"silent pre-commit", "pre-commit", result{}, false},
 		{"silent commit-msg", "commit-msg", result{}, false},
 		{"silent pre-push", "pre-push", result{}, false},
@@ -222,5 +261,18 @@ func TestM2MeasuredStatuses(t *testing.T) {
 		if measured := m2MeasuredReason(tt.rung, tt.got) == ""; measured != tt.measured {
 			t.Fatalf("%s: measured=%v, want %v", tt.name, measured, tt.measured)
 		}
+	}
+}
+
+// A refused sample names the whole line it read, so the step that left
+// its work to the pipeline is the one the failure names.
+func TestM2MeasuredReasonNamesTheLine(t *testing.T) {
+	t.Parallel()
+	line := "golaw pre-commit: tree: the Go steps are left to the pipeline: tree over its bounds"
+	got := m2MeasuredReason("pre-commit", result{
+		stdout: "golaw pre-commit: generate-check: left to the pipeline, make generate-check judges the staged generator sources\r\n" + line + "\r\n",
+	})
+	if got != "unmeasured: "+line {
+		t.Fatalf("reason %q does not name the refused line", got)
 	}
 }

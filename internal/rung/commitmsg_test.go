@@ -1,6 +1,7 @@
 package rung_test
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -141,24 +142,26 @@ func TestCommitMsgRefusesAMessageItCannotRead(t *testing.T) {
 }
 
 // Under core.commentChar=auto git picks the first of #;@!$%^&|: that starts
-// no line of the message it prepares: a conflicted merge, whose message
-// holds # lines, gets ;, keeps the # lines and drops the verbose diff below
-// its ; scissors line. The rung reads the choice from the message git
-// wrote, captured here by an editor that copies it, so the merge commits.
+// no line of the message it prepares: a prepared message that holds a #
+// line in its body gets ;, keeps the # line and drops the verbose diff below
+// its ; scissors line. The # line sits above the body, because git 2.55 and
+// later skip a trailing comment block such as a Conflicts section when they
+// pick. The rung reads the choice from the message git wrote, captured here
+// by an editor that copies it, so the commit goes through.
 func TestCommitMsgReadsTheCommentCharacterGitPicked(t *testing.T) {
 	t.Parallel()
 	r := armedRepo(t, armedPolicy)
 	r.Commit("chore: add the table", map[string]string{"a.txt": "base\n"})
-	long := "side " + strings.Repeat("x", 120) + "\n"
-	r.Branch("side", map[string]string{"a.txt": long})
-	r.Commit("feat: change the table", map[string]string{"a.txt": "main\n"})
-	r.MergeInProgress("side")
-	r.Stage(map[string]string{"a.txt": long})
+	r.Stage(map[string]string{"a.txt": "side " + strings.Repeat("x", 120) + "\n"})
 	r.Git("config", "core.commentChar", "auto")
 	r.Git("config", "commit.verbose", "true")
+	prepared := filepath.Join(t.TempDir(), "prepared")
+	if err := os.WriteFile(prepared, []byte("feat: change the table\n\n#12 is the ticket\nthe body\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	captured := filepath.ToSlash(filepath.Join(t.TempDir(), "COMMIT_EDITMSG"))
-	r.GitEnv([]string{"GIT_EDITOR=cp \"$1\" '" + captured + "'; true"}, "commit", "-q")
-	if recorded := r.Git("log", "-1", "--format=%B"); !strings.Contains(recorded, "# Conflicts:") {
+	r.GitEnv([]string{"GIT_EDITOR=cp \"$1\" '" + captured + "'; true"}, "commit", "-q", "-e", "-F", filepath.ToSlash(prepared))
+	if recorded := r.Git("log", "-1", "--format=%B"); !strings.Contains(recorded, "#12 is the ticket") {
 		t.Fatalf("git dropped the # lines, so it did not pick ; under auto: %q", recorded)
 	}
 	if out := rung.RunCommitMsg(t.Context(), deps(t, r), captured); out.Code != 0 {

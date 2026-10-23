@@ -191,14 +191,15 @@ func (s *suite) m4SlowPath(ctx context.Context, repo, fault string) error {
 	}
 	t := s.m4Shared(repo)
 	t.env = prependPath(s.env, dir)
+	// Each shell's replay is one host call, so each has the bound below the
+	// host timeout; Windows replays through cmd.exe and powershell.exe.
+	t.limit = slowTimeout
 	for _, agent := range []string{agentCodex, agentCursor} {
 		payload, sampleErr := s.m4Sample(agent, m4ShellSample(agent), repo, nil)
 		if sampleErr != nil {
 			return sampleErr
 		}
-		child, cancel := context.WithTimeout(ctx, slowTimeout)
-		answer, reasonErr := s.m4Reason(child, t, agent, m4Deny, payload)
-		cancel()
+		answer, reasonErr := s.m4Reason(ctx, t, agent, m4Deny, payload)
 		if reasonErr != nil {
 			return reasonErr
 		}

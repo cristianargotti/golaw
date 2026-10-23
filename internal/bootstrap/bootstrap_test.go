@@ -3,14 +3,22 @@ package bootstrap_test
 import (
 	"bytes"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/bootstrap"
 	"github.com/cristianargotti/golaw/internal/model"
 )
+
+// notDirIsAbsent holds on a system where Go reads a regular file in the
+// place of a directory as nothing there: Windows answers a path under a
+// file with ERROR_PATH_NOT_FOUND, the errno Go names ENOTDIR there, which
+// errors.Is matches to fs.ErrNotExist, where Unix answers ENOTDIR.
+var notDirIsAbsent = errors.Is(syscall.ENOTDIR, fs.ErrNotExist)
 
 // repo creates a git checkout root under a temporary directory and returns
 // its real path, so the symbolic link of the temporary directory on macOS
@@ -149,7 +157,10 @@ func TestCurrentAndWriteReportWhatTheyCannotDo(t *testing.T) {
 	if err := os.WriteFile(fileAsRoot, []byte("[core]\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := bootstrap.Current(fileAsRoot); err == nil || !strings.Contains(err.Error(), "inspect golaw.yml") {
+	switch got, err := bootstrap.Current(fileAsRoot); {
+	case notDirIsAbsent && (err != nil || got != nil):
+		t.Fatalf("current under a file, which this system reads as absent = %q, %v", got, err)
+	case !notDirIsAbsent && (err == nil || !strings.Contains(err.Error(), "inspect golaw.yml")):
 		t.Fatalf("current under a file = %v", err)
 	}
 }

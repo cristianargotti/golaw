@@ -110,9 +110,7 @@ func m2BreakPushPreparation(t *testing.T, s *suite, mode string) {
 
 func TestM2PushReportsUnreadableSearchDirectories(t *testing.T) {
 	t.Parallel()
-	path := filepath.Join(t.TempDir(), "file")
-	m2Write(t, path, "not a directory")
-	if err := m2PushToolsAbsent([]string{pathAssignment + path}); err == nil {
+	if err := m2PushToolsAbsent([]string{pathAssignment + m2UnreadableParent(t)}); err == nil {
 		t.Fatal("invalid search directory passed")
 	}
 }

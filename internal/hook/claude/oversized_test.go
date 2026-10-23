@@ -55,7 +55,7 @@ func TestOversizedReadsTheHeaderOfTheWholeInput(t *testing.T) {
 		}
 	}
 	large := strings.Repeat("b", model.MaxReadBytes+1)
-	late := fmt.Sprintf(`{"content":%q,"extra":[1,{"x":"}"},true,null,-2.5e3],"file_path":"%sé"}`, large, path)
+	late := fmt.Sprintf(`{"content":%q,"extra":[1,{"x":"}"},true,null,-2.5e3],"file_path":%q}`, large, path+"é")
 	if got, err = header(ordered("PreToolUse", root, late)); err != nil || got.Target != path+"é" {
 		t.Fatalf("a path after the content = %+v, %v", got, err)
 	}

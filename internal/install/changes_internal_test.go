@@ -32,7 +32,10 @@ func TestReadOptionalRefusesIrregularPaths(t *testing.T) {
 	}
 	file := filepath.Join(dir, "file")
 	must(t, os.WriteFile(file, []byte("x"), 0o600))
-	if _, _, err := readOptional(filepath.Join(file, "child")); err == nil {
+	switch _, exists, err := readOptional(filepath.Join(file, "child")); {
+	case notDirIsAbsent && (err != nil || exists):
+		t.Fatalf("a path under a file, which this system reads as absent = %v, %v", exists, err)
+	case !notDirIsAbsent && err == nil:
 		t.Fatal("a path under a file was read")
 	}
 	data, exists, err := readOptional(file)

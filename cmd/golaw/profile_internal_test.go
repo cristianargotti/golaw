@@ -62,6 +62,12 @@ func TestProfileDigestRefusesWhatIsNotABundle(t *testing.T) {
 func TestProfileLifecycleFailuresExitTwoWithOneLine(t *testing.T) {
 	t.Parallel()
 	absent := filepath.Join(t.TempDir(), "absent.git")
+	// git clone reads a missing path that holds a colon, a Windows drive
+	// letter included, as a URL, and then its transport names the path.
+	noSource := "does not exist"
+	if strings.Contains(absent, ":") {
+		noSource = "does not appear to be a git repository"
+	}
 	cases := map[string]struct {
 		args []string
 		want string
@@ -69,7 +75,7 @@ func TestProfileLifecycleFailuresExitTwoWithOneLine(t *testing.T) {
 		"install without a source": {[]string{"profile", "install"}, "golaw: accepts 1 arg(s), received 0"},
 		"install of a bad source":  {[]string{"profile", "install", "https://example.test/profiles/fixture"}, "is not <git url>@<tag>"},
 		"install of a bad tag":     {[]string{"profile", "install", absent + "@latest"}, `tag "latest" is not vX.Y.Z or X.Y.Z`},
-		"install of no source":     {[]string{"profile", "install", absent + "@v1.2.3"}, "does not exist"},
+		"install of no source":     {[]string{"profile", "install", absent + "@v1.2.3"}, noSource},
 		"refresh":                  {[]string{"profile", "refresh", profiletest.Name}, "golaw: profile refresh: profile fixture has no install record"},
 		"rollback":                 {[]string{"profile", "rollback", profiletest.Name}, "golaw: profile rollback: profile fixture has no install record"},
 		"remove":                   {[]string{"profile", "remove", profiletest.Name}, "golaw: profile remove: profile fixture is not installed"},

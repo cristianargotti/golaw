@@ -2,6 +2,7 @@ package cursor_test
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -71,6 +72,9 @@ func TestCursorSurveyCorpus(t *testing.T) {
 	}
 }
 
+// curCorpusIdentity holds the event to the identity of the payload; the
+// adapter keeps the cwd as the payload names it, the root in the forward
+// slashes hooktest.Payload writes.
 func curCorpusIdentity(t *testing.T, request hook.Request, root string, want cursorCorpusCase) {
 	t.Helper()
 	event := request.Event
@@ -78,7 +82,7 @@ func curCorpusIdentity(t *testing.T, request hook.Request, root string, want cur
 		t.Fatalf("event = %+v", event)
 	}
 	if event.SessionID != "conversation" || event.AgentID != "generation" ||
-		event.ToolUseID != want.use || event.Cwd != root {
+		event.ToolUseID != want.use || event.Cwd != filepath.ToSlash(root) {
 		t.Fatalf("identity = %+v", event)
 	}
 	if request.Observe != want.observe || request.Detect != want.detect {

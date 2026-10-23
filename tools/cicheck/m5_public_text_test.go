@@ -201,7 +201,8 @@ func TestReleasePacksABinaryThatNamesNoPrivateOrganization(t *testing.T) {
 	}
 	build := exec.CommandContext(t.Context(), "go", args...)
 	build.Dir = filepath.Join("..", "..")
-	// go test loaded every module this build needs, so the proxy stays off.
+	// The release-config job runs go mod download first, so every module this
+	// build needs is in the cache and the proxy stays off.
 	build.Env = append(append(os.Environ(), env...), "GOFLAGS=-mod=readonly", "GOPROXY=off")
 	if out, buildErr := build.CombinedOutput(); buildErr != nil {
 		t.Fatalf("go %s: %v: %s", strings.Join(args, " "), buildErr, out)

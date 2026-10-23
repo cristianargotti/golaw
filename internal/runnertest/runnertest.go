@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -195,7 +196,13 @@ func copyExecutable(tb testing.TB, path string) {
 	if err != nil {
 		tb.Fatalf("read the test binary: %v", err)
 	}
-	if err := os.WriteFile(path, data, executableMode); err != nil { //nolint:gosec // the fake lands in the directory its test chose
+	// A process forked while the copy is open for writing would inherit it
+	// until its exec and make the fake's start fail with "text file busy";
+	// the fork lock keeps every fork of the test binary out meanwhile.
+	syscall.ForkLock.RLock()
+	err = os.WriteFile(path, data, executableMode) //nolint:gosec // the fake lands in the directory its test chose
+	syscall.ForkLock.RUnlock()
+	if err != nil {
 		tb.Fatalf("write the fake %s: %v", path, err)
 	}
 }

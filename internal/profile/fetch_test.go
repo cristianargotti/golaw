@@ -77,16 +77,39 @@ func TestFetchClonesTheBareVersionOfAVTag(t *testing.T) {
 	}
 }
 
+// absentCause is what git names for a clone of a local path that does not
+// exist: git clone reads such a path as a URL when it holds a colon, a
+// Windows drive letter included, and then its transport names the path.
+func absentCause(path string) string {
+	if strings.Contains(path, ":") {
+		return "does not appear to be a git repository"
+	}
+	return "does not exist"
+}
+
+// TestFetchRefusesWhatItCannotClone names the cause git gives on one line,
+// the line that names it when git adds a hint of several lines after it,
+// as it does for a source it reaches through a transport.
 func TestFetchRefusesWhatItCannotClone(t *testing.T) {
 	t.Parallel()
 	src := fixtureSource(t)
+	absent := filepath.Join(t.TempDir(), "absent.git")
 	cases := map[string]struct {
 		src  profile.Source
 		want string
 	}{
-		"an absent source":   {profile.Source{URL: filepath.Join(t.TempDir(), "absent.git"), Tag: "v1.2.3", Version: "1.2.3"}, "does not exist"},
+		"an absent source":   {profile.Source{URL: absent, Tag: "v1.2.3", Version: "1.2.3"}, absentCause(absent)},
 		"an absent tag":      {profile.Source{URL: src.URL, Tag: "v9.9.9", Version: "9.9.9"}, "v9.9.9"},
 		"an option as a url": {profile.Source{URL: "--upload-pack=touch", Tag: "v1.2.3", Version: "1.2.3"}, "--upload-pack=touch"},
+	}
+	if filepath.VolumeName(absent) == "" {
+		// Git for Windows reads a colon past the drive letter as no local
+		// path, so the transport answer is held there by the case above.
+		colon := filepath.Join(t.TempDir(), "a:b", "absent.git")
+		cases["an absent source whose path holds a colon"] = struct {
+			src  profile.Source
+			want string
+		}{profile.Source{URL: colon, Tag: "v1.2.3", Version: "1.2.3"}, absentCause(colon)}
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -97,7 +120,7 @@ func TestFetchRefusesWhatItCannotClone(t *testing.T) {
 				t.Fatalf("Fetch = %v", err)
 			}
 			if msg := err.Error(); !strings.Contains(msg, "clone "+tc.src.URL+" at "+tc.src.Tag+": ") || !strings.Contains(msg, tc.want) || strings.Contains(msg, "\n") {
-				t.Fatalf("the error names the URL, the tag and git's last line: %q", msg)
+				t.Fatalf("the error names the URL, the tag and git's cause on one line: %q", msg)
 			}
 			if left := leftovers(t, config); len(left) != 0 {
 				t.Fatalf("a failed fetch left %v", left)

@@ -45,7 +45,7 @@ func TestMaterializeBoundsTheLinksOneTargetFollows(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, want := range links {
-		if got, readErr := os.Readlink(filepath.Join(tree.Dir, name)); readErr != nil || got != want {
+		if got, readErr := os.Readlink(filepath.Join(tree.Dir, name)); readErr != nil || got != filepath.FromSlash(want) { // Windows stores a target with its own separator
 			t.Errorf("link %s = %q, %v", name, got, readErr)
 		}
 	}

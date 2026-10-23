@@ -103,10 +103,13 @@ func hostSpace(r rune) bool {
 // resolvePath follows every symbolic link of an absolute path, its last
 // element included, the way the system resolves the path a write or read
 // opens: a dangling link still names where a write would land, and the
-// parent element of a link text is taken from where the link lands. Past
-// an element that does not exist, or cannot be inspected, nothing can be
-// followed, so the rest is kept as given; a loop of links stops the same way.
-// A relative path has no place to start from and is kept as given.
+// parent element of a link text is taken from where the link lands. The
+// existing elements are named as the root discovery names the root, so on
+// Windows an 8.3 short name and the long name it stands for name one file
+// and a rule reads the name the file has. Past an element that does not
+// exist, or cannot be inspected, nothing can be followed, so the rest is
+// kept as given; a loop of links stops the same way. A relative path has
+// no place to start from and is kept as given.
 func resolvePath(path string) string {
 	resolved, _ := resolveLinks(path)
 	return resolved
@@ -129,21 +132,48 @@ func resolveLinks(path string) (string, []string) {
 			continue
 		}
 		next := filepath.Join(done, name)
-		info, err := os.Lstat(next)
-		if err == nil && info.Mode()&fs.ModeSymlink == 0 {
+		text, link, ok := linkText(next)
+		if ok && !link {
 			done = next
 			continue
 		}
-		text, linkErr := os.Readlink(next)
-		if err != nil || linkErr != nil || len(holders) == maxLinks {
-			return filepath.Join(append([]string{next}, todo...)...), holders
+		if !ok || len(holders) == maxLinks {
+			return filepath.Join(append([]string{longName(done), name}, todo...)...), holders
 		}
-		holders = append(holders, done)
+		holders = append(holders, longName(done))
 		var rest string
 		done, rest = rebase(done, text)
 		todo = append(elements(rest), todo...)
 	}
-	return done, holders
+	return longName(done), holders
+}
+
+// linkText is the text of the link an entry is and whether it is one,
+// with false last for an entry the walk cannot pass: one that does not
+// exist or cannot be inspected, or a symbolic link whose text cannot be
+// read. A junction of Windows, which Go reports as an irregular entry and
+// not as a symbolic link, is a link too, because the system follows it as
+// it follows a symbolic link, so a root and a name on either side of one
+// name one directory; an irregular entry whose text cannot be read, such
+// as a cloud file, is none.
+func linkText(path string) (string, bool, bool) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", false, false
+	}
+	mode := info.Mode()
+	if mode&(fs.ModeSymlink|fs.ModeIrregular) == 0 {
+		return "", false, true
+	}
+	text, err := os.Readlink(path)
+	switch {
+	case err == nil:
+		return text, true, true
+	case mode&fs.ModeSymlink == 0:
+		return "", false, true
+	default:
+		return "", true, false
+	}
 }
 
 // rebase answers where the walk resumes after a link: at the root its text

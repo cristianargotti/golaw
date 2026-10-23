@@ -30,7 +30,9 @@ func TestM5SourceHoldsTwoVerifiedBundles(t *testing.T) {
 	fixture := m5FixtureStamp(t)
 	for _, tc := range []struct{ tag, version string }{{m5Tag, m5Version}, {m5NewerTag, m5NewerVersion}} {
 		dir := filepath.Join(t.TempDir(), tc.tag)
-		got := runCommand(t.Context(), command{program: s.git, args: []string{"clone", "-q", "--branch", tc.tag, bare, dir}, dir: s.root, env: s.env})
+		// The clone keeps the bytes as profile fetch does, so a Windows
+		// git with core.autocrlf on cannot change what the stamp digests.
+		got := runCommand(t.Context(), command{program: s.git, args: []string{"clone", "-q", "--config", "core.autocrlf=false", "--branch", tc.tag, bare, dir}, dir: s.root, env: s.env})
 		if err := success(got); err != nil {
 			t.Fatalf("%s: %v", tc.tag, err)
 		}

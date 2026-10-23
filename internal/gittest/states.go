@@ -35,6 +35,9 @@ func (r *Repo) Remove(rel string) {
 	}
 }
 
+// stageBatch is the number of paths one git add of Stage names.
+const stageBatch = 256
+
 // Stage writes the files and stages them with git add, in path order.
 func (r *Repo) Stage(files map[string]string) {
 	r.t.Helper()
@@ -45,7 +48,11 @@ func (r *Repo) Stage(files map[string]string) {
 	for _, rel := range paths {
 		r.Write(rel, files[rel])
 	}
-	r.Git(append([]string{"add", "--"}, paths...)...)
+	// Windows bounds a command line to 32,767 characters, so a large tree
+	// is staged in batches.
+	for batch := range slices.Chunk(paths, stageBatch) {
+		r.Git(append([]string{"add", "--"}, batch...)...)
+	}
 }
 
 // Commit writes and stages the files and commits everything staged with

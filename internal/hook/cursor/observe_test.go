@@ -1,6 +1,7 @@
 package cursor_test
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -86,12 +87,13 @@ func TestCursorShellPreJudgesTheCommandAndKeepsTheBaseline(t *testing.T) {
 	}
 }
 
-// curCheckShellPreBaseline holds the judged event to the envelope cwd and
-// an allowed command to the baseline the core saved under its key; a
-// denied command needs none.
+// curCheckShellPreBaseline holds the judged event to the envelope cwd, the
+// root in the forward slashes hooktest.Payload writes, and an allowed
+// command to the baseline the core saved under its key; a denied command
+// needs none.
 func curCheckShellPreBaseline(t *testing.T, root string, event model.Event, state hook.Store, denied bool) {
 	t.Helper()
-	if event.Shell == nil || event.Shell.Cwd != root || event.Cwd != root {
+	if cwd := filepath.ToSlash(root); event.Shell == nil || event.Shell.Cwd != cwd || event.Cwd != cwd {
 		t.Fatalf("cwd = %+v", event)
 	}
 	if denied {

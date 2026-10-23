@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
+	"os"
+	"slices"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/hook/codex"
 )
@@ -71,9 +75,37 @@ func measuredM4(category, name string, err error) row {
 
 // runM4 reports the M4 rows alone, over the preparation of the M1 rows:
 // the real binary built and every agent installed twice in the isolated
-// home.
+// home. Each catalog names itself on stderr as it starts and once its rows
+// are measured, because the report comes only at the end and a run its CI
+// job cancels would otherwise leave no line saying where it stopped.
 func (s *suite) runM4(ctx context.Context, out io.Writer) int {
-	return s.m4Run(ctx, out, m4Catalogs())
+	return s.m4Run(ctx, out, m4Announced(m4Catalogs(), os.Stderr))
+}
+
+// m4Announced wraps every catalog so that it writes one line to progress
+// before its rows are measured and one after, with their number and their
+// categories. The harness reads no clock: a CI log stamps each line.
+func m4Announced(catalogs []m4Catalog, progress io.Writer) []m4Catalog {
+	announced := make([]m4Catalog, 0, len(catalogs))
+	for index, catalog := range catalogs {
+		label := fmt.Sprintf("acceptance -m4: catalog %d of %d", index+1, len(catalogs))
+		measure := catalog.rows
+		catalog.rows = func(s *suite, ctx context.Context, required bool) []row {
+			_, _ = fmt.Fprintln(progress, label, "started") //nolint:errcheck // A progress line never decides a row.
+			rows := measure(s, ctx, required)
+			var categories []string
+			for _, item := range rows {
+				if !slices.Contains(categories, item.category) {
+					categories = append(categories, item.category)
+				}
+			}
+			done := fmt.Sprintf("measured %s, rows: %d", strings.Join(categories, ", "), len(rows))
+			_, _ = fmt.Fprintln(progress, label, done) //nolint:errcheck // A progress line never decides a row.
+			return rows
+		}
+		announced = append(announced, catalog)
+	}
+	return announced
 }
 
 func (s *suite) m4Run(ctx context.Context, out io.Writer, catalogs []m4Catalog) int {

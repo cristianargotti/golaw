@@ -10,10 +10,14 @@ import (
 	"github.com/cristianargotti/golaw/internal/rung"
 )
 
+// The measured change is one comment after the package clause, set apart
+// by the blank line gofmt puts there, so the staged file is formatted as in
+// a clean commit and the format step gives its usual answer.
 const (
 	m2TimingSourcePath = "internal/source/doc.go"
-	m2TimingLine       = "// Frozen inputs keep measurement independent from checkout edits.\n"
+	m2TimingLine       = "\n// Frozen inputs keep measurement independent from checkout edits.\n"
 	m2TimingListFiles  = "ls-files"
+	m2TimingLongPaths  = "core.longpaths"
 )
 
 func (s *suite) m2TimingSource(ctx context.Context) ([]m2ArchiveFile, error) {
@@ -79,7 +83,12 @@ func (s *suite) m2CopyTimingSource(repo string, files []m2ArchiveFile) error {
 }
 
 func (s *suite) m2TimingBootstrap(ctx context.Context, repo string) error {
-	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}); err != nil {
+	// The kit's fixture paths below a test's temporary directory pass the
+	// 260 character limit of Windows, which Git for Windows lifts per repo,
+	// from the hooks git init copies on.
+	longPaths := []string{"config", m2TimingLongPaths, "true"}
+	initArgs := []string{"-c", m2TimingLongPaths + "=true", commandInit, m2Quiet}
+	if err := s.gitSteps(ctx, repo, initArgs, longPaths); err != nil {
 		return err
 	}
 	if err := m2TimingPin(repo); err != nil {

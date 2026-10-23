@@ -20,7 +20,12 @@ import (
 // testVersion is the version the test binding carries and the policy pins.
 const testVersion = "9.9.9"
 
-// gitRun runs one git command in a directory and fails the test on error.
+// gitRun runs one git command in a directory without the global and the
+// system configuration, and fails the test on error. It sets no identity
+// and no configuration of its own, because the hook asks git var for the
+// committer through the configuration of the repository and several tests
+// commit under a git -c identity or set core.autocrlf there; a repository
+// whose configuration names no identity commits through gittest.
 func gitRun(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	cmd := exec.Command("git", args...)
