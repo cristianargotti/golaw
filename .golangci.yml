@@ -109,6 +109,21 @@ linters:
           list-mode: strict
           files: ["!$test", "**/internal/runnertest/**"]
           allow: [$gostd]
+        # The profile bundle and the release verification of M5: the loader reads
+        # YAML beside model and policy and clones through runner, its test support
+        # reaches the loader and gittest, and the verifier is standard cryptography.
+        profile:
+          list-mode: strict
+          files: ["!$test", "**/internal/profile/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/policy, github.com/cristianargotti/golaw/internal/runner, gopkg.in/yaml.v3]
+        profiletest:
+          list-mode: strict
+          files: ["!$test", "**/internal/profiletest/**"]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/policy, github.com/cristianargotti/golaw/internal/profile, github.com/cristianargotti/golaw/internal/gittest]
+        release:
+          list-mode: strict
+          files: ["!$test", "**/internal/release/**"]
+          allow: [$gostd]
         cmd:
           list-mode: strict
           files: ["**/cmd/**"]

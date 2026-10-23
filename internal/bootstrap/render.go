@@ -29,7 +29,8 @@ const policyTemplate = `# golaw policy, written by golaw init. Every later chang
 # working tree).
 golaw: 1
 kit: { version: {{.KitVersion}} }
-language: {{.Language}}
+{{if .Profile}}{{pin .Profile}}
+{{end}}language: {{.Language}}
 capabilities: [{{join .Capabilities ", "}}]
 layout: { main: {{.Layout.Main}}, decisions: {{.Layout.Decisions}} }
 checks:
@@ -49,10 +50,11 @@ managed: []
 
 // Inputs are the typed values the policy file is rendered from.
 type Inputs struct {
-	KitVersion   string   // the version of the binary, the exact pin of A10
-	Language     string   // the human channel language, pt-BR unless given
-	Capabilities []string // the capabilities to enable
-	Layout       Layout   // what Detect found
+	KitVersion   string             // the version of the binary, the exact pin of A10
+	Language     string             // the human channel language, pt-BR unless given
+	Capabilities []string           // the capabilities to enable
+	Layout       Layout             // what Detect found
+	Profile      *policy.ProfileRef // the installed bundle the policy pins (A19), nil for core only
 }
 
 // Normalize validates the inputs and returns the canonical form the
@@ -67,6 +69,9 @@ func (in Inputs) Normalize() (Inputs, error) {
 	}
 	if in.Layout.Main == "" || in.Layout.Decisions == "" {
 		return Inputs{}, fmt.Errorf("%w: init needs a detected layout", model.ErrUsage)
+	}
+	if p := in.Profile; p != nil && (p.Name == "" || p.Source == "" || p.Version == "" || p.Digest == "") {
+		return Inputs{}, fmt.Errorf("%w: the profile pin needs a name, a source, a version and a digest", model.ErrUsage)
 	}
 	capabilities := slices.Clone(in.Capabilities)
 	if in.Layout.Go {
@@ -89,7 +94,10 @@ func (in Inputs) Normalize() (Inputs, error) {
 // Render writes the policy text for normalized inputs; the same inputs
 // render the same bytes, which is what makes init idempotent.
 func Render(in Inputs) ([]byte, error) {
-	funcs := template.FuncMap{"join": strings.Join}
+	funcs := template.FuncMap{
+		"join": strings.Join,
+		"pin":  func(ref *policy.ProfileRef) string { return renderProfileLine(*ref) },
+	}
 	tmpl, err := template.New(PolicyFile).Funcs(funcs).Parse(policyTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("bootstrap: parse template: %w", err)
