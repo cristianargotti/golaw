@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -135,16 +136,14 @@ type statusCase struct {
 }
 
 // statusCases are the near misses and the controls of a command that
-// moves a file in or out of what git status reports.
+// moves a file in or out of what git status reports. Windows keeps no
+// executable bit and git init records core.filemode false there, so no
+// mode change reaches git status on that system and its cases are left
+// out.
 func statusCases(t *testing.T, dash string) []statusCase {
 	t.Helper()
 	commit := func(root, message string) { gitRun(t, root, "commit", "-q", "-am", message) }
-	return []statusCase{
-		{"a committed dash file made executable", nil, func(root string) { chmodFile(t, root, "legacy.md", 0o755) }, false},
-		{"a committed executable dash file made plain", func(root string) {
-			chmodFile(t, root, "legacy.md", 0o755)
-			commit(root, "test: executable")
-		}, func(root string) { chmodFile(t, root, "legacy.md", 0o644) }, false},
+	cases := []statusCase{
 		{"dirty dash bytes the command commits unchanged", func(root string) {
 			writeFiles(t, root, map[string]string{"notes.md": dash})
 			gitRun(t, root, "add", "notes.md")
@@ -162,6 +161,23 @@ func statusCases(t *testing.T, dash string) []statusCase {
 		{"a dirty file written back to its committed dash", func(root string) {
 			writeFiles(t, root, map[string]string{"legacy.md": "clean\n"})
 		}, func(root string) { writeFiles(t, root, map[string]string{"legacy.md": dash}) }, true},
+	}
+	if runtime.GOOS == "windows" {
+		return cases
+	}
+	return append(modeCases(t, commit), cases...)
+}
+
+// modeCases are the near misses of a command that changes only the mode
+// of a committed dash file.
+func modeCases(t *testing.T, commit func(root, message string)) []statusCase {
+	t.Helper()
+	return []statusCase{
+		{"a committed dash file made executable", nil, func(root string) { chmodFile(t, root, "legacy.md", 0o755) }, false},
+		{"a committed executable dash file made plain", func(root string) {
+			chmodFile(t, root, "legacy.md", 0o755)
+			commit(root, "test: executable")
+		}, func(root string) { chmodFile(t, root, "legacy.md", 0o644) }, false},
 	}
 }
 

@@ -87,6 +87,9 @@ func TestSuggestMatchesOnlyTheDeclaredFileNames(t *testing.T) {
 	} {
 		t.Run(tc.path, func(t *testing.T) {
 			t.Parallel()
+			if runtime.GOOS == "windows" && strings.HasSuffix(tc.path, ".") {
+				t.Skip("Windows drops the trailing dot of a file name, so the file written would be another name")
+			}
 			root := t.TempDir()
 			writeBefore(t, filepath.Join(root, filepath.FromSlash(tc.path)), "x\n")
 			var want []bootstrap.Suggestion
