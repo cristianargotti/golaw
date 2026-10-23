@@ -28,6 +28,7 @@ type TemplatePlan struct {
 	Collisions []Collision
 	Promoted   []assets.Requirement
 	Held       []policy.ManagedFile
+	Excluded   []string // destinations the profile leaves to another owner (A1), slash form, sorted
 	Language   string
 	root       string
 	inputs     []install.Change
