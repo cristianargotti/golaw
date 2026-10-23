@@ -53,9 +53,9 @@ func TestVerifyJudgesTheInputsAndTheChecksum(t *testing.T) {
 			func(in *release.Inputs) { in.Asset = "golaw_1.2.3_darwin-amd64" },
 			release.StateRed, release.CodeChecksumMismatch, "no line for golaw_1.2.3_darwin-amd64",
 		},
-		"checksum passes, signature not built": {
+		"checksum passes, no trust root": {
 			func(*release.Inputs) {},
-			release.StateUnknown, release.CodeUnverified, "signature verification is not built",
+			release.StateRed, release.CodeTrustRootInvalid, "no certificate authority or no log key",
 		},
 	} {
 		in := good()
