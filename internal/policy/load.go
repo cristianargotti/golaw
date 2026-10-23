@@ -70,6 +70,9 @@ type Input struct {
 	// this error, so a runner whose environment names no config directory
 	// still loads a policy without a profile.
 	ConfigErr error
+	// Bundle, when set, reads the data of the bundle golaw.yml names once
+	// its stamp is verified (section 5.4); nil verifies the stamp alone.
+	Bundle BundleLoader
 }
 
 // Loaded is the policy in force with everything config explain reports.
@@ -81,9 +84,10 @@ type Loaded struct {
 	Origin  Origin
 	Record  *Record
 	Stamp   *Stamp
-	Schemas Schemas // the option schemas of the catalog, whose defaults explain lists
-	git     *reads  // the answers git gave about golaw.yml, each asked once
-	expect  bool    // the record is the enrollment the pipeline provisions (Input.Expected)
+	Data    *model.ProfileData // what the bundle loader answered, nil for core only or a nil loader
+	Schemas Schemas            // the option schemas of the catalog, whose defaults explain lists
+	git     *reads             // the answers git gave about golaw.yml, each asked once
+	expect  bool               // the record is the enrollment the pipeline provisions (Input.Expected)
 }
 
 // Load establishes the policy in force for a directory: the enrollment
@@ -119,6 +123,9 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 		return nil, err
 	}
 	if err := l.verifyProfile(in); err != nil {
+		return nil, err
+	}
+	if err := l.loadBundle(in); err != nil {
 		return nil, err
 	}
 	if err := l.enroll(in.Reenroll, in.Schemas); err != nil {
