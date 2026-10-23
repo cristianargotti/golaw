@@ -64,7 +64,8 @@ func renderInitialPolicy(root, pin string, opts initOptions) ([]byte, error) {
 		return nil, initOperation("detect initial layout", err)
 	}
 	in, err := (bootstrap.Inputs{
-		KitVersion: pin, Language: opts.language, Capabilities: opts.capabilities, Layout: layout, Profile: opts.pin,
+		KitVersion: pin, Language: opts.language, Capabilities: opts.capabilities,
+		Layout: bootstrap.ProfileLayout(root, layout, opts.layout), Profile: opts.pin,
 	}).Normalize()
 	if err != nil {
 		return nil, initOperation("normalize policy settings", err)
@@ -151,6 +152,9 @@ func printInitPolicy(out io.Writer, plan initPlan) error {
 	}
 	if plan.debt != "" {
 		lines = append(lines, plan.debt)
+	}
+	if line := profileCILine(plan); line != "" {
+		lines = append(lines, line)
 	}
 	// The update names its local edits in its notice already.
 	if !plan.update {
