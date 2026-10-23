@@ -64,12 +64,12 @@ func TestReleaseLineOverTheDownloadedFiles(t *testing.T) {
 		state      string
 		code       string
 	}{
-		"no trust root bound": {releaseDir(t, good), "", "red", release.CodeTrustRootInvalid},
-		"checksums differ":    {releaseDir(t, other), "", "red", release.CodeChecksumMismatch},
-		"no checksums":        {releaseDir(t, map[string]string{bundle: "{}\n"}), "", "red", release.CodeInputMissing},
-		"no bundle":           {releaseDir(t, map[string]string{release.ChecksumsFile: good[release.ChecksumsFile]}), "", "red", release.CodeInputMissing},
-		"a trust root file":   {releaseDir(t, good), filepath.Join(releaseDir(t, good), release.ChecksumsFile), "red", release.CodeTrustRootInvalid},
-		"a trust root absent": {releaseDir(t, good), filepath.Join(t.TempDir(), "absent"), "red", release.CodeTrustRootInvalid},
+		"a bundle that signs nothing": {releaseDir(t, good), "", "red", release.CodeSignatureInvalid},
+		"checksums differ":            {releaseDir(t, other), "", "red", release.CodeChecksumMismatch},
+		"no checksums":                {releaseDir(t, map[string]string{bundle: "{}\n"}), "", "red", release.CodeInputMissing},
+		"no bundle":                   {releaseDir(t, map[string]string{release.ChecksumsFile: good[release.ChecksumsFile]}), "", "red", release.CodeInputMissing},
+		"a trust root file":           {releaseDir(t, good), filepath.Join(releaseDir(t, good), release.ChecksumsFile), "red", release.CodeTrustRootInvalid},
+		"a trust root absent":         {releaseDir(t, good), filepath.Join(t.TempDir(), "absent"), "red", release.CodeTrustRootInvalid},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

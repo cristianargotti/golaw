@@ -6,6 +6,9 @@ var (
 	// ErrInput marks a release input the caller could not read: a file of
 	// the release directory or the running executable.
 	ErrInput = errors.New("release input")
+	// ErrTrustRoot marks a trust root that cannot be read, holds a block
+	// it cannot parse, or lacks a certificate authority or a log key.
+	ErrTrustRoot = errors.New("invalid trust root")
 	// errSignature marks a bundle that does not prove what it claims: a
 	// part that does not decode, a certificate outside the trust root, a
 	// signature or a log entry that does not verify.
