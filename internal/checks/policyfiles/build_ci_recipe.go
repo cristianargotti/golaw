@@ -1,6 +1,7 @@
 package policyfiles
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 )
@@ -49,10 +50,15 @@ const ciMakeRunners = "make gmake sh bash zsh dash ksh mksh ash fish csh tcsh bu
 	"exec eval command builtin source . xargs nohup time sudo doas nice timeout watch find parallel " +
 	"python perl ruby node npx npm php lua"
 
+// ciMakeToken finds make or gmake as a token anywhere in a line, a quoted
+// argument included, because a container, a remote host or a login shell
+// may run the quoted command, so such a line can start make.
+var ciMakeToken = regexp.MustCompile(`(^|[^A-Za-z0-9_.-])g?make([^A-Za-z0-9_.-]|$)`)
+
 // recipeRunsNoMake answers whether a recipe line certainly starts no make:
 // after its @, - and + prefixes, an env word and NAME=value assignments, its
 // command is a literal program outside ciMakeRunners, and no shell operator,
-// command substitution, $(shell) or make word could start one beside it.
+// command substitution, $(shell) or make token could start one beside it.
 func recipeRunsNoMake(line string) bool {
 	text := strings.TrimLeft(strings.TrimSpace(line), "@-+")
 	for _, starter := range []string{";", "&", "|", "`", "\r", "\n", "$$(", "<(", ">(", "$(shell", "${shell", "MAKE"} {
@@ -67,7 +73,7 @@ func recipeRunsNoMake(line string) bool {
 	for len(words) > 0 && ciAssignment(words[0]) {
 		words = words[1:]
 	}
-	if len(words) == 0 || !ciLiteralProgram(words[0]) || slices.Contains(words, ciMakeCommand) || slices.Contains(words, "gmake") {
+	if len(words) == 0 || !ciLiteralProgram(words[0]) || ciMakeToken.MatchString(text) {
 		return false
 	}
 	return !slices.Contains(strings.Fields(ciMakeRunners), strings.TrimRight(words[0], "0123456789."))

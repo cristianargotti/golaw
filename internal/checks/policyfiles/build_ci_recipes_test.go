@@ -193,6 +193,11 @@ func TestCITargetSkipsRecipesThatCannotRunMake(t *testing.T) {
 		{"red computed program", "$(GO) build ./...", "opaque recipe $(GO)"},
 		{"red versioned interpreter", "python3.12 scripts/ci.py", "opaque recipe python3.12"},
 		{"red env flag", "env -i make lint", "opaque recipe env -i"},
+		{"red make inside a quoted container command", "docker run img sh -c \"make lint\"", "opaque recipe docker run"},
+		{"red make inside a mounted container command", "docker run --rm -v \"$(CURDIR)\":/src -w /src golang:1.27 sh -c \"make lint\"", "opaque recipe docker run"},
+		{"red make on a remote host", "ssh host 'make lint'", "opaque recipe ssh host"},
+		{"red gmake inside a login shell", "docker compose run app bash -lc 'gmake lint'", "opaque recipe docker compose"},
+		{"near make inside other words", "cmake --build build --target makefile-lint automake", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
