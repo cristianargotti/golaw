@@ -119,6 +119,7 @@ func TestM5EvaluatorLimits(t *testing.T) {
 		"A comment prefix compares without the mark, case and extra spaces, and matches only where a word ends",
 		"a trailing slash covers a tree, names compare without case, and a file under testdata is never judged.",
 		"A parent that is not a mapping is a missing key",
+		"a mapping on the key path whose key is not a scalar, such as a template expression, are stated limits.",
 		"keeps the kit's default terms.",
 		"Unsupported syntax or unavailable external evidence is Unmeasured, never a text match.",
 	}

@@ -42,7 +42,11 @@ func (valuesAssertions) Run(_ context.Context, in model.Input) (model.Result, er
 			if err != nil {
 				return answer(file.Path, err), nil
 			}
-			findings = append(findings, assertValue(root, file.Path, a)...)
+			found, err := assertValue(root, file.Path, a)
+			if err != nil {
+				return answer(file.Path, err), nil
+			}
+			findings = append(findings, found...)
 		}
 	}
 	return model.Result{Status: model.Measured(), Scope: fmt.Sprintf("%d files", len(documents)), Findings: findings}, nil
@@ -67,7 +71,13 @@ func valuesDocument(in model.Input, file string, documents map[string]*yaml.Node
 
 // assertValue judges one assertion over one decoded file: the key path,
 // then the kind of the scalar, then its value when the profile gives one.
-func assertValue(root *yaml.Node, file string, a model.Assertion) []model.Finding {
+// A mapping key on the path that is not a scalar and a YAML 1.1 boolean
+// asserted as bool are stated limits, because the tool that reads the file
+// may read either otherwise than this reader does.
+func assertValue(root *yaml.Node, file string, a model.Assertion) ([]model.Finding, error) {
+	if line, found := complexKey(root, a.Key); found {
+		return nil, outside(file, line, "a mapping key that is not a scalar, such as a template expression")
+	}
 	segments, want := keyText(a.Key), a.Kind
 	if a.Equals != nil {
 		want += " " + *a.Equals
@@ -75,15 +85,48 @@ func assertValue(root *yaml.Node, file string, a model.Assertion) []model.Findin
 	node := child(root, a.Key...)
 	switch {
 	case node == nil && a.Missing == model.MissingIgnore:
-		return nil
+		return nil, nil
 	case node == nil:
 		message := fmt.Sprintf("set %s in %s: the profile requires %s", segments, file, want)
-		return []model.Finding{finding(file, 0, "values-key-missing", message)}
+		return []model.Finding{finding(file, 0, "values-key-missing", message)}, nil
+	case a.Kind == model.AssertBool && yaml11Bool(node):
+		return nil, outside(file, node.Line, "the YAML 1.1 boolean "+node.Value)
 	case scalarKind(node) != a.Kind || a.Equals != nil && !sameScalar(node, a.Kind, *a.Equals):
 		message := fmt.Sprintf("%s of %s is %s %s: the profile requires %s", segments, file, scalarKind(node), node.Value, want)
-		return []model.Finding{finding(file, node.Line, "values-assertion", message)}
+		return []model.Finding{finding(file, node.Line, "values-assertion", message)}, nil
 	}
-	return nil
+	return nil, nil
+}
+
+// complexKey answers the line of a mapping on the key path, the asserted
+// node included, that holds a key which is not a scalar, such as a template
+// expression YAML reads as a flow mapping.
+func complexKey(root *yaml.Node, keys []string) (int, bool) {
+	for depth := 0; depth <= len(keys); depth++ {
+		node := child(root, keys[:depth]...)
+		if node == nil || node.Kind != yaml.MappingNode {
+			return 0, false
+		}
+		for i := 0; i < len(node.Content); i += 2 {
+			if node.Content[i].Kind != yaml.ScalarNode {
+				return node.Line, true
+			}
+		}
+	}
+	return 0, false
+}
+
+// yaml11Bool reports a plain scalar that YAML 1.2 reads as a string and
+// YAML 1.1, which Helm reads values with, as a boolean.
+func yaml11Bool(node *yaml.Node) bool {
+	if node.Kind != yaml.ScalarNode || node.Style != 0 || scalarKind(node) != model.AssertString {
+		return false
+	}
+	switch strings.ToLower(node.Value) {
+	case "y", "yes", "n", "no", "on", "off":
+		return true
+	}
+	return false
 }
 
 // scalarKind names the kind of a node the way an assertion names it.
