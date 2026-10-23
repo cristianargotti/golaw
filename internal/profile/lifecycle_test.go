@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/model"
-	"github.com/cristianargotti/golaw/internal/policy"
 	"github.com/cristianargotti/golaw/internal/profile"
-	"github.com/cristianargotti/golaw/internal/profiletest"
 )
 
 func TestParseSourceSplitsTheURLAndTheTag(t *testing.T) {
@@ -56,14 +54,6 @@ func TestParseSourceRefusesWhatIsNotASource(t *testing.T) {
 				t.Fatalf("ParseSource(%q) = %v, want %q", tc.arg, err, tc.want)
 			}
 		})
-	}
-}
-
-func TestLifecycleAnswersNotBuiltUntilItsPart(t *testing.T) {
-	t.Parallel()
-	dirs := policy.Dirs{State: t.TempDir(), Config: t.TempDir()}
-	if err := profile.Remove(dirs, profiletest.Name); !errors.Is(err, profile.ErrNotBuilt) {
-		t.Fatalf("Remove = %v", err)
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/model"
-	"github.com/cristianargotti/golaw/internal/policy"
 )
 
 // tagPattern is the tag a bundle is installed from, vX.Y.Z or X.Y.Z, the
@@ -47,9 +46,4 @@ func ParseSource(arg string) (Source, error) {
 		return Source{}, fmt.Errorf("%w: tag %q is not vX.Y.Z or X.Y.Z", model.ErrUsage, tag)
 	}
 	return Source{URL: url, Tag: tag, Version: match[1]}, nil
-}
-
-// Remove deletes the current bundle of a name, its store and its record.
-func Remove(_ policy.Dirs, _ string) error {
-	return ErrNotBuilt
 }
