@@ -17,7 +17,6 @@ var (
 	ErrChanged    = errors.New("installation input changed")
 	ErrEnrollment = errors.New("enrollment was not recorded")
 	ErrHooks      = errors.New("invalid plugin hooks")
-	ErrNotBuilt   = errors.New("the installer of this agent is not built yet")
 )
 
 func changedArtifact(path string, cause error) error {
