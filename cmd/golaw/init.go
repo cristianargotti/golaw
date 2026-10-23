@@ -16,13 +16,16 @@ import (
 )
 
 type initOptions struct {
-	apply        bool
-	update       bool
-	language     string
-	capabilities []string
-	accept       []string
-	profile      string
-	pin          *policy.ProfileRef // the installed bundle --profile names, resolved once
+	apply           bool
+	update          bool
+	language        string
+	capabilities    []string
+	accept          []string
+	profile         string
+	pin             *policy.ProfileRef // the installed bundle --profile names, resolved once
+	seedDebt        bool               // seed the reviewed debt set of a first adoption (A24)
+	coverageProfile string             // the cover profile whose files under the floor the seed exempts
+	vulnerabilities string             // the govulncheck JSON stream whose reachable advisories the seed waives
 }
 
 // initCommand previews policy and template changes before an explicit apply
@@ -45,12 +48,18 @@ func (a *app) initCommand() *cobra.Command {
 	cmd.Flags().StringSliceVar(&opts.accept, "accept", nil,
 		"write the proposal init prints for this destination as well; repeat for several")
 	cmd.Flags().StringVar(&opts.profile, "profile", "", "enroll the installed profile bundle of this name, read from the config directory")
+	cmd.Flags().BoolVar(&opts.seedDebt, "seed-debt", false, "seed the reviewed debt set of a first adoption from what the repository already breaks")
+	cmd.Flags().StringVar(&opts.coverageProfile, "coverage-profile", "", "with --seed-debt, exempt the files this cover profile measures under the file floor")
+	cmd.Flags().StringVar(&opts.vulnerabilities, "vulnerabilities", "", "with --seed-debt, waive the advisories this govulncheck JSON stream reports reachable")
 	return cmd
 }
 
 func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts initOptions) error {
 	if opts.update && len(opts.accept) > 0 {
 		return initFailed(fmt.Errorf("%w: --accept writes a proposal of init, while init --update keeps every local edit", model.ErrUsage))
+	}
+	if err := checkSeedFlags(opts); err != nil {
+		return initFailed(err)
 	}
 	if err := a.resolveProfile(ctx, path, &opts); err != nil {
 		return initFailed(err)
@@ -67,6 +76,9 @@ func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts i
 	}
 	plan, err := a.planInit(ctx, root, current, data, opts.apply, opts.accept)
 	if err != nil {
+		return initFailed(err)
+	}
+	if plan, err = a.seedPlan(ctx, root, plan, opts); err != nil {
 		return initFailed(err)
 	}
 	plan.status = a.unchangedPolicyStatus(root, opts, plan)
