@@ -1,6 +1,7 @@
 package policyfiles
 
 import (
+	"path"
 	"regexp"
 	"slices"
 	"strings"
@@ -116,10 +117,14 @@ func (d *imageCommands) run(rest string, line int) error {
 }
 
 // command records the packages of one install command; a command that
-// installs nothing is not read.
+// installs nothing is not read, and an install in a form installArguments
+// does not read is a stated limit, never a clean answer.
 func (d *imageCommands) command(words []string, line int) error {
 	packages, ok := installArguments(words)
 	if !ok {
+		if unsplitInstall(words) {
+			return outside(d.path, line, "install command in a form the reader does not split: "+strings.Join(words, " "))
+		}
 		return nil
 	}
 	for _, word := range packages {
@@ -144,13 +149,41 @@ func installArguments(words []string) ([]string, bool) {
 	if len(words) == 0 {
 		return nil, false
 	}
-	verb := map[string]string{"apk": "add", "apt-get": "install", "apt": "install"}[words[0]]
+	verb := installVerb(words[0])
 	for i := 1; verb != "" && i < len(words); i++ {
 		if !strings.HasPrefix(words[i], "-") {
 			return words[i+1:], words[i] == verb
 		}
 	}
 	return nil, false
+}
+
+// installVerb is the install verb of a package manager the reader knows,
+// empty for any other word.
+func installVerb(manager string) string {
+	switch manager {
+	case "apk":
+		return "add"
+	case "apt-get", "apt":
+		return "install"
+	}
+	return ""
+}
+
+// unsplitInstall reports whether words name a package manager, by its base
+// name and outside a parenthesis, followed by its install verb: the install
+// behind an assignment, a shell keyword, a subshell, sudo, a path or an
+// option that takes an argument, which installArguments does not read. A
+// manager without its install verb after it, such as apt-get update,
+// installs nothing.
+func unsplitInstall(words []string) bool {
+	for i, word := range words {
+		verb := installVerb(path.Base(strings.Trim(word, "()")))
+		if verb != "" && slices.Contains(words[i+1:], verb) {
+			return true
+		}
+	}
+	return false
 }
 
 // installsIn reports whether a text names a package manager's install

@@ -56,6 +56,12 @@ func TestImageInstalls(t *testing.T) {
 		{name: "exec form install", input: at("RUN [\"apk\", \"add\", \"curl\"]\n"), status: model.StatusUnmeasured, reason: "Dockerfile:3:", outside: true},
 		{name: "heredoc install", input: at("RUN <<EOF\napk add curl\nEOF\n"), status: model.StatusUnmeasured, reason: "Dockerfile:3:", outside: true},
 		{name: "unresolved stage", input: depsEdit(near, "Dockerfile", "FROM ${BASE:-alpine} AS ci\n"), status: model.StatusUnmeasured, reason: "Dockerfile:1:", outside: true},
+		{name: "assignment before the manager", input: at("RUN DEBIAN_FRONTEND=noninteractive apt-get install -y curl\n"), status: model.StatusUnmeasured, reason: "Dockerfile:3:", outside: true},
+		{name: "shell keyword before the manager", input: at("RUN if true; then apk add curl; fi\n"), status: model.StatusUnmeasured, reason: "Dockerfile:3:", outside: true},
+		{name: "subshell, sudo and a path", input: at("RUN (apk add curl) && sudo apk add wget && /sbin/apk add vim\n"), status: model.StatusUnmeasured, reason: "Dockerfile:3:", outside: true},
+		{name: "option with an argument before the verb", input: at("RUN apt-get -o Acquire::Retries=3 install -y curl\n"), status: model.StatusUnmeasured, reason: "Dockerfile:3:", outside: true},
+		{name: "assignment before an update near", input: at("RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y git=1:2.39.5-0+deb12u1\n")},
+		{name: "option with an argument before an update near", input: at("RUN apt-get -o Acquire::Retries=3 update && rm -rf /var/lib/apt/lists/*\n")},
 	})
 }
 

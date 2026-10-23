@@ -115,7 +115,7 @@ func TestM5EvaluatorLimits(t *testing.T) {
 		"A profile needing new logic requires a generic core evaluator; it cannot execute bundle code.",
 		"Each check answers NotApplicable without a profile and when the profile carries no section for it",
 		"Only the root `Dockerfile` is judged",
-		"an exec form install and a heredoc install are stated limits.",
+		"an exec form install, a heredoc install, and an install behind an assignment, a shell keyword, a subshell, sudo, a path or an option that takes an argument before its verb are stated limits.",
 		"A comment prefix compares without the mark, case and extra spaces.",
 		"a trailing slash covers a tree, names compare without case, and a file under testdata is never judged.",
 		"A parent that is not a mapping is a missing key",
