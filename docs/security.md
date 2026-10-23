@@ -64,7 +64,7 @@ A shell pre event is judged as a prospective write only for a sole apply_patch o
 
 A failed multi-file patch can leave earlier files written without a post event. A running command can receive its post event later, or never. Codex has no PostToolUseFailure. Post findings are feedback about completed execution, never rollback.
 
-Codex trust is read, never written: the installer prints the /hooks step when a definition it writes differs from the trusted record, and doctor asks Codex itself through codex app-server or compares the hash with the record. On Windows a process that Codex app-server starts may outlive doctor; on macOS and Linux doctor ends its whole process group. Ending a process tree on Windows needs a job object, and M4 adds no module for it.
+Codex trust is read, never written: the installer prints the /hooks step when a definition it writes differs from the trusted record, and doctor asks Codex itself through codex app-server or compares the hash with the record. golaw writes nothing in CODEX_HOME to ask, but codex app-server is Codex itself: started by doctor in the person's CODEX_HOME, Codex 0.163.0 may create its own state there, such as installation_id, its sqlite stores, logs, skills/.system and a plugin sync directory under .tmp, and may start its plugin sync. With the hooks feature off doctor reads the record and starts no codex app-server. On Windows a process that Codex app-server starts may outlive doctor; on macOS and Linux doctor ends its whole process group. Ending a process tree on Windows needs a job object, and M4 adds no module for it.
 
 ## The Cursor guard
 
