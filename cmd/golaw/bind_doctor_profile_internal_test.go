@@ -145,7 +145,8 @@ func TestProfileLineReportsThePinBesideTheBundle(t *testing.T) {
 			root := tc.root(t, dirs.Config)
 			b.info.Version = tc.version
 			line := b.profileDoctor(t.Context(), root, profileClock())
-			if line.ID != "doctor.profile" || line.State != tc.state || line.Code != tc.code || !strings.Contains(line.Detail, tc.detail) {
+			if line.ID != "doctor.profile" || line.State != tc.state || line.Code != tc.code || !strings.Contains(line.Detail, tc.detail) ||
+				strings.HasPrefix(line.Detail, "invalid policy") {
 				t.Fatalf("line = %+v", line)
 			}
 		})

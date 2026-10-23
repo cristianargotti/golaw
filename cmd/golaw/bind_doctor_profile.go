@@ -64,7 +64,7 @@ func (b binding) pinInForce(ctx context.Context, root string, now time.Time) (po
 func bundleFacts(configDir string, ref policy.ProfileRef, now time.Time) doctor.ProfileFacts {
 	facts := pinFacts(ref)
 	if _, err := profile.Load(configDir, ref); err != nil {
-		facts.Error = err.Error()
+		facts.Error = profile.Cause(err)
 	}
 	dir := bundleDir(configDir, ref)
 	stamp, err := policy.LoadStamp(filepath.Join(dir, policy.StampFile))

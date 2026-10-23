@@ -3,6 +3,7 @@ package profile
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -25,6 +26,18 @@ var (
 	// exported functions add the bundle and the profile name around it.
 	errRules = errors.New(RulesFile)
 )
+
+// Cause is the text of err without the sentinels of the policy chain at its
+// start, invalid policy and invalid profile bundle, for a line a person
+// reads: a missing version or a failed clone leaves no policy invalid, so
+// the line names the cause alone, while err keeps both for errors.Is.
+func Cause(err error) string {
+	text := err.Error()
+	for _, sentinel := range []error{model.ErrPolicy, ErrBundle} {
+		text = strings.TrimPrefix(text, sentinel.Error()+": ")
+	}
+	return text
+}
 
 // bundlef is ErrBundle under ErrPolicy with the cause formatted.
 func bundlef(format string, args ...any) error {

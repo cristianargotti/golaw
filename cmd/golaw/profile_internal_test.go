@@ -70,9 +70,9 @@ func TestProfileLifecycleFailuresExitTwoWithOneLine(t *testing.T) {
 		"install of a bad source":  {[]string{"profile", "install", "https://example.test/profiles/fixture"}, "is not <git url>@<tag>"},
 		"install of a bad tag":     {[]string{"profile", "install", absent + "@latest"}, `tag "latest" is not vX.Y.Z or X.Y.Z`},
 		"install of no source":     {[]string{"profile", "install", absent + "@v1.2.3"}, "does not exist"},
-		"refresh":                  {[]string{"profile", "refresh", profiletest.Name}, "profile fixture has no install record"},
-		"rollback":                 {[]string{"profile", "rollback", profiletest.Name}, "profile fixture has no install record"},
-		"remove":                   {[]string{"profile", "remove", profiletest.Name}, "profile fixture is not installed"},
+		"refresh":                  {[]string{"profile", "refresh", profiletest.Name}, "golaw: profile refresh: profile fixture has no install record"},
+		"rollback":                 {[]string{"profile", "rollback", profiletest.Name}, "golaw: profile rollback: profile fixture has no install record"},
+		"remove":                   {[]string{"profile", "remove", profiletest.Name}, "golaw: profile remove: profile fixture is not installed"},
 		"remove of a path":         {[]string{"profile", "remove", "../fixture"}, `"../fixture" is not a profile name`},
 	}
 	for name, tc := range cases {
@@ -83,6 +83,11 @@ func TestProfileLifecycleFailuresExitTwoWithOneLine(t *testing.T) {
 				t.Fatalf("exit = %d", got)
 			}
 			got := ta.stderr.String()
+			// The line names the cause, never the sentinels of the policy
+			// chain, because no policy is invalid when a step fails.
+			if strings.Contains(got, "invalid policy") || strings.Contains(got, "invalid profile bundle") {
+				t.Fatalf("stderr names a sentinel: %q", got)
+			}
 			if !strings.HasPrefix(got, "golaw: ") || !strings.Contains(got, tc.want) || strings.Count(got, "\n") != 1 || ta.stdout.Len() != 0 {
 				t.Fatalf("stderr = %q, stdout = %q", got, ta.stdout.String())
 			}

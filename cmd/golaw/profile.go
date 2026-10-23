@@ -50,12 +50,24 @@ func profileSubcommand(use, short string, run profileRun) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := run(cmd.Context(), cmd.OutOrStdout(), args[0]); err != nil {
-				return fmt.Errorf("profile %s: %w", cmd.Name(), err)
+				return causeError{text: "profile " + cmd.Name() + ": " + profile.Cause(err), err: err}
 			}
 			return nil
 		},
 	}
 }
+
+// causeError is the one line of a failed profile step, which names the cause
+// without the sentinels of the policy chain, while the error it wraps keeps
+// them, so the exit code and errors.Is see the failure as before.
+type causeError struct {
+	text string
+	err  error
+}
+
+func (e causeError) Error() string { return e.text }
+
+func (e causeError) Unwrap() error { return e.err }
 
 // lifecycle answers the directories and the user environment every step
 // runs with: git clones with the person's own configuration.
