@@ -1,0 +1,6 @@
+ARG REGISTRY=registry.example.test
+FROM ${REGISTRY}/platform/certificates:1.0 AS certs
+FROM --platform=$BUILDPLATFORM registry.example.test/platform/golang:1.27-alpine AS base
+FROM base AS ci
+FROM base AS builder
+FROM scratch

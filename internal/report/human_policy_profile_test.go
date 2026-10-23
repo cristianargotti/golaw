@@ -11,5 +11,6 @@ func policyProfileSentences() map[string]string {
 		"image-install-not-allowed": "pacote fora da lista permitida do estágio no Dockerfile; instale só os pacotes que o perfil permite",
 		"image-install-unpinned":    "pacote instalado sem versão fixa no Dockerfile; escreva pacote=versão",
 		"image-inline-ignore":       "comentário de supressão proibido pelo perfil no Dockerfile; corrija a regra em vez de suprimi-la",
+		"image-registry":            "imagem base fora do registro que o perfil define; use uma imagem desse registro",
 	}
 }

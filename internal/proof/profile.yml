@@ -14,3 +14,8 @@ checks:
     red: testdata/policy.image-installs/red
     near: testdata/policy.image-installs/near
     profile: fixture
+  - id: policy.image-registry
+    code: image-registry
+    red: testdata/policy.image-registry/red
+    near: testdata/policy.image-registry/near
+    profile: fixture
