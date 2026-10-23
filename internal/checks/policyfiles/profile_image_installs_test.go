@@ -36,6 +36,8 @@ func TestImageInstalls(t *testing.T) {
 		{name: "inline ignore red", input: at("# lint ignore=DL3018\nRUN apk add git=2.45.2-r0\n"), want: []string{"image-inline-ignore"}},
 		{name: "inline ignore spaced red", input: at("#lint   ignore=DL3018\nRUN apk add git=2.45.2-r0\n"), want: []string{"image-inline-ignore"}},
 		{name: "prefix inside a RUN string near", input: at("RUN echo '# lint ignore' > /notes\n")},
+		{name: "prefix inside a longer word near", input: at("# lint ignored lines are documented in docs\nRUN apk add git=2.45.2-r0\n")},
+		{name: "prefix alone red", input: at("# Lint Ignore\nRUN apk add git=2.45.2-r0\n"), want: []string{"image-inline-ignore"}},
 		{name: "apt-get with known flags near", input: at("RUN apt-get update && apt-get install -y --no-install-recommends git=1:2.39.5-0+deb12u1\n")},
 		{name: "apt-get flags first red", input: at("RUN apt-get -y install curl=7.88.1-10\n"), want: []string{"image-install-not-allowed"}},
 		{name: "apt red", input: at("RUN apt install -y curl=7.88.1-10\n"), want: []string{"image-install-not-allowed"}},

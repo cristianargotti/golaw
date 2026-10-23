@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -86,7 +88,7 @@ func commentFindings(commands imageCommands, prefixes []string) []model.Finding 
 	var findings []model.Finding
 	for _, c := range commands.comments {
 		for _, prefix := range prefixes {
-			if strings.HasPrefix(commentWords(c.text), commentWords(prefix)) {
+			if startsWithWords(commentWords(c.text), commentWords(prefix)) {
 				message := fmt.Sprintf("remove the comment %q from %s: the profile forbids %q, fix the rule it would silence", c.text, commands.path, prefix)
 				findings = append(findings, finding(commands.path, c.line, "image-inline-ignore", message))
 				break
@@ -94,6 +96,18 @@ func commentFindings(commands imageCommands, prefixes []string) []model.Finding 
 		}
 	}
 	return findings
+}
+
+// startsWithWords reports whether text starts with prefix and the prefix
+// ends there or at a rune that is neither a letter nor a digit, so a
+// forbidden prefix never matches inside a longer word of prose.
+func startsWithWords(text, prefix string) bool {
+	rest, found := strings.CutPrefix(text, prefix)
+	if !found || rest == "" {
+		return found
+	}
+	next, _ := utf8.DecodeRuneInString(rest)
+	return !unicode.IsLetter(next) && !unicode.IsDigit(next)
 }
 
 // commentWords is a comment without its mark, in lower case, its words
