@@ -49,7 +49,7 @@ func upgrading(ctx context.Context, in Input) (Location, bool) {
 
 // upgraded is the policy in force for the commit of an upgrade: the staged
 // golaw.yml that pins this binary and is the policy the record enrolled,
-// compiled and enrolled as Load does.
+// compiled, its bundle read and enrolled as Load does.
 func upgraded(ctx context.Context, in Input, loc Location) (*Loaded, error) {
 	l := &Loaded{Root: loc.Root, Head: loc.Head, Record: loc.Record, Schemas: in.Schemas, Origin: OriginStaged}
 	staged := l.reads().staged(ctx)
@@ -66,6 +66,9 @@ func upgraded(ctx context.Context, in Input, loc Location) (*Loaded, error) {
 		return nil, err
 	}
 	if err := l.verifyProfile(in); err != nil {
+		return nil, err
+	}
+	if err := l.loadBundle(in); err != nil {
 		return nil, err
 	}
 	if err := l.enroll(false, in.Schemas); err != nil {
