@@ -108,7 +108,7 @@ image:
 	docker build -t $(IMAGE) .
 
 image-scan:
-	trivy image --exit-code 1 $(IMAGE)
+	trivy image --exit-code 1 --ignore-unfixed $(IMAGE)
 {{- end}}
 
 ci:{{if has .Capabilities "go"}} mod deps-age fmt vet generate-check test coverage-check build lint deadcode{{end}}{{if has .Capabilities "db"}} migrate-lint{{end}}{{if has .Capabilities "api"}} openapi-breaking openapi-examples-check{{end}}{{if has .Capabilities "go"}} vuln licenses{{end}}{{if has .Capabilities "api"}} docs-check{{end}}{{if has .Capabilities "go"}} secrets{{end}} scan{{if has .Capabilities "image"}} dockerfile-lint image-pins-check image image-scan{{end}}

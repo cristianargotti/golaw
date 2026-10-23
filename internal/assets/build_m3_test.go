@@ -130,3 +130,20 @@ func TestBuildAssetLicensesStateTheirPrefixLimit(t *testing.T) {
 		}
 	}
 }
+
+// TestBuildAssetImageScanFailsOnEveryFixableFinding holds the image scan to
+// the findings a rebuild can clear, at every severity: a finding with no
+// fixed version, such as the libc6 entries Debian leaves affected in the
+// distroless base-debian13 image, leaves the repository nothing to change,
+// while a Debian advisory without a CVE, which trivy reports as UNKNOWN, is
+// a fix a severity filter would hide.
+func TestBuildAssetImageScanFailsOnEveryFixableFinding(t *testing.T) {
+	t.Parallel()
+	context := assetContext()
+	context.Capabilities = []string{"go", "image"}
+	body := string(renderedAsset(t, "golaw.mk", context).Data)
+	want := "\nimage-scan:\n\ttrivy image --exit-code 1 --ignore-unfixed $(IMAGE)\n"
+	if !strings.Contains(body, want) || strings.Contains(body, "--severity") {
+		t.Fatalf("the image scan must fail on every fixable finding of any severity:\n%s", body)
+	}
+}
