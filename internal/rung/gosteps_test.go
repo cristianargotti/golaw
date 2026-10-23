@@ -23,6 +23,13 @@ const (
 	vetClean  = "package a\n\nimport \"fmt\"\n\n// A formats a value.\nfunc A() string { return fmt.Sprint(\"x\") }\n"
 )
 
+// vetAt starts the line go vet writes for the format problem of a file at
+// a slash path; go names the file with the separator of the system, so
+// a/a.go reads a\a.go on Windows, and a rung prints the line as go wrote it.
+func vetAt(path string) string {
+	return filepath.FromSlash(path) + ":6:39: "
+}
+
 // emptyDir reports whether a directory exists and holds nothing.
 func emptyDir(t *testing.T, dir string) bool {
 	t.Helper()
@@ -218,19 +225,19 @@ func TestPreCommitRefusesOnlyTheVetProblemsTheCommitAdds(t *testing.T) {
 	inherited := "golaw pre-commit: vet: go vet reports problems on lines the commit does not add, which the pipeline judges"
 	r.Stage(map[string]string{"a/b.go": "package a\n\n// B answers one.\nfunc B() int { return 1 }\n"})
 	out := rung.RunPreCommit(t.Context(), deps(t, r))
-	if out.Code != 0 || !contains(out, inherited) || !contains(out, "a/a.go:6:39: fmt.Sprintf format %d has arg") || contains(out, "fix it before the commit") {
+	if out.Code != 0 || !contains(out, inherited) || !contains(out, vetAt("a/a.go")+"fmt.Sprintf format %d has arg") || contains(out, "fix it before the commit") {
 		t.Errorf("a vet problem HEAD holds beside a clean staged file = %+v", out)
 	}
 	r.Stage(map[string]string{"a/b.go": "package a\n\nimport \"fmt\"\n\n// B formats a value.\nfunc B() string { return fmt.Sprintf(\"%d\", \"y\") }\n"})
 	out = rung.RunPreCommit(t.Context(), deps(t, r))
 	refusal := slices.Index(out.Lines, "golaw pre-commit: vet: go vet reports what the affected packages break; fix it before the commit")
-	if out.Code != 1 || refusal < 0 || refusal+1 >= len(out.Lines) || !strings.HasPrefix(out.Lines[refusal+1], "a/b.go:6:39: ") || !contains(out, inherited) {
+	if out.Code != 1 || refusal < 0 || refusal+1 >= len(out.Lines) || !strings.HasPrefix(out.Lines[refusal+1], vetAt("a/b.go")) || !contains(out, inherited) {
 		t.Errorf("a staged vet problem beside the one HEAD holds = %+v", out)
 	}
 	r.Remove("a/b.go")
 	r.Git("rm", "-q", "--cached", "a/b.go")
 	r.Stage(map[string]string{"a/a.go": strings.Replace(vetBroken, "\"x\"", "\"z\"", 1)})
-	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 1 || !contains(out, "a/a.go:6:39: ") || contains(out, inherited) {
+	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 1 || !contains(out, vetAt("a/a.go")) || contains(out, inherited) {
 		t.Errorf("a staged edit of the line of the old problem = %+v", out)
 	}
 }
@@ -250,11 +257,11 @@ func TestPreCommitRefusesOnlyTheVetProblemsAMergeAddsItself(t *testing.T) {
 	r.MergeInProgress("side")
 	r.Stage(map[string]string{"a/a.go": strings.Replace(vetClean, "\"x\"", "\"z\"", 1)})
 	out := rung.RunPreCommit(t.Context(), deps(t, r))
-	if out.Code != 0 || !contains(out, "vet: go vet reports problems on lines the commit does not add, which the pipeline judges") || !contains(out, "a/c.go:6:39: ") {
+	if out.Code != 0 || !contains(out, "vet: go vet reports problems on lines the commit does not add, which the pipeline judges") || !contains(out, vetAt("a/c.go")) {
 		t.Errorf("a vet problem the merge brought beside a clean edit = %+v", out)
 	}
 	r.Stage(map[string]string{"a/a.go": vetBroken})
-	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 1 || !contains(out, "vet: go vet reports what the affected packages break; fix it before the commit") || !contains(out, "a/a.go:6:39: ") {
+	if out := rung.RunPreCommit(t.Context(), deps(t, r)); out.Code != 1 || !contains(out, "vet: go vet reports what the affected packages break; fix it before the commit") || !contains(out, vetAt("a/a.go")) {
 		t.Errorf("a vet problem the merge commit adds itself = %+v", out)
 	}
 }
