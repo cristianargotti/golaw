@@ -34,10 +34,27 @@ func initialPolicy(root, pin string, opts initOptions) ([]byte, bool, error) {
 	}
 	if current != nil {
 		grown, growErr := bootstrap.GrowCapabilities(current, opts.capabilities)
-		return grown, true, initOperation("add the capabilities", growErr)
+		if growErr != nil {
+			return nil, true, initOperation("add the capabilities", growErr)
+		}
+		pinned, pinErr := pinProfile(grown, opts.pin)
+		return pinned, true, pinErr
 	}
 	data, err := renderInitialPolicy(root, pin, opts)
 	return data, false, err
+}
+
+// pinProfile sets the profile line of a reviewed policy when init was asked
+// to enroll one (D7), and leaves the bytes alone otherwise.
+func pinProfile(current []byte, ref *policy.ProfileRef) ([]byte, error) {
+	if ref == nil {
+		return current, nil
+	}
+	pinned, err := bootstrap.SetProfile(current, *ref)
+	if err != nil {
+		return nil, fmt.Errorf("pin the profile: %w", err)
+	}
+	return pinned, nil
 }
 
 func renderInitialPolicy(root, pin string, opts initOptions) ([]byte, error) {
@@ -46,7 +63,7 @@ func renderInitialPolicy(root, pin string, opts initOptions) ([]byte, error) {
 		return nil, initOperation("detect initial layout", err)
 	}
 	in, err := (bootstrap.Inputs{
-		KitVersion: pin, Language: opts.language, Capabilities: opts.capabilities, Layout: layout,
+		KitVersion: pin, Language: opts.language, Capabilities: opts.capabilities, Layout: layout, Profile: opts.pin,
 	}).Normalize()
 	if err != nil {
 		return nil, initOperation("normalize policy settings", err)

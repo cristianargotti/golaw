@@ -2,6 +2,7 @@ package cicheck_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -45,6 +46,12 @@ func TestDepguardDrawsTheDirectionOfEveryNewPackage(t *testing.T) {
 		"setup":      {"model", "runner", "install"},
 		"gittest":    nil,
 		"runnertest": nil,
+		// The profile bundle and the release verification of M5: the loader
+		// reads YAML beside model and policy, its test support reaches the
+		// loader and gittest, and the verifier is standard cryptography alone.
+		"profile":     {"model", "policy", "runner", "gopkg.in/yaml.v3"},
+		"profiletest": {"model", "policy", "profile", "gittest"},
+		"release":     nil,
 	}
 	for name, imports := range want {
 		rule, ok := config.Linters.Settings.Depguard.Rules[name]
@@ -58,6 +65,11 @@ func TestDepguardDrawsTheDirectionOfEveryNewPackage(t *testing.T) {
 		allow := make([]string, 0, 1+len(imports))
 		allow = append(allow, "$gostd")
 		for _, imported := range imports {
+			// A third-party module is named whole; a kit package by its name.
+			if strings.Contains(imported, ".") {
+				allow = append(allow, imported)
+				continue
+			}
 			allow = append(allow, kitModule+imported)
 		}
 		if !slices.Equal(rule.Allow, allow) {
