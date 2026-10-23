@@ -77,7 +77,7 @@ func lookup(code string) (string, bool) {
 // policy family keeps its rows in a file of its own.
 func phrases() []sentence {
 	return slices.Concat(filePhrases(), goastPhrases(), shellPhrases(), commitPhrases(),
-		policyLintPhrases(), policyBuildPhrases(), policyDepsPhrases())
+		policyLintPhrases(), policyBuildPhrases(), policyDepsPhrases(), policyProfilePhrases())
 }
 
 // filePhrases are the sentences of the text and paths families.

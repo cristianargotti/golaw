@@ -1,0 +1,6 @@
+# The proof entries of the checks the data of the enrolled profile turns on
+# (section 5.4, contract D5): one entry per registered check, with the
+# finding code its red fixture must yield, its two fixture directories
+# relative to this file and the profile the fixtures run under, which is
+# always the synthetic fixture bundle of internal/profile/testdata/fixture.
+checks: []

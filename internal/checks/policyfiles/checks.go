@@ -7,8 +7,8 @@ import (
 )
 
 // Checks lists every check of the family in report order: the lint half,
-// the build half and the dependency half, each listed in a file of its own
-// so the three halves grow apart.
+// the build half, the dependency half and the checks the profile data
+// turns on, each listed in a file of its own so the halves grow apart.
 func Checks() []model.Check {
-	return slices.Concat(lintChecks(), buildChecks(), depsChecks())
+	return slices.Concat(lintChecks(), buildChecks(), depsChecks(), profileChecks())
 }

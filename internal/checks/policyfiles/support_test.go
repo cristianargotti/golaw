@@ -15,13 +15,14 @@ import (
 
 // fixture is one tree and the policy a check measures it under.
 type fixture struct {
-	files        map[string]string // slash separated path to content
-	capabilities []string          // the enabled capabilities, none when nil
-	profile      string            // the enrolled profile, none when empty
-	mode         model.Mode        // model.ModeScan when zero
-	changes      []model.Change    // the staged changes a staged check reads
-	options      model.Options     // the policy values of the check's options
-	layout       *model.Layout     // the core default when nil
+	files        map[string]string  // slash separated path to content
+	capabilities []string           // the enabled capabilities, none when nil
+	profile      string             // the enrolled profile, none when empty
+	mode         model.Mode         // model.ModeScan when zero
+	changes      []model.Change     // the staged changes a staged check reads
+	options      model.Options      // the policy values of the check's options
+	layout       *model.Layout      // the core default when nil
+	data         *model.ProfileData // the data of the enrolled profile, none when nil; it names the profile when profile is empty
 }
 
 // measure dispatches the check over the fixture and answers its result.
@@ -50,12 +51,16 @@ func measure(t *testing.T, c model.Check, f fixture) model.Result {
 }
 
 // policyOf is the core policy with the fixture's capabilities, profile,
-// options and layout.
+// profile data, options and layout.
 func policyOf(c model.Check, f fixture) *model.EffectivePolicy {
 	p := model.CoreDefaults()
 	p.Digest = "fixture"
 	p.Capabilities = slices.Sorted(slices.Values(f.capabilities))
 	p.Profile = f.profile
+	p.ProfileData = f.data
+	if p.Profile == "" && f.data != nil {
+		p.Profile = f.data.Name
+	}
 	p.Options = map[string]model.Options{c.Spec().ID: f.options}
 	if f.layout != nil {
 		p.Layout = *f.layout
