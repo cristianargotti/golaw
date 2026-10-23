@@ -7,7 +7,7 @@
 # itself; the CI file installs the toolchain go.mod names before make ci.
 export GOTOOLCHAIN=local
 
-.PHONY: mod deps-age fmt lint lint-pkg test coverage build scan secrets ci vet coverage-check generate-check deadcode licenses vuln
+.PHONY: mod deps-age fmt lint lint-pkg test coverage build scan secrets ci vet coverage-check generate-check deadcode licenses vuln release-gate-dry-run release-verify
 
 mod:
 	go mod verify
@@ -60,3 +60,13 @@ secrets:
 	gitleaks git --redact --no-banner .
 
 ci: mod deps-age fmt lint test coverage build scan secrets vet generate-check coverage-check deadcode licenses
+
+# The release gate's decision replayed over a saved answer of the runs
+# endpoint of ci.yml, on any machine: make release-gate-dry-run SHA=<commit> RUNS=<file>
+release-gate-dry-run:
+	go run ./tools/releasegate -sha $(SHA) -runs $(RUNS)
+
+# A downloaded release verified by the downloaded binary itself, the only
+# build doctor verifies: make release-verify BIN=<binary> DIST=<directory>
+release-verify:
+	$(BIN) doctor --release $(DIST)

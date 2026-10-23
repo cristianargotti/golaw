@@ -1,0 +1,7 @@
+{
+  "total_count": 2,
+  "workflow_runs": [
+    {"id": 9001, "name": "CI", "path": ".github/workflows/ci.yml", "head_sha": "c0ffee5a17b02e57a7e1e2d0c0ffee5a17b02e57", "head_branch": "main", "event": "push", "status": "completed", "conclusion": "success", "run_number": 41, "run_attempt": 1},
+    {"id": 9004, "name": "CI", "path": ".github/workflows/ci.yml", "head_sha": "c0ffee5a17b02e57a7e1e2d0c0ffee5a17b02e57", "head_branch": "main", "event": "push", "status": "completed", "conclusion": "failure", "run_number": 44, "run_attempt": 1}
+  ]
+}
