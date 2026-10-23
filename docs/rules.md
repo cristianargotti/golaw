@@ -221,6 +221,18 @@ The required targets are data, `policyfiles.RequiredTargets`, read alike by the 
 
 Two targets run the kit's own tools: `deps-age` runs `tools/depsage` with `-days 7`, and `vuln` runs `tools/vulngate` with `-scan -waivers golaw.yml`, which runs the pinned govulncheck itself and judges its stream against the committed waivers. vulngate exits 0 when clean, 1 for a reachable advisory without a valid waiver and 2 when the scanner cannot start or its stream is incomplete; a failed or incomplete remote vulnerability measurement is not clean evidence. An adopter's golaw.mk selects both tools at the kit pin, `go run github.com/cristianargotti/golaw/tools/depsage@v<pin> -days 7`, each such target preceded by its target-specific `<target>: export GOTOOLCHAIN := auto`, because a tool's go line may be newer than the repository's while `export GOTOOLCHAIN=local` keeps the module's own builds on the toolchain the machine holds; a make export keeps the recipe one plain command under cmd.exe. The kit runs its local source, `go run ./tools/depsage -days 7` and `go run ./tools/vulngate -scan -waivers golaw.yml`, and its scheduled lane runs `make vuln`.
 
+## rules/4.14@1
+
+The profile evaluators judge a repository with the data of its enrolled profile bundle, never with code the bundle carries: the root Dockerfile against the stages, installs and registry of `rules.yml`, the ci target against the profile's extra targets, and typed YAML values against its assertions. Each answers NotApplicable without a profile and when the profile carries no section for it, so a repository that enrolls no profile meets none of them. A profile only adds checks; its schema has no key that names a core floor. [profiles.md](profiles.md) states the schema and the stated limits of each evaluator.
+
+Inventory section 4.14 is profile data, so the prose mapping holds no 4.14 row: its values reach a repository only through an enrolled bundle and these evaluators, and the public kit names no platform value. The forbidden paths of a profile are paths.profile-forbidden under rules/4.2@1, and the extra terms of a profile enter text.tool-terms under rules/4.1@1.
+
+| Check | Rule | Needs | Why and boundary |
+| --- | --- | --- | --- |
+| policy.image-stages | rules/4.14@1 | image | A root Dockerfile that lacks a stage the profile names, names them out of the profile's order, or whose last stage starts from another image than the profile's final image, because the platform builds every image through the same stages; a construct outside the Dockerfile reader's subset is a stated limit. |
+| policy.image-installs | rules/4.14@1 | image | An install line of a stage that adds a package outside the profile's allowlist for that stage, a package without a version when the profile pins installs, or an inline ignore comment the profile forbids, because an image carries only the reviewed tools; a variable, a substitution, an option with an argument, an exec form install or a heredoc install is a stated limit. |
+| policy.image-registry | rules/4.14@1 | image | A FROM image of the root Dockerfile that does not match the profile's registry pattern, because images come from the registry the platform trusts; a reference the Dockerfile reader cannot resolve is a stated limit. |
+
 ## Reader subsets and stated limits
 
 Each reader of `internal/checks/policyfiles/` reads one format through the subset below; a construct outside it that a verdict depends on is a stated limit whose reason ends with the sentinel of this page, and the last column names the rewrite within the subset that clears it, so the person or the agent fixes it without help. A stated limit fails the only gate, scan exits 2, and no exception covers it.
