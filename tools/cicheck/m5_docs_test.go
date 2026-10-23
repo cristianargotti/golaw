@@ -41,6 +41,8 @@ func m5GuideClaims() []string {
 		"so a fresh clone never bricks.",
 		"`profile-installed` with `version <v>, digest <d>, <n> days since <date>`",
 		"Without a remote stage, automatic kit checks run only on machines whose developers armed them.",
+		"commit, then run `golaw init --apply` once more to enroll the committed pin",
+		"A teammate who pulls a moved pin installs that version with the command the pin names and runs `golaw init --apply` to enroll it.",
 	}
 }
 
@@ -65,6 +67,8 @@ func TestM5ProfileGuide(t *testing.T) {
 		{"red-future-lifecycle", text + "\n" + stale[0] + ".\n", false},
 		{"red-missing-store", strings.Replace(text, claims[4], "", 1), false},
 		{"red-missing-human-line", strings.Replace(text, claims[16], "", 1), false},
+		{"red-missing-pin-enrollment", strings.Replace(text, claims[20], "", 1), false},
+		{"red-missing-teammate-step", strings.Replace(text, claims[21], "", 1), false},
 		{"near-extra-example", text + "\nAnother synthetic bundle may serve as an example.\n", true},
 	}
 	for _, row := range rows {

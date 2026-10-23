@@ -126,7 +126,7 @@ golaw profile remove <name>
 
 ## Adopt a profile and move the pin
 
-`golaw init --profile <name>` reads the stamp of the installed current bundle, never the network, and previews the `profile:` line of `golaw.yml`; `--apply` writes it, and the person commits it. Without a bundle installed for that name, init refuses and names the install command, because the kit cannot know the source. To move a pin, install the other version (or roll back to it), run `golaw init --profile <name> --apply` and commit: the diff changes the version and the digest of the pin and nothing else. Refresh, rollback and install alone never change a pin, and installing another version cannot make a mismatched pin valid.
+`golaw init --profile <name>` reads the stamp of the installed current bundle, never the network, and previews the `profile:` line of `golaw.yml`; `--apply` writes it, and the person commits it. Without a bundle installed for that name, init refuses and names the install command, because the kit cannot know the source. To move a pin, install the other version (or roll back to it), run `golaw init --profile <name> --apply`, commit, then run `golaw init --apply` once more to enroll the committed pin: the diff changes the version and the digest of the pin and nothing else, and until the second init every governed operation refuses the committed pin as an enrollment mismatch. A teammate who pulls a moved pin installs that version with the command the pin names and runs `golaw init --apply` to enroll it. Refresh, rollback and install alone never change a pin, and installing another version cannot make a mismatched pin valid.
 
 ## A missing or different bundle
 

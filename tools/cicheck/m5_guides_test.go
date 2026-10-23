@@ -37,7 +37,7 @@ func TestM5ProfileSetup(t *testing.T) {
 		"`profile-installed` with its version, digest and the days since its date",
 		"Every teammate installs the same bundle once with the command the pin names.",
 		"never a silent core-only answer",
-		"review a diff that changes only the version and the digest of the pin, and commit it.",
+		"review a diff that changes only the version and the digest of the pin, and commit it, then",
 		"install, refresh, rollback and remove never change a pin.",
 		"golaw init --seed-debt --apply",
 		"The debt set is seeded once",
@@ -46,6 +46,8 @@ func TestM5ProfileSetup(t *testing.T) {
 		"Adopting a profile after the first init seeds nothing",
 		"After a plain golaw init --apply, the refusal names how to start over before the first commit",
 		"golaw profile install <source>@<version> with a credential that reads the bundle, before make ci",
+		"then run golaw init --apply once more to enroll the committed pin",
+		"A teammate who pulls a moved pin installs the new version with the command the pin names, then runs golaw init --apply to enroll the pulled pin.",
 	}
 	swapped := strings.Replace(text, commands[1], "golaw init --profile <name> --preview\n", 1)
 	rows := []struct {
@@ -58,6 +60,8 @@ func TestM5ProfileSetup(t *testing.T) {
 		{"red-debt-broadening-missing", strings.Replace(text, required[9], "", 1), false},
 		{"red-ci-provisioning-missing", strings.Replace(text, required[13], "", 1), false},
 		{"red-late-profile-missing", strings.Replace(text, required[11], "", 1), false},
+		{"red-pin-enrollment-missing", strings.Replace(text, required[14], "", 1), false},
+		{"red-teammate-step-missing", strings.Replace(text, required[15], "", 1), false},
 		{"near-another-profile-name", text + "\ngolaw init --profile fixture\n", true},
 	}
 	for _, row := range rows {
