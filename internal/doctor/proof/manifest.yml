@@ -172,3 +172,21 @@ checks:
     code: checksum-mismatch
     red: testdata/release/red
     near: testdata/release/near
+  # M5: the release verification codes after the checksum step, each proven
+  # through release.Verify, the signed ones over a release the proof generates.
+  - id: doctor.release-input-missing
+    code: release-input-missing
+    red: testdata/release-input-missing/red
+    near: testdata/release-input-missing/near
+  - id: doctor.trust-root-invalid
+    code: trust-root-invalid
+    red: testdata/trust-root-invalid/red
+    near: testdata/trust-root-invalid/near
+  - id: doctor.signature-invalid
+    code: signature-invalid
+    red: testdata/signature-invalid/red
+    near: testdata/signature-invalid/near
+  - id: doctor.identity-mismatch
+    code: identity-mismatch
+    red: testdata/identity-mismatch/red
+    near: testdata/identity-mismatch/near
