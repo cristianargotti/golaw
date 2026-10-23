@@ -17,6 +17,7 @@ const (
 	m2TimingSourcePath = "internal/source/doc.go"
 	m2TimingLine       = "\n// Frozen inputs keep measurement independent from checkout edits.\n"
 	m2TimingListFiles  = "ls-files"
+	m2TimingLongPaths  = "core.longpaths"
 )
 
 func (s *suite) m2TimingSource(ctx context.Context) ([]m2ArchiveFile, error) {
@@ -82,7 +83,10 @@ func (s *suite) m2CopyTimingSource(repo string, files []m2ArchiveFile) error {
 }
 
 func (s *suite) m2TimingBootstrap(ctx context.Context, repo string) error {
-	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}); err != nil {
+	// The kit's fixture paths below a test's temporary directory pass the
+	// 260 character limit of Windows, which Git for Windows lifts per repo.
+	longPaths := []string{"config", m2TimingLongPaths, "true"}
+	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}, longPaths); err != nil {
 		return err
 	}
 	if err := m2TimingPin(repo); err != nil {
