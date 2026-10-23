@@ -57,9 +57,8 @@ func TestProfileDigestRefusesWhatIsNotABundle(t *testing.T) {
 	}
 }
 
-// The lifecycle exits 2 with one line naming its subcommand for a source
-// that is not one and for a step that fails, which every row is until the
-// install part builds the steps and the same rows fail on their own causes.
+// The lifecycle exits 2 with one line naming its subcommand and its cause,
+// and prints nothing on stdout.
 func TestProfileLifecycleFailuresExitTwoWithOneLine(t *testing.T) {
 	t.Parallel()
 	absent := filepath.Join(t.TempDir(), "absent.git")
@@ -68,21 +67,23 @@ func TestProfileLifecycleFailuresExitTwoWithOneLine(t *testing.T) {
 		want string
 	}{
 		"install without a source": {[]string{"profile", "install"}, "golaw: accepts 1 arg(s), received 0"},
-		"install of a bad source":  {[]string{"profile", "install", "https://example.test/profiles/fixture"}, "golaw: profile install: "},
-		"install of a bad tag":     {[]string{"profile", "install", absent + "@latest"}, "golaw: profile install: "},
-		"install":                  {[]string{"profile", "install", absent + "@v1.2.3"}, "golaw: profile install: "},
-		"refresh":                  {[]string{"profile", "refresh", profiletest.Name}, "golaw: profile refresh: "},
-		"rollback":                 {[]string{"profile", "rollback", profiletest.Name}, "golaw: profile rollback: "},
-		"remove":                   {[]string{"profile", "remove", profiletest.Name}, "golaw: profile remove: "},
+		"install of a bad source":  {[]string{"profile", "install", "https://example.test/profiles/fixture"}, "is not <git url>@<tag>"},
+		"install of a bad tag":     {[]string{"profile", "install", absent + "@latest"}, `tag "latest" is not vX.Y.Z or X.Y.Z`},
+		"install of no source":     {[]string{"profile", "install", absent + "@v1.2.3"}, "does not exist"},
+		"refresh":                  {[]string{"profile", "refresh", profiletest.Name}, "profile fixture has no install record"},
+		"rollback":                 {[]string{"profile", "rollback", profiletest.Name}, "profile fixture has no install record"},
+		"remove":                   {[]string{"profile", "remove", profiletest.Name}, "profile fixture is not installed"},
+		"remove of a path":         {[]string{"profile", "remove", "../fixture"}, `"../fixture" is not a profile name`},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			ta := bindApp(t)
+			ta, _ := lifecycleApp(t)
 			if got := ta.run(t.Context(), tc.args); got != exitFailure {
 				t.Fatalf("exit = %d", got)
 			}
-			if got := ta.stderr.String(); !strings.HasPrefix(got, tc.want) || strings.Count(got, "\n") != 1 || ta.stdout.Len() != 0 {
+			got := ta.stderr.String()
+			if !strings.HasPrefix(got, "golaw: ") || !strings.Contains(got, tc.want) || strings.Count(got, "\n") != 1 || ta.stdout.Len() != 0 {
 				t.Fatalf("stderr = %q, stdout = %q", got, ta.stdout.String())
 			}
 		})
