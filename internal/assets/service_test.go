@@ -122,6 +122,37 @@ func TestRenderServiceCarriesTheSumFileByItsName(t *testing.T) {
 	}
 }
 
+// TestRenderServiceBuildsOnBasesStillUpdated holds the example image to one
+// Debian release whose images their publishers still rebuild: distroless
+// updates only its Debian 13 images, so a static-debian12 runtime kept
+// ca-certificates and tzdata behind fixes Debian had shipped, and the image
+// scan of every replay failed on advisories no rebuild of the service clears.
+func TestRenderServiceBuildsOnBasesStillUpdated(t *testing.T) {
+	t.Parallel()
+	files, err := assets.RenderService(golaw.FS, templateValues())
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := slices.IndexFunc(files, func(r assets.Rendered) bool { return r.Path == "Dockerfile" })
+	if at < 0 {
+		t.Fatal("the service fixture holds no Dockerfile")
+	}
+	var refs []string
+	for line := range strings.SplitSeq(string(files[at].Data), "\n") {
+		if image, found := strings.CutPrefix(line, "FROM "); found {
+			ref, digest, pinned := strings.Cut(strings.Fields(image)[0], "@sha256:")
+			if !pinned || len(digest) != 64 {
+				t.Errorf("image %s is not pinned by digest", image)
+			}
+			refs = append(refs, ref)
+		}
+	}
+	if len(refs) != 2 || !strings.HasPrefix(refs[0], "golang:") || !strings.HasSuffix(refs[0], "-trixie") ||
+		refs[1] != "gcr.io/distroless/static-debian13:nonroot" {
+		t.Fatalf("service images = %q, want a golang trixie build and the distroless static-debian13 nonroot runtime", refs)
+	}
+}
+
 // serviceTree is the smallest embedded tree that holds one asset beside
 // the two manifests.
 func serviceTree(path, body string) fstest.MapFS {
