@@ -58,23 +58,30 @@ func TestTrustedLinesNameWhatTheHostDecides(t *testing.T) {
 
 func TestFailModeLinesNeverCallCodexClosed(t *testing.T) {
 	t.Parallel()
+	// A user-scope Codex installation writes no rules file (decision 4), so
+	// only the project-scope detail may name it among the mitigations.
 	for _, tc := range []struct {
-		name, agent string
-		event       eventFact
-		state, code string
-		detail      string
+		name, agent, scope string
+		event              eventFact
+		state, code        string
+		detail, absent     string
 	}{
-		{"cursor", agentCursor, eventFact{Event: "preToolUse", Present: true, FailClosed: true}, stateOK, codeFailClosed, "failClosed"},
-		{"claude", agentClaude, eventFact{Event: "PreToolUse", Present: true, FailClosed: true}, stateOK, codeFailClosed, "onFailure block"},
-		{"codex", agentCodex, eventFact{Event: "PreToolUse", Present: true, FailClosed: true}, stateUnknown, codeHostFailsOpen, "Codex runs the tool"},
-		{"softer", agentCursor, eventFact{Event: "preToolUse", Present: true}, stateRed, codeHostFailsOpen, "does not block on failure"},
-		{"absent", agentClaude, eventFact{Event: "PreToolUse"}, stateRed, codeHostFailsOpen, "run golaw agent install --agent claude"},
+		{"cursor", agentCursor, "user", eventFact{Event: "preToolUse", Present: true, FailClosed: true}, stateOK, codeFailClosed, "failClosed", ""},
+		{"claude", agentClaude, "user", eventFact{Event: "PreToolUse", Present: true, FailClosed: true}, stateOK, codeFailClosed, "onFailure block", ""},
+		{"codex", agentCodex, "user", eventFact{Event: "PreToolUse", Present: true, FailClosed: true}, stateUnknown, codeHostFailsOpen, "Codex runs the tool", ""},
+		{"codex-user", agentCodex, "user", eventFact{Event: "PreToolUse", Present: true}, stateUnknown, codeHostFailsOpen, "the internal deadline, the post feedback", "rules file"},
+		{"codex-project", agentCodex, "project", eventFact{Event: "PreToolUse", Present: true}, stateUnknown, codeHostFailsOpen, "the internal deadline, the rules file, the post feedback", ""},
+		{"softer", agentCursor, "user", eventFact{Event: "preToolUse", Present: true}, stateRed, codeHostFailsOpen, "does not block on failure", ""},
+		{"absent", agentClaude, "user", eventFact{Event: "PreToolUse"}, stateRed, codeHostFailsOpen, "run golaw agent install --agent claude", ""},
 	} {
-		facts := installedFacts(tc.agent, "user")
+		facts := installedFacts(tc.agent, tc.scope)
 		facts.Events = []eventFact{tc.event}
 		line := failModeLines(facts)[0]
 		if line.ID != idFailMode || line.Key != tc.agent+"/"+tc.event.Event || line.State != tc.state || line.Code != tc.code || !strings.Contains(line.Detail, tc.detail) {
 			t.Errorf("%s: %+v", tc.name, line)
+		}
+		if tc.absent != "" && strings.Contains(line.Detail, tc.absent) {
+			t.Errorf("%s names %q: %+v", tc.name, tc.absent, line)
 		}
 	}
 	if lines := failModeLines(agentFacts{Agent: agentCodex}); len(lines) != 0 {
