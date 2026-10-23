@@ -77,15 +77,28 @@ func m5LaneReason(data []byte) string {
 	return "missing M5 replay"
 }
 
-// TestM5JobFollowsTheM4Job keeps the acceptance jobs in milestone order.
-// The m4 job lands with the M4 acceptance lane, which this tree does not
-// hold yet, so until it does the m5 job follows the m3 job, the last
-// acceptance job before it; once m4 exists, m5 must follow m4.
+// TestM5JobFollowsTheM4Job keeps the acceptance jobs in milestone order:
+// the m5 job comes right after the m4 job, and a tree whose m5 job follows
+// any other job, the m3 job of a tree without the M4 lane included, fails.
 func TestM5JobFollowsTheM4Job(t *testing.T) {
 	t.Parallel()
-	root, err := document(kitBytes(t, ".github/workflows/ci.yml"))
+	for _, tt := range []struct{ name, body, want string }{
+		{"repository", string(kitBytes(t, ".github/workflows/ci.yml")), ""},
+		{"near m4 then m5", "jobs:\n  m3: {}\n  m4: {}\n  m5: {}\n", ""},
+		{"red m5 after m3 without m4", "jobs:\n  m3: {}\n  m5: {}\n", "m5 must follow m4"},
+		{"red m5 before m4", "jobs:\n  m3: {}\n  m5: {}\n  m4: {}\n", "m5 must follow m4"},
+		{"red corrupted YAML", "jobs: [", "CI YAML cannot be decoded"},
+	} {
+		if got := m5OrderReason([]byte(tt.body)); got != tt.want {
+			t.Fatalf("%s: reason=%q, want=%q", tt.name, got, tt.want)
+		}
+	}
+}
+
+func m5OrderReason(data []byte) string {
+	root, err := document(data)
 	if err != nil {
-		t.Fatal(err)
+		return "CI YAML cannot be decoded"
 	}
 	content := children(at(root, "jobs"))
 	jobs := make([]string, 0, len(content)/2)
@@ -93,10 +106,8 @@ func TestM5JobFollowsTheM4Job(t *testing.T) {
 		jobs = append(jobs, content[i].Value)
 	}
 	m4, m5 := slices.Index(jobs, "m4"), slices.Index(jobs, "m5")
-	if m4 < 0 {
-		m4 = slices.Index(jobs, "m3")
-	}
 	if m4 < 0 || m5 != m4+1 {
-		t.Fatalf("jobs = %q: m5 must follow m4", jobs)
+		return "m5 must follow m4"
 	}
+	return ""
 }
