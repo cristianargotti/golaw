@@ -1,0 +1,51 @@
+package debt
+
+// Long counts past the function length law, the debt the seed records.
+func Long() int {
+	total := 0
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	total++
+	return total
+}
