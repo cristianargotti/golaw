@@ -60,6 +60,8 @@ func TestDoctorProof(t *testing.T) {
 	registerManagedProof(t, builder)
 	registerGoProof(t, builder)
 	registerAgentProof(t, builder)
+	registerProfileProof(t, builder)
+	registerReleaseProof(t, builder)
 	registry, err := builder.Build(engine.WithProofs(manifest.Names()))
 	if err != nil {
 		t.Fatal(err)
