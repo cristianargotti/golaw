@@ -109,7 +109,7 @@ func TestVerifyRefusesABundleThatDoesNotSignTheRelease(t *testing.T) {
 func TestVerifyGoesPastAGoodBundle(t *testing.T) {
 	t.Parallel()
 	in, _ := material(t)
-	if v := release.Verify(in); v.State != release.StateUnknown || v.Code != release.CodeUnverified || v.Signer != "" || v.Digest != in.BinaryDigest {
+	if v := release.Verify(in); v.State != release.StateOK || v.Code != release.CodeVerified || v.Digest != in.BinaryDigest {
 		t.Fatalf("Verify = %+v", v)
 	}
 }

@@ -44,6 +44,8 @@ func releaseProofs() []releaseDiagnosticCheck {
 		{id: "doctor." + release.CodeTrustRootInvalid, code: release.CodeTrustRootInvalid},
 		{id: "doctor." + release.CodeSignatureInvalid, code: release.CodeSignatureInvalid},
 		{id: "doctor." + release.CodeIdentityMismatch, code: release.CodeIdentityMismatch},
+		{id: "doctor." + release.CodeAttestationMissing, code: release.CodeAttestationMissing},
+		{id: "doctor." + release.CodeAttestationMismatch, code: release.CodeAttestationMismatch},
 	}
 }
 
@@ -54,7 +56,7 @@ func releaseMaterials(t *testing.T) map[string]release.Inputs {
 	t.Helper()
 	good := releasetest.Generate(t, []byte("golaw doctor proof binary\n"), "1.2.3")
 	out := map[string]release.Inputs{"good": good.Inputs(t)}
-	for _, what := range []string{"signature", "identity"} {
+	for _, what := range []string{"signature", "identity", "attestation", "no-attestation"} {
 		out[what] = good.Tamper(t, what).Inputs(t)
 	}
 	return out

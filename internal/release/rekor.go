@@ -26,8 +26,10 @@ type recordedEntry struct {
 }
 
 type recordedSpec struct {
-	Data      recordedData      `json:"data"`
-	Signature recordedSignature `json:"signature"`
+	Data        recordedData       `json:"data"`
+	Signature   recordedSignature  `json:"signature"`
+	PayloadHash recordedHash       `json:"payloadHash"`
+	Signatures  []recordedVerifier `json:"signatures"`
 }
 
 type recordedData struct {

@@ -13,4 +13,7 @@ var (
 	// errIdentity marks a certificate that verifies and names another
 	// signer than the pinned identity, a code of its own (D11).
 	errIdentity = errors.New("identity mismatch")
+	// errAttestation marks an attestation that verifies and names another
+	// asset or another digest than the running binary.
+	errAttestation = errors.New("attestation mismatch")
 )

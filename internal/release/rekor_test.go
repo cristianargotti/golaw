@@ -66,7 +66,7 @@ func TestVerifyRefusesALogEntryTheLogDidNotSign(t *testing.T) {
 func TestVerifyJudgesTheLeafWhenTheLogSawIt(t *testing.T) {
 	t.Parallel()
 	in, _ := material(t)
-	if v := release.Verify(in); v.Code != release.CodeUnverified || v.Detail != "the attestation is not verified yet" {
+	if v := release.Verify(in); v.Code != release.CodeVerified {
 		t.Fatalf("a logged leaf ten minutes long verifies whatever the clock says: %+v", v)
 	}
 }

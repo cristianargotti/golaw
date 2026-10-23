@@ -190,3 +190,11 @@ checks:
     code: identity-mismatch
     red: testdata/identity-mismatch/red
     near: testdata/identity-mismatch/near
+  - id: doctor.attestation-missing
+    code: attestation-missing
+    red: testdata/attestation-missing/red
+    near: testdata/attestation-missing/near
+  - id: doctor.attestation-mismatch
+    code: attestation-mismatch
+    red: testdata/attestation-mismatch/red
+    near: testdata/attestation-mismatch/near

@@ -1,21 +1,26 @@
 package release
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 )
 
 // sigstoreBundle is the part of a Sigstore bundle the verifier reads, in
 // the protobuf JSON form of version 0.3 that cosign writes with the new
-// bundle format: the leaf certificate, the log entries with their signed
-// entry timestamps, and the message signature. Every other field is
-// ignored, so a newer writer that adds one keeps verifying.
+// bundle format and the attestation action writes: the leaf certificate,
+// the log entries with their signed entry timestamps, and the message
+// signature or the DSSE envelope. Every other field is ignored, so a newer
+// writer that adds one keeps verifying.
 type sigstoreBundle struct {
 	VerificationMaterial verificationMaterial `json:"verificationMaterial"`
 	MessageSignature     *messageSignature    `json:"messageSignature"`
+	DSSEEnvelope         *dsseEnvelope        `json:"dsseEnvelope"`
 }
 
 type verificationMaterial struct {
@@ -47,6 +52,17 @@ type messageSignature struct {
 	Signature string `json:"signature"`
 }
 
+// dsseEnvelope is the signed envelope of an attestation bundle.
+type dsseEnvelope struct {
+	Payload     string          `json:"payload"`
+	PayloadType string          `json:"payloadType"`
+	Signatures  []dsseSignature `json:"signatures"`
+}
+
+type dsseSignature struct {
+	Sig string `json:"sig"`
+}
+
 // protoInt is an int64 of the protobuf JSON form, a quoted string of
 // digits; a bare number is read as well.
 type protoInt int64
@@ -73,6 +89,27 @@ func decodeBundle(data []byte) (sigstoreBundle, error) {
 
 // b64 is the standard base64 a log signs a body in.
 func b64(data []byte) string { return base64.StdEncoding.EncodeToString(data) }
+
+// decodeBundles reads every bundle of an attestation file: one JSON
+// document, as a bundle saved on its own, or one per line, as the file gh
+// attestation download writes.
+func decodeBundles(data []byte) ([]sigstoreBundle, error) {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	var out []sigstoreBundle
+	for {
+		var b sigstoreBundle
+		err := decoder.Decode(&b)
+		switch {
+		case errors.Is(err, io.EOF) && len(out) > 0:
+			return out, nil
+		case errors.Is(err, io.EOF):
+			return nil, fmt.Errorf("%w: the file holds no bundle", errSignature)
+		case err != nil:
+			return nil, fmt.Errorf("%w: the bundle does not decode: %w", errSignature, err)
+		}
+		out = append(out, b)
+	}
+}
 
 // decode64 reads the standard base64 the protobuf JSON form writes for
 // bytes.
