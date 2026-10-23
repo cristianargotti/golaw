@@ -36,6 +36,9 @@ func WriteTemplateDiff(out io.Writer, plan TemplatePlan) error {
 	if err := writeOwnership(out, plan); err != nil {
 		return err
 	}
+	if err := writeExcluded(out, plan); err != nil {
+		return err
+	}
 	if err := writeCollisions(out, plan); err != nil {
 		return err
 	}
