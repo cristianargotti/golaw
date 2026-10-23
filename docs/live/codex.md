@@ -26,3 +26,7 @@ No acceptance run holds a credential: the isolated home of every run is empty. U
 ## After the session
 
 Review `docs/live/codex-darwin.json` and commit it alone before the tag: a commit that only adds the record keeps the candidate digest. Record a new session whenever the toolchain, the candidate or the validated Codex version changes. Cursor has no lane yet: it stays a compatibility preview until an `agent -p` lane records its hooks firing.
+
+## The dispatched job
+
+`.github/workflows/live-codex.yml` runs this procedure on a hosted macOS arm64 runner when a person dispatches it (`workflow_dispatch`), never on a push or a pull request. The seven facts are its required inputs. It needs the repository secret `CODEX_API_KEY`, an API key with a spending limit that the owner provisions before the first run; without it the lane answers SKIP and the job fails, because no record exists to keep. The job prints the record in its log and its summary; review it and commit it alone, as above.
