@@ -1,0 +1,5 @@
+name: fixture
+version: 1.2.3
+date: 2026-10-20
+source: https://example.test/profiles/fixture
+digest: sha256:e089c40003920fad658fdaa375c34e9229e987fd6af163511d2d3df8d9690c96
