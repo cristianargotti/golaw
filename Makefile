@@ -3,6 +3,10 @@
 # feature, no awk, no tar. Remote CI runs make ci; nothing here is a gate on
 # a developer's machine.
 
+# make runs the toolchain the machine holds, never one go downloads by
+# itself; the CI file installs the toolchain go.mod names before make ci.
+export GOTOOLCHAIN=local
+
 .PHONY: mod deps-age fmt lint lint-pkg test coverage build scan secrets ci vet coverage-check generate-check deadcode licenses vuln
 
 mod:
@@ -28,8 +32,10 @@ generate-check:
 	go generate ./...
 	git diff --exit-code
 
+# The slowest package under -race outlasts go test's default of ten minutes
+# on a loaded or slow machine; the CI job bounds make ci at thirty.
 test:
-	go test -race -coverprofile=coverage.out -covermode=atomic ./...
+	go test -race -timeout=25m -coverprofile=coverage.out -covermode=atomic ./...
 
 coverage:
 	go run ./cmd/golaw coverage --input coverage.out
@@ -40,7 +46,7 @@ build:
 	go build ./...
 
 deadcode:
-	go mod tidy -diff
+	go test -tags=deadcode ./test/deadcode/
 
 licenses:
 	go run github.com/google/go-licenses/v2@v2.0.1 check --disallowed_types=forbidden,restricted ./...

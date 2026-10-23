@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -16,6 +15,18 @@ const (
 	m2UpdateFlag  = "--update"
 	m2EditedAsset = "golaw.mk"
 )
+
+// m2LifecycleModule is the module of the lifecycle rows: it requires the
+// ruleguard dsl the rendered rules file imports, as an adopter does once it
+// applies the go.mod proposal of init, so a second init proposes nothing.
+const m2LifecycleModule = m2Module + "\nrequire github.com/quasilyte/go-ruleguard/dsl v0.3.23\n"
+
+// m2LifecycleSums are the go.sum lines go mod tidy writes for that require.
+// The installed pre-commit lints a staged Go file under -mod=readonly, and
+// ruleguard type-checks the rules file against the dsl, which a require
+// without its sums cannot load.
+const m2LifecycleSums = "github.com/quasilyte/go-ruleguard/dsl v0.3.23 h1:lxjt5B6ZCiBeeNO8/oQsegE6fLeCzuMRoVWSkXC4uvY=\n" +
+	"github.com/quasilyte/go-ruleguard/dsl v0.3.23/go.mod h1:KeCP03KrjuSO0H1kTuZQCWlQPulDV6YMIXmpQss17rU=\n"
 
 func (s *suite) lifecycleM2(ctx context.Context, name string) error {
 	if !slices.Contains(m2LifecycleNames(), name) {
@@ -77,7 +88,7 @@ func (s *suite) m2LifecycleRepository(ctx context.Context, name string) (string,
 	if err != nil {
 		return "", err
 	}
-	if err := writeFile(filepath.Join(repo, moduleFile), []byte(m2Module), fileMode); err != nil {
+	if err := materialize(repo, map[string]string{moduleFile: m2LifecycleModule, "go.sum": m2LifecycleSums}); err != nil {
 		return "", err
 	}
 	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}); err != nil {

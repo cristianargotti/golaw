@@ -25,16 +25,18 @@ import (
 const ruleguardModule = "github.com/quasilyte/go-ruleguard/dsl"
 
 // serviceFiles is the service fixture beside every core template init
-// renders for the capabilities; the go.mod is the fixture's own.
+// renders for the capabilities; the go.mod is the fixture's own, and its
+// direct requires reach the inherited baseline as init records them.
 func serviceFiles(t *testing.T, capabilities []string) map[string][]byte {
 	t.Helper()
 	context := assetContext()
 	context.Capabilities = capabilities
-	core, err := assets.RenderAllContext(golaw.FS, context)
+	service, err := assets.RenderService(golaw.FS, context.Values)
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := assets.RenderService(golaw.FS, context.Values)
+	context.DirectRequires = directRequires(service)
+	core, err := assets.RenderAllContext(golaw.FS, context)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +51,8 @@ func serviceFiles(t *testing.T, capabilities []string) map[string][]byte {
 // withKitRequirement adds a module the kit's go.mod requires, with its
 // go.sum lines, when a rendered rules file imports it: init proposes that
 // require and the person applies it, so the tree holds it as an adopter's
-// would.
+// would, in the shape go mod tidy leaves, because the generated code may
+// bring requires of its own.
 func withKitRequirement(t *testing.T, files map[string][]byte, module string) map[string][]byte {
 	t.Helper()
 	if _, ok := files["scripts/lint/rules.go"]; !ok {
@@ -63,7 +66,7 @@ func withKitRequirement(t *testing.T, files map[string][]byte, module string) ma
 	for line := range strings.SplitSeq(string(kitModule), "\n") {
 		fields := strings.Fields(strings.TrimPrefix(strings.TrimSpace(line), "require "))
 		if len(fields) >= 2 && fields[0] == module {
-			require = "require " + fields[0] + " " + fields[1] + "\n"
+			require = fields[0] + " " + fields[1]
 		}
 	}
 	if require == "" {
@@ -81,8 +84,8 @@ func withKitRequirement(t *testing.T, files map[string][]byte, module string) ma
 			}
 		}
 	}
-	files["go.mod"] = append(slices.Clone(files["go.mod"]), "\n"+require...)
-	files["go.sum"] = []byte(sum.String())
+	files["go.mod"] = requireInModule(files["go.mod"], require)
+	files["go.sum"] = mergedSum(files["go.sum"], sum.String())
 	return files
 }
 
@@ -125,6 +128,7 @@ func TestServiceFixtureScansClean(t *testing.T) {
 	}{
 		{"near go", []string{"go"}, nil, ""},
 		{"near cli hexagonal image", []string{"cli", "go", "hexagonal", "image"}, nil, ""},
+		{"near every capability", model.Capabilities(), nil, ""},
 		{"red raw error under api", []string{"api", "go"}, map[string]string{"internal/server/raw.go": raw}, "goast.raw-error-response"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -200,7 +204,7 @@ func TestServiceFixtureBuildsTestsAndMeetsTheFloors(t *testing.T) {
 		files[service[i].Path] = service[i].Data
 	}
 	root := writeTree(t, files)
-	env := append((&exec.Cmd{}).Environ(), "GOTOOLCHAIN=local", "GOPROXY=off", "GOFLAGS=", "GOWORK=off")
+	env := append((&exec.Cmd{}).Environ(), "GOTOOLCHAIN=local", "GOFLAGS=", "GOWORK=off")
 	profile := filepath.Join(root, "coverage.out")
 	for _, c := range []runner.Command{
 		{Name: "go", Args: []string{"vet", "./..."}, Dir: root, Env: env},
@@ -227,14 +231,17 @@ func TestServiceFixtureBuildsTestsAndMeetsTheFloors(t *testing.T) {
 
 // TestServiceFixtureLintsClean runs the pinned golangci-lint with the
 // strict asset rendered for the hexagonal capability and go mod tidy -diff
-// over the service, as make lint and the deadcode target do.
+// over the service, as make lint and the deadcode target do. The modules
+// the generated API code imports come through the proxy the environment
+// names, as the other targets of make ci read theirs; a warm module cache
+// serves them without the network.
 func TestServiceFixtureLintsClean(t *testing.T) {
 	t.Parallel()
 	tool, ok := runner.LookupTool("golangci-lint")
 	if !ok {
 		t.Fatal("golangci-lint is not a pinned tool")
 	}
-	env := append((&exec.Cmd{}).Environ(), "GOTOOLCHAIN=local", "GOPROXY=off", "GOFLAGS=-mod=mod", "GOWORK=off")
+	env := append((&exec.Cmd{}).Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod", "GOWORK=off")
 	linter, err := runner.Verify(t.Context(), tool, env)
 	if err != nil {
 		if os.Getenv("CI") != "" {

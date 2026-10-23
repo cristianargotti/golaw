@@ -41,7 +41,7 @@ func (plan *TemplatePlan) addArrivals(files map[string]assets.Rendered, records 
 			return err
 		}
 	}
-	return nil
+	return plan.addRecordModules(files)
 }
 
 // adopted reports whether a record names a kit template this version

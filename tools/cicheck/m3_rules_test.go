@@ -6,6 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/cristianargotti/golaw/internal/checks"
+	"github.com/cristianargotti/golaw/internal/checks/policyfiles"
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 const (
@@ -176,4 +180,116 @@ func inspectProseBudget(path string, data []byte) string {
 		}
 	}
 	return ""
+}
+
+func TestM3CatalogHasReasonsAndStableReferences(t *testing.T) {
+	t.Parallel()
+	rows := m3CatalogRows(t, kitBytes(t, m3RulesPath))
+	for _, check := range checks.Catalog() {
+		spec := check.Spec()
+		row, found := rows[spec.ID]
+		if !found {
+			t.Errorf("missing catalog row: %s", spec.ID)
+			continue
+		}
+		needs := strings.Join(spec.Needs, ",")
+		if needs == "" {
+			needs = "none"
+		}
+		if row[1] != spec.Rule || row[2] != needs {
+			t.Errorf("%s documents rule or capability differently from its spec", spec.ID)
+		}
+		if !strings.Contains(strings.ToLower(row[3]), "because") {
+			t.Errorf("%s has no stated why", spec.ID)
+		}
+		requireText(t, m3RulesPath, "## "+spec.Rule)
+		delete(rows, spec.ID)
+	}
+	for id := range rows {
+		t.Errorf("documented check is not registered: %s", id)
+	}
+}
+
+func m3CatalogRows(t *testing.T, data []byte) map[string][]string {
+	t.Helper()
+	rows := make(map[string][]string)
+	for line := range strings.SplitSeq(string(data), "\n") {
+		cells := strings.Split(line, "|")
+		if len(cells) != 6 {
+			continue
+		}
+		id := strings.TrimSpace(cells[1])
+		rule := strings.TrimSpace(cells[2])
+		if !strings.HasPrefix(rule, "rules/") {
+			continue
+		}
+		if !model.ValidID(id) {
+			t.Fatalf("invalid documented check id: %s", id)
+		}
+		if _, found := rows[id]; found {
+			t.Fatalf("duplicate documented check: %s", id)
+		}
+		rows[id] = []string{
+			id, rule, strings.TrimSpace(cells[3]), strings.TrimSpace(cells[4]),
+		}
+	}
+	return rows
+}
+
+func TestM3RequiredTargetsAreDocumentedFromTheirAuthority(t *testing.T) {
+	t.Parallel()
+	combinations := [][]string{
+		{},
+		{"image"},
+		{"go"},
+		{"go", "cli"},
+		{"go", "api"},
+		{"go", "db"},
+		{"go", "image"},
+		{"go", "hexagonal"},
+		{"go", "api", "cli", "db", "hexagonal", "image"},
+	}
+	for _, capabilities := range combinations {
+		key := strings.Join(capabilities, ",")
+		if key == "" {
+			key = "none"
+		}
+		targets := strings.Join(policyfiles.RequiredTargets(capabilities), " ")
+		if targets == "" {
+			targets = "none"
+		}
+		requireText(t, m3RulesPath, "| "+key+" | "+targets+" |")
+	}
+}
+
+func TestM3ReaderRowsNameTheirLimits(t *testing.T) {
+	t.Parallel()
+	rows := []struct {
+		name, file, limit, resolve string
+	}{
+		{"readGolangci", "lint_golangci.go", "a version other than \"2\" is outside the subset", "golangci-lint migrate"},
+		{"readMakefile", "build_makefile.go", "a computed include name", "outside the conditional block"},
+		{"readLefthook", "build_lefthook.go", "a second document is outside the subset", "one run string"},
+		{"readActions", "build_actions.go", "directly under", "write the make target literally"},
+		{"readModule", "deps_gomod.go", "every require and replace block included", "a path inside the repository"},
+		{"readDockerfile", "deps_dockerfile.go", "an ARG without a default", "give the ARG a literal default"},
+		{"readOwners", "deps_codeowners.go", "a negation or a bracket is outside the subset", "without a negation or a bracket"},
+		{"readDependabot", "deps_dependabot.go", "a second document is outside the subset", "integer cooldown days"},
+		{"decodeYAML", "yaml.go", "a root that is not a mapping or a second document is outside the subset", "one document whose root is a mapping"},
+		{"decodeTOML", "formats.go", "a syntax error naming the file and the line", "fix the syntax at the line named"},
+		{"decodeYAML (Redocly)", "yaml.go", "unknown inheritance, plugins or relevant assertion expressions", "keep references local"},
+	}
+	lines := strings.Split(string(kitBytes(t, m3RulesPath)), "\n")
+	for _, row := range rows {
+		prefix, count := "| "+row.name+" | "+row.file+" | ", 0
+		for _, line := range lines {
+			if strings.HasPrefix(line, prefix) && strings.Contains(line, row.limit) &&
+				strings.Contains(line, row.resolve) && strings.Count(line, "|") == 6 {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Errorf("reader %s needs one row naming %s, limit %q and the rewrite %q", row.name, row.file, row.limit, row.resolve)
+		}
+	}
 }

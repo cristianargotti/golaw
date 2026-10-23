@@ -2,6 +2,7 @@ package policyfiles
 
 import (
 	"path"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -19,6 +20,11 @@ type makeTargetSpan struct {
 func makeTargetLimit(m makefile, target string) error {
 	if _, found := m.rule(target); found {
 		return nil
+	}
+	for _, rule := range m.double {
+		if slices.Contains(rule.targets, target) {
+			return outside(rule.file, rule.line, "double-colon rule "+target+"::")
+		}
 	}
 	for _, rule := range m.rules {
 		for _, token := range rule.targets {

@@ -78,8 +78,9 @@ func (g *ciGraph) recipes(rule makeRule, carriedCheck bool) {
 			continue
 		}
 		targets, recognized := recipeTargets(line)
-		// Carrying a named check does not require proving its tool recipe.
-		if !recognized && carriedCheck {
+		// Carrying a named check does not require proving its tool recipe,
+		// and a program that starts no make reaches no target.
+		if !recognized && (carriedCheck || recipeRunsNoMake(line)) {
 			continue
 		}
 		if !recognized {

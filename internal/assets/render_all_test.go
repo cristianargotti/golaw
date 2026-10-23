@@ -39,7 +39,7 @@ func TestRenderAllSelectsAndSortsExpandedDestinations(t *testing.T) {
 			t.Parallel()
 			values := templateValues()
 			values.Capabilities = tc.caps
-			got, err := assets.RenderAll(tree, values)
+			got, err := assets.RenderAllContext(tree, assets.Context{Values: values, CIBackend: "none"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -66,7 +66,7 @@ func TestRenderAllSelectsAndSortsExpandedDestinations(t *testing.T) {
 		"templates/a.tmpl": {Data: []byte("first\n")},
 		"templates/b.tmpl": {Data: []byte("second\n")},
 	}
-	if _, err := assets.RenderAll(collision, templateValues()); !errors.Is(err, assets.ErrRender) {
+	if _, err := assets.RenderAllContext(collision, assets.Context{Values: templateValues(), CIBackend: "none"}); !errors.Is(err, assets.ErrRender) {
 		t.Fatalf("expanded collision = %v", err)
 	}
 }
@@ -95,7 +95,7 @@ func TestRenderAllContextPreservesTypedInputs(t *testing.T) {
 	if len(files) != 1 || string(files[0].Data) != "pipeline\nexample.test/dependency v1.2.3\n" {
 		t.Fatalf("context files = %+v", files)
 	}
-	files, err = assets.RenderAll(tree, templateValues())
+	files, err = assets.RenderAllContext(tree, assets.Context{Values: templateValues(), CIBackend: "none"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestRenderAllSortsAfterExpansion(t *testing.T) {
 	}
 	values := templateValues()
 	values.Decisions = "a"
-	files, err := assets.RenderAll(tree, values)
+	files, err := assets.RenderAllContext(tree, assets.Context{Values: values, CIBackend: "none"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestRenderAllIgnoresUnselectedCollision(t *testing.T) {
 		"templates/a.tmpl": {Data: []byte("selected\n")},
 		"templates/b.tmpl": {Data: []byte("{{.Absent}}\n")},
 	}
-	files, err := assets.RenderAll(tree, templateValues())
+	files, err := assets.RenderAllContext(tree, assets.Context{Values: templateValues(), CIBackend: "none"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestRenderAllIgnoresUnselectedCollision(t *testing.T) {
 	}
 	values := templateValues()
 	values.Capabilities = nil
-	files, err = assets.RenderAll(tree, values)
+	files, err = assets.RenderAllContext(tree, assets.Context{Values: values, CIBackend: "none"})
 	if err != nil || len(files) != 0 {
 		t.Fatalf("unselected files = %+v, error = %v", files, err)
 	}
@@ -168,7 +168,7 @@ func TestRenderAllIgnoresUnselectedCollision(t *testing.T) {
 func TestRenderAllEmptyManifest(t *testing.T) {
 	t.Parallel()
 	tree := fstest.MapFS{"templates/manifest.yml": {Data: []byte("templates: []\n")}}
-	files, err := assets.RenderAll(tree, templateValues())
+	files, err := assets.RenderAllContext(tree, assets.Context{Values: templateValues(), CIBackend: "none"})
 	if err != nil || len(files) != 0 {
 		t.Fatalf("empty files = %+v, error = %v", files, err)
 	}
@@ -176,7 +176,7 @@ func TestRenderAllEmptyManifest(t *testing.T) {
 
 func TestRenderAllPreservesErrors(t *testing.T) {
 	t.Parallel()
-	files, err := assets.RenderAll(fstest.MapFS{}, templateValues())
+	files, err := assets.RenderAllContext(fstest.MapFS{}, assets.Context{Values: templateValues(), CIBackend: "none"})
 	if files != nil || !errors.Is(err, assets.ErrManifest) || !errors.Is(err, assets.ErrRender) {
 		t.Fatalf("manifest files = %+v, error = %v", files, err)
 	}
@@ -194,7 +194,7 @@ func TestRenderAllPreservesErrors(t *testing.T) {
 		"templates/a.tmpl": {Data: []byte("valid\n")},
 		"templates/b.tmpl": {Data: []byte("{{.Absent}}\n")},
 	}
-	files, err = assets.RenderAll(tree, templateValues())
+	files, err = assets.RenderAllContext(tree, assets.Context{Values: templateValues(), CIBackend: "none"})
 	if files != nil || !errors.Is(err, assets.ErrRender) || errors.Is(err, assets.ErrManifest) {
 		t.Fatalf("render files = %+v, error = %v", files, err)
 	}

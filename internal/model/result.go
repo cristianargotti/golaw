@@ -49,17 +49,11 @@ func Unmeasured(reason string) Status {
 	return Status{Kind: StatusUnmeasured, Reason: reason}
 }
 
-// OutsideSubset is the status of a policy check whose verdict depends on a
-// construct outside the subset its reader declares: Unmeasured, so the
-// pipeline never answers clean over it (section 5.4), with what names the
-// file, the line and the construct, then the sentinel an armed rung reads to
-// leave the construct to the pipeline instead of refusing the commit.
-func OutsideSubset(what string) Status {
-	return Unmeasured(what + ": " + ErrOutsideSubset.Error())
-}
-
 // IsOutsideSubset reports whether a status is the stated limit of a declared
-// subset, as OutsideSubset builds it.
+// subset: Unmeasured, so the pipeline never answers clean over it (section
+// 5.4), with a reason that names the file, the line and the construct and
+// ends with the sentinel, which an armed rung reads to leave the construct
+// to the pipeline instead of refusing the commit.
 func IsOutsideSubset(s Status) bool {
 	return s.Kind == StatusUnmeasured && strings.HasSuffix(s.Reason, ": "+ErrOutsideSubset.Error())
 }

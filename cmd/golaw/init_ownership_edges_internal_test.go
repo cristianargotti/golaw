@@ -70,7 +70,7 @@ func TestInitOwnershipNoticesKeepManagedBookkeepingAndIdempotence(t *testing.T) 
 		t.Run(owners, func(t *testing.T) {
 			t.Parallel()
 			repo := gittest.New(t)
-			repo.Write("go.mod", "module example.test/service\n\ngo 1.27\n")
+			repo.Write("go.mod", adoptedModule)
 			repo.Write("CODEOWNERS", owners)
 			ta := initBindApp(t)
 			args := []string{"init", "--apply", repo.Root}

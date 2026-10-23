@@ -51,6 +51,10 @@ templates:
     destination: api/codegen/types.yaml
     ownership: kit
     when: [api]
+  - source: templates/go.mod.tmpl
+    destination: go.mod
+    ownership: merged
+    when: []
   - source: templates/golaw.mk.tmpl
     destination: golaw.mk
     ownership: kit
@@ -63,6 +67,10 @@ templates:
     destination: redocly.yaml
     ownership: kit
     when: [api]
+  - source: templates/scripts/lint/rules.go.tmpl
+    destination: scripts/lint/rules.go
+    ownership: kit
+    when: []
   - source: templates/sqlc.vet.yaml.tmpl
     destination: sqlc.vet.yaml
     ownership: kit

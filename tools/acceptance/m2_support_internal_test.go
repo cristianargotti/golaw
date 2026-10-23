@@ -168,7 +168,7 @@ func m2Render(t *testing.T, dir string) []assets.Rendered {
 	for _, tool := range runner.Toolchain() {
 		values.Tools[tool.Name] = tool.Version
 	}
-	files, err := assets.RenderAll(golaw.FS, values)
+	files, err := assets.RenderAllContext(golaw.FS, assets.Context{Values: values, CIBackend: "none"})
 	if err != nil {
 		t.Fatal(err)
 	}

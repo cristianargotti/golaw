@@ -7,11 +7,6 @@ import (
 	"slices"
 )
 
-// RenderAll keeps the fixed input contract independent of optional context.
-func RenderAll(source fs.FS, values Values) ([]Rendered, error) {
-	return RenderAllContext(source, Context{Values: values, CIBackend: "none"})
-}
-
 // RenderAllContext detects expanded collisions before any output is installed.
 func RenderAllContext(source fs.FS, context Context) ([]Rendered, error) {
 	entries, err := Templates(source)

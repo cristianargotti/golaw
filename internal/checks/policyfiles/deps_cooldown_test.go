@@ -70,3 +70,23 @@ func TestDependabotCooldown(t *testing.T) {
 		},
 	})
 }
+
+// TestDependabotCooldownReadsEitherFileName holds the check to both names
+// Dependabot reads, a stated limit when both exist, and leaves out an entry
+// that opens no version update, which only security updates use and which
+// the cooldown exempts.
+func TestDependabotCooldownReadsEitherFileName(t *testing.T) {
+	t.Parallel()
+	const code = "dependabot-cooldown-short"
+	const short = "version: 2\nupdates:\n  - package-ecosystem: gomod\n    directory: /\n"
+	const securityOnly = short + "    open-pull-requests-limit: 0\n"
+	assertDeps(t, policyfiles.DependabotCooldown(), []depsCase{
+		{name: "red the yaml extension", input: fixture{files: map[string]string{".github/dependabot.yaml": short}}, want: []string{code}},
+		{
+			name: "limit both names", input: fixture{files: map[string]string{".github/dependabot.yaml": short, ".github/dependabot.yml": short}},
+			status: model.StatusUnmeasured, outside: true, reason: ".github/dependabot.yaml:1: both .github/dependabot.yml and .github/dependabot.yaml",
+		},
+		{name: "near security updates only", input: fixture{files: map[string]string{".github/dependabot.yml": securityOnly}}},
+		{name: "red a positive pull request limit", input: fixture{files: map[string]string{".github/dependabot.yml": short + "    open-pull-requests-limit: 5\n"}}, want: []string{code}},
+	})
+}

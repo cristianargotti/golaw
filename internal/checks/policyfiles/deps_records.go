@@ -47,7 +47,7 @@ func (dependencyRecords) Run(_ context.Context, in model.Input) (model.Result, e
 func decisionModules(in model.Input) (map[string]bool, error) {
 	directory := strings.TrimSuffix(in.Policy.Layout.Decisions, "/") + "/"
 	files := model.Select(in.Snapshot, func(path string) bool {
-		return strings.HasPrefix(path, directory) && strings.HasSuffix(strings.ToLower(path), ".md")
+		return strings.HasPrefix(path, directory) && strings.HasSuffix(strings.ToLower(path), recordExtension)
 	})
 	modules := make(map[string]bool)
 	for _, file := range files {

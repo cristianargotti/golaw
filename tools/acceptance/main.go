@@ -28,6 +28,7 @@ func runArgs(out io.Writer, execute executor, lookup locator, args []string) int
 	flags.SetOutput(out)
 	required := flags.Bool("release", false, "require every release evidence row")
 	onlyM2 := flags.Bool("m2", false, "require M2 functional evidence rows")
+	onlyM3 := flags.Bool("m3", false, "require M3 functional evidence rows")
 	modes := m4FlagSet(flags)
 	if err := flags.Parse(args); err != nil || flags.NArg() != 0 {
 		return 1
@@ -49,6 +50,9 @@ func runArgs(out io.Writer, execute executor, lookup locator, args []string) int
 	if code, routed := modes.route(ctx, out, s, *required); routed {
 		return code
 	}
+	if *onlyM3 && !*required {
+		return s.runM3(ctx, out)
+	}
 	return s.runAcceptance(ctx, out, *required, *onlyM2)
 }
 
@@ -69,9 +73,6 @@ func (s *suite) collect(ctx context.Context, required bool) ([]row, string) {
 	vendors, version := s.vendorRows(ctx, required)
 	rows = append(rows, vendors...)
 	rows = append(rows, s.liveRows(ctx, required)...)
-	rows = append(rows,
-		row{categoryDependency, "internal-replace", statusSkip, "dependency checks enter in M3", false},
-		row{categoryDependency, "external-replace", statusSkip, "dependency checks enter in M3", false},
-	)
+	rows = append(rows, s.dependencyRows(ctx)...)
 	return rows, version
 }

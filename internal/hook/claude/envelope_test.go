@@ -34,7 +34,8 @@ func TestHeaderFixtures(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, data := range cases {
-		got, err := claude.Header(data)
+		parsed, err := claude.Parse(data)
+		got := parsed.Event
 		if err != nil || got.Agent != "claude" || got.Cwd != "/project" ||
 			got.SessionID != "session" || got.AgentID != "agent" || got.ToolUseID != "tool" {
 			t.Fatalf("%s: %+v, %v", data, got, err)
@@ -49,7 +50,7 @@ func TestHeaderForeignAndMalformed(t *testing.T) {
 		`{"hook_event_name":"Other","tool_name":"Write","cwd":"/project","tool_input":{}}`,
 		`{"hook_event_name":"PreToolUse","tool_name":"Write","cwd":"/project","tool_input":null}`,
 	} {
-		if _, err := claude.Header([]byte(data)); !errors.Is(err, model.ErrCannotJudge) {
+		if _, err := claude.Parse([]byte(data)); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatalf("%q: %v", data, err)
 		}
 	}
@@ -66,7 +67,7 @@ func TestHeaderForeignAndMalformed(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := claude.Header(data); !errors.Is(err, model.ErrCannotJudge) {
+		if _, err := claude.Parse(data); !errors.Is(err, model.ErrCannotJudge) {
 			t.Fatalf("%s: %v", key, err)
 		}
 	}
@@ -90,7 +91,8 @@ func TestHeaderNamesTheTarget(t *testing.T) {
 		{"PreToolUse", "Bash", map[string]any{"command": "cat /repo/a.go", "file_path": "/repo/a.go"}, ""},
 		{"PreToolUse", "Write", map[string]any{"file_path": 1}, ""},
 	} {
-		got, err := claude.Header(frame(t, tc.event, tc.tool, "/project", tc.input))
+		parsed, err := claude.Parse(frame(t, tc.event, tc.tool, "/project", tc.input))
+		got := parsed.Event
 		if err != nil || got.Target != tc.want || got.Cwd != "/project" {
 			t.Fatalf("%s %s: %+v, %v", tc.event, tc.tool, got, err)
 		}
@@ -105,12 +107,14 @@ func TestHeaderShapesThePreEvent(t *testing.T) {
 		"Write": model.ShapeWrite, "Edit": model.ShapeWrite, "NotebookEdit": model.ShapeWrite,
 		"Read": model.ShapeRead, "Bash": model.ShapeShell, "PowerShell": model.ShapeShell, "Glob": 0,
 	} {
-		got, err := claude.Header(frame(t, "PreToolUse", tool, "/project", map[string]any{}))
+		parsed, err := claude.Parse(frame(t, "PreToolUse", tool, "/project", map[string]any{}))
+		got := parsed.Event
 		if err != nil || got.Shape != want {
 			t.Fatalf("%s: %v, %v", tool, got.Shape, err)
 		}
 	}
-	got, err := claude.Header(frame(t, "PostToolUse", "Read", "/project", map[string]any{}))
+	parsed, err := claude.Parse(frame(t, "PostToolUse", "Read", "/project", map[string]any{}))
+	got := parsed.Event
 	if err != nil || got.Shape != model.ShapePost {
 		t.Fatalf("post: %v, %v", got.Shape, err)
 	}

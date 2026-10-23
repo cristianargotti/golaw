@@ -9,6 +9,7 @@ import (
 
 const (
 	dependabotStringTag = "!!str"
+	dependabotIntTag    = "!!int"
 	dependabotGo        = "gomod"
 	cooldownInclude     = "include"
 )
@@ -40,7 +41,7 @@ func readDependabot(path string, data []byte) (dependabot, error) {
 	}
 	version := child(root, keyVersion)
 	var number int
-	if version == nil || version.Tag != "!!int" || version.Decode(&number) != nil || number != 2 {
+	if version == nil || version.Tag != dependabotIntTag || version.Decode(&number) != nil || number != 2 {
 		return dependabot{}, outside(path, dependabotLine(version), "Dependabot version other than 2")
 	}
 	updates := child(root, "updates")
@@ -82,6 +83,12 @@ func readDependabotUpdate(path string, node *yaml.Node) (dependabotUpdate, error
 	if err := dependabotUnique(path, node, "cooldown"); err != nil {
 		return dependabotUpdate{}, err
 	}
+	// An entry that opens no version update serves security updates alone,
+	// which the cooldown exempts.
+	var limit int
+	if opened := child(node, "open-pull-requests-limit"); opened != nil && opened.Tag == dependabotIntTag && opened.Decode(&limit) == nil && limit == 0 {
+		return dependabotUpdate{}, nil
+	}
 	update := dependabotUpdate{ecosystem: ecosystem.Value, line: line, days: make(map[string]int)}
 	cooldown := child(node, "cooldown")
 	if cooldown == nil {
@@ -120,7 +127,7 @@ func readCooldownField(path string, field entry, update *dependabotUpdate) error
 			return nil
 		}
 		var days int
-		if value.Kind != yaml.ScalarNode || value.Tag != "!!int" || value.Decode(&days) != nil {
+		if value.Kind != yaml.ScalarNode || value.Tag != dependabotIntTag || value.Decode(&days) != nil {
 			return outside(path, field.line, "cooldown."+field.key+" that is not an integer")
 		}
 		update.days[field.key] = days

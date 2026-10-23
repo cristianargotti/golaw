@@ -33,7 +33,6 @@ func TestM2EvidenceBoundaries(t *testing.T) {
 		{"docs/acceptance/m2.md", "The required m2 job times the push rung against a fixture database; live-database timings come from the scheduled or manual m2-live job.", true},
 		{"docs/rules.md", "commit.author-noreply is deferred: M2 never infers that a repository is public.", true},
 		{"docs/rules.md", "M2 does not add a remote commit-range message gate.", true},
-		{"docs/rules.md", "Migration, API and generation rung tools arrive with the M3 templates.", true},
 	}
 	for _, tt := range tests {
 		text := string(kitBytes(t, tt.path))

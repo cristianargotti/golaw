@@ -136,7 +136,7 @@ func TestInitUpdateWritesOnlyPristineRecordedFiles(t *testing.T) {
 func updatePristineFixture(t *testing.T) (testApp, *gittest.Repo, []byte, string) {
 	t.Helper()
 	repo := gittest.New(t)
-	repo.Write("go.mod", "module example.test/service\n\ngo 1.27\n")
+	repo.Write("go.mod", adoptedModule)
 	ta := initBindApp(t)
 	older, _ := olderPolicy(t, ta, repo, filepath.Join(repo.Root, bootstrap.PolicyFile))
 	original, err := os.ReadFile(filepath.Join(repo.Root, ".gitleaks.toml"))

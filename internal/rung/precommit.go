@@ -56,7 +56,11 @@ func newPrecommit(ctx context.Context, deps Dependencies, a armed) (*precommit, 
 	if err != nil {
 		return nil, fmt.Errorf("staged scan: %w", err)
 	}
-	limits := limited(scan.Run)
+	staged := make(map[string]bool, len(scan.Input.Targets))
+	for _, target := range scan.Input.Targets {
+		staged[target.Path] = true
+	}
+	limits := newLimits(scan.Run, scan.Held, staged)
 	s := settled(scan.Run)
 	scan.Decision = s.decision
 	return &precommit{

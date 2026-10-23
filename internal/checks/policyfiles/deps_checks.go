@@ -8,6 +8,6 @@ import "github.com/cristianargotti/golaw/internal/model"
 // policy.openapi-assertions and policy.squawk-config.
 func depsChecks() []model.Check {
 	return []model.Check{
-		DependencyRecords(), DependabotCooldown(), ImageDigest(), CodeownersForeign(), OpenAPIAssertions(), SquawkConfig(),
+		DependencyRecords(), DependabotCooldown(), DepsAgeConfig(), ImageDigest(), CodeownersForeign(), OpenAPIAssertions(), SquawkConfig(),
 	}
 }

@@ -20,7 +20,7 @@ const everyLinter = "every linter"
 // hollows it; one with a path frees it there, which only an entry of the
 // allowed exclusions of golaw.yml permits. A rule narrowed by the text or
 // the source of an issue frees single issues, not the linter, and is left
-// to the review.
+// to the review; a pattern that matches every message narrows nothing.
 func judgeExclusions(in model.Input, cfg golangci) ([]model.Finding, error) {
 	allowed, _ := in.Options.Strings(allowedOption)
 	required := requiredLinters(in.Policy)
@@ -36,7 +36,7 @@ func judgeExclusions(in model.Input, cfg golangci) ([]model.Finding, error) {
 // judgeExclusion judges one exclusion against the required linters and
 // the allowed "path:linter" entries.
 func judgeExclusion(path string, rule exclusion, required, allowed []string) (model.Finding, bool) {
-	if rule.text != "" || rule.source != "" {
+	if narrows(rule.text) || narrows(rule.source) {
 		return model.Finding{}, false
 	}
 	freed := required
@@ -61,6 +61,14 @@ func judgeExclusion(path string, rule exclusion, required, allowed []string) (mo
 	return finding(path, rule.line, codeUnlisted, fmt.Sprintf(
 		"an exclusion frees %s under %q, which checks.lint.allowed_exclusions of golaw.yml does not list; remove it from linters.exclusions of %s",
 		freedNames(rule, unlisted), rule.path, path)), true
+}
+
+// narrows answers whether a text or source pattern selects some issues: an
+// empty or blank pattern, and one that is any character, any run of them or
+// a bare anchor, matches every issue.
+func narrows(pattern string) bool {
+	core := strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(pattern), "^"), "$")
+	return strings.TrimSpace(pattern) != "" && core != "" && core != "." && core != ".*" && core != ".+"
 }
 
 // freedNames names the required linters a rule frees, or every linter for

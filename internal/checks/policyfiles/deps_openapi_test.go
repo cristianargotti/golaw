@@ -135,3 +135,19 @@ func TestOpenAPILocalReferences(t *testing.T) {
 		},
 	})
 }
+
+// TestOpenAPIAssertionsStatesAnotherConfigurationName holds an absent
+// redocly.yaml beside a configuration Redocly CLI also reads to a stated
+// limit naming the file and the rename, never to a missing configuration.
+func TestOpenAPIAssertionsStatesAnotherConfigurationName(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"redocly.yml", ".redocly.yaml", ".redocly.yml"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got := measure(t, policyfiles.OpenAPIAssertions(), fixture{files: map[string]string{name: "extends:\n  - recommended\n"}, capabilities: []string{"api", "go"}})
+			if !model.IsOutsideSubset(got.Status) || !strings.Contains(got.Status.Reason, name+":1:") || !strings.Contains(got.Status.Reason, "rename it to redocly.yaml") {
+				t.Fatalf("%s alone = %+v", name, got)
+			}
+		})
+	}
+}

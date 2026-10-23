@@ -2,6 +2,7 @@ package rung
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -14,6 +15,13 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/runnertest"
 )
+
+// statedLimit is the status a policy check answers for a construct outside
+// the subset its reader declares: the reader's error, which wraps the
+// sentinel after the construct, as the Unmeasured reason.
+func statedLimit(what string) model.Status {
+	return model.Unmeasured(fmt.Errorf("%s: %w", what, model.ErrOutsideSubset).Error())
+}
 
 // limitRun is a staged run whose policy check met a construct outside the
 // subset its reader declares, beside a check that measured.
@@ -30,7 +38,7 @@ func limitRun(status model.Status) *engine.Run {
 // left unmeasured still refuses it.
 func TestRungLeavesAStatedLimitToThePipeline(t *testing.T) {
 	t.Parallel()
-	limit := model.OutsideSubset("Makefile:3: $(shell) in the prerequisites of ci")
+	limit := statedLimit("Makefile:3: $(shell) in the prerequisites of ci")
 	out := judged(PreCommit, model.DefaultLanguage, limitRun(limit))
 	want := "golaw pre-commit: policy.makefile left to the pipeline: Makefile:3: $(shell) in the prerequisites of ci: outside the declared subset, a stated limit; docs/rules.md names the rewrite"
 	if out.Code != codeClean || !slices.Contains(out.Lines, want) {
@@ -48,10 +56,10 @@ func TestRungLeavesAStatedLimitToThePipeline(t *testing.T) {
 
 func TestLimitedNamesEachCheckOnce(t *testing.T) {
 	t.Parallel()
-	run := limitRun(model.OutsideSubset("Makefile:3: an include of a computed name"))
+	run := limitRun(statedLimit("Makefile:3: an include of a computed name"))
 	run.Outcomes = append(run.Outcomes, engine.Outcome{
 		Spec:   model.Spec{ID: "policy.ci-target", Rule: "rules/4.13@1"},
-		Result: model.Result{Status: model.OutsideSubset("Makefile:3: an include of a computed name")},
+		Result: model.Result{Status: statedLimit("Makefile:3: an include of a computed name")},
 	})
 	limits := limited(run)
 	if len(limits) != 2 || run.Outcomes[0].Result.Status.Kind != model.StatusMeasured || run.Outcomes[2].Result.Status.Kind != model.StatusMeasured {
@@ -79,13 +87,15 @@ func (c limitCheck) Run(context.Context, model.Input) (model.Result, error) {
 // rung that dispatches the tree checks over the index: the staged scan of
 // the pre-commit rung counts it measured and names it after the scan, so
 // the commit goes on, while any other check left unmeasured still refuses.
-// It runs alone because the fake gitleaks is found through PATH.
+// The commit stages the file the limit names, which HEAD already held the
+// limit of, so the line names it. It runs alone because the fake gitleaks
+// is found through PATH.
 func TestPreCommitLeavesAStatedLimitToThePipeline(t *testing.T) {
 	dir := t.TempDir()
 	runnertest.Install(t, dir, "gitleaks", runnertest.Behavior{Probe: []string{"version"}, Version: "8.30.1"})
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	r := repository(t, pinned("0.1.0", ""))
-	r.Stage(map[string]string{"notes.md": "why\n"})
+	r.Stage(map[string]string{"Makefile": "ci:\n"})
 	commit := func(status model.Status) Outcome {
 		reg, err := checks.Build(append(checks.Catalog(), limitCheck{status: status}))
 		if err != nil {
@@ -97,12 +107,42 @@ func TestPreCommitLeavesAStatedLimitToThePipeline(t *testing.T) {
 			Load: l.load, Registry: reg, State: l.state, Stdin: strings.NewReader(""),
 		})
 	}
-	limit := commit(model.OutsideSubset("Makefile:3: $(shell) in the prerequisites of ci"))
+	limit := commit(statedLimit("Makefile:3: $(shell) in the prerequisites of ci"))
 	want := "golaw pre-commit: fixture.stated-limit left to the pipeline: Makefile:3: $(shell) in the prerequisites of ci: outside the declared subset, a stated limit; docs/rules.md names the rewrite"
 	if limit.Code != codeClean || !strings.HasPrefix(limit.Lines[0], "verdict clean") || !slices.Contains(limit.Lines, want) {
 		t.Fatalf("a staged stated limit = %+v", limit)
 	}
 	if other := commit(model.Unmeasured("read Makefile: path unreadable")); other.Code != codeFailure {
 		t.Errorf("an unreadable configuration = %+v, want the failure code", other)
+	}
+}
+
+// TestPreCommitNamesOnlyTheLimitsTheCommitIntroduces keeps the limit lines
+// of the pre-commit rung to what the commit brings: a limit HEAD already
+// held with the same reason is counted measured and left unnamed, unless
+// the commit stages the file it names, while a new or moved one is named.
+func TestPreCommitNamesOnlyTheLimitsTheCommitIntroduces(t *testing.T) {
+	t.Parallel()
+	limit := statedLimit("Makefile:3: opaque recipe ./ci.sh")
+	for _, tc := range []struct {
+		name   string
+		held   []model.Status
+		staged map[string]bool
+		named  bool
+	}{
+		{"near held at HEAD", []model.Status{limit, model.Measured()}, nil, false},
+		{"red held but its file staged", []model.Status{limit, model.Measured()}, map[string]bool{"Makefile": true}, true},
+		{"red moved by the commit", []model.Status{statedLimit("Makefile:2: opaque recipe ./ci.sh"), model.Measured()}, nil, true},
+		{"red new at the index", []model.Status{model.Measured(), model.Measured()}, nil, true},
+		{"red without a base run", nil, nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			run := limitRun(limit)
+			limits := newLimits(run, tc.held, tc.staged)
+			if (len(limits) == 1) != tc.named || run.Outcomes[0].Result.Status.Kind != model.StatusMeasured {
+				t.Fatalf("limits = %q, outcome %+v", limits, run.Outcomes[0].Result)
+			}
+		})
 	}
 }

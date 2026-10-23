@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -161,4 +162,129 @@ func m3ProfileYAML(t *testing.T, heading string) []byte {
 		t.Fatalf("profile example is not closed: %s", heading)
 	}
 	return []byte(body + "\n")
+}
+
+func TestM3RulesStateMeasurementBoundaries(t *testing.T) {
+	t.Parallel()
+	requireText(t, m3RulesPath,
+		"Policy-file checks are tree checks in scan and staged scan.",
+		"They do not run in agent events or the commit-msg rung.",
+		"An unsupported construct matters only when the verdict depends on it.",
+		"Outside the declared subset is Unmeasured, never a finding.",
+		"The reason names the file, line and construct.",
+		"A required Unmeasured check makes scan exit 2.",
+		"An armed pre-commit rung leaves a declared-subset limit to the pipeline and names it when the commit introduces it",
+		"An unused Makefile variable does not widen the reader's scope.",
+		"Makefile includes resolve from the repository root.",
+		"An absent Makefile is named by policy.makefile alone.",
+		"A stated limit names the construct, and docs/rules.md names the rewrite that clears it.",
+		"An external local replace names its directive and leaves dependency measurement Unmeasured.",
+		"policy.hook-tests and policy.codeowners-foreign require an enrolled profile.",
+		"Without staged changes, policy.codeowners-foreign is NotApplicable.",
+		"A missing lefthook.yml is not a finding.",
+		"The push rung runs govulncheck only.",
+		"scan remains the golaw scan; image-scan names the image scan.",
+		"hooks-test is profile data, not a core required target.",
+		"cli and hexagonal add no make target.",
+		"commit.author-noreply is deferred: M2 never infers that a repository is public.",
+		"M2 does not add a remote commit-range message gate.",
+	)
+	if got := lineCount(kitBytes(t, m3RulesPath)); got > 300 {
+		t.Fatalf("rule catalog has %d lines, maximum 300", got)
+	}
+}
+
+func TestM3CapabilitySetup(t *testing.T) {
+	t.Parallel()
+	rows := []struct {
+		text string
+		want bool
+	}{
+		{"## Capabilities and policy-file limits", true},
+		{"api, cli, db and hexagonal each require go; image and go can stand alone.", true},
+		{"Unknown or repeated capabilities are invalid.", true},
+		{"golaw init --capabilities go,api,db,hexagonal", true},
+		{"The preview writes nothing.", true},
+		{"On an existing policy, the flag adds to the capabilities already enrolled.", true},
+		{"An explicit capability proposal adds to the existing set and never removes a capability.", true},
+		{"Apply writes the reviewed policy, matching enrollment and newly selected templates.", true},
+		{"doctor.capabilities reports the capabilities in force.", true},
+		{"With go off, coverage and Go rung steps are not applicable.", true},
+		{"A disabled rung returns without a finding.", true},
+		{"init never arms git hooks.", true},
+		{"The pre-push rung runs govulncheck only.", true},
+		{"M3 leaves migration, API-breaking and generation execution to their pipeline targets.", true},
+		{"Outside the declared subset is Unmeasured, never a finding.", true},
+		{"The pre-commit rung names that limit and continues unless another result refuses the commit.", true},
+		{"Remote CI or the platform pipeline is the only hard gate.", true},
+		{"Run make ci before every local commit.", false},
+		{"Capabilities are inferred from the remote.", false},
+	}
+	text := string(kitBytes(t, "docs/setup.md"))
+	for _, row := range rows {
+		if got := strings.Contains(text, row.text); got != row.want {
+			t.Errorf("setup fragment %q present=%v, want=%v", row.text, got, row.want)
+		}
+	}
+	if got := lineCount([]byte(text)); got > 300 {
+		t.Fatalf("setup guide has %d lines, maximum 300", got)
+	}
+}
+
+func TestM3PipelineNoticeReplacesTemplateDeferrals(t *testing.T) {
+	t.Parallel()
+	for _, path := range []string{m3RulesPath, "docs/security.md"} {
+		text := string(kitBytes(t, path))
+		for _, stale := range []string{
+			"Migration, API and generation rung tools arrive with the M3 templates.",
+			"Migration, API and generation rung tools remain not applicable until the M3 templates.",
+		} {
+			if strings.Contains(text, stale) {
+				t.Errorf("%s retains obsolete sentence %q", path, stale)
+			}
+		}
+	}
+	requireText(t, "docs/security.md",
+		"The pre-commit rung leaves migration, API-breaking and generation execution to the pipeline targets.")
+}
+
+func TestM3ChangelogDatesBehaviorAndReason(t *testing.T) {
+	t.Parallel()
+	lines := []string{
+		"policy-file checks judge configuration through declared readers and capabilities, because unsupported constructs must not become false findings.",
+		"capability proposals add to the enrolled set and select their templates, because existing capabilities may not disappear during adoption.",
+		"the core CI template runs the required targets with external enrollment, because remote CI or the platform pipeline is the only gate.",
+		"the rules catalog maps every retained S-class row to delivered prose, because always-loaded instructions must stay small.",
+		"builder and reviewer checklists and the context guide make judgment rules explicit, because those rules cannot be measured by syntax alone.",
+		"the profile guide documents the existing schema and generic remote-gate limitation, because a local installation does not prove remote enforcement.",
+		"kit tests hold the skill, instruction-block and editor-rule budgets, because always-loaded kit prose must stay within A12 limits.",
+		"the optional pre-commit rung names declared-subset limits and leaves migration, API-breaking and generation execution to the pipeline, because a local refusal needs a recognized violation.",
+	}
+	text := string(kitBytes(t, "CHANGELOG.md"))
+	for _, line := range lines {
+		pattern := regexp.MustCompile(`(?m)^- \d{4}-\d{2}-\d{2}: ` +
+			regexp.QuoteMeta(line) + `$`)
+		if !pattern.MatchString(text) {
+			t.Errorf("missing dated M3 change: %s", line)
+		}
+		rows := []struct {
+			name string
+			text string
+			want bool
+		}{
+			{"near dated reason", "- 2026-10-20: " + line, true},
+			{"near later date", "- 2026-10-21: " + line, true},
+			{"red missing date", "- " + line, false},
+			{"red malformed date", "- 2026-1-2: " + line, false},
+			{"red missing behavior", "- 2026-10-20: changed", false},
+		}
+		for _, row := range rows {
+			if got := pattern.MatchString(row.text); got != row.want {
+				t.Errorf("%s: dated entry accepted=%v", row.name, got)
+			}
+		}
+	}
+	if got := lineCount([]byte(text)); got > 300 {
+		t.Fatalf("changelog has %d lines, maximum 300", got)
+	}
 }

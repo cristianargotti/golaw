@@ -1,0 +1,2 @@
+deps-age:
+	go run github.com/cristianargotti/golaw/tools/depsage@v0.3.0 -days 7

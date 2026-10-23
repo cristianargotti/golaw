@@ -6,5 +6,5 @@ import "github.com/cristianargotti/golaw/internal/model"
 // order: policy.golangci, policy.ruleguard, policy.gitleaks-generic and
 // policy.gotoolchain-local.
 func lintChecks() []model.Check {
-	return []model.Check{Golangci()}
+	return []model.Check{Golangci(), Ruleguard(), GitleaksGeneric(), GotoolchainLocal()}
 }

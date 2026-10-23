@@ -56,6 +56,10 @@ type frozen struct {
 	index   map[string]int
 	objects map[string]stored
 	seen    map[string]model.File
+	// prefetched marks the one walk Prefetch makes: its only caller, the
+	// policy family, asks again on every configuration read with the same
+	// predicate, and a walk per read cost more than the reads it saved.
+	prefetched bool
 }
 
 // newFrozen holds the entries in path order and reads nothing yet.
@@ -80,18 +84,25 @@ func (f *frozen) Files() []model.File {
 // Select lists the files whose paths match, in path order, asking git once
 // for the sizes and once for the bytes of the blobs not read yet.
 func (f *frozen) Select(match func(path string) bool) []model.File {
-	var picked []treeEntry
-	for _, e := range f.entries {
-		if match(e.path) {
-			picked = append(picked, e)
-		}
-	}
+	picked := f.matching(match)
 	f.load(picked)
 	out := make([]model.File, 0, len(picked))
 	for _, e := range picked {
 		out = append(out, f.file(e))
 	}
 	return out
+}
+
+// Prefetch loads the paths that match as Select does, listing nothing, so
+// the reads one by one that follow ask git nothing more. Only the first
+// call walks the universe; a later one returns at once, and a path it
+// would have added is still read alone on demand.
+func (f *frozen) Prefetch(match func(path string) bool) {
+	if f.prefetched {
+		return
+	}
+	f.prefetched = true
+	f.load(f.matching(match))
 }
 
 // Any reports whether a path of the universe matches, reading no blob.
@@ -148,6 +159,17 @@ func (f *frozen) Blob(id string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("%w: blob %s is %d bytes", model.ErrTooLarge, id, got.info.size)
 	}
+}
+
+// matching answers the entries whose paths match, in path order.
+func (f *frozen) matching(match func(path string) bool) []treeEntry {
+	var picked []treeEntry
+	for _, e := range f.entries {
+		if match(e.path) {
+			picked = append(picked, e)
+		}
+	}
+	return picked
 }
 
 // lookup answers the entry of a path and its file, its object read first

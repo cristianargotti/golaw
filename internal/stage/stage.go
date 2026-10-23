@@ -34,6 +34,7 @@ type Result struct {
 	Decision engine.Decision // engine.Decide over that run
 	Proposal policy.Proposal // the golaw.yml the index holds, judged apart
 	Brought  []string        // the paths a merge in progress brought, left to the pipeline, sorted
+	Held     []model.Status  // the status each outcome answered at the base, in registry order
 }
 
 // Scan builds the index snapshot, judges the proposed policy
@@ -71,10 +72,11 @@ func Scan(ctx context.Context, in Input) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("judge the index of %s: %w", in.Repo.Root, err)
 	}
-	if err := introducedOnly(ctx, in, candidate, run, theirs); err != nil {
+	held, err := introducedOnly(ctx, in, candidate, run, theirs)
+	if err != nil {
 		return Result{}, err
 	}
-	return Result{Input: candidate, Index: index, Run: run, Decision: engine.Decide(run), Proposal: proposal, Brought: brought}, nil
+	return Result{Input: candidate, Index: index, Run: run, Decision: engine.Decide(run), Proposal: proposal, Brought: brought, Held: held}, nil
 }
 
 // stagedPolicy is what the index snapshot holds at golaw.yml, read from the

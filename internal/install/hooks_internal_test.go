@@ -65,12 +65,12 @@ func TestPinnedDistributionCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateCatalog(data); err != nil {
+	if err := validateCatalog(data); err != nil {
 		t.Fatal(err)
 	}
 	for _, ref := range []string{"main", "", "v0.1"} {
 		changed := bytes.ReplaceAll(data, []byte("v0.1.0"), []byte(ref))
-		if err := ValidateCatalog(changed); err == nil {
+		if err := validateCatalog(changed); err == nil {
 			t.Fatalf("unpinned catalog accepted: %q", ref)
 		}
 	}
@@ -108,7 +108,7 @@ func TestCatalogNamesThePinnedPluginOnly(t *testing.T) {
 		change(&value)
 		changed, err := json.Marshal(value)
 		must(t, err)
-		if err := ValidateCatalog(changed); !errors.Is(err, ErrSettings) {
+		if err := validateCatalog(changed); !errors.Is(err, ErrSettings) {
 			t.Errorf("catalog accepted with %s: %v", name, err)
 		}
 	}

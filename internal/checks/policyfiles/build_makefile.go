@@ -14,6 +14,9 @@ type makefile struct {
 	vars    []makeVar     // Every assignment, including exports, in read order.
 	missing []makeInclude // Include lines whose files the snapshot does not hold.
 	opaque  []makeOpaque  // Top-level function expressions kept without execution.
+	double  []makeRule    // Double-colon rules, their targets alone, outside the rules the checks read.
+
+	exportAll []makeVar // Bare export lines, which export every variable by default.
 }
 
 // makeRule preserves an explicit rule and its source for the checks' evidence.
@@ -31,6 +34,7 @@ type makeVar struct {
 	name      string // Variable name.
 	value     string // Raw assignment value, including computed expressions.
 	exported  bool   // Whether the variable is exported after this assignment.
+	unexport  bool   // Whether an unexport line recorded the variable.
 	target    string // Target of a target-specific assignment, empty for a global one.
 	file      string // Repository-relative source file.
 	line      int    // One-based line of the assignment or export.
@@ -75,7 +79,8 @@ type makeReader struct {
 // root-relative literal includes and snapshot globs, unevaluated conditional
 // blocks with else chains, define blocks, target-specific assignments and
 // opaque top-level functions. Only literal variable references are expanded;
-// computed includes, include cycles and double-colon rules are stated limits.
+// computed includes and include cycles are stated limits, and a double-colon
+// rule is recorded with its targets for the check that needs one of them.
 // Expansion preserves a raw token beyond 32 active references or MaxReadBytes
 // of work, because even a shallow chain can otherwise grow exponentially.
 func readMakefile(in model.Input, path string) (makefile, error) {
@@ -118,6 +123,27 @@ func (m makefile) exported(name string) (string, bool) {
 		}
 	}
 	return value, exported
+}
+
+// exportsAll answers whether make exports a variable that no export line
+// names: a bare export line or the .EXPORT_ALL_VARIABLES special target
+// exports every variable no unexport line names, and one only a conditional
+// block holds decides it under its condition alone, a stated limit.
+func (m makefile) exportsAll(name string) (bool, error) {
+	if slices.ContainsFunc(m.vars, func(v makeVar) bool { return v.name == name && v.unexport }) {
+		return false, nil
+	}
+	if _, found := m.rule(".EXPORT_ALL_VARIABLES"); found || slices.ContainsFunc(m.exportAll, func(v makeVar) bool { return v.condition == "" }) {
+		return true, nil
+	}
+	if len(m.exportAll) > 0 {
+		v := m.exportAll[0]
+		return false, outside(v.file, v.line, "export of every variable inside the conditional block opened at "+v.condition)
+	}
+	if rule, found := m.conditional(".EXPORT_ALL_VARIABLES"); found {
+		return false, outside(rule.file, rule.line, ".EXPORT_ALL_VARIABLES inside the conditional block opened at "+rule.condition)
+	}
+	return false, nil
 }
 
 // conditionalVar answers the first conditional, global definition of a variable,

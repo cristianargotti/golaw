@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks"
-	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/proof"
 )
 
@@ -21,7 +20,7 @@ func TestProductionCatalogIsProven(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reg, err := checks.Registry(engine.WithProofs(m.Names()))
+	reg, err := proof.Registry(checks.Catalog(), m)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,6 +3,7 @@ package assets
 import (
 	"fmt"
 	"io/fs"
+	"path"
 	"strings"
 )
 
@@ -37,13 +38,19 @@ func RenderService(source fs.FS, values Values) ([]Rendered, error) {
 	return rendered, nil
 }
 
-func serviceTemplate(path string) (Template, error) {
-	destination, ok := strings.CutSuffix(path, ".tmpl")
-	if !ok {
-		return Template{}, fmt.Errorf("%w: service fixture file %s is not a template", ErrManifest, path)
+// sumFile is the one fixture file carried under its own name: a go.sum
+// lists the requirements and never names the module, so it holds no
+// placeholder, and the tools that know a go.sum by its name, the secret
+// scan's own allowlist among them, must see it as one.
+const sumFile = "go.sum"
+
+func serviceTemplate(source string) (Template, error) {
+	destination, ok := strings.CutSuffix(source, ".tmpl")
+	if !ok && path.Base(source) != sumFile {
+		return Template{}, fmt.Errorf("%w: service fixture file %s is not a template", ErrManifest, source)
 	}
 	return Template{
-		Source: path, Destination: strings.TrimPrefix(destination, ServicePrefix),
+		Source: source, Destination: strings.TrimPrefix(destination, ServicePrefix),
 		Ownership: OwnedByDeveloper,
 	}, nil
 }

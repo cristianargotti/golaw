@@ -59,7 +59,7 @@ func checkout(t *testing.T) string {
 	if err := os.Mkdir(filepath.Join(root, ".git"), 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.test/m\n\ngo 1.27\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte(strings.Replace(adoptedModule, "example.test/service", "example.test/m", 1)), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return root

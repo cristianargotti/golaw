@@ -118,7 +118,7 @@ User commands lose GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, GIT_COMMON_DIR and GI
 
 The lefthook.yml asset hands golaw hook the commit-msg file and the pre-push remote and URL in single quotes, because lefthook 2.1.12 splices Git's arguments into sh -c unescaped; a space in them stays inside its argument. An argument that holds a single quote is a stated limit of the lefthook.yml asset: the absolute message path Git gives a commit in a linked worktree of a repository whose path holds an apostrophe, or a remote name or URL that holds one, leaves the quote open, so the hook fails with a shell syntax error before golaw runs and no ladder switch reaches it; commit from the main worktree, push through a remote whose name and URL hold no apostrophe, or run golaw setup --uninstall in that clone.
 
-Migration, API and generation rung tools remain not applicable until the M3 templates.
+The pre-commit rung leaves migration, API-breaking and generation execution to the pipeline targets.
 
 ## Untrusted repositories
 

@@ -1,6 +1,6 @@
 # Setup
 
-M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M4 adds the Codex CLI guard and the Cursor compatibility preview, installed as the [agent section](#codex-and-cursor-agents) below describes.
+M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). M4 adds the Codex CLI guard and the Cursor compatibility preview, installed as the [agent section](#codex-and-cursor-agents) below describes.
 
 Adopting repositories need Go 1.24 or newer. Building the kit needs Go 1.27. Claude Code 2.1.295 is the minimum host version; 2.1.299 is validated.
 
@@ -14,11 +14,15 @@ The sequence below shows the default core paths. Adjust the staging list to the 
 
 init distinguishes writes from proposals for existing files. init --apply leaves proposed bytes untouched. Review and apply the accepted proposal hunks yourself before staging, including the include of golaw.mk in an existing Makefile. Unapplied proposals can be displayed again on a repeated init.
 
+go.mod stays your file: init proposes the require of github.com/quasilyte/go-ruleguard/dsl, the module scripts/lint/rules.go imports, and prints the go get and go mod tidy that apply it with its go.sum lines. Until go.mod requires it, golangci-lint cannot load the rules file, make lint fails, and an armed pre-commit rung names that repair and leaves the lint to the pipeline.
+
 ```sh
 go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0
 golaw init
 golaw init --apply
-git add golaw.yml .editorconfig .gitattributes .github/dependabot.yml .gitleaks.toml .golangci.yml .gremlins.yaml .mockery.yaml Makefile golaw.mk lefthook.yml test/deadcode/reachability_test.go tools/go.mod docs/adr/0001-inherited-baseline.md
+go get github.com/quasilyte/go-ruleguard/dsl@v0.3.23
+go mod tidy
+git add golaw.yml .editorconfig .gitattributes .github/dependabot.yml .github/workflows/ci.yml .gitleaks.toml .golangci.yml .gremlins.yaml .mockery.yaml Makefile golaw.mk lefthook.yml scripts/lint/rules.go test/deadcode/reachability_test.go tools/go.mod go.mod go.sum docs/adr/0001-inherited-baseline.md
 git commit -m "feat: adopt the golaw policy"
 golaw setup
 golaw agent install --agent claude
@@ -32,7 +36,7 @@ The managed list in golaw.yml records kit-owned template paths and the hashes in
 
 Commit the reviewed golaw.yml before agent install; init --apply ends with a line that asks for that commit while HEAD does not hold the policy it enrolled. On a branch that already has a commit, the policy in force is the golaw.yml at HEAD, so until a commit holds the file agent install refuses the enrolled repository and names this step, and scan exits 2, while an installed agent guard judges with the enrolled golaw.yml the index or the checkout holds, as long as it is the policy init enrolled, and otherwise denies with a reason that asks for the commit. On a new repository without a commit, the enrollment record carries the policy until the first commit.
 
-init --apply never renders over a golaw.yml the checkout already holds: it keeps the reviewed policy and records managed template hashes without replacing its settings. It enrolls that policy. To start again from the defaults, remove the file first.
+init --apply never renders over a golaw.yml the checkout already holds: it keeps the reviewed policy and records managed template hashes without replacing its settings. It enrolls that policy. The one reviewed change init makes to such a policy is the additive capability proposal of golaw init --capabilities, described under Capabilities and policy-file limits. To start again from the defaults, remove the file first.
 
 A committed change that changes the policy digest leaves the enrollment record behind: scan exits 2 and the guard denies until agent install enrolls the policy in force, printing the old and the new digest. The record follows a tightening only, so agent install and init --apply refuse to enroll a policy that weakens the enrolled one and name the floor.
 
@@ -75,7 +79,24 @@ golaw init --update
 golaw init --update --apply
 ```
 
-The preview writes nothing and shows the managed-file changes and exact version pin. Local edits are kept and reported. Apply writes the reviewed updates and matching enrollment record, preserving locally edited managed files. Stage every file listed in the reviewed update diff, exclude unrelated edits, and commit with the feat type so HEAD holds the updated policy. Keep the installed binary, kit.version and enrollment digests together. Run golaw setup again if you want the local rungs armed with the updated tool pins, then golaw doctor.
+The preview writes nothing and shows the managed-file changes and exact version pin. Local edits are kept and reported. Apply writes the reviewed updates and matching enrollment record, preserving locally edited managed files. In a repository whose managed list records the kit templates, the update also writes the kit files a new version adds, each named in an `Arquivo novo do kit` line, and proposes the missing lines of a merged file such as the Makefile, and, in the modules of the baseline decision record, the modules of the kit's go.mod lines and tools/go.mod that no decision record lists, which policy.dependency-records measures since M3; you apply both as on adoption; a developer file and a repository that never adopted the templates are left alone. Stage every file listed in the reviewed update diff, exclude unrelated edits, and commit with the feat type so HEAD holds the updated policy. Keep the installed binary, kit.version and enrollment digests together. Run golaw setup again if you want the local rungs armed with the updated tool pins, then golaw doctor.
+
+## Capabilities and policy-file limits
+
+A capability names a shape of the repository and selects the checks and the templates that fit it: go for a Go module, cli for a command, api for a served contract, db for migrations and queries, hexagonal for the inner layers, image for a Dockerfile. api, cli, db and hexagonal each require go; image and go can stand alone. Unknown or repeated capabilities are invalid. A policy that breaks an implication is refused with the capability and the fix named. The capabilities in force are the reviewed capabilities line of golaw.yml and nothing else; nothing infers them from the files of the repository or from its remote.
+
+For a new repository, name the capabilities on the first init:
+
+```sh
+golaw init --capabilities go,api,db,hexagonal
+golaw init --capabilities go,api,db,hexagonal --apply
+```
+
+On an existing policy, the flag adds to the capabilities already enrolled. The preview writes nothing. It prints the diff of the capabilities line and the templates the new capabilities select, as a proposal over the reviewed policy. An explicit capability proposal adds to the existing set and never removes a capability. Apply writes the reviewed policy, matching enrollment and newly selected templates. Commit golaw.yml with the feat type, as on adoption. The flag beside --update is refused, because the update keeps the capabilities of golaw.yml: grow them first, commit, then update. doctor.capabilities reports the capabilities in force.
+
+A check applies only where its capability holds. With go off, coverage and Go rung steps are not applicable. golaw coverage answers not applicable and exits 0, the pre-commit rung skips its Go steps, and every check that needs go answers NotApplicable. A disabled rung returns without a finding. The pre-push rung runs govulncheck only. M3 leaves migration, API-breaking and generation execution to their pipeline targets. The pre-commit rung names migrate-lint when a .sql file under a migrations directory is staged under db, openapi-breaking when openapi.yaml, openapi.yml or openapi.json is staged under api, and generate-check when a source of a generator configuration the index tracks is staged, and runs no tool for them.
+
+The policy checks read each configuration through a declared subset, stated reader by reader in [rules.md](rules.md) with the rewrite that clears each limit. Outside the declared subset is Unmeasured, never a finding. The reason names the file, line and construct and ends with a pointer to that page. In scan and in the pipeline a required Unmeasured check exits 2. The pre-commit rung names that limit and continues unless another result refuses the commit. The remote gate of an adopting platform, and what a profile adds, is what [profiles.md](profiles.md) says.
 
 ## Read the result
 
@@ -220,3 +241,19 @@ Cursor imports Claude settings-file hooks by default and maps Edit to Write and 
 Codex stops reading the AGENTS.md chain at 32 KiB, the golaw block stays under 1,000 bytes, and doctor does not measure the chain in M4. Keep your own AGENTS.md files within that budget.
 
 doctor.companion finds a companion gate by its neutral names: a handler whose command runs standards_gate.py in the agent's hooks file, reported before or after golaw's handler of the same event; for Claude the coexistence report also reads its registry, standards-gate.json. No file may receive two blocking verdicts: retire from the companion gate each family golaw owns before both run.
+
+## Starting states golaw does not support
+
+Each starting state below is a stated limit of this release, with what the person or the platform does about it.
+
+When CODEOWNERS gives `.github/` to a team other than the catch-all owner, init writes no Actions file and no Dependabot file there, so the generated CI and the Dependabot cooldown stay out of the repository, and the remote gate is whatever the platform runs. The team that owns `.github/` adds a stage that runs `make ci`, or the owners move the path.
+
+A container test that needs a private registry or a cloud login is outside the kit: the `test` target of `golaw.mk` runs `go test` on the machine and needs neither. Run the container suite on demand.
+
+A Swagger 2.0 tree a generator wrote is inherited state the kit does not regenerate: the API path of the kit is OpenAPI 3 with oapi-codegen, and `policy.openapi-assertions` judges no Swagger 2.0 document and measures clean until the OpenAPI 3 contract `redocly.yaml` names exists. Writing that contract brings the API under the check.
+
+A go line past Go's support window adopts, and its standard library advisories close only through a go line bump, so the `vuln` target and the push rung need dated entries in `vulnerability_waivers` until the line moves; the kit never moves it.
+
+A repository born with lint debt is red on its first `make ci` until the debt is fixed: M3 ships no lint baseline, and the reviewed debt set that only `init --apply` seeds arrives with the inventory pass of a later release. Fix the debt, or keep `make ci` off the gate until then; the pre-commit rung reports only the lint a commit introduces.
+
+A generator that rewrites a file without the Go generated header flips with `make fmt`; naming such files is profile data of a later release. Commit the generator's output after `make fmt`.
