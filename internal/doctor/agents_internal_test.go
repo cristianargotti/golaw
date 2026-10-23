@@ -23,7 +23,7 @@ func TestClaudeReportKeepsTheM1LinesAndEndsWithItsDispatch(t *testing.T) {
 	t.Parallel()
 	input := Input{Root: t.TempDir(), ReceiptPath: "absent.json", Agent: agentClaude, Scope: "user"}
 	store := &enrollmentStore{}
-	m1 := Assess(Collect(t.Context(), input, store, NativeRunner{}))
+	m1 := assess(Collect(t.Context(), input, store, NativeRunner{}))
 	got := Claude(t.Context(), input, store)
 	var kept []Line
 	for _, line := range got.Lines {

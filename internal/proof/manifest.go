@@ -52,10 +52,10 @@ func LoadManifest(path string) (Manifest, error) {
 	return m, nil
 }
 
-// LoadManifests reads several manifests as one proof, each strictly as
+// loadManifests reads several manifests as one proof, each strictly as
 // LoadManifest reads it, and refuses an id that appears in two of them, so
 // the completeness pass compares the whole registry with the whole proof.
-func LoadManifests(paths ...string) (Manifest, error) {
+func loadManifests(paths ...string) (Manifest, error) {
 	if len(paths) == 0 {
 		return Manifest{}, fmt.Errorf("%w: no manifest named", ErrManifest)
 	}

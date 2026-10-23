@@ -47,7 +47,7 @@ func TestSettingsArtifactIsJudgedByItsOwnedEntries(t *testing.T) {
 		}
 		tc.edit(&settings)
 		writeJSON(t, path, settings)
-		if got := artifactCode(Assess(Collect(t.Context(), input, nil, nil)), path); got != tc.code {
+		if got := artifactCode(assess(Collect(t.Context(), input, nil, nil)), path); got != tc.code {
 			t.Errorf("%s: settings artifact is %q, want %q", tc.name, got, tc.code)
 		}
 	}
@@ -97,7 +97,7 @@ func writeJSON(t *testing.T, path string, value any) {
 func TestAMissingReceiptIsReportedAsEmpty(t *testing.T) {
 	t.Parallel()
 	input := Input{Root: t.TempDir(), ReceiptPath: filepath.Join(t.TempDir(), "absent.json")}
-	if got := artifactCode(Assess(Collect(t.Context(), input, nil, nil)), ""); got != "receipt-artifacts-empty" {
+	if got := artifactCode(assess(Collect(t.Context(), input, nil, nil)), ""); got != "receipt-artifacts-empty" {
 		t.Fatalf("a missing receipt was reported as %q", got)
 	}
 }
