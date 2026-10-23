@@ -12,6 +12,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/bootstrap"
 	"github.com/cristianargotti/golaw/internal/buildinfo"
 	"github.com/cristianargotti/golaw/internal/model"
+	"github.com/cristianargotti/golaw/internal/policy"
 )
 
 type initOptions struct {
@@ -20,6 +21,8 @@ type initOptions struct {
 	language     string
 	capabilities []string
 	accept       []string
+	profile      string
+	pin          *policy.ProfileRef // the installed bundle --profile names, resolved once
 }
 
 // initCommand previews policy and template changes before an explicit apply
@@ -41,12 +44,16 @@ func (a *app) initCommand() *cobra.Command {
 		"capabilities to enable: "+strings.Join(model.Capabilities(), ", "))
 	cmd.Flags().StringSliceVar(&opts.accept, "accept", nil,
 		"write the proposal init prints for this destination as well; repeat for several")
+	cmd.Flags().StringVar(&opts.profile, "profile", "", "enroll the installed profile bundle of this name, read from the config directory")
 	return cmd
 }
 
 func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts initOptions) error {
 	if opts.update && len(opts.accept) > 0 {
 		return initFailed(fmt.Errorf("%w: --accept writes a proposal of init, while init --update keeps every local edit", model.ErrUsage))
+	}
+	if err := a.resolveProfile(ctx, path, &opts); err != nil {
+		return initFailed(err)
 	}
 	if opts.update {
 		if err := updateCapabilities(opts); err != nil {
@@ -90,13 +97,13 @@ func (a *app) finishInit(ctx context.Context, out io.Writer, root string, plan i
 // and, while HEAD does not hold that policy, ends with the line that asks
 // for golaw.yml to be committed: until a commit holds it, it governs the
 // agent hooks only, and a HEAD that cannot be read still asks.
-func (a *app) enrollInit(ctx context.Context, out io.Writer, root string, data []byte, policy *model.EffectivePolicy) error {
-	if err := a.enroll(root, data, policy, a.now()); err != nil {
+func (a *app) enrollInit(ctx context.Context, out io.Writer, root string, data []byte, compiled *model.EffectivePolicy) error {
+	if err := a.enroll(root, data, compiled, a.now()); err != nil {
 		return initFailed(err)
 	}
-	lines := []string{"enrolled: " + root + " policy " + policy.Digest}
-	if committed, err := a.committed(ctx, root, policy.Digest); err != nil || !committed {
-		lines = append(lines, commitLine(policy.Language))
+	lines := []string{"enrolled: " + root + " policy " + compiled.Digest}
+	if committed, err := a.committed(ctx, root, compiled.Digest); err != nil || !committed {
+		lines = append(lines, commitLine(compiled.Language))
 	}
 	return initFailed(writeLines(out, lines))
 }
@@ -120,14 +127,14 @@ func (a *app) prepareInit(path string, opts initOptions) (string, []byte, *model
 	if err != nil {
 		return "", nil, nil, initFailed(err)
 	}
-	policy, err := a.compile(data, a.now())
+	compiled, err := a.compile(data, a.now())
 	if err != nil {
 		if existing {
 			err = fmt.Errorf("%s of %s cannot be loaded, so init neither replaces nor enrolls it: %w", bootstrap.PolicyFile, root, err)
 		}
 		return "", nil, nil, initFailed(err)
 	}
-	return root, data, policy, nil
+	return root, data, compiled, nil
 }
 
 func (a *app) unchangedPolicyStatus(root string, opts initOptions, plan initPlan) string {

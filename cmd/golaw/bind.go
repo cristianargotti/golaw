@@ -16,6 +16,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/policy"
+	"github.com/cristianargotti/golaw/internal/profile"
 	"github.com/cristianargotti/golaw/internal/report"
 	"github.com/cristianargotti/golaw/internal/source"
 )
@@ -117,7 +118,7 @@ func (b binding) loadedBy(ctx context.Context, in policy.Input) (*policy.Loaded,
 	if err := b.dirsFor(&in); err != nil {
 		return nil, err
 	}
-	in.Version, in.Schemas = b.pin(), schemas()
+	in.Version, in.Schemas, in.Bundle = b.pin(), schemas(), profile.Load
 	l, err := policy.Load(ctx, in)
 	if err != nil {
 		return nil, fmt.Errorf("load the policy of %s: %w", in.Dir, err)
