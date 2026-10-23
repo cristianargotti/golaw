@@ -30,22 +30,22 @@ func TestInitUpdateKeepsTheFirstUpgradeOfAnEarlierBaselineClean(t *testing.T) {
 		earlier = strings.Replace(earlier, "  - "+module+"\n", "", 1)
 	}
 	repo.Write("docs/adr/0001-inherited-baseline.md", earlier)
-	gitRun(t, repo.Root, "add", "-A")
-	gitRun(t, repo.Root, "commit", "-q", "-m", "feat: adopt the golaw policy")
+	repo.Git("add", "-A")
+	repo.Git("commit", "-q", "-m", "feat: adopt the golaw policy")
 	ta.stdout.Reset()
 	if code := ta.run(t.Context(), []string{"init", "--update", "--apply", repo.Root}); code != exitClean ||
 		!strings.Contains(ta.stdout.String(), "+  - github.com/evilmartians/lefthook/v2\n") {
 		t.Fatalf("update exit = %d: %s%s", code, ta.stdout.String(), ta.stderr.String())
 	}
-	gitRun(t, repo.Root, "add", "-A")
-	gitRun(t, repo.Root, "commit", "-q", "-m", "feat: update the golaw kit")
+	repo.Git("add", "-A")
+	repo.Git("commit", "-q", "-m", "feat: update the golaw kit")
 	red := boundApp(t)
 	red.run(t.Context(), []string{"scan", repo.Root})
 	if !strings.Contains(red.stdout.String(), "tools/go.mod:") || !strings.Contains(red.stdout.String(), "policy.dependency-records") {
 		t.Fatalf("scan before the proposal = %q", red.stdout.String())
 	}
 	repo.Write("docs/adr/0001-inherited-baseline.md", string(fresh))
-	gitRun(t, repo.Root, "commit", "-q", "-am", "docs: record the kit tools")
+	repo.Git("commit", "-q", "-am", "docs: record the kit tools")
 	near := boundApp(t)
 	near.run(t.Context(), []string{"scan", repo.Root})
 	if strings.Contains(near.stdout.String(), "policy.dependency-records") {

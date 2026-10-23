@@ -95,7 +95,8 @@ func cinSkillReceipt(t *testing.T, state, agent, scope, identity, path string) {
 // each agent directory keeps: a file beside the agent directories is not
 // evidence, while a link on the way to a receipt, a state that is no
 // directory, a scope path that is no directory and a project without its
-// identity are refused instead of read.
+// identity are refused instead of read; where the system reads a file in
+// the place of a directory as nothing there, those two hold no receipt.
 func TestSkillOwnersReadsOnlyPlainReceipts(t *testing.T) {
 	t.Parallel()
 	home := cinHome(t)
@@ -110,11 +111,17 @@ func TestSkillOwnersReadsOnlyPlainReceipts(t *testing.T) {
 	if _, err := SkillOwners(state, "project", "", "codex", path); !errors.Is(err, ErrPath) {
 		t.Fatalf("project without identity = %v", err)
 	}
-	if _, err := SkillOwners(filepath.Join(state, "notes"), "user", "project", "codex", path); err == nil {
+	switch got, err := SkillOwners(filepath.Join(state, "notes"), "user", "project", "codex", path); {
+	case notDirIsAbsent && (err != nil || len(got) != 0):
+		t.Fatalf("a state that is a file, which this system reads as absent = %v, %v", got, err)
+	case !notDirIsAbsent && err == nil:
 		t.Fatal("a state that is a file was read")
 	}
 	cinWrite(t, filepath.Join(state, "other", "user"), []byte("not a directory"))
-	if _, err := SkillOwners(state, "user", "project", "codex", path); err == nil {
+	switch got, err := SkillOwners(state, "user", "project", "codex", path); {
+	case notDirIsAbsent && (err != nil || !slices.Equal(got, []string{"cursor"})):
+		t.Fatalf("a scope path that is a file, which this system reads as absent = %v, %v", got, err)
+	case !notDirIsAbsent && err == nil:
 		t.Fatal("a scope path that is a file was accepted")
 	}
 	linked := filepath.Join(home, "linked")

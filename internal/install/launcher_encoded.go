@@ -12,9 +12,15 @@ import (
 // wrote reach the binary as they are, where a text pipeline of PowerShell
 // would decode them, write them again in its own encoding and add a line
 // break. The return value of Start is discarded, because anything a
-// script prints would reach the host as part of the hook's answer.
+// script prints would reach the host as part of the hook's answer. For
+// the same reason the script runs no cmdlet and silences progress: a
+// cmdlet such as New-Object makes PowerShell load its module, and under
+// -EncodedCommand with a redirected error stream the progress record of
+// that load ("Preparing modules for first use") reaches stderr as CLIXML
+// ahead of the reason the binary writes there.
 const (
-	scriptOpen  = "$process = New-Object System.Diagnostics.Process\n$process.StartInfo.FileName = "
+	scriptOpen = "$ProgressPreference = 'SilentlyContinue'\n" +
+		"$process = [System.Diagnostics.Process]::new()\n$process.StartInfo.FileName = "
 	scriptArgs  = "\n$process.StartInfo.Arguments = "
 	scriptClose = "\n$process.StartInfo.UseShellExecute = $false\n" +
 		"$null = $process.Start()\n$process.WaitForExit()\n" +

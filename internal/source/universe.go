@@ -87,14 +87,15 @@ func inspect(root string, e entry, dirs map[string]int) inspection {
 		file.Class = model.ClassUnreadable
 		return got
 	}
-	info, err := os.Lstat(OSPath(root, e.path))
+	path := OSPath(root, e.path)
+	info, err := os.Lstat(path)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		file.Class = model.ClassUnknown
 	case err != nil:
 		file.Class = model.ClassUnreadable
 	case info.Mode()&fs.ModeSymlink != 0:
-		file.Class, file.Size = model.ClassSymlink, info.Size()
+		file.Class, file.Size = model.ClassSymlink, linkSize(path, info)
 	case info.IsDir():
 		file.Class = model.ClassGitlink
 	case !info.Mode().IsRegular():
@@ -106,6 +107,18 @@ func inspect(root string, e entry, dirs map[string]int) inspection {
 		}
 	}
 	return got
+}
+
+// linkSize is the length of the text of a link, the size Unix lstat
+// answers and git records for its blob; Windows answers zero for every
+// link, which would make two texts of one link the same identity. A link
+// whose text cannot be read keeps the size lstat gave.
+func linkSize(path string, info fs.FileInfo) int64 {
+	text, err := os.Readlink(path)
+	if err != nil {
+		return info.Size()
+	}
+	return int64(len(text))
 }
 
 // present reports whether a listed path is in the universe without

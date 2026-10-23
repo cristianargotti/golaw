@@ -1,10 +1,20 @@
 package install
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 )
+
+// notDirIsAbsent holds on a system where Go reads a regular file in the
+// place of a directory as nothing there: Windows answers a path under a
+// file, or a file opened as a directory, with ERROR_PATH_NOT_FOUND, the
+// errno Go names ENOTDIR there, which errors.Is matches to
+// fs.ErrNotExist, where Unix answers ENOTDIR.
+var notDirIsAbsent = errors.Is(syscall.ENOTDIR, fs.ErrNotExist)
 
 func testOptions(t *testing.T) Options {
 	t.Helper()

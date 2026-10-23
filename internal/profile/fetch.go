@@ -27,8 +27,8 @@ const (
 // cloned at the other form of the same version (v1.2.3 for 1.2.3 and the
 // reverse), because a refusal names the bare version of the pin (D8) and
 // D9 reads both forms as one version. A clone that fails is ErrBundle
-// naming the URL, the tag as given and git's last line, and leaves no
-// directory behind.
+// naming the URL, the tag as given and the line of git that names the
+// cause, and leaves no directory behind.
 func Fetch(ctx context.Context, configDir string, src Source, env []string) (string, error) {
 	root := profilesRoot(configDir)
 	if err := os.MkdirAll(root, profilesMode); err != nil {
@@ -56,7 +56,7 @@ func cloneAt(ctx context.Context, root string, src Source, tag string, env []str
 		return "", errors.Join(bundlef("clone %s at %s: %v", src.URL, src.Tag, err), removeDir(dir))
 	}
 	if out.Code != 0 {
-		return "", errors.Join(bundlef("clone %s at %s: %s", src.URL, src.Tag, lastLine(out.Stderr)), removeDir(dir))
+		return "", errors.Join(bundlef("clone %s at %s: %s", src.URL, src.Tag, causeLine(out.Stderr)), removeDir(dir))
 	}
 	return dir, nil
 }
@@ -82,10 +82,19 @@ func cloneArgs(url, tag, dir string) []string {
 	}
 }
 
-// lastLine is the last line git printed on its error stream, the one that
-// names the cause.
-func lastLine(stderr []byte) string {
+// causeLine is the line of git's error stream that names the cause: its
+// first fatal line, else its last line. A source git reaches through a
+// transport, a remote or a missing local path that holds a colon, a
+// Windows drive letter included, fails with the cause on a fatal line and
+// a hint of several lines after it, whose last line, "and the repository
+// exists.", names nothing.
+func causeLine(stderr []byte) string {
 	lines := strings.Split(strings.TrimSpace(string(stderr)), "\n")
+	for _, line := range lines {
+		if cause := strings.TrimSpace(line); strings.HasPrefix(cause, "fatal: ") {
+			return cause
+		}
+	}
 	if last := strings.TrimSpace(lines[len(lines)-1]); last != "" {
 		return last
 	}

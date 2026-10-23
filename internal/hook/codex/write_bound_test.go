@@ -1,6 +1,7 @@
 package codex_test
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -80,12 +81,12 @@ func TestEmptyPatchOfAnEnvironmentIsNoOp(t *testing.T) {
 
 // Codex joins a header path that starts with a tilde to its working
 // directory, so the target enrollment reads is that file, never one under
-// the home.
+// the home; the join writes the separator of the system.
 func TestTildeHeaderIsJoinedToTheWorkingDirectory(t *testing.T) {
 	t.Parallel()
 	data := commandPayload(t, "pre-apply-patch-add.json", patch("*** Add File: ~/notes.md\n+hello\n"))
 	parsed, err := codex.Parse(data)
-	if err != nil || parsed.Event.Target != "/project/~/notes.md" {
+	if err != nil || parsed.Event.Target != filepath.FromSlash("/project/~/notes.md") {
 		t.Fatalf("target = %q, %v", parsed.Event.Target, err)
 	}
 	request := decodeRequest(t, data, nil)
