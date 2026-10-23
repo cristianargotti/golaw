@@ -2,6 +2,7 @@ package bootstrap_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -125,5 +126,28 @@ func TestTemplateDiffNamesWhatTheProfileLeavesOut(t *testing.T) {
 	var out bytes.Buffer
 	if err := bootstrap.WriteTemplateDiff(&out, plain); err != nil || strings.Contains(out.String(), "Deixados") {
 		t.Errorf("a plan without an exclusion names one: %v\n%s", err, out.String())
+	}
+}
+
+// TestApplyLeavesAnExcludedDestinationToItsOwner pins why the frozen inputs
+// forget an excluded destination: its owner may change it between the plan
+// and the apply, and init must not refuse a plan over a file it leaves out.
+func TestApplyLeavesAnExcludedDestinationToItsOwner(t *testing.T) {
+	t.Parallel()
+	for _, exclude := range []bool{false, true} {
+		plan, root := excludedPlan(t)
+		if exclude {
+			plan.Exclude([]string{".github/"})
+		}
+		if err := os.WriteFile(filepath.Join(root, ".github", "same.yml"), []byte("theirs now\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		err := bootstrap.ApplyTemplates(root, plan, io.Discard)
+		if exclude && err != nil {
+			t.Fatalf("a change under an excluded prefix refused the apply: %v", err)
+		}
+		if !exclude && !errors.Is(err, install.ErrChanged) {
+			t.Fatalf("a change under a planned destination = %v, want ErrChanged", err)
+		}
 	}
 }
