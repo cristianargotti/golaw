@@ -69,3 +69,26 @@ func TestPinRequiresAnInstalledVersion(t *testing.T) {
 		t.Fatalf("a tag prefix broke the pin: %#v", line)
 	}
 }
+
+// TestBuildLineNamesTheVerificationOfAReleaseVersion pins the wording of
+// the build line: a release version without a module sum, as the release
+// lane builds it, names doctor --release, which verifies it, while a go
+// install build and a pseudo-version stay not verifiable; the state and
+// the code stay those of a source build either way.
+func TestBuildLineNamesTheVerificationOfAReleaseVersion(t *testing.T) {
+	t.Parallel()
+	cases := map[string]struct {
+		build BuildMetadata
+		want  string
+	}{
+		"release lane": {BuildMetadata{Version: "v0.5.0", Revision: "r"}, "version=v0.5.0 sum= revision=r; release version, executable verified only by golaw doctor --release <dir>"},
+		"go install":   {BuildMetadata{Version: "v0.5.0", Sum: "h1:x", Revision: "r"}, "version=v0.5.0 sum=h1:x revision=r; executable not verifiable"},
+		"pseudo":       {BuildMetadata{Version: "v0.0.0-20261023112200-767ca1bb937b", Revision: "r"}, "version=v0.0.0-20261023112200-767ca1bb937b sum= revision=r; executable not verifiable"},
+	}
+	for name, tc := range cases {
+		line := buildLines(Snapshot{Build: tc.build})[0]
+		if line.Detail != tc.want || line.State != "source-build" || line.Code != "source-build-unverifiable" {
+			t.Errorf("%s: %#v, want detail %q", name, line, tc.want)
+		}
+	}
+}

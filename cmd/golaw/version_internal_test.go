@@ -11,7 +11,7 @@ func TestVersionPrintsMetadataAndTheSourceBuildState(t *testing.T) {
 	if got := ta.run(t.Context(), []string{"version"}); got != exitClean {
 		t.Fatalf("exit = %d, stderr = %q", got, ta.stderr.String())
 	}
-	want := "golaw 9.9.9\nmodule: example.test/kit\nbuild: source build, executable not verifiable\n"
+	want := "golaw 9.9.9\nmodule: example.test/kit\nbuild: release version, executable verified only by golaw doctor --release <dir>\n"
 	if got := ta.stdout.String(); got != want {
 		t.Fatalf("stdout = %q, want %q", got, want)
 	}

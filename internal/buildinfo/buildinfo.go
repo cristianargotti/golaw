@@ -79,7 +79,9 @@ func IsRelease(version string) bool { return releasePattern.MatchString(version)
 
 // Lines renders the metadata one field per line for the version command:
 // the version first, then the module, the sum and the revision when known,
-// and the verification state last.
+// and the verification state last: a release version without a module sum,
+// the way the release lane builds, is verified only by doctor --release,
+// and any other build is never verified.
 func (i Info) Lines() []string {
 	lines := []string{"golaw " + i.Version}
 	if i.Module != "" {
@@ -95,8 +97,15 @@ func (i Info) Lines() []string {
 		}
 		lines = append(lines, revision)
 	}
+	if _, release := i.Release(); release && i.Sum == "" {
+		return append(lines, "build: "+ReleaseState)
+	}
 	return append(lines, "build: source build, executable not verifiable")
 }
+
+// ReleaseState is the verification state of a release version without a
+// module sum, which only doctor --release can verify.
+const ReleaseState = "release version, executable verified only by golaw doctor --release <dir>"
 
 // normalize strips the leading v of a module version and maps the toolchain
 // placeholder of an unversioned build to DevelVersion.

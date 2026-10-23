@@ -81,6 +81,14 @@ func TestLinesEndWithTheSourceBuildState(t *testing.T) {
 	if got := full.Lines(); !slices.Equal(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
+	lane := buildinfo.Info{Version: "0.5.0", Module: "m", Revision: "abc", Stamped: true}
+	if got := lane.Lines(); got[len(got)-1] != "build: release version, executable verified only by golaw doctor --release <dir>" {
+		t.Fatalf("release lane lines = %q", got)
+	}
+	unstamped := buildinfo.Info{Version: "0.5.0"}
+	if got := unstamped.Lines(); got[len(got)-1] != "build: source build, executable not verifiable" {
+		t.Fatalf("unstamped lines = %q", got)
+	}
 	bare := buildinfo.Info{Version: buildinfo.DevelVersion}
 	if got := bare.Lines(); len(got) != 2 || got[0] != "golaw 0.0.0-devel" {
 		t.Fatalf("bare lines = %q", got)

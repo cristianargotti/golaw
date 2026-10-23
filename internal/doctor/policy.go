@@ -73,12 +73,19 @@ func pinLines(snapshot Snapshot) []Line {
 	return []Line{line}
 }
 
+// buildLines reports the build metadata as a source build; a release
+// version without a module sum names doctor --release, which verifies it,
+// so the line never calls a verifiable release asset unverifiable.
 func buildLines(snapshot Snapshot) []Line {
 	build := snapshot.Build
+	state := "executable not verifiable"
+	if build.Sum == "" && buildinfo.IsRelease(strings.TrimPrefix(build.Version, "v")) {
+		state = buildinfo.ReleaseState
+	}
 	line := Line{
 		ID: "doctor.build", State: "source-build", Code: "source-build-unverifiable",
-		Detail: fmt.Sprintf("version=%s sum=%s revision=%s; executable not verifiable",
-			build.Version, build.Sum, build.Revision),
+		Detail: fmt.Sprintf("version=%s sum=%s revision=%s; %s",
+			build.Version, build.Sum, build.Revision, state),
 	}
 	if build == (BuildMetadata{}) {
 		line.State, line.Code = stateUnknown, "build-metadata-unavailable"
