@@ -33,7 +33,6 @@ func TestM2SetupSequence(t *testing.T) {
 		"the policy in force is the golaw.yml at HEAD",
 		"never arms git hooks",
 		"source build, executable not verifiable",
-		"automatic release verification in doctor arrives in M5",
 		"only hard gate",
 		"golaw agent uninstall --agent "+agent,
 		"The adoption commit stages every file listed in the reviewed init diff.",

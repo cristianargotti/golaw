@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/cristianargotti/golaw/internal/release"
 )
 
 // The clock of every generated release: the log integrates each entry at
@@ -114,8 +116,8 @@ func (s *signer) writeTrust(tb testing.TB, dir string) {
 	tb.Helper()
 	key, err := x509.MarshalPKIXPublicKey(&s.log.PublicKey)
 	must(tb, err)
-	write(tb, filepath.Join(dir, rootsFile), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: s.ca.Raw}))
-	write(tb, filepath.Join(dir, rekorFile), pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: key}))
+	write(tb, filepath.Join(dir, release.RootsFile), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: s.ca.Raw}))
+	write(tb, filepath.Join(dir, release.RekorFile), pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: key}))
 }
 
 // sign is the ASN.1 ECDSA signature of key over the SHA-256 of message.
