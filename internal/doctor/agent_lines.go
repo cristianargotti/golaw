@@ -188,7 +188,7 @@ func stateLine(f agentFacts, installed, trusted, dispatch Line) Line {
 		line.Detail = "installed and trusted, and no hook process ran for this repository with the current definition yet"
 	case f.Agent == agentCursor:
 		line.State, line.Code = stateUnknown, codePreviewActive
-		line.Detail = "shell and read guards ran; writes are captured, not enforced"
+		line.Detail = "a hook process of " + f.Agent + " ran; writes are captured, not enforced"
 	}
 	return line
 }

@@ -157,7 +157,7 @@ func TestSummarySaysTheStateInTheConfiguredLanguage(t *testing.T) {
 	if got := summary("pt-BR", facts, Line{State: stateUnknown, Code: codeNotInstalled}); got != absent {
 		t.Fatalf("an agent never installed = %q", got)
 	}
-	if got := summary("pt-BR", facts, Line{State: stateUnknown, Code: codePreviewActive}); !strings.Contains(got, "capturadas, ainda não bloqueadas") {
+	if got := summary("pt-BR", facts, Line{State: stateUnknown, Code: codePreviewActive}); !strings.Contains(got, "um processo do hook dele rodou neste repositório; as escritas são capturadas, ainda não bloqueadas") || strings.Contains(got, "shell") {
 		t.Fatalf("the Cursor preview = %q", got)
 	}
 }

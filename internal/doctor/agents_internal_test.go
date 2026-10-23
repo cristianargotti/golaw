@@ -62,7 +62,7 @@ func TestCodexAndCursorReportTheirFrame(t *testing.T) {
 	in := installCursor(t)
 	in.input.Dispatch, in.input.Language = Dispatch{State: DispatchObserved, OS: "linux"}, "en"
 	got := Cursor(t.Context(), in.input, &enrollmentStore{})
-	if state := lineWith(got.Lines, idState); state.State != stateUnknown || state.Code != codePreviewActive || !strings.HasPrefix(got.Summary, "golaw: the cursor hook is installed and its shell and read guards ran") {
+	if state := lineWith(got.Lines, idState); state.State != stateUnknown || state.Code != codePreviewActive || !strings.HasPrefix(got.Summary, "golaw: the cursor hook is installed and a hook process of it ran in this repository") || state.Detail != "a hook process of cursor ran; writes are captured, not enforced" {
 		t.Fatalf("installed cursor = %+v, %q", got.Lines, got.Summary)
 	}
 }
