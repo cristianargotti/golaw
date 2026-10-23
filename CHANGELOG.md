@@ -8,6 +8,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Added
 
+- 2026-10-22: the profile evaluators, rule rules/4.14@1, judge the root Dockerfile, the ci closure and typed YAML values with the data of the enrolled profile bundle, each only when the profile carries its section, because a profile is data that only adds checks and never removes or weakens one.
 - 2026-10-22: policy-file checks judge configuration through declared readers and capabilities, because unsupported constructs must not become false findings.
 - 2026-10-22: capability proposals add to the enrolled set and select their templates, because existing capabilities may not disappear during adoption.
 - 2026-10-22: the core CI template runs the required targets with external enrollment, because remote CI or the platform pipeline is the only gate.
