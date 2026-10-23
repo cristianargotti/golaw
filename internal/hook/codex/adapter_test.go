@@ -66,6 +66,33 @@ func TestEnvelope(t *testing.T) {
 	}
 }
 
+// TestARefusedPostEnvelopeGetsThePostAnswer holds a refused PostToolUse to
+// the post cannot-judge answer of section 8.2, exit 2 with the reason on
+// stderr, because Codex rejects the PreToolUse deny JSON on a post event
+// and the refusal would vanish without a word.
+func TestARefusedPostEnvelopeGetsThePostAnswer(t *testing.T) {
+	t.Parallel()
+	post := corpus(t, "post-bash.json")
+	for name, edit := range map[string]func(map[string]any){
+		"cursor field": func(m map[string]any) { m["conversation_id"] = "conversation" },
+		"no turn":      func(m map[string]any) { delete(m, "turn_id") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			event, result := hooktest.Evaluate(t, "codex", adapter(), rewrite(t, post, edit), nil)
+			reply := codex.Encode(event, result)
+			if !result.CannotJudge || reply.ExitCode != 2 || reply.Stderr == "" || len(reply.Stdout) != 0 {
+				t.Fatalf("event = %+v, result = %+v, reply = %+v", event, result, reply)
+			}
+		})
+	}
+	pre := rewrite(t, corpus(t, "pre-bash-plain.json"), func(m map[string]any) { delete(m, "turn_id") })
+	event, result := hooktest.Evaluate(t, "codex", adapter(), pre, nil)
+	if reply := codex.Encode(event, result); reply.ExitCode != 0 || len(reply.Stdout) == 0 || reply.Stderr == "" {
+		t.Fatalf("a refused pre envelope = %+v", reply)
+	}
+}
+
 func TestOptionalAgentIdentity(t *testing.T) {
 	t.Parallel()
 	parsed, err := codex.Parse(corpus(t, "pre-bash-spawned.json"))
