@@ -1,0 +1,16 @@
+FROM docker.example.test/library/alpine:3.20@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa AS certs
+RUN apk add --no-cache ca-certificates=20250911-r0
+
+FROM registry.example.test/library/golang:1.27-alpine@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb AS base
+WORKDIR /src
+
+FROM base AS ci
+RUN apk add --no-cache curl=8.14.1-r1
+
+FROM base AS builder
+COPY . .
+RUN go build -o /out/service .
+
+FROM registry.example.test/library/alpine:3.20@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+COPY --from=builder /out/service /service
+ENTRYPOINT ["/service"]

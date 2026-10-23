@@ -1,0 +1,11 @@
+include golaw.mk
+
+.PHONY: hooks-test image-lint
+
+ci: hooks-test image-lint
+
+hooks-test:
+	@echo hooks tested
+
+image-lint:
+	@echo image linted

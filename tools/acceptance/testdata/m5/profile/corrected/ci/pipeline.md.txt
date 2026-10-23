@@ -1,0 +1,3 @@
+# Pipeline
+
+The platform pipeline runs make ci.

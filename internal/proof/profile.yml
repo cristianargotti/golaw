@@ -3,4 +3,34 @@
 # finding code its red fixture must yield, its two fixture directories
 # relative to this file and the profile the fixtures run under, which is
 # always the synthetic fixture bundle of internal/profile/testdata/fixture.
-checks: []
+checks:
+  - id: policy.image-stages
+    code: image-stage-order
+    red: testdata/policy.image-stages/red
+    near: testdata/policy.image-stages/near
+    profile: fixture
+  - id: policy.image-installs
+    code: image-install-not-allowed
+    red: testdata/policy.image-installs/red
+    near: testdata/policy.image-installs/near
+    profile: fixture
+  - id: policy.image-registry
+    code: image-registry
+    red: testdata/policy.image-registry/red
+    near: testdata/policy.image-registry/near
+    profile: fixture
+  - id: policy.profile-targets
+    code: profile-target-missing
+    red: testdata/policy.profile-targets/red
+    near: testdata/policy.profile-targets/near
+    profile: fixture
+  - id: policy.values-assertions
+    code: values-assertion
+    red: testdata/policy.values-assertions/red
+    near: testdata/policy.values-assertions/near
+    profile: fixture
+  - id: paths.profile-forbidden
+    code: profile-forbidden-path
+    red: testdata/paths.profile-forbidden/red
+    near: testdata/paths.profile-forbidden/near
+    profile: fixture

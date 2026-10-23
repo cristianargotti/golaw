@@ -1,0 +1,7 @@
+on:
+  schedule:
+    - cron: '0 3 * * *'
+jobs:
+  image:
+    steps:
+      - run: make image-lint

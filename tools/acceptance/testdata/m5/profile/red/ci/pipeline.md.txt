@@ -1,0 +1,3 @@
+# Pipeline
+
+The legacyci job runs until the platform pipeline runs make ci.
