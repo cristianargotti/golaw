@@ -1,14 +1,12 @@
 package profile
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/model"
-	"github.com/cristianargotti/golaw/internal/policy"
 )
 
 // tagPattern is the tag a bundle is installed from, vX.Y.Z or X.Y.Z, the
@@ -48,29 +46,4 @@ func ParseSource(arg string) (Source, error) {
 		return Source{}, fmt.Errorf("%w: tag %q is not vX.Y.Z or X.Y.Z", model.ErrUsage, tag)
 	}
 	return Source{URL: url, Tag: tag, Version: match[1]}, nil
-}
-
-// Install clones src, verifies the bundle and makes it the current one of
-// its name, keeping every installed version in the store (D3, D9); the
-// bool reports a version the store already held with the same digest. It
-// never reads or writes a golaw.yml.
-func Install(_ context.Context, _ policy.Dirs, _ Source, _ []string, _ time.Time) (Installed, bool, error) {
-	return Installed{}, false, ErrNotBuilt
-}
-
-// Refresh installs the current version of a name again from the URL and
-// tag its record holds, the way out of a damaged current bundle.
-func Refresh(_ context.Context, _ policy.Dirs, _ string, _ []string, _ time.Time) (Installed, error) {
-	return Installed{}, ErrNotBuilt
-}
-
-// Rollback makes the previously current stored version of a name current
-// again.
-func Rollback(_ policy.Dirs, _ string, _ time.Time) (Installed, error) {
-	return Installed{}, ErrNotBuilt
-}
-
-// Remove deletes the current bundle of a name, its store and its record.
-func Remove(_ policy.Dirs, _ string) error {
-	return ErrNotBuilt
 }

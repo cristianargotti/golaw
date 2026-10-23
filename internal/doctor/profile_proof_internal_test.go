@@ -18,7 +18,13 @@ type profileDiagnosticCheck struct{ id, code string }
 
 // profileProofs are the proof entries of the profile line, one per red code.
 func profileProofs() []profileDiagnosticCheck {
-	return []profileDiagnosticCheck{{id: idProfile, code: codeProfileNotInstalled}}
+	return []profileDiagnosticCheck{
+		{id: idProfile, code: codeProfileNotInstalled},
+		{id: "doctor." + codeProfileVersionMismatch, code: codeProfileVersionMismatch},
+		{id: "doctor." + codeProfileDigestMismatch, code: codeProfileDigestMismatch},
+		{id: "doctor." + codeProfileStale, code: codeProfileStale},
+		{id: "doctor." + codeProfileDataInvalid, code: codeProfileDataInvalid},
+	}
 }
 
 func (c profileDiagnosticCheck) Spec() model.Spec {
