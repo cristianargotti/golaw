@@ -23,6 +23,11 @@ gh() {
   test "$CASE_API" = yes || return 8
   printf '%s\n' "$CASE_JSON"
 }
+go() {
+  test "$1 $2" = "run ./tools/releasegate" || return 7
+  shift 2
+  "$CASE_GATE" "$@"
+}
 source tools/cicheck/release-gate.sh
 `
 
@@ -82,9 +87,24 @@ func requireReleaseGateRecord(t *testing.T, path, sha string, pass bool) {
 	}
 }
 
+// releaseGateTool builds the gate tool once, so the script's go run line
+// runs the decision the lane runs without the toolchain in the probe's
+// environment.
+func releaseGateTool(t *testing.T) string {
+	t.Helper()
+	tool := filepath.Join(t.TempDir(), "releasegate")
+	build := exec.CommandContext(t.Context(), "go", "build", "-o", tool, "./tools/releasegate")
+	build.Dir = filepath.Join("..", "..")
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build the gate tool: %v\n%s", err, output)
+	}
+	return tool
+}
+
 func TestReleaseGateDecisions(t *testing.T) {
 	t.Parallel()
 	sha := strings.Repeat("a", 40)
+	tool := releaseGateTool(t)
 	for _, test := range releaseGateCases(sha) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -99,7 +119,7 @@ func TestReleaseGateDecisions(t *testing.T) {
 			command.Env = []string{
 				"PATH=" + os.Getenv("PATH"),
 				"CASE_SHA=" + sha, "CASE_ANCESTOR=" + test.ancestor,
-				"CASE_API=" + test.api, "CASE_JSON=" + string(payload),
+				"CASE_API=" + test.api, "CASE_JSON=" + string(payload), "CASE_GATE=" + tool,
 				"GITHUB_REF_TYPE=" + test.refType,
 				"GITHUB_REF=refs/tags/v0.1.0",
 				"GITHUB_REPOSITORY=cristianargotti/golaw",
