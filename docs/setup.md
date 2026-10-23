@@ -146,7 +146,7 @@ gh attestation download golaw_<version>_<os>-<arch> --repo cristianargotti/golaw
 ./golaw_<version>_<os>-<arch> doctor --release .
 ```
 
-gh attestation download writes sha256:<hex>.jsonl, or sha256-<hex>.jsonl on Windows, which doctor reads as it reads <asset>.sigstore.json. From a checkout of the kit, make release-verify BIN=<downloaded binary> DIST=<dir> runs the same command. A verified release prints release-verified with the signer and exits 0; any other result is red, names the file and the cause, and exits 1. A private Sigstore instance passes its roots.crt and rekor.pub with --trust-root <dir>.
+gh attestation download writes sha256:<hex>.jsonl, or sha256-<hex>.jsonl on Windows, which doctor reads as it reads <asset>.sigstore.json. From a checkout of the kit, make release-verify BIN=<downloaded binary> DIST=<dir> runs the same command. A verified release prints release-verified with the signer and exits 0; any other result is red, names the file and the cause, and exits 1. A source build or a go install build is never verified: doctor --release answers unknown [source-build] and exits 0 whatever directory it is given, and so does make release-verify with such a binary. A private Sigstore instance passes its roots.crt and rekor.pub with --trust-root <dir>.
 
 doctor --release runs inside the binary it judges, so its verdict is only as honest as that binary. For a verification independent of it, verify checksums.txt and its bundle with cosign before running the executable. Pin the certificate identity to this repository's release.yml under refs/tags and to the exact selected tag. The issuer is https://token.actions.githubusercontent.com.
 

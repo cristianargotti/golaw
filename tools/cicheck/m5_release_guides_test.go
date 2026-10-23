@@ -19,6 +19,11 @@ func TestM5ReleaseVerificationGuides(t *testing.T) {
 		"--trust-root <dir>",
 		"doctor --release runs inside the binary it judges",
 		"source build, executable not verifiable",
+		"A source build or a go install build is never verified: doctor --release answers unknown [source-build] and exits 0 whatever directory it is given, and so does make release-verify with such a binary.",
+	}
+	readme := []string{
+		"verify it with golaw doctor --release <dir> as docs/setup.md (Verify a release) explains",
+		"docs/profiles.md",
 	}
 	releasing := []string{
 		"## Replay the gate",
@@ -28,7 +33,7 @@ func TestM5ReleaseVerificationGuides(t *testing.T) {
 		"make release-verify BIN=<downloaded binary> DIST=<dir>",
 	}
 	stale := []string{"automatic release verification in doctor arrives in M5"}
-	guide, page := string(kitBytes(t, m5SetupPath)), string(kitBytes(t, m5ReleasingPath))
+	guide, page, front := string(kitBytes(t, m5SetupPath)), string(kitBytes(t, m5ReleasingPath)), string(kitBytes(t, "README.md"))
 	rows := []struct {
 		name, path, text string
 		required         []string
@@ -38,6 +43,9 @@ func TestM5ReleaseVerificationGuides(t *testing.T) {
 		{"releasing", m5ReleasingPath, page, releasing, true},
 		{"red-stale-promise", m5SetupPath, guide + "\nVerify it yourself; " + stale[0] + ".\n", setup, false},
 		{"red-missing-trust-root", m5SetupPath, strings.ReplaceAll(guide, setup[6], ""), setup, false},
+		{"red-missing-source-build-exception", m5SetupPath, strings.ReplaceAll(guide, setup[9], ""), setup, false},
+		{"readme", "README.md", front, readme, true},
+		{"red-readme-stale-promise", "README.md", front + "\nVerify it yourself; " + stale[0] + ".\n", readme, false},
 		{"red-missing-dry-run", m5ReleasingPath, strings.Replace(page, releasing[2], "", 1), releasing, false},
 		{"near-cosign-kept", m5SetupPath, guide + "\nThe issuer is https://token.actions.githubusercontent.com.\n", setup, true},
 	}

@@ -12,7 +12,7 @@ Build the pinned release from source, never from latest:
 go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0
 ```
 
-When using a signed release asset, select the exact version and system, for example `golaw_0.2.0_<os>-<arch>` (with `.exe` on Windows), verify it against `checksums.txt` and its Sigstore bundle as docs/setup.md explains, and put it on your PATH under the name golaw (`golaw.exe` on Windows): the Claude Code plugin runs `golaw` from PATH. A source build reports `source build, executable not verifiable`; automatic release verification in doctor arrives in M5.
+When using a signed release asset, select the exact version and system, for example `golaw_0.2.0_<os>-<arch>` (with `.exe` on Windows), put it in one directory with `checksums.txt`, its Sigstore bundle and the attestation of the asset, verify it with golaw doctor --release <dir> as docs/setup.md (Verify a release) explains, and put it on your PATH under the name golaw (`golaw.exe` on Windows): the Claude Code plugin runs `golaw` from PATH. A source build reports `source build, executable not verifiable` and is never verified.
 
 ## Adopt a repository
 
@@ -50,6 +50,7 @@ golaw scan --staged
 ## More
 
 - Setup, results and removal: `docs/setup.md`.
+- Profiles, the optional bundle of platform data a repository pins: `docs/profiles.md`.
 - Security model and recovery: `docs/security.md`.
 - Agent contracts and evidence: `docs/agent-contracts.md`.
 - The laws of this repository: `CONTRIBUTING.md`.
