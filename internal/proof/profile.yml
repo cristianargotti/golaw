@@ -19,3 +19,18 @@ checks:
     red: testdata/policy.image-registry/red
     near: testdata/policy.image-registry/near
     profile: fixture
+  - id: policy.profile-targets
+    code: profile-target-missing
+    red: testdata/policy.profile-targets/red
+    near: testdata/policy.profile-targets/near
+    profile: fixture
+  - id: policy.values-assertions
+    code: values-assertion
+    red: testdata/policy.values-assertions/red
+    near: testdata/policy.values-assertions/near
+    profile: fixture
+  - id: paths.profile-forbidden
+    code: profile-forbidden-path
+    red: testdata/paths.profile-forbidden/red
+    near: testdata/paths.profile-forbidden/near
+    profile: fixture
