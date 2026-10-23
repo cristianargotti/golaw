@@ -19,3 +19,8 @@ checks:
     red: testdata/policy.image-registry/red
     near: testdata/policy.image-registry/near
     profile: fixture
+  - id: policy.profile-targets
+    code: profile-target-missing
+    red: testdata/policy.profile-targets/red
+    near: testdata/policy.profile-targets/near
+    profile: fixture
