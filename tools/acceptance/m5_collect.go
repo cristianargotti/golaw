@@ -34,6 +34,8 @@ type m5Catalog struct {
 func m5Catalogs() []m5Catalog {
 	return []m5Catalog{
 		{category: m5ProfileCategory, cases: m5ProfileCases()},
+		{category: m5InstallCategory, cases: m5InstallCases()},
+		{category: m5AdoptionCategory, cases: m5AdoptionCases()},
 		{category: m5ReleaseCategory, cases: m5ReleaseCases()},
 		{category: m5RemoteCategory, cases: m5RemoteCases()},
 	}
