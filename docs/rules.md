@@ -1,6 +1,6 @@
 # Rules
 
-golaw separates measurable rules from engineering judgment. The production registry and the four proof manifests of internal/proof identify the checks delivered by M1, M2 and M3; every registered check has a red fixture and a near miss. This page organizes the checks by their stable rule references, which enter every finding's fingerprint and never change, then states what each configuration reader reads and the rewrite that clears a stated limit, and lists the make targets the ci target carries.
+golaw separates measurable rules from engineering judgment. The production registry and the proof manifests of internal/proof, the profile entries of internal/proof/profile.yml among them, identify the checks delivered by M1, M2, M3 and M5; every registered check has a red fixture and a near miss. This page organizes the checks by their stable rule references, which enter every finding's fingerprint and never change, then states what each configuration reader reads and the rewrite that clears a stated limit, and lists the make targets the ci target carries.
 
 ## How a check answers
 
