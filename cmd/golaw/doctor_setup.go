@@ -18,19 +18,22 @@ func withSetupLines(reports []doctor.Report, lines []doctor.Line) []doctor.Repor
 	return out
 }
 
-func (a *app) doctorReports(ctx context.Context, root, scope string, repository bool) ([]doctor.Report, error) {
+func (a *app) doctorReports(ctx context.Context, root string, opts doctorOptions, repository bool) ([]doctor.Report, error) {
 	reports := make([]doctor.Report, 0, len(agents.All()))
 	for _, agent := range agents.All() {
-		report, err := a.doctorReport(ctx, agent, root, scope, a.now())
+		report, err := a.doctorReport(ctx, agent, root, opts.scope, a.now())
 		if err != nil {
 			return nil, err
 		}
 		reports = append(reports, report)
 	}
+	// The release of the running binary needs no repository.
+	release := a.bind().releaseDoctor(opts.release, opts.trustRoot, a.now())
+	reports = verifiedBuild(reports, release)
 	// Setup refuses a directory outside git, so a setup line there would
 	// name a fix that cannot work, and no policy is in force there.
 	if !repository {
-		return reports, nil
+		return withSetupLines(reports, []doctor.Line{release}), nil
 	}
 	lines, err := a.bind().setupDoctor(ctx, root)
 	if err != nil {
@@ -39,6 +42,7 @@ func (a *app) doctorReports(ctx context.Context, root, scope string, repository 
 	lines = append(lines, a.bind().managedDoctor(ctx, root, a.now())...)
 	lines = append(lines, a.bind().goToolchainDoctor(ctx, root)...)
 	lines = append(lines, a.bind().capabilitiesDoctor(ctx, root, a.now())...)
+	lines = append(lines, a.bind().profileDoctor(ctx, root, a.now()), release)
 	return withSetupLines(reports, lines), nil
 }
 
