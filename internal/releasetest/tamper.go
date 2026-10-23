@@ -66,7 +66,7 @@ func (m Material) moved(tb testing.TB) Material {
 		*path = target
 	}
 	out.Trust = filepath.Join(out.Dir, trustDir)
-	for _, name := range []string{rootsFile, rekorFile} {
+	for _, name := range []string{release.RootsFile, release.RekorFile} {
 		write(tb, filepath.Join(out.Trust, name), read(tb, filepath.Join(m.Trust, name)))
 	}
 	return out
