@@ -4,8 +4,12 @@ import (
 	"strings"
 )
 
-// dockerCopy is the instruction whose --from names a stage or an image.
-const dockerCopy = "COPY"
+// The instructions the Dockerfile readers branch on: COPY, whose --from
+// names a stage or an image, and RUN, whose words run in the stage.
+const (
+	dockerCopy = "COPY"
+	dockerRun  = "RUN"
+)
 
 // dockerRef is an image a stage reads beside its base: the --from of COPY or
 // the from of a RUN mount, with the instruction that names it and the count

@@ -126,7 +126,7 @@ func dockerOfficialFrontend(reference string) bool {
 
 func (d *dockerfile) instruction(text string, line int, args map[string]string) error {
 	command, rest := dockerCommand(text)
-	if (command == dockerCopy || command == "RUN") && len(d.stages) != 0 {
+	if (command == dockerCopy || command == dockerRun) && len(d.stages) != 0 {
 		d.reference(command, rest, line)
 		return nil
 	}

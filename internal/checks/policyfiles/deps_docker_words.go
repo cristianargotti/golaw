@@ -205,7 +205,7 @@ func dockerBodies(lines []string, index *int, text string) bool {
 	if command == "ONBUILD" {
 		command, rest = dockerCommand(rest)
 	}
-	if command != "RUN" && command != "COPY" && command != "ADD" {
+	if command != dockerRun && command != dockerCopy && command != "ADD" {
 		return true
 	}
 	bodies, ok := dockerHeredocs(rest)

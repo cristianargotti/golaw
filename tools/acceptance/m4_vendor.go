@@ -107,7 +107,7 @@ func (s *suite) m4ExecPolicy(ctx context.Context, codexPath string) error {
 			return fmt.Errorf("%q is not forbidden with the reason of %s: %+v: %w", argv, prefix.Check, answer, ErrAcceptance)
 		}
 	}
-	near, err := s.m4Check(ctx, codexPath, rules, []string{m2GitCommand, "status"})
+	near, err := s.m4Check(ctx, codexPath, rules, []string{m2GitCommand, gitStatus})
 	if err != nil {
 		return err
 	}

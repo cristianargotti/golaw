@@ -103,7 +103,7 @@ func (s *suite) m3BirthPreview(ctx context.Context, repo string) error {
 	if err := m3JudgePreview(s.m3Golaw(ctx, repo, commandInit)); err != nil {
 		return err
 	}
-	got := s.execute(ctx, command{program: s.git, args: []string{"status", "--porcelain"}, dir: repo, env: s.env})
+	got := s.execute(ctx, command{program: s.git, args: []string{gitStatus, gitPorcelain}, dir: repo, env: s.env})
 	if err := success(got); err != nil {
 		return err
 	}

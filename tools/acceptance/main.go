@@ -26,6 +26,13 @@ const (
 	encodeFailed = "encode %s: %w"
 )
 
+// The git status words the rows share: the porcelain status names untracked
+// files too, so a step that left any new file in a repository is seen.
+const (
+	gitStatus    = "status"
+	gitPorcelain = "--porcelain"
+)
+
 func main() { os.Exit(run(os.Stdout, runCommand, exec.LookPath)) }
 
 func run(out io.Writer, execute executor, lookup locator) int {

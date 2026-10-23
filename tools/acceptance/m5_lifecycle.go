@@ -29,7 +29,7 @@ func (s *suite) m5Unchanged(ctx context.Context, setup m5Setup) error {
 	if !bytes.Equal(data, setup.pin) {
 		return fmt.Errorf("golaw.yml moved: %w", ErrAcceptance)
 	}
-	status := s.execute(ctx, command{program: s.git, args: []string{"status", "--porcelain"}, dir: setup.repo, env: s.env})
+	status := s.execute(ctx, command{program: s.git, args: []string{gitStatus, gitPorcelain}, dir: setup.repo, env: s.env})
 	if stepErr := success(status); stepErr != nil {
 		return stepErr
 	}

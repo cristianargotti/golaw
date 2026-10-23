@@ -85,7 +85,7 @@ func (d *imageCommands) parseLine(lines []string, index *int) error {
 		return outside(d.path, line, "unsupported or unterminated heredoc")
 	}
 	command, rest := dockerCommand(text)
-	if command != "RUN" {
+	if command != dockerRun {
 		return nil
 	}
 	if names := strings.Join(lines[start+1:*index+1], "\n"); *index > start && installsIn(names) {

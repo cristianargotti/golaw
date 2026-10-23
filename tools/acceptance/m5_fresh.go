@@ -19,13 +19,6 @@ const (
 	m5HumanMissing  = "Perfil " + m5Name + " ausente ou divergente: execute " + m5InstallCommand
 )
 
-// The porcelain status names untracked files too, so a refusal that left
-// any new file in the clone is seen.
-const (
-	m5StatusCommand = "status"
-	m5Porcelain     = "--porcelain"
-)
-
 // m5Fresh is the repository of the first machine and its clone on a
 // second machine that never installed the bundle.
 type m5Fresh struct {
@@ -111,7 +104,7 @@ func m5JudgeDenial(got result) error {
 // m5Untouched: the refusal wrote nothing in the clone and enrolled nothing
 // on its machine.
 func (s *suite) m5Untouched(ctx context.Context, repo string) error {
-	status := s.execute(ctx, command{program: s.git, args: []string{m5StatusCommand, m5Porcelain}, dir: repo, env: s.env})
+	status := s.execute(ctx, command{program: s.git, args: []string{gitStatus, gitPorcelain}, dir: repo, env: s.env})
 	if err := success(status); err != nil {
 		return err
 	}
