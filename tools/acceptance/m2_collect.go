@@ -137,6 +137,9 @@ func (s *suite) runAcceptance(ctx context.Context, out io.Writer, required, only
 		m4Rows, m4Evidence := s.collectM4(ctx, true)
 		rows = append(rows, m4Rows...)
 		maps.Copy(evidence, m4Evidence)
+		m5Rows, m5Evidence := newSuite(s.root, filepath.Join(s.base, "m5"), s.execute, s.lookup).m5AcceptanceRows(ctx)
+		rows = append(rows, m5Rows...)
+		maps.Copy(evidence, m5Evidence)
 	}
 	return m2ReportCode(reportEvidence(out, rows, version, s.digest, evidence))
 }

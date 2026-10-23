@@ -30,6 +30,7 @@ func runArgs(out io.Writer, execute executor, lookup locator, args []string) int
 	onlyM2 := flags.Bool("m2", false, "require M2 functional evidence rows")
 	onlyM3 := flags.Bool("m3", false, "require M3 functional evidence rows")
 	modes := m4FlagSet(flags)
+	m5Modes := m5FlagSet(flags)
 	if err := flags.Parse(args); err != nil || flags.NArg() != 0 {
 		return 1
 	}
@@ -51,6 +52,9 @@ func runArgs(out io.Writer, execute executor, lookup locator, args []string) int
 		return s.runM3(ctx, out)
 	}
 	if code, routed := modes.route(ctx, out, s, *required); routed {
+		return code
+	}
+	if code, routed := m5Modes.route(ctx, out, s, *required); routed {
 		return code
 	}
 	return s.runAcceptance(ctx, out, *required, *onlyM2)
