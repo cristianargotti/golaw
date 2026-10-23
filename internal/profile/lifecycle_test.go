@@ -62,9 +62,6 @@ func TestParseSourceRefusesWhatIsNotASource(t *testing.T) {
 func TestLifecycleAnswersNotBuiltUntilItsPart(t *testing.T) {
 	t.Parallel()
 	dirs := policy.Dirs{State: t.TempDir(), Config: t.TempDir()}
-	if _, err := profile.Refresh(t.Context(), dirs, profiletest.Name, nil, now()); !errors.Is(err, profile.ErrNotBuilt) {
-		t.Fatalf("Refresh = %v", err)
-	}
 	if _, err := profile.Rollback(dirs, profiletest.Name, now()); !errors.Is(err, profile.ErrNotBuilt) {
 		t.Fatalf("Rollback = %v", err)
 	}

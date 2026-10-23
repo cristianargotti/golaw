@@ -1,7 +1,6 @@
 package profile
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -48,12 +47,6 @@ func ParseSource(arg string) (Source, error) {
 		return Source{}, fmt.Errorf("%w: tag %q is not vX.Y.Z or X.Y.Z", model.ErrUsage, tag)
 	}
 	return Source{URL: url, Tag: tag, Version: match[1]}, nil
-}
-
-// Refresh installs the current version of a name again from the URL and
-// tag its record holds, the way out of a damaged current bundle.
-func Refresh(_ context.Context, _ policy.Dirs, _ string, _ []string, _ time.Time) (Installed, error) {
-	return Installed{}, ErrNotBuilt
 }
 
 // Rollback makes the previously current stored version of a name current
