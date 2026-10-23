@@ -151,15 +151,15 @@ func m2AlterDoctor(t *testing.T, got result, mode string) result {
 	case "doctor-failed":
 		doc.Lines[2].State = "fail"
 	}
-	var out strings.Builder
+	documents := make([]string, 0, len(reports))
 	for _, report := range reports {
 		data, err := json.Marshal(report)
 		if err != nil {
 			t.Fatal(err)
 		}
-		out.Write(append(data, '\n'))
+		documents = append(documents, string(data)+"\n")
 	}
-	got.stdout = out.String()
+	got.stdout = strings.Join(documents, "")
 	return got
 }
 

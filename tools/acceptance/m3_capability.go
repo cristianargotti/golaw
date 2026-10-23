@@ -147,7 +147,7 @@ func m3RemovePresent(file string) func(string) error {
 	return func(repo string) error {
 		err := os.Remove(filepath.Join(repo, filepath.FromSlash(file)))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("remove %s: %w", file, err)
+			return fmt.Errorf(removeFailed, file, err)
 		}
 		return nil
 	}
@@ -157,7 +157,7 @@ func m3RemovePresent(file string) func(string) error {
 // which only the tree with hexagonal renders.
 func m3DropDomainRule(repo string) error {
 	return m3EditYAML(filepath.Join(repo, m3LintFile), func(root *yaml.Node) error {
-		rules := m3Node(root, m3LintersKey, "settings", "depguard", "rules")
+		rules := m3Node(root, m3LintersKey, "settings", "depguard", rulesWord)
 		if rules == nil || rules.Kind != yaml.MappingNode {
 			return fmt.Errorf("the lint configuration has no depguard rules: %w", ErrAcceptance)
 		}

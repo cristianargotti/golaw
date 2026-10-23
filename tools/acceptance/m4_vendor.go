@@ -141,7 +141,7 @@ func (s *suite) m4ProjectRules(ctx context.Context) (string, error) {
 // m4ProjectRulesPath is where a project-scope install writes the rules
 // file, the .codex/rules of the repository.
 func m4ProjectRulesPath(repo string) string {
-	return filepath.Join(repo, codexDir, "rules", m4RulesFile)
+	return filepath.Join(repo, codexDir, rulesWord, m4RulesFile)
 }
 
 // m4PrefixArgv is the command a prefix rule spells with the first

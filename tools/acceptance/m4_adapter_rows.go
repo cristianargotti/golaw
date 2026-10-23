@@ -134,7 +134,7 @@ func (s *suite) m4FixtureRows(ctx context.Context, a m4Adapter) []row {
 		for _, side := range []struct {
 			suffix, dir string
 			red         bool
-		}{{"red", route.Red, true}, {"near", route.Near, false}} {
+		}{{redWord, route.Red, true}, {"near", route.Near, false}} {
 			name := route.Code + "-" + side.suffix
 			dir := filepath.Join(filepath.Dir(manifest), filepath.FromSlash(side.dir))
 			rows = append(rows, measuredM4(a.category, name, s.m4FixtureRow(ctx, a, name, dir, side.red)))

@@ -49,7 +49,7 @@ func (s *suite) m4ChangedDefinition(ctx context.Context) error {
 		func() error { return s.m4Trust(t) },
 		func() error { return s.m4TrustState(ctx, t, "ok", "trusted") },
 		func() error { return s.m4ChangeTimeout(t) },
-		func() error { return s.m4TrustState(ctx, t, "red", "revalidation-required") },
+		func() error { return s.m4TrustState(ctx, t, redWord, "revalidation-required") },
 	}
 	for i, step := range steps {
 		if err := step(); err != nil {
@@ -170,7 +170,7 @@ func (s *suite) m4ChangeTimeout(t m4Target) error {
 	document.Hooks[eventPre][entry.Group].Hooks[entry.Index]["timeout"] = changedTimeout
 	out, err := json.Marshal(document)
 	if err != nil {
-		return fmt.Errorf("encode %s: %w", path, err)
+		return fmt.Errorf(encodeFailed, path, err)
 	}
 	return writeFile(path, out, fileMode)
 }

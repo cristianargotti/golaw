@@ -102,7 +102,7 @@ func m4AddKit(home, agent, kit, goos string, first bool) error {
 	hooks[m4KitEvent(agent)], document["hooks"] = list, hooks
 	out, err := json.Marshal(document)
 	if err != nil {
-		return fmt.Errorf("encode %s: %w", path, err)
+		return fmt.Errorf(encodeFailed, path, err)
 	}
 	return writeFile(path, out, fileMode)
 }

@@ -178,7 +178,7 @@ func m2Doctor(t *testing.T, s *suite, c command) result {
 			Detail: tool.Name + " " + tool.Version + " at " + tool.Path,
 		})
 	}
-	var out strings.Builder
+	var documents []string
 	for _, report := range []doctor.Report{
 		{Schema: 1, Lines: lines},
 		{Schema: 1, Lines: []doctor.Line{{ID: "doctor.state", Key: "codex", State: "unknown", Code: "not-installed"}}},
@@ -188,9 +188,9 @@ func m2Doctor(t *testing.T, s *suite, c command) result {
 		if err != nil {
 			t.Fatal(err)
 		}
-		out.Write(append(data, '\n'))
+		documents = append(documents, string(data)+"\n")
 	}
-	return result{stdout: out.String()}
+	return result{stdout: strings.Join(documents, "")}
 }
 
 // m2Update stands in for init --update: the preview names each template a

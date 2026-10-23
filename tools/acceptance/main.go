@@ -16,6 +16,16 @@ const (
 	collectedRows      = 20
 )
 
+// The words and error formats the M3 and M4 rows share: red, the side of a
+// fixture and the state of a doctor line, the rules directory and key, and
+// the failures of removing or encoding a file.
+const (
+	redWord      = "red"
+	rulesWord    = "rules"
+	removeFailed = "remove %s: %w"
+	encodeFailed = "encode %s: %w"
+)
+
 func main() { os.Exit(run(os.Stdout, runCommand, exec.LookPath)) }
 
 func run(out io.Writer, execute executor, lookup locator) int {

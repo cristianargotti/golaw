@@ -169,7 +169,7 @@ func m4Materialize(repo string, files, previous map[string][]byte) error {
 			continue
 		}
 		if err := os.Remove(filepath.Join(repo, filepath.FromSlash(rel))); err != nil {
-			return fmt.Errorf("remove %s: %w", rel, err)
+			return fmt.Errorf(removeFailed, rel, err)
 		}
 	}
 	for rel, body := range files {
