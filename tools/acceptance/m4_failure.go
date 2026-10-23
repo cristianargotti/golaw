@@ -200,6 +200,7 @@ func (s *suite) m4SlowPath(ctx context.Context, repo, fault string) error {
 		answer, reasonErr := s.m4Reason(child, t, agent, m4Deny, payload)
 		cancel()
 		if reasonErr != nil {
+			s.m4SlowUnbounded(ctx, t, agent, payload)
 			return reasonErr
 		}
 		if !strings.Contains(answer.Reason, "deadline") {
@@ -207,4 +208,15 @@ func (s *suite) m4SlowPath(ctx context.Context, repo, fault string) error {
 		}
 	}
 	return nil
+}
+
+// m4SlowUnbounded repeats a slow path that missed its bound under the
+// fault's own delay, between two progress lines a CI log stamps, so a
+// host where the installed command runs past the bound shows by how much;
+// the harness reads no clock, and the repeat never decides the row.
+func (s *suite) m4SlowUnbounded(ctx context.Context, t m4Target, agent string, payload []byte) {
+	label := "acceptance -m4: slow-path " + agent
+	_, _ = fmt.Fprintln(os.Stderr, label, "missed its bound; repeated without it")
+	_, err := s.m4Reason(ctx, t, agent, m4Deny, payload)
+	_, _ = fmt.Fprintln(os.Stderr, label, "repeat answered:", err)
 }
