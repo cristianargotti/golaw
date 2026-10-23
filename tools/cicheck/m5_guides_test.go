@@ -74,3 +74,33 @@ func TestM5ProfileSetup(t *testing.T) {
 		})
 	}
 }
+
+// TestM5SetupStatesWhatTheSeedCovers pins the starting state of lint debt
+// against M5: the seed of the first init covers scan findings, coverage
+// exemptions and waivers, never lint, and no later release is announced
+// for a seed M5 ships.
+func TestM5SetupStatesWhatTheSeedCovers(t *testing.T) {
+	t.Parallel()
+	text := string(kitBytes(t, m5SetupPath))
+	required := []string{
+		"seeds the scan findings, the coverage exemptions and the vulnerability waivers at the first init, never golangci-lint issues.",
+	}
+	stale := []string{"arrives with the inventory pass of a later release"}
+	rows := []struct {
+		name, text string
+		want       bool
+	}{
+		{"repository", text, true},
+		{"red-later-release", text + "\nthe reviewed debt set " + stale[0] + ".\n", false},
+		{"red-seed-scope-missing", strings.Replace(text, required[0], "", 1), false},
+		{"near-other-later-release", text + "\nNaming such files is profile data of a later release.\n", true},
+	}
+	for _, row := range rows {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			if got := m4TextOK(row.text, required, stale); got != row.want {
+				t.Fatalf("seed limits = %v, want %v", got, row.want)
+			}
+		})
+	}
+}

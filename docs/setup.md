@@ -291,6 +291,6 @@ A Swagger 2.0 tree a generator wrote is inherited state the kit does not regener
 
 A go line past Go's support window adopts, and its standard library advisories close only through a go line bump, so the `vuln` target and the push rung need dated entries in `vulnerability_waivers` until the line moves; the kit never moves it.
 
-A repository born with lint debt is red on its first `make ci` until the debt is fixed: M3 ships no lint baseline, and the reviewed debt set that only `init --apply` seeds arrives with the inventory pass of a later release. Fix the debt, or keep `make ci` off the gate until then; the pre-commit rung reports only the lint a commit introduces.
+A repository born with lint debt is red on its first `make ci` until the debt is fixed: M3 ships no lint baseline, and `golaw init --seed-debt --apply` (see [Inherited debt](#inherited-debt)) seeds the scan findings, the coverage exemptions and the vulnerability waivers at the first init, never golangci-lint issues. Fix the lint debt, or keep `make ci` off the gate until then; the pre-commit rung reports only the lint a commit introduces.
 
 A generator that rewrites a file without the Go generated header flips with `make fmt`; naming such files is profile data of a later release. Commit the generator's output after `make fmt`.
