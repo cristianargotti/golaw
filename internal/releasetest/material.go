@@ -26,14 +26,12 @@ const (
 	otherLane  = "https://example.test/.github/workflows/other.yml"
 )
 
-// The files of the trust root directory, and the modes of what the
+// The trust root directory of the material, and the modes of what the
 // helpers write under a temporary directory.
 const (
-	trustDir  = "trust"
-	rootsFile = "roots.crt"
-	rekorFile = "rekor.pub"
-	dirMode   = 0o750
-	fileMode  = 0o600
+	trustDir = "trust"
+	dirMode  = 0o750
+	fileMode = 0o600
 )
 
 // Material is a generated release: every path is under Dir, Trust is the

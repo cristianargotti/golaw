@@ -133,7 +133,7 @@ func TestDoctorPreservesOutputFailures(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			ta, _ := doctorApp(t)
-			err := ta.doctor(t.Context(), &doctorFailWriter{remaining: tc.remaining}, t.TempDir(), scopeUser, tc.asJSON)
+			err := ta.doctor(t.Context(), &doctorFailWriter{remaining: tc.remaining}, t.TempDir(), doctorOptions{scope: scopeUser, asJSON: tc.asJSON})
 			if !errors.Is(err, errBoom) {
 				t.Fatalf("output failure lost its cause: %v", err)
 			}
