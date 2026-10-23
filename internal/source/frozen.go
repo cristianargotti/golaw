@@ -56,6 +56,10 @@ type frozen struct {
 	index   map[string]int
 	objects map[string]stored
 	seen    map[string]model.File
+	// prefetched marks the one walk Prefetch makes: its only caller, the
+	// policy family, asks again on every configuration read with the same
+	// predicate, and a walk per read cost more than the reads it saved.
+	prefetched bool
 }
 
 // newFrozen holds the entries in path order and reads nothing yet.
@@ -90,8 +94,14 @@ func (f *frozen) Select(match func(path string) bool) []model.File {
 }
 
 // Prefetch loads the paths that match as Select does, listing nothing, so
-// the reads one by one that follow ask git nothing more.
+// the reads one by one that follow ask git nothing more. Only the first
+// call walks the universe; a later one returns at once, and a path it
+// would have added is still read alone on demand.
 func (f *frozen) Prefetch(match func(path string) bool) {
+	if f.prefetched {
+		return
+	}
+	f.prefetched = true
 	f.load(f.matching(match))
 }
 

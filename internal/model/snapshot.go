@@ -134,6 +134,8 @@ type Selector interface {
 // store, so a caller that reads several of them one by one asks once.
 type Prefetcher interface {
 	// Prefetch loads the paths that match; a later read answers from it.
+	// A snapshot may walk its universe on the first call alone, so a
+	// caller passes the same predicate every time.
 	Prefetch(match func(path string) bool)
 }
 
