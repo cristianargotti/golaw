@@ -33,7 +33,8 @@ generate-check:
 	git diff --exit-code
 
 # The slowest package under -race outlasts go test's default of ten minutes
-# on a loaded or slow machine; the CI job bounds make ci at thirty.
+# on a loaded or slow machine; the CI job gives each system its measured
+# make ci plus these 25 minutes, so a hung test meets this deadline first.
 test:
 	go test -race -timeout=25m -coverprofile=coverage.out -covermode=atomic ./...
 

@@ -24,14 +24,26 @@ env:
   GOFLAGS: -mod=readonly
 
 jobs:
+  # Each system's bound is its make ci run plus the 25 minutes go test gives
+  # one test binary, so a hung test reaches go test's own deadline and prints
+  # its goroutines before the job is canceled. The first native run ended
+  # its race tests 11 minutes into the job on macOS and 18 on Linux, and on
+  # Windows was canceled at 30 minutes, 23 of them in the race tests.
   ci:
     name: make ci / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            timeout: 50
+          - os: macos-latest
+            timeout: 40
+          - os: windows-latest
+            timeout: 75
     defaults:
       run:
         shell: bash
@@ -146,14 +158,26 @@ jobs:
       - name: Replay M3 rows
         run: go run ./tools/acceptance -m3
 
+  # The replay took under 3 minutes on Linux and macOS. On Windows every
+  # Codex and Cursor row runs the PowerShell launcher under cmd.exe and
+  # under PowerShell, and the first run was still replaying at 45 minutes,
+  # so Windows gets the bound of the other native replays; the replay names
+  # each catalog on stderr, so a hang shows where it stopped.
   m4:
     name: M4 acceptance / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            timeout: 15
+          - os: macos-latest
+            timeout: 15
+          - os: windows-latest
+            timeout: 90
     defaults:
       run:
         shell: bash
