@@ -14,7 +14,7 @@ const PassCapability = "capability"
 
 // Capability proves that a check conditioned by a capability applies only
 // where the capability holds: for every entry whose registered check
-// declares Needs, the red fixture under PolicyFor(entry) without each needed
+// declares Needs, the red fixture under the policy of the entry without each needed
 // capability answers NotApplicable for the check and yields no finding of
 // the entry's code from any check.
 func Capability(ctx context.Context, reg *engine.Registry, root string, m Manifest) []Failure {
@@ -35,9 +35,9 @@ func (p pair) capability(ctx context.Context, reg *engine.Registry) []Failure {
 // without answers why the red fixture breaks the pass with one capability
 // off, empty when the pass holds for it.
 func (p pair) without(ctx context.Context, reg *engine.Registry, need string) string {
-	policy := PolicyFor(p.entry)
+	policy := *p.policy
 	policy.Capabilities = slices.DeleteFunc(slices.Clone(policy.Capabilities), func(c string) bool { return c == need })
-	v, err := p.runUnder(ctx, reg, p.red, policy)
+	v, err := p.runUnder(ctx, reg, p.red, &policy)
 	switch {
 	case err != nil:
 		return "red fixture: " + err.Error()
