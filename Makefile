@@ -32,8 +32,10 @@ generate-check:
 	go generate ./...
 	git diff --exit-code
 
+# The slowest package under -race outlasts go test's default of ten minutes
+# on a loaded or slow machine; the CI job bounds make ci at thirty.
 test:
-	go test -race -coverprofile=coverage.out -covermode=atomic ./...
+	go test -race -timeout=25m -coverprofile=coverage.out -covermode=atomic ./...
 
 coverage:
 	go run ./cmd/golaw coverage --input coverage.out

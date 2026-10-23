@@ -130,3 +130,14 @@ func TestVulnerabilityLaneFailsWithItsScanner(t *testing.T) {
 	}
 	requireText(t, "Makefile", "go run ./tools/vulngate -scan -waivers golaw.yml")
 }
+
+// TestKitTestTargetOutlastsTheSlowestPackage holds the kit's test target to
+// a timeout above the slowest package under -race: go test's default of ten
+// minutes per package panicked in internal/rung on a loaded machine, and a
+// slower CI runner would fail make ci on the timeout, not on a test. The
+// bound stays below the thirty minutes of the make ci job.
+func TestKitTestTargetOutlastsTheSlowestPackage(t *testing.T) {
+	t.Parallel()
+	requireText(t, "Makefile", "test:\n\tgo test -race -timeout=25m -coverprofile=coverage.out -covermode=atomic ./...\n")
+	requireText(t, ".github/workflows/ci.yml", "timeout-minutes: 30")
+}

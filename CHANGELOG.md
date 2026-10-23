@@ -40,6 +40,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-23: the kit's test target runs go test with -timeout=25m, because internal/rung under -race outlasts the default ten minutes per package on a loaded machine and a slower CI runner would fail make ci on the timeout, not on a test.
 - 2026-10-23: a table test holds the prefetch predicate of the policy family to the files its readers read, and another holds every check of the family to a prefetch before it runs, because a wrong predicate fails silently, in speed alone, with one git question per file, and only a frozen snapshot no policy-file test used ever ran it.
 - 2026-10-23: docs/rules.md states that the licenses target's --ignore of the module path also skips a dependency whose module path extends it as a string, because go-licenses compares ignored paths as plain prefixes and the root package can be ignored no other way, so a trailing slash would fail make ci for a private repository with a root package.
 - 2026-10-23: policy.gitleaks-generic selects the generated files of every allowlist path in one selection per snapshot, each policy check prefetches the family's configuration before it runs, and the sqlc.yaml gate of goast.sql-from-strings asks whether the file is listed instead of reading it, because a selection per allowlist path and a read of sqlc.yaml alone before the prefetch made a staged scan ask git cat-file 11 times where M2 asked 5; it now asks 7.
