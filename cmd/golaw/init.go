@@ -23,6 +23,7 @@ type initOptions struct {
 	accept          []string
 	profile         string
 	pin             *policy.ProfileRef // the installed bundle --profile names, resolved once
+	layout          *model.Layout      // the layout defaults of the bundle --profile names
 	seedDebt        bool               // seed the reviewed debt set of a first adoption (A24)
 	coverageProfile string             // the cover profile whose files under the floor the seed exempts
 	vulnerabilities string             // the govulncheck JSON stream whose reachable advisories the seed waives
@@ -61,7 +62,7 @@ func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts i
 	if err := checkSeedFlags(opts); err != nil {
 		return initFailed(err)
 	}
-	if err := a.resolveProfile(ctx, path, &opts); err != nil {
+	if err := a.initProfile(ctx, path, &opts); err != nil {
 		return initFailed(err)
 	}
 	if opts.update {

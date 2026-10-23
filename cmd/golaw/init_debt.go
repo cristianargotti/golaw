@@ -107,7 +107,7 @@ func (a *app) seedInitDebt(ctx context.Context, root string, plan initPlan, opts
 // scan mode over the worktree with every file init --apply writes folded
 // in, so a finding a written template fixes is never seeded.
 func (a *app) seedScan(ctx context.Context, root string, plan initPlan, now time.Time) (seedRun, error) {
-	compiled, err := a.compile(plan.data, now)
+	compiled, err := a.bind().seedPolicy(plan.data, now)
 	if err != nil {
 		return seedRun{}, err
 	}
