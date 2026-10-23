@@ -84,9 +84,11 @@ func (s *suite) m2CopyTimingSource(repo string, files []m2ArchiveFile) error {
 
 func (s *suite) m2TimingBootstrap(ctx context.Context, repo string) error {
 	// The kit's fixture paths below a test's temporary directory pass the
-	// 260 character limit of Windows, which Git for Windows lifts per repo.
+	// 260 character limit of Windows, which Git for Windows lifts per repo,
+	// from the hooks git init copies on.
 	longPaths := []string{"config", m2TimingLongPaths, "true"}
-	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}, longPaths); err != nil {
+	initArgs := []string{"-c", m2TimingLongPaths + "=true", commandInit, m2Quiet}
+	if err := s.gitSteps(ctx, repo, initArgs, longPaths); err != nil {
 		return err
 	}
 	if err := m2TimingPin(repo); err != nil {

@@ -55,6 +55,12 @@ func TestWorktreeStatFollowsLargeFileChanges(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			if tc.name == "replacement" && runtime.GOOS == "windows" {
+				// The stamp there is size and modification time: Windows exposes
+				// no change time or inode, so a replacement of the same size
+				// inside one clock tick keeps it, a stated limit.
+				t.Skip("Windows exposes no change time or inode")
+			}
 			root := t.TempDir()
 			name := filepath.Join(root, "large.sql")
 			sizedFile(t, name, model.MaxReadBytes+1)
