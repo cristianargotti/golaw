@@ -24,3 +24,8 @@ checks:
     red: testdata/policy.profile-targets/red
     near: testdata/policy.profile-targets/near
     profile: fixture
+  - id: policy.values-assertions
+    code: values-assertion
+    red: testdata/policy.values-assertions/red
+    near: testdata/policy.values-assertions/near
+    profile: fixture

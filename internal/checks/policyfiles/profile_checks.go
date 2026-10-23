@@ -6,5 +6,5 @@ import "github.com/cristianargotti/golaw/internal/model"
 // (section 5.4, contract D5), in report order; each one answers section
 // before it reads.
 func profileChecks() []model.Check {
-	return []model.Check{ImageStages(), ImageInstalls(), ImageRegistry(), ProfileTargets()}
+	return []model.Check{ImageStages(), ImageInstalls(), ImageRegistry(), ProfileTargets(), ValuesAssertions()}
 }
