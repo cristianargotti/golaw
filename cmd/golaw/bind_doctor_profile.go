@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"path/filepath"
 	"time"
 
 	"github.com/cristianargotti/golaw/internal/doctor"
@@ -17,58 +18,89 @@ const (
 )
 
 // profileDoctor is the profile line of a repository (D10): the pin of the
-// policy in force beside the bundle the load found. When the policy does
-// not load, the pin comes from golaw.yml at HEAD and the bundle is loaded
-// alone, so the line is red for a bundle error only, in the loader's own
-// words, which name the install command (A19).
+// policy in force beside the bundle found for it under the config
+// directory. When the policy does not load, the pin comes from golaw.yml
+// at HEAD and the bundle is judged alone, so the line is red for a bundle
+// fault only, in the loader's own words, which name the install command
+// (A19).
 func (b binding) profileDoctor(ctx context.Context, root string, now time.Time) doctor.Line {
 	return doctor.AssessProfile(b.profileFacts(ctx, root, now))
 }
 
+// profileFacts are the facts of the pin and its bundle; core only has none.
 func (b binding) profileFacts(ctx context.Context, root string, now time.Time) doctor.ProfileFacts {
-	l, err := b.loaded(ctx, root, now)
-	if err != nil {
-		return b.headProfileFacts(ctx, root, now)
-	}
-	if l.File.Profile == nil {
-		return doctor.ProfileFacts{}
-	}
-	return stampFacts(*l.File.Profile, l.Stamp, now)
-}
-
-// headProfileFacts are the facts of the pin at HEAD when the policy does
-// not load: the bundle loaded alone, its own error kept.
-func (b binding) headProfileFacts(ctx context.Context, root string, now time.Time) doctor.ProfileFacts {
-	ref, ok := headProfile(ctx, root)
-	if !ok {
+	ref, pinned := b.pinInForce(ctx, root, now)
+	if !pinned {
 		return doctor.ProfileFacts{}
 	}
 	dirs, err := b.dirs()
-	if err == nil {
-		_, err = profile.Load(dirs.Config, ref)
-	}
 	if err != nil {
-		facts := stampFacts(ref, nil, now)
+		facts := pinFacts(ref)
 		facts.Error = err.Error()
 		return facts
 	}
-	stamp, err := policy.LoadStamp(policy.StampPath(dirs.Config, ref.Name))
-	if err != nil {
-		return stampFacts(ref, nil, now)
-	}
-	return stampFacts(ref, &stamp, now)
+	return bundleFacts(dirs.Config, ref, now)
 }
 
-// stampFacts are the facts of a pin and of the stamp found for it, the
-// age counted in whole days and never below zero.
-func stampFacts(ref policy.ProfileRef, stamp *policy.Stamp, now time.Time) doctor.ProfileFacts {
-	facts := doctor.ProfileFacts{Name: ref.Name, PinnedVersion: ref.Version, PinnedDigest: ref.Digest, Source: ref.Source}
-	if stamp == nil {
+// pinInForce is the profile the policy in force pins, read from golaw.yml
+// at HEAD when the policy does not load.
+func (b binding) pinInForce(ctx context.Context, root string, now time.Time) (policy.ProfileRef, bool) {
+	l, err := b.loaded(ctx, root, now)
+	if err != nil {
+		return headProfile(ctx, root)
+	}
+	if l.File.Profile == nil {
+		return policy.ProfileRef{}, false
+	}
+	return *l.File.Profile, true
+}
+
+// bundleFacts are the facts of the bundle found for a pin: the loader's
+// error, then the stamp of the directory the loader reads (the one
+// LocateProfile found, else the current bundle of the name) when it is of
+// the pinned source, and the digest recomputed over that directory. A
+// stamp of another source is another bundle under the name, so the pinned
+// one counts as not installed.
+func bundleFacts(configDir string, ref policy.ProfileRef, now time.Time) doctor.ProfileFacts {
+	facts := pinFacts(ref)
+	if _, err := profile.Load(configDir, ref); err != nil {
+		facts.Error = err.Error()
+	}
+	dir := bundleDir(configDir, ref)
+	stamp, err := policy.LoadStamp(filepath.Join(dir, policy.StampFile))
+	if err != nil || stamp.Source != ref.Source {
 		return facts
 	}
 	facts.InstalledVersion, facts.InstalledDigest, facts.Date = stamp.Version, stamp.Digest, stamp.Date
-	if day, err := time.Parse(stampDate, stamp.Date); err == nil {
-		facts.Age = max(0, int(now.Sub(day).Hours()/hoursPerDay))
+	facts.Age = stampAge(stamp.Date, now)
+	computed, err := profile.Digest(dir)
+	if err != nil {
+		return facts
 	}
+	facts.ComputedDigest = computed
 	return facts
+}
+
+// bundleDir is the directory the loader reads for a pin.
+func bundleDir(configDir string, ref policy.ProfileRef) string {
+	located, err := policy.LocateProfile(configDir, ref)
+	if err != nil {
+		return profile.Dir(configDir, ref.Name)
+	}
+	return located.Dir
+}
+
+// stampAge is the whole days from a date stamp to the clock, never below
+// zero; LoadStamp already refused a stamp whose date does not parse.
+func stampAge(date string, now time.Time) int {
+	day, err := time.Parse(stampDate, date)
+	if err != nil {
+		return 0
+	}
+	return max(0, int(now.Sub(day).Hours()/hoursPerDay))
+}
+
+// pinFacts are the facts golaw.yml gives.
+func pinFacts(ref policy.ProfileRef) doctor.ProfileFacts {
+	return doctor.ProfileFacts{Name: ref.Name, PinnedVersion: ref.Version, PinnedDigest: ref.Digest, Source: ref.Source}
 }
