@@ -133,6 +133,14 @@ func TestCatReplacementBase(t *testing.T) {
 			t.Fatalf("%s: candidates %+v", tt.name, request.Writes)
 		}
 	}
+	// An append to a base over the read bound holds only the appended
+	// bytes, not reconstructed, and binds no hash.
+	appended := commandPayload(t, "pre-bash-plain.json", "cat >> notes.md <<'EOF'\nnew\nEOF")
+	over := decodeRequest(t, appended, map[string][]byte{"notes.md": []byte(strings.Repeat("x\n", model.MaxReadBytes/2+1))})
+	want := model.Candidate{Path: "notes.md", Op: model.CandidateEdit}
+	if over.Writes == nil || len(over.Writes.Candidates) != 1 || over.Writes.Candidates[0] != want || string(over.Writes.Content["notes.md"]) != "new\n" {
+		t.Fatalf("append over the read bound: %+v", over.Writes)
+	}
 	root := hooktest.Repository(t)
 	parsed, err := codex.Parse(hooktest.Payload(data, root))
 	if err != nil {

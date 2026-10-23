@@ -50,7 +50,7 @@ func TestRecognizedHeredocs(t *testing.T) {
 		},
 		{
 			"cat-append", "cat >> notes.md <<'EOF'\nhello\nEOF",
-			"notes.md", "hello\n", false,
+			"notes.md", "before\nhello\n", true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -190,12 +190,17 @@ func TestAppendHeredoc(t *testing.T) {
 		{
 			"present-hyphen", "notes.md", "hello - world",
 			map[string][]byte{"notes.md": []byte("before\n")},
-			hook.Allow, model.CandidateEdit, false, true,
+			hook.Allow, model.CandidateEdit, true, false,
 		},
 		{
 			"present-dash", "notes.md", "hello " + dash + " world",
 			map[string][]byte{"notes.md": []byte("before\n")},
-			hook.Deny, model.CandidateEdit, false, false,
+			hook.Deny, model.CandidateEdit, true, false,
+		},
+		{
+			"present-unterminated", "notes.md", "hello - world",
+			map[string][]byte{"notes.md": []byte("before")},
+			hook.Allow, model.CandidateEdit, true, false,
 		},
 	}
 	for _, tt := range tests {
@@ -218,8 +223,10 @@ func assertAppend(t *testing.T, tt appendCase, request hook.Request, result hook
 		t.Fatalf("append has no candidate: %+v", request)
 	}
 	candidate := request.Writes.Candidates[0]
+	// A readable file the shell appends to becomes its bytes followed by
+	// the body, exactly what the shell leaves, as an edit of Claude is.
 	if candidate.Op != tt.op || candidate.Reconstructed != tt.whole ||
-		string(request.Writes.Content[tt.path]) != tt.content+"\n" {
+		string(request.Writes.Content[tt.path]) != string(tt.files[tt.path])+tt.content+"\n" {
 		t.Fatalf("incorrect append candidate: %+v", request.Writes)
 	}
 	if result.Outcome != tt.want || result.CannotJudge {
