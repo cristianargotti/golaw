@@ -8,7 +8,7 @@ This guide does not cause init to scaffold application source. Application examp
 
 | Directory | Responsibility and dependency direction |
 | --- | --- |
-| `internal/domain` | Domain types, invariants, sentinels and ports. Import only the explicitly permitted standard-library packages; no infrastructure, transport, persistence, logging or environment access. |
+| `internal/domain` | Domain types, invariants and sentinels. Import only the explicitly permitted standard-library packages; no infrastructure, transport, persistence, logging or environment access. |
 | `internal/application` | Use cases and their plain input and output. Depend on domain and permitted standard-library packages, never adapters or infrastructure. |
 | `internal/adapters` | Inbound handlers and outbound repository or service implementations. Depend inward through ports; never import composition packages such as `cmd`, `app`, `wiring`, `router`, `middleware`, `telemetry` or `healthcheck`. |
 | `internal/infrastructure` | Technical primitives for connections, HTTP error handling and instrumentation. Never import adapters or `cmd`. |
@@ -16,7 +16,7 @@ This guide does not cause init to scaffold application source. Application examp
 | `cmd/` | Composition root: construct dependencies, connect adapters to ports and manage process lifetime. Reuse a repository's root main package when its layout selects it. |
 | `db/queries` | SQL inputs for sqlc, only for a database context. Generated row types stay behind the repository boundary. |
 
-An inbound port describes an application operation; its implementation coordinates domain behavior. An outbound port describes the persistence, clock or service behavior that operation needs. Keep contracts small and stated in domain terms. Concrete adapters satisfy them; the composition root chooses implementations. Domain and application code never discover infrastructure through globals. Any third-party import into these inner layers needs a decision record and an explicit policy allowance.
+An inbound port describes an application operation; its implementation coordinates domain behavior. An outbound port describes the persistence, clock or service behavior that operation needs. Declare each port in the package that calls it: an outbound port beside its use case in `internal/application`, an inbound port in the adapter that calls the use case. The iface linter of the kit's lint configuration reports an interface its own package never uses, so ports gathered in `internal/domain` or in a central `ports` package fail `make lint`. Keep contracts small and stated in domain terms. Concrete adapters satisfy them; the composition root chooses implementations. Domain and application code never discover infrastructure through globals. Any third-party import into these inner layers needs a decision record and an explicit policy allowance.
 
 Propagate the incoming `context.Context` through `Execute`, ports and adapters to each call. Create process-root contexts at the entry point and test contexts with `t.Context()`. Honor cancellation, narrow deadlines at boundaries and release derived contexts. Never replace an incoming context with a fresh background context inside a use case.
 
