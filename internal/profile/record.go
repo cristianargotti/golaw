@@ -92,6 +92,32 @@ func WriteRecord(stateDir string, r Record) error {
 	return nil
 }
 
+// recordFor reads the record a step on an installed name needs: a name
+// that is not one is a usage error, and a name without a record is
+// ErrBundle naming the install command, since only an install starts one.
+func recordFor(stateDir, name string) (Record, error) {
+	if err := checkName(name); err != nil {
+		return Record{}, err
+	}
+	record, found, err := ReadRecord(stateDir, name)
+	if err != nil {
+		return Record{}, err
+	}
+	if !found {
+		return Record{}, bundlef("profile %s has no install record: run golaw profile install <git url>@<tag>", name)
+	}
+	return record, nil
+}
+
+// checkName refuses a profile name that is not lower case kebab case, so
+// no path a step builds from it leaves the profiles directory.
+func checkName(name string) error {
+	if !model.ValidCode(name) {
+		return fmt.Errorf("%w: %q is not a profile name (lower case kebab case)", model.ErrUsage, name)
+	}
+	return nil
+}
+
 // entry is the installed version of the record, false when it holds none.
 func (r Record) entry(version string) (Installed, bool) {
 	at := slices.IndexFunc(r.Versions, func(i Installed) bool { return i.Version == version })
