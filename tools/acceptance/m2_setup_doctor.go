@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -19,10 +18,13 @@ func (s *suite) m2VerifyDoctor(ctx context.Context, repo string, env []string, p
 	if err := success(got); err != nil {
 		return err
 	}
-	var doc doctor.Report
-	if err := json.Unmarshal([]byte(got.stdout), &doc); err != nil {
+	// doctor --json prints one document per agent; the Claude one comes
+	// first and carries the setup lines.
+	reports, err := decodeReports(got.stdout)
+	if err != nil {
 		return fmt.Errorf("decode M2 setup doctor: %w", err)
 	}
+	doc := reports[0]
 	if doc.Schema != 1 {
 		return fmt.Errorf("M2 setup doctor schema differs: %w", ErrAcceptance)
 	}

@@ -36,7 +36,7 @@ func TestM2SetupRejectsIncompleteEvidence(t *testing.T) {
 		"missing-receipt", "wrong-identity", "wrong-version", "wrong-candidate", "missing-candidate",
 		"missing-tool", "tool-pin", "tool-count", "hook-hash", "hook-count", "hook-route",
 		"probe-error", "doctor-error", "doctor-invalid", "doctor-schema", "doctor-receipt",
-		"doctor-hooks", "doctor-tool", "doctor-split", "doctor-failed",
+		"doctor-hooks", "doctor-tool", "doctor-split", "doctor-failed", "doctor-empty",
 	}
 	for _, mode := range modes {
 		t.Run(mode, func(t *testing.T) {
@@ -125,11 +125,16 @@ func m2AlterDoctor(t *testing.T, got result, mode string) result {
 		return result{err: ErrAcceptance}
 	case "doctor-invalid":
 		return result{stdout: "{"}
+	case "doctor-empty":
+		return result{}
 	}
-	var doc doctor.Report
-	if err := json.Unmarshal([]byte(got.stdout), &doc); err != nil {
+	// The setup lines live in the first document, the Claude report; the
+	// Codex and Cursor documents follow it unchanged.
+	reports, err := decodeReports(got.stdout)
+	if err != nil {
 		t.Fatal(err)
 	}
+	doc := &reports[0]
 	switch mode {
 	case "doctor-schema":
 		doc.Schema++
@@ -146,11 +151,15 @@ func m2AlterDoctor(t *testing.T, got result, mode string) result {
 	case "doctor-failed":
 		doc.Lines[2].State = "fail"
 	}
-	data, err := json.Marshal(doc)
-	if err != nil {
-		t.Fatal(err)
+	var out strings.Builder
+	for _, report := range reports {
+		data, err := json.Marshal(report)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out.Write(append(data, '\n'))
 	}
-	got.stdout = string(data)
+	got.stdout = out.String()
 	return got
 }
 
