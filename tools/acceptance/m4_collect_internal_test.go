@@ -60,6 +60,38 @@ func TestM4CollectCatalogsKeysEveryRowAndItsEvidence(t *testing.T) {
 	}
 }
 
+// TestM4AnnouncedNamesEachCatalogBeforeAndAfterItsRows holds the progress
+// lines of an M4 run: a catalog that never returns has already named
+// itself, and one that returns names its rows, while the rows and their
+// evidence stay those of the unwrapped catalogs.
+func TestM4AnnouncedNamesEachCatalogBeforeAndAfterItsRows(t *testing.T) {
+	t.Parallel()
+	s := testSuite(t)
+	calls := 0
+	var progress bytes.Buffer
+	second := m4Sample("second", &calls)
+	sample := second.rows
+	second.rows = func(s *suite, ctx context.Context, required bool) []row {
+		if !strings.HasSuffix(progress.String(), "acceptance -m4: catalog 2 of 2 started\n") {
+			t.Errorf("the second catalog ran before naming itself: %q", progress.String())
+		}
+		return sample(s, ctx, required)
+	}
+	catalogs := m4Announced([]m4Catalog{m4Sample("first", &calls), second}, &progress)
+	rows, evidence := s.m4CollectCatalogs(t.Context(), catalogs, true)
+	m4RequireSampleRows(t, s, rows, evidence, true)
+	want := "acceptance -m4: catalog 1 of 2 started\n" +
+		"acceptance -m4: catalog 1 of 2 measured m4-sample, rows: 2\n" +
+		"acceptance -m4: catalog 2 of 2 started\n" +
+		"acceptance -m4: catalog 2 of 2 measured m4-sample, rows: 2\n"
+	if progress.String() != want || calls != 2 {
+		t.Fatalf("progress after %d calls:\n%s", calls, progress.String())
+	}
+	if len(m4Announced(m4Catalogs(), &progress)) != len(m4Catalogs()) {
+		t.Fatal("the announced catalogs differ in number from the M4 catalogs")
+	}
+}
+
 func TestM4RunReportsThePreparationOrTheRows(t *testing.T) {
 	t.Parallel()
 	calls := 0
