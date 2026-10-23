@@ -9,6 +9,12 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 ### Added
 
 - 2026-10-22: the profile evaluators, rule rules/4.14@1, judge the root Dockerfile, the ci closure and typed YAML values with the data of the enrolled profile bundle, each only when the profile carries its section, because a profile is data that only adds checks and never removes or weakens one.
+- 2026-10-23: M5 installs a profile bundle from its git source at a tag with golaw profile install, verifying its stamp, digest and schema before it writes, and keeps every installed version in a store with refresh, rollback and remove, because a profile is data a person installs and two repositories may pin two versions of it.
+- 2026-10-23: M5 loads the pinned bundle in every governed operation and refuses a missing, stale or mismatched bundle with one line naming the exact install command, because a fresh machine must never fall back to core silently or deny without a remedy.
+- 2026-10-23: M5 adds init --profile, which pins the installed stamp and leaves the destinations a profile names to the platform, and init --seed-debt, which seeds the reviewed debt set once, because a pin and the debt change only through a reviewed commit.
+- 2026-10-23: M5 adds doctor --release, which verifies a downloaded binary against the signed checksums.txt, its Sigstore bundle and the provenance attestation under the pinned identity and exits 1 on a red result, because a person decides whether to trust a binary before running it.
+- 2026-10-23: M5 moves the decision of the release gate into tools/releasegate, replayable as make release-gate-dry-run, because a release from a commit without green CI must be refused by a dry run anyone can repeat.
+- 2026-10-23: M5 records its acceptance rows in docs/acceptance/m5.md and its distribution residuals in docs/security.md, because a profile bundle on disk is trusted by its digest alone and the inclusion proof of a release is not verified.
 - 2026-10-22: policy-file checks judge configuration through declared readers and capabilities, because unsupported constructs must not become false findings.
 - 2026-10-22: capability proposals add to the enrolled set and select their templates, because existing capabilities may not disappear during adoption.
 - 2026-10-22: the core CI template runs the required targets with external enrollment, because remote CI or the platform pipeline is the only gate.
