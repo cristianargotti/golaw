@@ -33,7 +33,9 @@ func TestM2RoutingReleaseKeepsM1AndAddsM2(t *testing.T) {
 		t.Fatalf("release lost required M1 evidence: exit=%d\n%s", code, out.String())
 	}
 	m2RequireRoutingRows(t, out.String())
-	if driver.m1Builds != 1 || driver.agentCalls == 0 || driver.preparations != 1 {
+	// One M1 build, and a second for the candidate digest once the
+	// module holds its dated live record.
+	if driver.m1Builds < 1 || driver.m1Builds > 2 || driver.agentCalls == 0 || driver.preparations != 1 {
 		t.Fatalf("release preparation changed: %+v", driver)
 	}
 }
