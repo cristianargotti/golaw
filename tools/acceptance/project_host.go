@@ -83,7 +83,7 @@ func (s *suite) projectSession(ctx context.Context, t m4Target, claude, name str
 }
 
 // projectTrust records what accepting the trust dialog of the host records
-// for the repository, keyed by its real path.
+// for the repository, keyed by its real path in both separators.
 func projectTrust(t m4Target) error {
 	repo, err := filepath.EvalSymlinks(t.repo)
 	if err != nil {
@@ -100,7 +100,11 @@ func projectTrust(t m4Target) error {
 	if !ok {
 		projects = map[string]any{}
 	}
-	projects[repo] = map[string]any{hostTrustKey: true}
+	// Claude Code keys a project by its path with forward slashes on
+	// Windows; both spellings name the same repository elsewhere.
+	for _, key := range []string{repo, filepath.ToSlash(repo)} {
+		projects[key] = map[string]any{hostTrustKey: true}
+	}
 	config["projects"] = projects
 	body, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
