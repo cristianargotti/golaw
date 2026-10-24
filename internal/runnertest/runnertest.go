@@ -33,7 +33,7 @@ const (
 	callsSuffix    = ".calls.jsonl"
 	executableMode = 0o700
 	fileMode       = 0o600
-	warmVariable   = "GOLAW_RUNNERTEST_WARM"
+	warmArgument   = "-golaw.runnertest.warm"
 )
 
 // Behavior is what a fake tool answers.
@@ -55,7 +55,7 @@ func Main(m *testing.M) int {
 			return code
 		}
 	}
-	if os.Getenv(warmVariable) != "" {
+	if slices.Contains(os.Args[1:], warmArgument) {
 		return BrokenCode // a warm start that found no behavior never runs the tests again
 	}
 	return m.Run()
@@ -224,12 +224,10 @@ func copyExecutable(tb testing.TB, path string) {
 // the file, no later start writes it, so the starts a test judges never race.
 func warm(tb testing.TB, path string) {
 	tb.Helper()
-	if os.Getenv("GOCOVERDIR") == "" {
+	if testing.CoverMode() == "" {
 		return
 	}
-	start := exec.CommandContext(tb.Context(), path)
-	start.Env = append(os.Environ(), warmVariable+"=1")
-	if err := start.Run(); err != nil {
+	if err := exec.CommandContext(tb.Context(), path, warmArgument).Run(); err != nil {
 		tb.Logf("warm %s: %v", path, err) // a behavior may name any exit status
 	}
 }
