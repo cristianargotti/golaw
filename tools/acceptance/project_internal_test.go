@@ -166,6 +166,7 @@ func (s *suite) measureProjectLocal(t *testing.T) row {
 func TestProjectHostRow(t *testing.T) {
 	t.Parallel()
 	s := testSuite(t)
+	s.m2OS = "darwin" // the row judges the host on macOS only
 	got := s.projectHostRow(t.Context(), agentClaude, "2.1.299 (Claude Code)")
 	assertPass(t, got)
 	if !strings.Contains(got.detail, localSettings) {
@@ -202,5 +203,14 @@ func TestProjectHostRow(t *testing.T) {
 	}
 	if got := s.projectHostRow(t.Context(), agentClaude, validatedHost); got.status != statusFail {
 		t.Fatalf("a host that cannot start passed: %+v", got)
+	}
+}
+
+func TestProjectHostRowSkipsOffMacOS(t *testing.T) {
+	t.Parallel()
+	s := testSuite(t)
+	s.m2OS = "windows"
+	if got := s.projectHostRow(t.Context(), agentClaude, "2.1.299 (Claude Code)"); got.status != statusSkip || got.required {
+		t.Fatalf("off macOS the host row must be an optional skip: %+v", got)
 	}
 }

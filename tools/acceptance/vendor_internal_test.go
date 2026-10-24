@@ -31,6 +31,7 @@ func TestVersionFloor(t *testing.T) {
 func TestVendorRows(t *testing.T) {
 	t.Parallel()
 	s := testSuite(t)
+	s.m2OS = "darwin" // the project host row judges the host on macOS only
 	rows, version := s.vendorRows(t.Context(), true)
 	if version != "2.1.299 (Claude Code)" || len(rows) != 4 {
 		t.Fatalf("%q %+v", version, rows)

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -27,7 +26,7 @@ const (
 // projectHostRow judges the host only on macOS at the validated version,
 // whose debug log names the plugins it loads; anything else is a skip.
 func (s *suite) projectHostRow(ctx context.Context, claude, version string) row {
-	if runtime.GOOS != "darwin" {
+	if s.m4System() != "darwin" {
 		// The trust record the row writes was read from the host on macOS
 		// only; another system keeps it elsewhere, unverified, so the row
 		// stays the macOS evidence it was validated as.
