@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -23,9 +24,18 @@ const (
 	hostDebugFileFlag = "--debug-file"
 )
 
-// projectHostRow judges the host only at the validated version, whose
-// debug log names the plugins it loads; any other version is a skip.
+// projectHostRow judges the host only on macOS at the validated version,
+// whose debug log names the plugins it loads; anything else is a skip.
 func (s *suite) projectHostRow(ctx context.Context, claude, version string) row {
+	if runtime.GOOS != "darwin" {
+		// The trust record the row writes was read from the host on macOS
+		// only; another system keeps it elsewhere, unverified, so the row
+		// stays the macOS evidence it was validated as.
+		return row{
+			categoryVendor, caseProjectHost, statusSkip,
+			"the trust record of Claude Code " + validatedHost + " is validated on macOS only", false,
+		}
+	}
 	if !strings.HasPrefix(version, validatedHost+" ") && version != validatedHost {
 		return row{
 			categoryVendor, caseProjectHost, statusSkip,
