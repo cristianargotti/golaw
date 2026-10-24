@@ -48,6 +48,7 @@ func writeRecord(t *testing.T, record liveRecord) string {
 func TestLiveRowsPassOnlyForTheCandidate(t *testing.T) {
 	t.Parallel()
 	s := testSuite(t)
+	s.root = t.TempDir() // a tree without the module's own record: the absent case
 	for _, required := range []bool{false, true} {
 		rows := s.liveRows(t.Context(), required)
 		if len(rows) != 2 || rows[0].status != statusSkip || rows[0].required != required ||
