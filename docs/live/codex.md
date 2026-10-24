@@ -1,6 +1,6 @@
 # Codex live record on macOS
 
-Offline acceptance proves the Codex adapter and its installed command. Only a live session proves that Codex runs the hook, honors its trust record and stops an `apply_patch` write before the disk. This page is the procedure of that session. Its record is `docs/live/codex-darwin.json`, which `go run ./tools/acceptance -m4` and `go run ./tools/acceptance -release` read: the rows `live codex-denied-write` and `live codex-allowed-control` pass only when the record names the darwin/arm64 candidate of the commit under test.
+Offline acceptance proves the Codex adapter and its installed command. Only a live session proves that Codex runs the hook, honors its trust record and stops an `apply_patch` write before the disk. This page is the procedure of that session. Its record is `docs/live/codex-darwin.json`, which `go run ./tools/acceptance -m4` and `go run ./tools/acceptance -release` read: the rows `live codex-denied-write` and `live codex-allowed-control` pass only when the record names the darwin/arm64 candidate of the commit under test. Without it they are an optional skip in both runs: the record is what Codex support waits for, not a gate of a release, which [releasing](../releasing.md) holds to the Claude record.
 
 ## What the lane does
 
@@ -21,7 +21,7 @@ Offline acceptance proves the Codex adapter and its installed command. Only a li
 
 ## When the lane cannot run unattended
 
-No acceptance run holds a credential: the isolated home of every run is empty. Until a person runs this procedure, `-m4` reports `live codex-denied-write` and `live codex-allowed-control` as SKIP with that reason, and `-release` refuses the SKIP. Without `CODEX_API_KEY`, or off darwin/arm64, the lane itself answers SKIP with its reason and writes nothing.
+No acceptance run holds a credential: the isolated home of every run is empty. Until a person runs this procedure, `-m4` reports `live codex-denied-write` and `live codex-allowed-control` as SKIP with that reason, and `-release` reports the same optional SKIP. Without `CODEX_API_KEY`, or off darwin/arm64, the lane itself answers SKIP with its reason and writes nothing.
 
 ## After the session
 
