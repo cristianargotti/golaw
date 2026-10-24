@@ -17,7 +17,7 @@ const (
 	versionParts   = 3
 	categoryVendor = "vendor"
 	caseVersion    = "version"
-	vendorRowCount = 3
+	vendorRowCount = 4
 )
 
 func (s *suite) vendorRows(ctx context.Context, required bool) ([]row, string) {
@@ -45,7 +45,8 @@ func (s *suite) vendorRows(ctx context.Context, required bool) ([]row, string) {
 	got = s.execute(ctx, command{
 		program: binary, args: []string{"plugin", "validate", "--strict", plugin}, dir: s.root, env: s.env,
 	})
-	rows = append(rows, measured(categoryVendor, "plugin-validate", success(got)), pluginTestRow())
+	rows = append(rows, measured(categoryVendor, "plugin-validate", success(got)), pluginTestRow(),
+		s.projectHostRow(ctx, binary, version))
 	return rows, version
 }
 

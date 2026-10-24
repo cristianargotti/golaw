@@ -16,7 +16,8 @@ type Artifact struct {
 // Agent, HooksPath, HooksCreated, Entries and Blocks belong to the agents
 // whose hooks live in a hooks file the person shares with other tools;
 // HooksCreated says the install created that file. A receipt without
-// Agent is a Claude receipt, as every receipt before them was.
+// Agent is a Claude receipt, as every receipt before them was. Exclude is
+// the git ignore line of a Claude project installation.
 type Receipt struct {
 	Schema         int             `json:"schema"`
 	ProjectID      string          `json:"project_id"`
@@ -32,6 +33,7 @@ type Receipt struct {
 	HooksCreated   bool            `json:"hooks_created,omitempty"`
 	Entries        []Entry         `json:"entries,omitempty"`
 	Blocks         []Block         `json:"blocks,omitempty"`
+	Exclude        *Exclude        `json:"exclude,omitempty"`
 }
 
 // Entry is one handler an installation merged into a hooks file, at the

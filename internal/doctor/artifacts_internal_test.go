@@ -101,3 +101,47 @@ func TestAMissingReceiptIsReportedAsEmpty(t *testing.T) {
 		t.Fatalf("a missing receipt was reported as %q", got)
 	}
 }
+
+func TestProjectSettingsAreLocalAndASharedReceiptIsRed(t *testing.T) {
+	t.Parallel()
+	base := t.TempDir()
+	root := filepath.Join(base, "repository")
+	if err := os.MkdirAll(filepath.Join(root, ".git"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := install.PlanClaude(install.Options{
+		Root: root, ConfigDir: filepath.Join(base, "config"), StateDir: filepath.Join(base, "state"),
+		Scope: "project", Version: "0.1.0", PolicyDigest: "policy", ReadRules: []string{"Read(notes/*)"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := install.Apply(t.Context(), plan, io.Discard, &enrollmentStore{}); err != nil {
+		t.Fatal(err)
+	}
+	input := Input{Root: root, ReceiptPath: plan.ReceiptPath, Scope: "project"}
+	local := plan.Receipt.SettingsPath
+	report := assess(Collect(t.Context(), input, nil, nil))
+	if got := artifactCode(report, local); got != "artifact-matches" || filepath.Base(local) != "settings.local.json" {
+		t.Fatalf("project settings %s are %q", local, got)
+	}
+	shared := filepath.Join(filepath.Dir(local), "settings.json")
+	if err := os.Rename(local, shared); err != nil {
+		t.Fatal(err)
+	}
+	receipt := plan.Receipt
+	receipt.SettingsPath = shared
+	for index := range receipt.Artifacts {
+		if receipt.Artifacts[index].Path == local {
+			receipt.Artifacts[index].Path = shared
+		}
+	}
+	writeJSON(t, plan.ReceiptPath, receipt)
+	snapshot := Collect(t.Context(), input, nil, nil)
+	if got := artifactCode(assess(snapshot), shared); got != codeSettingsShared {
+		t.Fatalf("a receipt naming the shared settings is %q", got)
+	}
+	if facts := claudeFacts(input, snapshot); len(facts.Receipt.Drift) == 0 {
+		t.Fatal("a receipt naming the shared settings is not drift")
+	}
+}

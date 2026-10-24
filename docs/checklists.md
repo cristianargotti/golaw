@@ -55,6 +55,7 @@ These items apply only when the repository has the named concern. API, database,
 ### Hexagonal code
 
 - Check the dependency directions, ports and shapes in the [context guide](context-template.md). Keep transport, persistence, environment reads and wall-clock access outside domain and application code.
+- Declare each port in the package that calls it, never in a central `ports` package: the iface linter reports an interface its own package never uses.
 - Give each use case one file, a constructor and `Execute`, with explicit dependencies and plain input and output. The emitting package owns its metrics.
 
 ### APIs and authentication
