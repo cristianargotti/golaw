@@ -8,6 +8,21 @@ import (
 	"path/filepath"
 )
 
+// The settings files of a Claude installation, by scope.
+const (
+	userSettingsName    = "settings.json"
+	projectSettingsName = "settings.local.json"
+)
+
+// The lines a Claude project installation ends with: Claude Code reads the
+// marketplace of the project and local settings only in a workspace the
+// person trusted, and an install that moved the entries out of the shared
+// settings.json leaves a change to commit when git holds that file.
+const (
+	claudeProjectNote = "Confie no projeto no Claude Code para carregar o plugin do golaw."
+	claudeMovedNote   = "As entradas do golaw saíram de %s e foram para %s; faça commit da mudança se o git guarda o primeiro."
+)
+
 // Options contains resolved command inputs rather than environment reads.
 // Home is the home directory of the person, Executable the path of the
 // running binary the hook command names and GOOS the operating system the
@@ -53,9 +68,16 @@ func PlanClaude(options Options) (Plan, error) {
 	if err != nil {
 		return Plan{}, err
 	}
-	err = addSettings(&plan, options.ReadRules, previous.Ownership)
+	err = addSettings(&plan, options.ReadRules, previous)
 	if err != nil {
 		return Plan{}, err
+	}
+	err = addExclude(&plan, previous)
+	if err != nil {
+		return Plan{}, err
+	}
+	if plan.Receipt.Scope == scopeProject {
+		plan.Notes = append(plan.Notes, claudeProjectNote)
 	}
 	encoded, err := json.MarshalIndent(plan.Receipt, "", "  ")
 	if err != nil {
@@ -83,7 +105,7 @@ func preparePlan(options Options) (Plan, Receipt, error) {
 	}
 	receipt := Receipt{
 		Schema: 1, ProjectID: identity, Scope: scope, Version: options.Version,
-		SettingsPath: filepath.Join(config, "settings.json"),
+		SettingsPath: filepath.Join(config, claudeSettingsName(scope)),
 		Bundle:       filepath.Join(store, "marketplace"),
 	}
 	plan := Plan{
@@ -113,12 +135,45 @@ func installRoots(options Options, root, identity string) (string, string, strin
 	return scope, store, config, nil
 }
 
-func addSettings(plan *Plan, rules []string, previous Ownership) error {
+// claudeSettingsName is the settings file a Claude installation writes:
+// the user settings.json at user scope, and at project scope the
+// settings.local.json Claude Code keeps per person and never shares,
+// because the entries name the marketplace under the person's state
+// directory, a path no teammate has.
+func claudeSettingsName(scope string) string {
+	if scope == scopeProject {
+		return projectSettingsName
+	}
+	return userSettingsName
+}
+
+// SharedSettings reports whether a Claude receipt names the settings.json
+// of the repository, where a project installation before
+// settings.local.json wrote its entries; the next install moves them.
+func SharedSettings(receipt Receipt) bool {
+	return receipt.Agent == "" && receipt.Scope == scopeProject &&
+		filepath.Base(receipt.SettingsPath) != projectSettingsName
+}
+
+// addSettings merges the owned entries into the settings file of the scope.
+// When the previous receipt is a project receipt that names the shared
+// settings.json, the entries it owns there are released first, with
+// everything the person wrote kept, and settings.local.json starts its own
+// ownership record.
+func addSettings(plan *Plan, rules []string, previous Receipt) error {
+	prior := previous.Ownership
+	if SharedSettings(previous) {
+		if err := restoreSettingsChange(plan, previous.SettingsPath, previous.Ownership); err != nil {
+			return err
+		}
+		prior = Ownership{}
+		plan.Notes = append(plan.Notes, fmt.Sprintf(claudeMovedNote, previous.SettingsPath, plan.Receipt.SettingsPath))
+	}
 	current, _, err := readOptional(plan.Receipt.SettingsPath)
 	if err != nil {
 		return err
 	}
-	desired, owned, err := MergeSettings(current, plan.Receipt.Bundle, rules, previous)
+	desired, owned, err := MergeSettings(current, plan.Receipt.Bundle, rules, prior)
 	if err != nil {
 		return err
 	}

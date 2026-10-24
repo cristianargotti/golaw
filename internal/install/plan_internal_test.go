@@ -53,7 +53,7 @@ func TestProjectPlanAndInvalidInputs(t *testing.T) {
 	options.Scope = "project"
 	plan, err := PlanClaude(options)
 	must(t, err)
-	if plan.Receipt.SettingsPath != filepath.Join(options.Root, ".claude", "settings.json") {
+	if plan.Receipt.SettingsPath != filepath.Join(options.Root, ".claude", "settings.local.json") {
 		t.Fatal("project settings escaped the repository")
 	}
 	_, identity, err := ProjectIdentity(options.Root)

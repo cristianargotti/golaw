@@ -212,16 +212,20 @@ golaw agent uninstall --agent all --scope project
 
 ### Where the artifacts go
 
-| Artifact           | User scope                        | Project scope                   |
-| ------------------ | --------------------------------- | ------------------------------- |
-| Codex hooks        | `~/.codex/hooks.json`             | `.codex/hooks.json`             |
-| Codex prefix rules | No user rules file                | `.codex/rules/golaw.rules`      |
-| Codex marked block | `~/.codex/AGENTS.md`              | `AGENTS.md`                     |
-| Cursor hooks       | `~/.cursor/hooks.json`            | `.cursor/hooks.json`            |
-| Cursor rule        | No user rule file                 | `.cursor/rules/golaw.mdc`       |
-| Shared skill       | `~/.agents/skills/golaw/SKILL.md` | `.agents/skills/golaw/SKILL.md` |
+| Artifact                | User scope                        | Project scope                   |
+| ----------------------- | --------------------------------- | ------------------------------- |
+| Claude settings entries | `~/.claude/settings.json`         | `.claude/settings.local.json`   |
+| Claude ignore line      | No ignore line                    | `.git/info/exclude`             |
+| Codex hooks             | `~/.codex/hooks.json`             | `.codex/hooks.json`             |
+| Codex prefix rules      | No user rules file                | `.codex/rules/golaw.rules`      |
+| Codex marked block      | `~/.codex/AGENTS.md`              | `AGENTS.md`                     |
+| Cursor hooks            | `~/.cursor/hooks.json`            | `.cursor/hooks.json`            |
+| Cursor rule             | No user rule file                 | `.cursor/rules/golaw.mdc`       |
+| Shared skill            | `~/.agents/skills/golaw/SKILL.md` | `.agents/skills/golaw/SKILL.md` |
 
 CODEX_HOME, when set, replaces ~/.codex for the Codex user artifacts and for its trust configuration, config.toml. It does not relocate the shared user skill. A CODEX_HOME reached through a symbolic link is named by its real path, the path Codex keys trust with, while the default ~/.codex is named as given. Project destinations are relative to the installation root, the root of the repository. The marked block points at the user skill and, for a project installation, at .agents/skills/golaw/SKILL.md in that repository, so one block serves both scopes; Codex and Cursor read the same skill file, which each receipt lists.
+
+With --agent claude --scope project, the Claude entries, the enabled plugin, its marketplace and the read deny rules, go into .claude/settings.local.json, the settings file Claude Code keeps per person and never shares, because the marketplace they name lies under your state directory, a path no teammate has; .claude/settings.json holds no golaw entry. The install adds the line `/.claude/settings.local.json` to the exclude file of the clone, which a linked worktree shares with its main checkout and git never commits, so neither golaw scan nor git add sees the file. A line you already wrote stays yours; uninstall takes the owned line out once the settings file is gone and keeps it while the file holds entries of yours. Claude Code 2.1.299 loads the plugin a project or local settings file declares only once you trust the workspace, so accept its trust prompt. An install over a receipt of an earlier release, which named .claude/settings.json, takes golaw's entries out of that file, keeps everything else in it, writes them to settings.local.json and names the move; commit that change when git holds the file. Until that install, doctor reports the settings artifact as settings-shared. The Codex and Cursor project hooks files name the absolute path of the golaw binary that ran the install, so they belong to one machine as well, and neither host reads a per-person project hooks file. Keep them out of commits; a binary under a macOS home also makes golaw scan report text.trace-terms on them. The user scope writes nothing into the repository.
 
 Codex prefix rules are written only with --scope project; a user-scope rules file would apply to every Codex session, enrolled or not. In a repository golaw never enrolled the hook gives a valid allow, so a user rules file would deny there what the hook allows: a user-scope installation writes no rules file and leaves a personal file of that name untouched. No user-scope rule file is installed for the compatibility preview. Cursor documents no user rules file, so its rule exists at project scope only.
 

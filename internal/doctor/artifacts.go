@@ -2,6 +2,14 @@ package doctor
 
 import "github.com/cristianargotti/golaw/internal/install"
 
+// codeSettingsShared is the settings artifact of a Claude project receipt
+// that names the shared settings.json of the repository, which carries the
+// path of the person's state directory to every teammate who commits it.
+const (
+	codeSettingsShared   = "settings-shared"
+	sharedSettingsDetail = " is the shared settings file; agent install moves golaw's entries to settings.local.json"
+)
+
 func artifactLines(snapshot Snapshot) []Line {
 	lines := make([]Line, 0, len(snapshot.Receipt.Artifacts))
 	for _, artifact := range snapshot.Receipt.Artifacts {
@@ -11,6 +19,8 @@ func artifactLines(snapshot Snapshot) []Line {
 		}
 		content, present := snapshot.Files[artifact.Path]
 		switch {
+		case artifact.Path == snapshot.Receipt.SettingsPath && install.SharedSettings(snapshot.Receipt):
+			line.State, line.Code, line.Detail = stateRed, codeSettingsShared, artifact.Path+sharedSettingsDetail
 		case !present:
 			line.State, line.Code = stateRed, "artifact-missing"
 		case drifted(snapshot.Receipt, artifact, content):

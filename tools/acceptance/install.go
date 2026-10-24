@@ -28,6 +28,7 @@ const (
 	flagApply     = "--apply"
 	gitAdd        = "add"
 	moduleFile    = "go.mod"
+	diffHeader    = "+++ "
 )
 
 type suite struct {
@@ -172,7 +173,7 @@ func (s *suite) reinstall(ctx context.Context, c command, first map[string]strin
 	if err := success(second); err != nil {
 		return err
 	}
-	if strings.Contains(second.stdout, "+++ ") || strings.Contains(second.stdout, "--- ") {
+	if strings.Contains(second.stdout, diffHeader) || strings.Contains(second.stdout, "--- ") {
 		return fmt.Errorf("second installation printed a diff: %w", ErrAcceptance)
 	}
 	after, err := treeDigests(s.home)

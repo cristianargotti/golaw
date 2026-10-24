@@ -31,12 +31,15 @@ func testRoot(t *testing.T) string {
 
 func simulatedExecutor(t *testing.T, root string) executor {
 	t.Helper()
-	return func(_ context.Context, c command) result {
+	return func(ctx context.Context, c command) result {
 		if slices.Contains(c.args, "build") {
 			return simulatedBuild(t, c)
 		}
 		if len(c.args) == 0 {
 			return result{err: ErrAcceptance}
+		}
+		if answer, handled := simulatedProject(ctx, t, c); handled {
+			return answer
 		}
 		return simulatedProgram(t, root, c)
 	}
