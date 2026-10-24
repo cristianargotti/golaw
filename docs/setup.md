@@ -17,7 +17,7 @@ init distinguishes writes from proposals for existing files. init --apply leaves
 go.mod stays your file: init proposes the require of github.com/quasilyte/go-ruleguard/dsl, the module scripts/lint/rules.go imports, and prints the go get and go mod tidy that apply it with its go.sum lines. Until go.mod requires it, golangci-lint cannot load the rules file, make lint fails, and an armed pre-commit rung names that repair and leaves the lint to the pipeline.
 
 ```sh
-go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0
+go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.1
 golaw init
 golaw init --apply
 go get github.com/quasilyte/go-ruleguard/dsl@v0.3.23
