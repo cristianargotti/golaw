@@ -25,9 +25,13 @@ const (
 )
 
 // m4LiveRows are the Codex live rows from the record of the module and the
-// Cursor preview row.
-func (s *suite) m4LiveRows(ctx context.Context, required bool) []row {
-	rows := s.m4LiveRowsFrom(ctx, filepath.Join(s.root, filepath.FromSlash(m4LiveRecordPath)), required)
+// Cursor preview row. A missing or stale Codex record is an optional skip
+// in every run, the release included: the record is what Codex support
+// waits for (docs/agent-contracts.md), not a gate of the release, which
+// docs/releasing.md holds to the Claude record. A record that is present
+// and wrong still fails.
+func (s *suite) m4LiveRows(ctx context.Context, _ bool) []row {
+	rows := s.m4LiveRowsFrom(ctx, filepath.Join(s.root, filepath.FromSlash(m4LiveRecordPath)), false)
 	return append(rows, row{
 		categoryLive, caseCursorPreview, statusSkip,
 		"no agent -p lane has recorded Cursor hooks firing: Cursor stays a compatibility preview (cut 13)", false,

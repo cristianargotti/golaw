@@ -20,10 +20,11 @@ func validCodexLiveRecord() liveRecord {
 func TestM4LiveRowsPassOnlyForTheCodexCandidate(t *testing.T) {
 	t.Parallel()
 	s := testSuite(t)
+	// A missing Codex record is an optional skip even in a release run.
 	for _, required := range []bool{false, true} {
 		rows := s.m4LiveRows(t.Context(), required)
 		if got := strings.Join(m4RowNames(rows), ","); got != "codex-denied-write SKIP,codex-allowed-control SKIP,cursor-agent-print SKIP" ||
-			rows[0].required != required || rows[2].required || !strings.Contains(rows[1].detail, m4LiveProcedure) ||
+			rows[0].required || rows[2].required || !strings.Contains(rows[1].detail, m4LiveProcedure) ||
 			!strings.Contains(rows[2].detail, "compatibility preview") {
 			t.Fatalf("required %v: %+v", required, rows)
 		}
