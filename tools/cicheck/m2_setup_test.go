@@ -10,7 +10,7 @@ func TestM2SetupSequence(t *testing.T) {
 	text := string(kitBytes(t, "docs/setup.md"))
 	agent := agentID(t)
 	commands := []string{
-		"go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0\n",
+		"go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.1\n",
 		"golaw init\n",
 		"golaw init --apply\n",
 		"git add golaw.yml",

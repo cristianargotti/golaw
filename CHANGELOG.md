@@ -4,6 +4,10 @@ Every rule change is dated here with its reason. The format follows Keep a Chang
 
 ## Unreleased
 
+### Release
+
+- 2026-10-24: golaw.yml pins kit 0.2.1, and the README, docs/setup.md and the agent skill name v0.2.1, the release after v0.2.0 whose binaries the dated live record of the plugin host lets the release lane publish; a kit update applies with golaw init --update --apply.
+
 Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance record](docs/acceptance/m2.md) records.
 
 ### Added
