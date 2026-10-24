@@ -13,6 +13,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -32,6 +33,7 @@ const (
 	callsSuffix    = ".calls.jsonl"
 	executableMode = 0o700
 	fileMode       = 0o600
+	warmArgument   = "-golaw.runnertest.warm"
 )
 
 // Behavior is what a fake tool answers.
@@ -53,6 +55,9 @@ func Main(m *testing.M) int {
 			return code
 		}
 	}
+	if slices.Contains(os.Args[1:], warmArgument) {
+		return BrokenCode // a warm start that found no behavior never runs the tests again
+	}
 	return m.Run()
 }
 
@@ -67,7 +72,9 @@ func Install(tb testing.TB, dir, name string, b Behavior) string {
 		path += exeSuffix
 	}
 	base := strings.TrimSuffix(path, exeSuffix)
-	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
+	_, err := os.Stat(path)
+	fresh := errors.Is(err, fs.ErrNotExist)
+	if fresh {
 		copyExecutable(tb, path)
 	}
 	data, err := json.Marshal(b)
@@ -76,6 +83,9 @@ func Install(tb testing.TB, dir, name string, b Behavior) string {
 	}
 	if err := os.WriteFile(base+behaviorSuffix, data, fileMode); err != nil {
 		tb.Fatalf("write the behavior of %s: %v", name, err)
+	}
+	if fresh {
+		warm(tb, path) // after the behavior, so the copy answers as a fake and runs no test
 	}
 	if err := os.Remove(base + callsSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		tb.Fatalf("reset the calls of %s: %v", name, err)
@@ -204,5 +214,20 @@ func copyExecutable(tb testing.TB, path string) {
 	syscall.ForkLock.RUnlock()
 	if err != nil {
 		tb.Fatalf("write the fake %s: %v", path, err)
+	}
+}
+
+// warm starts a fresh copy once, its answer ignored, when the test binary
+// writes coverage: copies of one binary that start together race to write
+// its coverage meta-data into GOCOVERDIR, and Windows refuses the loser's
+// rename with a line the copy prints on stderr. Once one start has written
+// the file, no later start writes it, so the starts a test judges never race.
+func warm(tb testing.TB, path string) {
+	tb.Helper()
+	if testing.CoverMode() == "" {
+		return
+	}
+	if err := exec.CommandContext(tb.Context(), path, warmArgument).Run(); err != nil {
+		tb.Logf("warm %s: %v", path, err) // a behavior may name any exit status
 	}
 }

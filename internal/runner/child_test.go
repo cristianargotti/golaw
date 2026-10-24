@@ -54,8 +54,10 @@ func stopRunnerChild(t *testing.T, cmd *exec.Cmd) {
 	if cmd.ProcessState != nil {
 		return
 	}
+	// Windows answers "Access is denied" to a kill that races the child's
+	// own exit; the wait below still proves the child gone there.
 	if err := cmd.Process.Kill(); err != nil &&
-		!errors.Is(err, os.ErrProcessDone) {
+		!errors.Is(err, os.ErrProcessDone) && runtime.GOOS != "windows" {
 		t.Fatal(err)
 	}
 	err := cmd.Wait()
