@@ -22,15 +22,15 @@ func TestDefaultDirs(t *testing.T) {
 		env  map[string]string
 		want policy.Dirs
 	}{
-		"linux home":  {"linux", map[string]string{"HOME": "/h/u"}, policy.Dirs{State: "/h/u/.local/state/golaw", Config: "/h/u/.config/golaw"}},
-		"darwin home": {"darwin", map[string]string{"HOME": "/h/mac"}, policy.Dirs{State: "/h/mac/.local/state/golaw", Config: "/h/mac/.config/golaw"}},
-		"xdg":         {"linux", map[string]string{"HOME": "/h/u", "XDG_STATE_HOME": "/s", "XDG_CONFIG_HOME": "/c"}, policy.Dirs{State: "/s/golaw", Config: "/c/golaw"}},
-		"windows":     {"windows", map[string]string{"LOCALAPPDATA": local, "APPDATA": roaming}, policy.Dirs{State: filepath.Join(local, "golaw"), Config: filepath.Join(roaming, "golaw")}},
+		"linux home":  {"linux", map[string]string{"HOME": "/h/u"}, policy.Dirs{State: "/h/u/.local/state/golaw", Config: "/h/u/.config/golaw", Tools: "/h/u/.local/share/golaw/tools"}},
+		"darwin home": {"darwin", map[string]string{"HOME": "/h/mac"}, policy.Dirs{State: "/h/mac/.local/state/golaw", Config: "/h/mac/.config/golaw", Tools: "/h/mac/.local/share/golaw/tools"}},
+		"xdg":         {"linux", map[string]string{"HOME": "/h/u", "XDG_STATE_HOME": "/s", "XDG_CONFIG_HOME": "/c", "XDG_DATA_HOME": "/d"}, policy.Dirs{State: "/s/golaw", Config: "/c/golaw", Tools: "/d/golaw/tools"}},
+		"windows":     {"windows", map[string]string{"LOCALAPPDATA": local, "APPDATA": roaming}, policy.Dirs{State: filepath.Join(local, "golaw"), Config: filepath.Join(roaming, "golaw"), Tools: filepath.Join(local, "golaw", "tools")}},
 		"windows xdg": {"windows", map[string]string{"XDG_STATE_HOME": state, "XDG_CONFIG_HOME": config}, policy.Dirs{State: filepath.Join(state, "golaw"), Config: filepath.Join(config, "golaw")}},
 	}
 	for name, c := range cases {
 		got, err := policy.DefaultDirs(c.goos, env(c.env))
-		want := policy.Dirs{State: filepath.FromSlash(c.want.State), Config: filepath.FromSlash(c.want.Config)}
+		want := policy.Dirs{State: filepath.FromSlash(c.want.State), Config: filepath.FromSlash(c.want.Config), Tools: filepath.FromSlash(c.want.Tools)}
 		if err != nil || got != want {
 			t.Errorf("%s: %+v, %v, want %+v", name, got, err, want)
 		}

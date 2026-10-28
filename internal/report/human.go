@@ -19,9 +19,10 @@ func Human(language string, decision engine.Decision) string {
 	if language != Portuguese {
 		return english(decision)
 	}
-	for _, f := range decision.Findings {
+	for k := range decision.Findings {
+		f := &decision.Findings[k]
 		if f.Enforced() {
-			return "golaw bloqueou a operação: " + phrase(f) + "."
+			return "golaw bloqueou a operação: " + phrase(*f) + "."
 		}
 	}
 	if len(decision.Unmeasured) > 0 {
