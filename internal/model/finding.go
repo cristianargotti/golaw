@@ -62,6 +62,7 @@ type Finding struct {
 	Message     string   `json:"message"`          // English, one sentence, never a line number inside it
 	Fingerprint string   `json:"fingerprint"`      // rule, check, path, code and normalized message; no line number
 	Severity    Severity `json:"severity"`         // descriptive; the engine decides enforcement
+	Sonar       string   `json:"sonar,omitempty"`  // the Sonar key a mapped finding answers to, javascript:S2681; never in the fingerprint
 }
 
 // Enforced reports whether the finding counts against the run.
