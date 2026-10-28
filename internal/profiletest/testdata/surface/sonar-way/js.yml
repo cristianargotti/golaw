@@ -1,0 +1,5 @@
+read: "2026-10-27"
+rules:
+  - { key: S2681, severity: MAJOR }
+  - { key: S125, severity: MAJOR }
+  - { key: S3776, severity: CRITICAL, params: { threshold: "15" } }
