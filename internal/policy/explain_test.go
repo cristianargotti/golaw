@@ -51,7 +51,7 @@ func TestExplainFull(t *testing.T) {
 			t.Errorf("%s = %+v, want %+v", key, got[key], line)
 		}
 	}
-	if len(got) != 37 {
+	if len(got) != 39 {
 		t.Errorf("Explain printed %d lines", len(got))
 	}
 }
@@ -126,7 +126,7 @@ func TestExplainListsEveryOptionAtItsDefault(t *testing.T) {
 				t.Errorf("%s: %s = %+v, want %+v", name, key, got[key], want)
 			}
 		}
-		if len(got) != 26 {
+		if len(got) != 28 {
 			t.Errorf("%s: Explain printed %d lines", name, len(got))
 		}
 	}

@@ -142,7 +142,7 @@ func TestGateReadsThePolicyLadderWhenTheCheckoutHoldsNone(t *testing.T) {
 		t.Errorf("pre-push off at HEAD: %+v", out)
 	}
 	_, a, _, ok := gated(t, r, "", PreCommit)
-	if want := (model.Ladder{PreCommit: true, CommitMsg: true, TestStaged: true}); !ok || a.ladder != want {
+	if want := (model.Ladder{PreCommit: true, CommitMsg: true, TestStaged: true, SurfaceLint: true, HookFeedback: true}); !ok || a.ladder != want {
 		t.Errorf("ladder at HEAD = %+v, want %+v", a.ladder, want)
 	}
 	r.Write(policy.FileName, "golaw: 1\nladders: {}\n")
