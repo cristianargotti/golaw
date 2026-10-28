@@ -31,6 +31,7 @@ const (
 	exeSuffix      = ".exe"
 	behaviorSuffix = ".behavior.json"
 	callsSuffix    = ".calls.jsonl"
+	inputsSuffix   = ".stdin.jsonl"
 	executableMode = 0o700
 	fileMode       = 0o600
 	warmArgument   = "-golaw.runnertest.warm"
@@ -42,7 +43,9 @@ type Behavior struct {
 	Version string   `json:"version"` // printed with a newline for the probe
 	Stdout  string   `json:"stdout"`  // printed for any other arguments
 	Stderr  string   `json:"stderr"`
-	Code    int      `json:"code"` // the exit status for any other arguments
+	Code    int      `json:"code"`  // the exit status for any other arguments
+	Delay   string   `json:"delay"` // a Go duration the fake waits before it answers any other arguments
+	Stdin   bool     `json:"stdin"` // the fake records the bytes it reads on stdin, one entry per call
 }
 
 // Main is the body of the TestMain of a package whose tests install fake
@@ -64,7 +67,7 @@ func Main(m *testing.M) int {
 // Install puts in dir a fake tool named name (name.exe on Windows), a copy
 // of the running test binary that answers b, and answers its path; a
 // second Install of the same name in the same dir replaces what it answers
-// and starts a new call record.
+// and starts a new call record and a new input record.
 func Install(tb testing.TB, dir, name string, b Behavior) string {
 	tb.Helper()
 	path := filepath.Join(dir, name)
@@ -87,8 +90,10 @@ func Install(tb testing.TB, dir, name string, b Behavior) string {
 	if fresh {
 		warm(tb, path) // after the behavior, so the copy answers as a fake and runs no test
 	}
-	if err := os.Remove(base + callsSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		tb.Fatalf("reset the calls of %s: %v", name, err)
+	for _, suffix := range []string{callsSuffix, inputsSuffix} {
+		if err := os.Remove(base + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			tb.Fatalf("reset the record of %s: %v", name, err)
+		}
 	}
 	return path
 }
@@ -122,6 +127,10 @@ func play(exe string, args []string, stdout, stderr io.Writer) (int, bool) {
 	}
 	if slices.Equal(args, b.Probe) {
 		return answer(stdout, nil, b.Version+"\n", "", 0), true
+	}
+	if err := b.consume(base, os.Stdin); err != nil {
+		complain(stderr, "read its input", err)
+		return BrokenCode, true
 	}
 	return answer(stdout, stderr, b.Stdout, b.Stderr, b.Code), true
 }
