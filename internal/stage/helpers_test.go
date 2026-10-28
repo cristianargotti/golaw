@@ -84,7 +84,8 @@ func scan(t *testing.T, r *gittest.Repo, opts source.IndexOptions) stage.Result 
 // case compares their places and not their messages.
 func findingPaths(d engine.Decision) []string {
 	out := make([]string, 0, len(d.Findings))
-	for _, f := range d.Findings {
+	for k := range d.Findings {
+		f := &d.Findings[k]
 		out = append(out, f.Path)
 	}
 	return out
