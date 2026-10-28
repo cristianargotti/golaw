@@ -1,0 +1,3 @@
+Would reformat: /work/repo/scripts/metricas.py
+Would reformat: /work/repo/deploy/install.py
+2 files would be reformatted, 3 files already formatted
