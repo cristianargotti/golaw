@@ -1,0 +1,26 @@
+{
+  "comments": [
+    {
+      "file": "scripts/smoke.sh",
+      "line": 2,
+      "endLine": 2,
+      "column": 6,
+      "endColumn": 8,
+      "level": "info",
+      "code": 2086,
+      "message": "Double quote to prevent globbing and word splitting.",
+      "fix": null
+    },
+    {
+      "file": "scripts/smoke.sh",
+      "line": 3,
+      "endLine": 3,
+      "column": 1,
+      "endColumn": 8,
+      "level": "warning",
+      "code": 2164,
+      "message": "Use 'cd ... || exit' or 'cd ... || return' in case cd fails.",
+      "fix": null
+    }
+  ]
+}

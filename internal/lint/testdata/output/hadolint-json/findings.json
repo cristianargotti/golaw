@@ -1,0 +1,18 @@
+[
+  {
+    "code": "DL3018",
+    "column": 1,
+    "file": "deploy/valkey.Dockerfile",
+    "level": "warning",
+    "line": 2,
+    "message": "Pin versions in apk add. Instead of `apk add <package>` use `apk add <package>=<version>`"
+  },
+  {
+    "code": "DL3002",
+    "column": 1,
+    "file": "Dockerfile",
+    "level": "warning",
+    "line": 3,
+    "message": "Last USER should not be root"
+  }
+]

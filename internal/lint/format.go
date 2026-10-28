@@ -44,6 +44,12 @@ func parsers() map[Format]parser {
 		FormatRuff:       {codes(0, 1), parseRuff},
 		FormatRuffFormat: {codes(0, 1, 2), parseRuffFormat},
 		FormatPyright:    {codes(0, 1), parsePyright},
+		FormatHadolint:   {codes(0, 1), parseHadolint},
+		FormatShellcheck: {codes(0, 1), parseShellcheck},
+		FormatShfmt:      {codes(0, 1), parseShfmt},
+		FormatCfnLint:    {cfnAccepts, parseCfnLint},
+		FormatCheckov:    {codes(0, 1), parseCheckov},
+		FormatYamllint:   {codes(0, 1, 2), parseYamllint},
 	}
 }
 
