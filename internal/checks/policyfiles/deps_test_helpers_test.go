@@ -72,10 +72,11 @@ func assertDepsResult(t *testing.T, check model.Check, row *depsCase, got model.
 	if wantStatus != model.StatusMeasured && len(got.Findings) != 0 {
 		t.Fatalf("unsettled result carries findings: %+v", got)
 	}
-	for _, finding := range got.Findings {
+	for k := range got.Findings {
+		finding := &got.Findings[k]
 		if finding.Check != check.Spec().ID || finding.Rule != check.Spec().Rule ||
 			finding.Message == "" || finding.Path == "" {
-			t.Fatalf("incomplete finding: %+v", finding)
+			t.Fatalf("incomplete finding: %+v", *finding)
 		}
 	}
 }

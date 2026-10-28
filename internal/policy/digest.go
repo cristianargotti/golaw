@@ -27,6 +27,7 @@ type canonical struct {
 	Options      map[string]map[string]any `json:"options"`
 	Waivers      []Waiver                  `json:"waivers"`
 	Exceptions   []ExceptionRule           `json:"exceptions"`
+	SurfaceRules *string                   `json:"surface_rules,omitempty"`
 }
 
 // Digest is the lower case hex sha256 over the canonical form of a file:
@@ -51,6 +52,7 @@ func Digest(f File) string {
 		Options:      canonicalOptions(f.Checks.Options),
 		Waivers:      slices.Clone(f.Waivers),
 		Exceptions:   slices.Clone(f.Exceptions),
+		SurfaceRules: f.Surface.canonicalRules(),
 	}
 	if f.Checks.Lint != nil {
 		c.Lint = f.Checks.Lint.entries()
