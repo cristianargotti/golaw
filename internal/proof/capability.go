@@ -66,7 +66,8 @@ func (p pair) runUnder(ctx context.Context, reg *engine.Registry, f Fixture, pol
 		if o.Spec.ID == p.entry.ID {
 			v.status = o.Result.Status
 		}
-		for _, f := range o.Result.Findings {
+		for k := range o.Result.Findings {
+			f := &o.Result.Findings[k]
 			if f.Code != p.entry.Code {
 				continue
 			}

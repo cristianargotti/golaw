@@ -10,6 +10,8 @@ const (
 	SectionTargets    = "targets"
 	SectionTemplates  = "templates"
 	SectionTerms      = "terms"
+	SectionAnalyzer   = "analyzer"
+	SectionSonarWay   = "sonar-way"
 )
 
 // The kinds a typed YAML assertion compares.
@@ -42,6 +44,8 @@ type ProfileData struct {
 	Dockerfile *DockerfileRules // the image rules, judged under the image capability
 	Registry   *RegistryRule    // the image reference pattern, judged under the image capability
 	Assertions []Assertion      // typed YAML assertions
+	Analyzer   *AnalyzerPolicy  // the bundle's analyzer.yml, nil when it carries none
+	SonarWay   *SonarWay        // the bundle's sonar-way/ snapshot, nil when it carries none
 }
 
 // TemplateRules says what init leaves to another owner under the profile.
@@ -102,6 +106,10 @@ func (d *ProfileData) Section(name string) bool {
 		return d.Registry != nil
 	case SectionAssertions:
 		return len(d.Assertions) > 0
+	case SectionAnalyzer:
+		return d.Analyzer != nil
+	case SectionSonarWay:
+		return d.SonarWay != nil
 	default:
 		return false
 	}

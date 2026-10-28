@@ -78,7 +78,8 @@ func modeOf(f fixture) model.Mode {
 // codes answers the finding codes of a result, sorted.
 func codes(res model.Result) []string {
 	out := make([]string, 0, len(res.Findings))
-	for _, f := range res.Findings {
+	for k := range res.Findings {
+		f := &res.Findings[k]
 		out = append(out, f.Code)
 	}
 	slices.Sort(out)

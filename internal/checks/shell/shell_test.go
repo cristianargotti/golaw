@@ -31,7 +31,8 @@ func judge(t *testing.T, c model.Check, command string) model.Result {
 // codes lists the finding codes of a result in order.
 func codes(res model.Result) []string {
 	out := make([]string, 0, len(res.Findings))
-	for _, f := range res.Findings {
+	for k := range res.Findings {
+		f := &res.Findings[k]
 		out = append(out, f.Code)
 	}
 	return out
