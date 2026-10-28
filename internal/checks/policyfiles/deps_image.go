@@ -13,6 +13,10 @@ import (
 
 const imageAllowedTags = "allowed_tags"
 
+// digestOnly asks for the digest without the tag beside it, because a
+// reference carrying both is the shape the pipeline analyzer reports (A34).
+const digestOnly = " to a digest only: write the reference as name@sha256: and its 64 hexadecimal digits, with the tag in a comment"
+
 type imageDigest struct{}
 
 // ImageDigest requires immutable external bases while preserving declared tag exceptions.
@@ -71,8 +75,7 @@ func imageFindings(document dockerfile, patterns []string) ([]model.Finding, err
 				return nil, err
 			}
 			if !allowed {
-				message := "pin the base image " + stage.from + " in " + document.path +
-					" to a complete digest: write the reference with @sha256: and its 64 hexadecimal digits"
+				message := "pin the base image " + stage.from + " in " + document.path + digestOnly
 				findings = append(findings, finding(document.path, stage.line, "image-digest-missing", message))
 			}
 		}
@@ -106,8 +109,7 @@ func imageReferenceFindings(document dockerfile, patterns []string) ([]model.Fin
 			return nil, err
 		}
 		if !allowed {
-			message := "pin the image " + ref.from + " that " + ref.flag + " reads in " + document.path +
-				" to a complete digest: write the reference with @sha256: and its 64 hexadecimal digits"
+			message := "pin the image " + ref.from + " that " + ref.flag + " reads in " + document.path + digestOnly
 			findings = append(findings, finding(document.path, ref.line, "image-digest-missing", message))
 		}
 	}

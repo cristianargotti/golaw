@@ -127,6 +127,8 @@ func TestRenderServiceCarriesTheSumFileByItsName(t *testing.T) {
 // updates only its Debian 13 images, so a static-debian12 runtime kept
 // ca-certificates and tzdata behind fixes Debian had shipped, and the image
 // scan of every replay failed on advisories no rebuild of the service clears.
+// Each reference is a digest alone with its tag in the comment above it,
+// because a tag beside a digest is the shape docker:S8431 reports (A34).
 func TestRenderServiceBuildsOnBasesStillUpdated(t *testing.T) {
 	t.Parallel()
 	files, err := assets.RenderService(golaw.FS, templateValues())
@@ -137,19 +139,23 @@ func TestRenderServiceBuildsOnBasesStillUpdated(t *testing.T) {
 	if at < 0 {
 		t.Fatal("the service fixture holds no Dockerfile")
 	}
-	var refs []string
+	var refs, tags []string
+	previous := ""
 	for line := range strings.SplitSeq(string(files[at].Data), "\n") {
 		if image, found := strings.CutPrefix(line, "FROM "); found {
 			ref, digest, pinned := strings.Cut(strings.Fields(image)[0], "@sha256:")
-			if !pinned || len(digest) != 64 {
-				t.Errorf("image %s is not pinned by digest", image)
+			if !pinned || len(digest) != 64 || strings.Contains(ref[strings.LastIndex(ref, "/")+1:], ":") {
+				t.Errorf("image %s is not a digest alone", image)
 			}
-			refs = append(refs, ref)
+			refs, tags = append(refs, ref), append(tags, strings.TrimPrefix(previous, "# "))
 		}
+		previous = line
 	}
-	if len(refs) != 2 || !strings.HasPrefix(refs[0], "golang:") || !strings.HasSuffix(refs[0], "-trixie") ||
-		refs[1] != "gcr.io/distroless/static-debian13:nonroot" {
-		t.Fatalf("service images = %q, want a golang trixie build and the distroless static-debian13 nonroot runtime", refs)
+	if len(refs) != 2 || refs[0] != "golang" || refs[1] != "gcr.io/distroless/static-debian13" {
+		t.Fatalf("service images = %q, want the golang build and the distroless static-debian13 runtime", refs)
+	}
+	if !strings.HasPrefix(tags[0], "golang:") || !strings.HasSuffix(tags[0], "-trixie") || tags[1] != "gcr.io/distroless/static-debian13:nonroot" {
+		t.Fatalf("tag comments = %q, want a golang trixie build and the nonroot runtime above their FROM lines", tags)
 	}
 }
 

@@ -244,11 +244,27 @@ func TestImageDigestRepairMessage(t *testing.T) {
 				t.Fatalf("findings = %+v, want one missing digest", got.Findings)
 			}
 			want := "pin the base image " + row.image + " in " + row.file +
-				" to a complete digest: write the reference with @sha256: and its 64 hexadecimal digits"
+				" to a digest only: write the reference as name@sha256: and its 64 hexadecimal digits, with the tag in a comment"
 			if got.Findings[0].Message != want {
 				t.Fatalf("message = %q, want %q", got.Findings[0].Message, want)
 			}
 		})
+	}
+}
+
+func TestImageDigestReferenceMessageAsksForTheDigestOnly(t *testing.T) {
+	t.Parallel()
+	input := fixture{capabilities: []string{"image"}, files: map[string]string{
+		"Dockerfile": "FROM alpine@sha256:" + strings.Repeat("a", 64) + "\nCOPY --from=busybox:1.36 /bin/sh /bin/sh\n",
+	}}
+	got := measure(t, policyfiles.ImageDigest(), input)
+	if len(got.Findings) != 1 {
+		t.Fatalf("findings = %+v, want the one image the flag reads", got.Findings)
+	}
+	message := got.Findings[0].Message
+	if !strings.HasPrefix(message, "pin the image busybox:1.36 that ") ||
+		!strings.HasSuffix(message, " reads in Dockerfile to a digest only: write the reference as name@sha256: and its 64 hexadecimal digits, with the tag in a comment") {
+		t.Fatalf("message = %q", message)
 	}
 }
 
