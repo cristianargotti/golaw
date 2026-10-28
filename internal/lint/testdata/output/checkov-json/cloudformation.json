@@ -1,0 +1,30 @@
+{
+  "check_type": "cloudformation",
+  "results": {
+    "passed_checks": [],
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_18",
+        "bc_check_id": "BC_AWS_S3_13",
+        "check_name": "Ensure the S3 bucket has access logging enabled",
+        "check_result": { "result": "FAILED" },
+        "file_path": "/infra/10-base.yml",
+        "repo_file_path": "/infra/10-base.yml",
+        "file_line_range": [4, 12],
+        "resource": "AWS::S3::Bucket.LogsBucket",
+        "severity": null,
+        "guideline": null
+      }
+    ],
+    "skipped_checks": [],
+    "parsing_errors": []
+  },
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "skipped": 0,
+    "parsing_errors": 0,
+    "resource_count": 1,
+    "checkov_version": "3.3.30"
+  }
+}

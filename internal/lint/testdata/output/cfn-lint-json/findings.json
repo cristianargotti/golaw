@@ -1,0 +1,38 @@
+[
+  {
+    "Filename": "infra/10-base.yml",
+    "Id": "4b4e2c8e",
+    "Level": "Error",
+    "Location": {
+      "End": { "ColumnNumber": 17, "LineNumber": 9 },
+      "Path": ["Resources", "LogsBucket", "Properties"],
+      "Start": { "ColumnNumber": 7, "LineNumber": 9 }
+    },
+    "Message": "Additional properties are not allowed ('AccessControll' was unexpected)",
+    "ParentId": null,
+    "Rule": {
+      "Description": "Making sure that resources properties are properly configured",
+      "Id": "E3002",
+      "ShortDescription": "Resource properties are invalid",
+      "Source": "https://github.com/aws-cloudformation/cfn-lint"
+    }
+  },
+  {
+    "Filename": "infra/20-app.yml",
+    "Id": "1a2b3c4d",
+    "Level": "Error",
+    "Location": {
+      "End": { "ColumnNumber": 1, "LineNumber": 1 },
+      "Path": [],
+      "Start": { "ColumnNumber": 1, "LineNumber": 1 }
+    },
+    "Message": "Template needs to be an object.",
+    "ParentId": null,
+    "Rule": {
+      "Description": "Errors found when performing transformation on the template",
+      "Id": "E0000",
+      "ShortDescription": "Template needs to be an object",
+      "Source": ""
+    }
+  }
+]

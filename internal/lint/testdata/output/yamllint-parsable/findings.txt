@@ -1,0 +1,3 @@
+deploy/values.yml:1:1: [warning] missing document start "---" (document-start)
+api/openapi.yaml:12:81: [error] line too long (95 > 80 characters) (line-length)
+deploy/broken.yml:2:1: [error] syntax error: could not find expected ':' (syntax)

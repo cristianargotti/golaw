@@ -1,0 +1,48 @@
+[
+  {
+    "check_type": "cloudformation",
+    "results": {
+      "failed_checks": [
+        {
+          "check_id": "CKV_AWS_21",
+          "check_name": "Ensure the S3 bucket has versioning enabled",
+          "file_path": "/infra/10-base.yml",
+          "file_line_range": [4, 12],
+          "severity": "LOW"
+        }
+      ],
+      "parsing_errors": ["/infra/30-broken.yml"]
+    },
+    "summary": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0,
+      "parsing_errors": 1,
+      "resource_count": 1,
+      "checkov_version": "3.3.30"
+    }
+  },
+  {
+    "check_type": "dockerfile",
+    "results": {
+      "failed_checks": [
+        {
+          "check_id": "CKV_DOCKER_2",
+          "check_name": "Ensure that HEALTHCHECK instructions have been added to container images",
+          "file_path": "/Dockerfile",
+          "file_line_range": [1, 9],
+          "severity": null
+        }
+      ],
+      "parsing_errors": []
+    },
+    "summary": {
+      "passed": 3,
+      "failed": 1,
+      "skipped": 0,
+      "parsing_errors": 0,
+      "resource_count": 1,
+      "checkov_version": "3.3.30"
+    }
+  }
+]

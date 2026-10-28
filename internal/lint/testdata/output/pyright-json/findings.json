@@ -1,0 +1,41 @@
+{
+  "version": "1.1.414",
+  "time": "1793117106000",
+  "generalDiagnostics": [
+    {
+      "file": "/work/repo/deploy/install.py",
+      "severity": "error",
+      "message": "\"session\" is possibly unbound",
+      "range": {
+        "start": { "line": 11, "character": 4 },
+        "end": { "line": 11, "character": 11 }
+      },
+      "rule": "reportPossiblyUnbound"
+    },
+    {
+      "file": "/work/repo/deploy/install.py",
+      "severity": "information",
+      "message": "Import cycles are not checked",
+      "range": {
+        "start": { "line": 0, "character": 0 },
+        "end": { "line": 0, "character": 0 }
+      }
+    },
+    {
+      "file": "/work/repo/scripts/broken.py",
+      "severity": "error",
+      "message": "Expected expression",
+      "range": {
+        "start": { "line": 0, "character": 6 },
+        "end": { "line": 0, "character": 7 }
+      }
+    }
+  ],
+  "summary": {
+    "filesAnalyzed": 3,
+    "errorCount": 2,
+    "warningCount": 0,
+    "informationCount": 1,
+    "timeInSec": 0.4
+  }
+}
