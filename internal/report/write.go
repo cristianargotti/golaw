@@ -12,8 +12,9 @@ import (
 // check-id message [rule], then every unmeasured check, then the verdict
 // line with the counts. An event finding without a path prints a dash.
 func WriteText(w io.Writer, doc Document) error {
-	for _, f := range doc.Findings {
-		if _, err := fmt.Fprintf(w, "%s %s %s %s [%s]\n", location(f), f.Severity, f.Check, f.Message, f.Rule); err != nil {
+	for k := range doc.Findings {
+		f := &doc.Findings[k]
+		if _, err := fmt.Fprintf(w, "%s %s %s %s [%s]\n", location(*f), f.Severity, f.Check, f.Message, f.Rule); err != nil {
 			return fmt.Errorf("write finding: %w", err)
 		}
 	}
