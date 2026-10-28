@@ -101,6 +101,7 @@ func CheckTightening(inForce, proposed File, schemas Schemas) error {
 		samePin("profile.name", was.profile, next.profile),
 		samePin("profile.source", was.source, next.source),
 		optionsTighten(inForce.Checks.Options, proposed.Checks.Options, schemas),
+		surfaceTightening(inForce, proposed),
 	} {
 		if err != nil {
 			return fmt.Errorf("%w: proposed %s weakens %w", model.ErrPolicy, FileName, err)

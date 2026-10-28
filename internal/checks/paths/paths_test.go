@@ -28,7 +28,8 @@ func scan(t *testing.T, c model.Check, files map[string]string) model.Result {
 // pathsOf lists the finding paths and codes of a result.
 func pathsOf(res model.Result) []string {
 	out := make([]string, 0, len(res.Findings))
-	for _, f := range res.Findings {
+	for k := range res.Findings {
+		f := &res.Findings[k]
 		out = append(out, f.Path+" "+f.Code)
 	}
 	return out
