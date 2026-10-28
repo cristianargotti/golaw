@@ -256,7 +256,8 @@ func basePaths(targets []model.File, moved map[string]string) map[string]bool {
 // nothing.
 func rekeyed(findings []model.Finding, moved map[string]string) []model.Finding {
 	out := make([]model.Finding, 0, len(findings))
-	for _, f := range findings {
+	for k := range findings {
+		f := findings[k]
 		if renamed, ok := moved[f.Path]; ok {
 			f.Path = renamed
 			f.Fingerprint = model.Fingerprint(f)

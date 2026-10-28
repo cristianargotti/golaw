@@ -182,7 +182,8 @@ func requireServiceDecision(t *testing.T, decision engine.Decision, want string)
 		}
 		return
 	}
-	for _, finding := range decision.Findings {
+	for k := range decision.Findings {
+		finding := &decision.Findings[k]
 		t.Errorf("%s:%d %s %s", finding.Path, finding.Line, finding.Check, finding.Message)
 	}
 	for _, left := range decision.Unmeasured {
