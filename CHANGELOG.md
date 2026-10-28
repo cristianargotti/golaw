@@ -12,6 +12,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Added
 
+- 2026-10-27: the surface family, rule rules/4.16@1, judges the non-Go files of a Go repository through a lexer per language and denies only what the candidate introduces and the check recognizes with certainty, because the remote analyzer reads every language of the tree while a false denial is a defect.
 - 2026-10-23: doctor.agents-chain reports, for an installed patch adapter, the AGENTS.md at the repository root against the bytes its host reads of the AGENTS.md chain, red with the file and its size when it is over, because the chain of every session starts at that file and install appends the golaw block at its end, so a root file over 32 KiB silently drops the block, which A12 asks doctor to warn about.
 - 2026-10-22: M4 adds a patch adapter pinned to 0.163.0 and bounded shell routes, because supported edits need the shared judgment before execution.
 - 2026-10-22: M4 adds a compatibility preview with key capture, read and shell guards and advisory post feedback, because unknown write payloads must remain available without an enforcement claim.

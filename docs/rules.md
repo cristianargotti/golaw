@@ -258,6 +258,13 @@ Each reader of `internal/checks/policyfiles/` reads one format through the subse
 | decodeTOML | formats.go | Whole-file TOML decoding for the secret-scanner and migration configuration; consumers inspect their declared keys. | a syntax error naming the file and the line is a measurement error; no narrower TOML syntax subset is invented. | fix the syntax at the line named. |
 | decodeYAML (Redocly) | yaml.go | policy.openapi-assertions consumes this shared reader in deps_redocly.go for recommended or recommended-strict inheritance, literal local API roots, effective global and per-API rules, number format double and response examples, and the exceptions of .redocly.lint-ignore.yaml; present OpenAPI sources and local references follow that check. | a second document is outside the subset; unknown inheritance, plugins or relevant assertion expressions are named limits, as are remote references, unsupported document dialects and an ignore entry outside its subset. | extend recommended or recommended-strict, write the rule in the subject, where and assertions forms the template shows, and keep references local. |
 
+## rules/4.16@1
+
+The surface family judges the non-Go files of a Go repository: JavaScript, TypeScript, JSX and TSX, the scripts and styles inside HTML, Python, shell, Dockerfiles and CloudFormation templates, each through a small lexer that knows its comments and strings, in scan, the staged scan and the agent hooks. A certain check denies only a violation the candidate introduces, so an edit to a file that already carries one is never blocked for it, and its reason states the fix; a feedback check reports and never denies, and fails scan only. Fixture, generated and minified files are not judged. docs/surface.md holds the rule map to the remote analyzer and the gaps.
+
+| Check | Rule | Needs | Why and boundary |
+| --- | --- | --- | --- |
+
 ## Repository laws
 
 Files contain at most 300 lines. Functions contain at most 40 lines under funlen semantics, with comments ignored. Tests retain the file limit and lose the function limit. Generated code, a file whose header marks it generated, has no author to hold to either limit and is exempt, as scan exempts it; the templates under templates/examples/service/api/generated render the output of oapi-codegen with that header, so their size is the generator's.
