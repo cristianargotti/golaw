@@ -42,7 +42,7 @@ func TestDepguardDrawsTheDirectionOfEveryNewPackage(t *testing.T) {
 		"coverage":   {"model"},
 		"vuln":       {"model"},
 		"stage":      {"model", "engine", "source", "policy", "report"},
-		"rung":       {"model", "engine", "policy", "source", "stage", "runner", "report", "vuln"},
+		"rung":       {"model", "engine", "policy", "source", "stage", "runner", "report", "vuln", "surface", "toolchain", "lint"},
 		"setup":      {"model", "runner", "install"},
 		"gittest":    nil,
 		"runnertest": nil,
