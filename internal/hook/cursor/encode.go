@@ -93,16 +93,16 @@ func readDocument(document permissionDocument) permissionDocument {
 
 // postReply is the answer of an event after its tool ran: the reason of
 // a finding or a cannot-judge result, which already holds any notice the
-// core joined to it, else its notice, or the notice of an allow, or
-// nothing; Cursor cannot block a tool that ran, so the answer carries no
+// core joined to it, with the feedback lines after it, else its notice, or
+// the notice and the lines of an allow, or nothing; Cursor cannot block a tool that ran, so the answer carries no
 // permission field.
 func postReply(result hook.Result) hook.Reply {
 	var context string
 	switch {
 	case result.CannotJudge, result.Outcome == hook.Feedback, result.Outcome == hook.Deny:
-		context = orElse(result.Reason, orElse(result.Notice, emptyReason))
+		context = orElse(result.Blocking(), orElse(result.Notice, emptyReason))
 	case result.Outcome == hook.Allow:
-		context = result.Notice
+		context = result.Context()
 	default:
 		context = unknownOutcome
 	}

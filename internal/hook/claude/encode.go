@@ -28,7 +28,7 @@ func Encode(event model.Event, result hook.Result) hook.Reply {
 	}
 	switch result.Outcome {
 	case hook.Allow:
-		if result.Notice != "" {
+		if result.Notice != "" || len(result.Lines) > 0 {
 			return noticeReply(event, result)
 		}
 		return hook.Reply{}
@@ -50,17 +50,17 @@ func Encode(event model.Event, result hook.Result) hook.Reply {
 func postReply(event model.Event, result hook.Result) hook.Reply {
 	if event.Post != nil && event.Post.Failed {
 		return marshalReply(output{Specific: &specificOutput{
-			Event: failureEvent, Context: result.Reason,
+			Event: failureEvent, Context: result.Blocking(),
 		}, Human: result.Human})
 	}
 	return marshalReply(output{
-		Decision: "block", Reason: result.Reason, Human: result.Human,
+		Decision: "block", Reason: result.Blocking(), Human: result.Human,
 	})
 }
 
-// noticeReply is an allow that tells the agent what was not measured, as
-// the additional context of the event, and the person through the system
-// message.
+// noticeReply is an allow that tells the agent what was not measured and
+// what its write fed back, as the additional context of the event, and the
+// person through the system message.
 func noticeReply(event model.Event, result hook.Result) hook.Reply {
 	name := preEvent
 	if event.Shape == model.ShapePost {
@@ -69,7 +69,7 @@ func noticeReply(event model.Event, result hook.Result) hook.Reply {
 			name = failureEvent
 		}
 	}
-	return marshalReply(output{Specific: &specificOutput{Event: name, Context: result.Notice}, Human: result.Human})
+	return marshalReply(output{Specific: &specificOutput{Event: name, Context: result.Context()}, Human: result.Human})
 }
 
 func cannotReply(reason string) hook.Reply {

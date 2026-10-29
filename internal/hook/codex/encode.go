@@ -52,13 +52,18 @@ func Encode(event model.Event, result hook.Result) hook.Reply {
 	}
 	switch result.Outcome {
 	case hook.Allow:
+		if post && len(result.Lines) > 0 {
+			// The post block replaces the tool's result with the feedback
+			// (M6.6.3); the tool already ran, so it denies nothing.
+			return encoded(answerDocument{Decision: "block", Reason: blocking(result.Context()), Message: result.Human})
+		}
 		if result.Notice == "" {
 			return hook.Reply{}
 		}
 		return encoded(answerDocument{Specific: &specificOutput{EventName: eventName(post), Context: result.Notice}, Message: result.Human})
 	case hook.Deny, hook.Feedback:
 		if post {
-			return encoded(answerDocument{Decision: "block", Reason: blocking(result.Reason), Message: result.Human})
+			return encoded(answerDocument{Decision: "block", Reason: blocking(result.Blocking()), Message: result.Human})
 		}
 		if result.Outcome == hook.Feedback {
 			return refusal(false, feedbackTooEarly, "")
