@@ -18,15 +18,18 @@ type Condition struct {
 // Each family of section 6 and the one capability its checks need.
 func familyConditions() map[string]Condition {
 	return map[string]Condition{
-		"text":   {Scope: model.ScopeFile},
-		"paths":  {Scope: model.ScopeFile},
-		"goast":  {Scope: model.ScopeFile, Needs: []string{"go"}},
-		"shell":  {Scope: model.ScopeEvent},
-		"commit": {Scope: model.ScopeCommit},
+		"text":    {Scope: model.ScopeFile},
+		"paths":   {Scope: model.ScopeFile},
+		"goast":   {Scope: model.ScopeFile, Needs: []string{"go"}},
+		"shell":   {Scope: model.ScopeEvent},
+		"commit":  {Scope: model.ScopeCommit},
+		"surface": {Scope: model.ScopeFile},
+		"docker":  {Scope: model.ScopeFile},
+		"cfn":     {Scope: model.ScopeFile},
 	}
 }
 
-// checkConditions are the checks whose condition is their own: the two that
+// checkConditions are the checks whose condition is their own: the ones that
 // differ from their family, and every policy check, tree scoped (D1) and
 // conditioned per check, because the family has no single capability.
 func checkConditions() map[string]Condition {
@@ -34,6 +37,7 @@ func checkConditions() map[string]Condition {
 	image := "image"
 	return map[string]Condition{
 		"paths.secret-material":      {Scope: model.ScopeEvent},
+		"surface.analyzer-widening":  {Scope: model.ScopeEvent},
 		"goast.raw-error-response":   {Scope: model.ScopeFile, Needs: []string{"go", "api"}},
 		"policy.golangci":            tree("go"),
 		"policy.ruleguard":           tree("go"),
