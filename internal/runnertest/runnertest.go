@@ -231,9 +231,12 @@ func copyExecutable(tb testing.TB, path string) {
 // its coverage meta-data into GOCOVERDIR, and Windows refuses the loser's
 // rename with a line the copy prints on stderr. Once one start has written
 // the file, no later start writes it, so the starts a test judges never race.
+// macOS assesses a new executable on its first start, which takes longer
+// than a hook tool's budget, so there a fresh copy is warmed even without
+// coverage and a budget test judges the tool, not the assessment.
 func warm(tb testing.TB, path string) {
 	tb.Helper()
-	if testing.CoverMode() == "" {
+	if testing.CoverMode() == "" && runtime.GOOS != "darwin" {
 		return
 	}
 	if err := exec.CommandContext(tb.Context(), path, warmArgument).Run(); err != nil {
