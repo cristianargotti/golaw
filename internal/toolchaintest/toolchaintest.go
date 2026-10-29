@@ -24,6 +24,9 @@ const dirMode = 0o700
 // bounds of the PyPI tools.
 const venvPythonVersion = "Python 3.12.1"
 
+// exeSuffix is what Windows adds to a fake that runnertest.Install names.
+const exeSuffix = ".exe"
+
 // Install puts a fake of t at its layout path in dir with the receipt a
 // real install writes, and answers the path.
 func Install(tb testing.TB, dir string, t toolchain.Tool, goos, goarch string, b runnertest.Behavior) string {
@@ -62,7 +65,7 @@ func Unreceipted(tb testing.TB, dir string, t toolchain.Tool, goos, goarch strin
 	if err := os.MkdirAll(filepath.Dir(want), dirMode); err != nil {
 		tb.Fatalf("make the directory of %s: %v", t.Name, err)
 	}
-	got := runnertest.Install(tb, filepath.Dir(want), strings.TrimSuffix(filepath.Base(want), ".exe"), b)
+	got := runnertest.Install(tb, filepath.Dir(want), strings.TrimSuffix(filepath.Base(want), exeSuffix), b)
 	if got != want {
 		tb.Fatalf("the fake of %s landed at %s, the layout names %s", t.Name, got, want)
 	}
@@ -80,7 +83,7 @@ func venvPython(tb testing.TB, dir, goos string) {
 	if _, err := os.Stat(python); err == nil {
 		return
 	}
-	runnertest.Install(tb, filepath.Dir(python), strings.TrimSuffix(filepath.Base(python), ".exe"), runnertest.Behavior{Probe: []string{"--version"}, Version: venvPythonVersion})
+	runnertest.Install(tb, filepath.Dir(python), strings.TrimSuffix(filepath.Base(python), exeSuffix), runnertest.Behavior{Probe: []string{"--version"}, Version: venvPythonVersion})
 }
 
 // OnPath puts a fake of t in dir under the executable name PATH finds it
@@ -112,5 +115,5 @@ func InstallFor(tb testing.TB, dir string, langs []surface.Language, goos, goarc
 // order, whatever executable suffix the platform gave it.
 func Calls(tb testing.TB, path string) [][]string {
 	tb.Helper()
-	return runnertest.Calls(tb, filepath.Dir(path), strings.TrimSuffix(filepath.Base(path), ".exe"))
+	return runnertest.Calls(tb, filepath.Dir(path), strings.TrimSuffix(filepath.Base(path), exeSuffix))
 }
