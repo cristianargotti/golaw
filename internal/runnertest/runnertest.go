@@ -51,8 +51,9 @@ type Behavior struct {
 // Main is the body of the TestMain of a package whose tests install fake
 // tools: a process started as a fake tool answers as one and returns its
 // code without running a test; any other process runs the tests and
-// returns m.Run(). The package's TestMain passes the code to os.Exit.
-func Main(m *testing.M) int {
+// returns m.Run(). The package's TestMain hands it os.Getenv, so the
+// helper reads no environment itself, and passes the code to os.Exit.
+func Main(m *testing.M, getenv func(string) string) int {
 	if exe, err := os.Executable(); err == nil { // fallback: a binary that cannot name itself is no fake and runs its tests
 		if code, fake := play(exe, os.Args[1:], os.Stdout, os.Stderr); fake {
 			return code
@@ -61,11 +62,19 @@ func Main(m *testing.M) int {
 	if slices.Contains(os.Args[1:], warmArgument) {
 		return BrokenCode // a warm start that found no behavior never runs the tests again
 	}
-	if err := os.Setenv(raceVariable, raceOptions(os.Getenv(raceVariable))); err != nil {
-		complain(os.Stderr, "set "+raceVariable, err)
+	if err := quickRace(getenv); err != nil {
+		complain(os.Stderr, "prepare the race runtime", err)
 		return BrokenCode
 	}
 	return m.Run()
+}
+
+// quickRace sets the race options every process a test starts inherits.
+func quickRace(getenv func(string) string) error {
+	if err := os.Setenv(raceVariable, raceOptions(getenv(raceVariable))); err != nil {
+		return fmt.Errorf("set %s: %w", raceVariable, err)
+	}
+	return nil
 }
 
 // raceVariable holds the options of the race runtime, and quickExit is the

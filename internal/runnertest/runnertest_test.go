@@ -14,7 +14,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/runnertest"
 )
 
-func TestMain(m *testing.M) { os.Exit(runnertest.Main(m)) }
+func TestMain(m *testing.M) { os.Exit(runnertest.Main(m, os.Getenv)) }
 
 // played runs a fake tool and answers its streams and exit status.
 func played(t *testing.T, path string, args ...string) (string, string, int) {

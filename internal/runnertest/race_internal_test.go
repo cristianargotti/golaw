@@ -29,3 +29,28 @@ func TestMainLeavesTheRaceOptionsToEveryChild(t *testing.T) {
 		t.Errorf("GORACE = %q, want the exit sleep named, so a fake started under -race exits at once", got)
 	}
 }
+
+// Main reads the person's race options through the getenv its TestMain
+// hands it, so the helper itself never reads the environment.
+func TestQuickRaceKeepsWhatTheGetenvAnswers(t *testing.T) {
+	t.Setenv("GORACE", "")
+	asked := ""
+	getenv := func(name string) string { asked = name; return "halt_on_error=1" }
+	if err := quickRace(getenv); err != nil {
+		t.Fatalf("quickRace: %v", err)
+	}
+	if asked != "GORACE" {
+		t.Errorf("quickRace asked for %q, want GORACE", asked)
+	}
+	if got, want := os.Getenv("GORACE"), "halt_on_error=1 atexit_sleep_ms=0"; got != want {
+		t.Errorf("GORACE = %q, want %q", got, want)
+	}
+}
+
+// A value the system refuses to hold comes back as the error Main reports.
+func TestQuickRaceAnswersTheRefusedOptions(t *testing.T) {
+	t.Setenv("GORACE", "")
+	if err := quickRace(func(string) string { return "a=1\x00" }); err == nil || !strings.Contains(err.Error(), "set GORACE") {
+		t.Errorf("quickRace = %v, want the refused set of GORACE", err)
+	}
+}
