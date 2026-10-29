@@ -51,7 +51,7 @@ func TestExplainFull(t *testing.T) {
 			t.Errorf("%s = %+v, want %+v", key, got[key], line)
 		}
 	}
-	if len(got) != 37 {
+	if len(got) != 40 {
 		t.Errorf("Explain printed %d lines", len(got))
 	}
 }
@@ -92,6 +92,7 @@ func optionDefaults() map[string]string {
 		"checks.coverage.floors.file":               "80",
 		"checks.coverage.floors.min_statements":     "20",
 		"checks.coverage.floors.file_exemptions":    "[]",
+		"checks.coverage.floors.new_code":           "80",
 		"checks.policy.golangci.allowed_exclusions": "[]",
 		"checks.text.tool-terms.limit":              "5",
 		"checks.text.tool-terms.names":              "[]",
@@ -126,7 +127,7 @@ func TestExplainListsEveryOptionAtItsDefault(t *testing.T) {
 				t.Errorf("%s: %s = %+v, want %+v", name, key, got[key], want)
 			}
 		}
-		if len(got) != 26 {
+		if len(got) != 29 {
 			t.Errorf("%s: Explain printed %d lines", name, len(got))
 		}
 	}
