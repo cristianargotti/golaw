@@ -219,3 +219,19 @@ checks:
     code: profile-data-invalid
     red: testdata/profile-data-invalid/red
     near: testdata/profile-data-invalid/near
+  - id: doctor.surface-tool-missing
+    code: surface-tool-missing
+    red: testdata/surface-tool-missing/red
+    near: testdata/surface-tool-missing/near
+  - id: doctor.surface-tool-drift
+    code: surface-tool-drift
+    red: testdata/surface-tool-drift/red
+    near: testdata/surface-tool-drift/near
+  - id: doctor.surface-runtime-missing
+    code: surface-runtime-missing
+    red: testdata/surface-runtime-missing/red
+    near: testdata/surface-runtime-missing/near
+  - id: doctor.surface-shape
+    code: surface-shape
+    red: testdata/surface-shape/red
+    near: testdata/surface-shape/near

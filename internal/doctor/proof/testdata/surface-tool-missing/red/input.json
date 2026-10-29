@@ -1,0 +1,16 @@
+{
+  "languages": ["python"],
+  "scope": [],
+  "shape": "",
+  "tools": [
+    {
+      "name": "ruff",
+      "version": "0.17.1",
+      "languages": ["python"],
+      "state": "missing",
+      "path": "",
+      "detail": "ruff 0.17.1 is not installed: run golaw setup --surface"
+    }
+  ],
+  "runtimes": []
+}
