@@ -26,8 +26,11 @@ func TestExecPipesTheBytesOnStdinAndAnswersTheOutput(t *testing.T) {
 	dir := t.TempDir()
 	path := runnertest.Install(t, dir, "ruff", runnertest.Behavior{Stdout: "[]\n", Stdin: true})
 	args := []string{"check", "--stdin-filename", "scripts/a.py", "-"}
+	// The fake is a copy of this race-built test binary, which can take more
+	// than the hook budget to start while the package's other process tests
+	// run in parallel; the kill at a budget is proved by its own test below.
 	got, err := toolchain.Exec(t.Context(), toolchain.Request{
-		Path: path, Args: args, Stdin: []byte("import os\n"), Dir: dir, Timeout: toolchain.HookToolBudget,
+		Path: path, Args: args, Stdin: []byte("import os\n"), Dir: dir, Timeout: 30 * time.Second,
 	})
 	if err != nil || got.Killed || got.Output.Code != 0 || string(got.Output.Stdout) != "[]\n" || got.Elapsed != 0 {
 		t.Fatalf("Exec = %+v, %v", got, err)
