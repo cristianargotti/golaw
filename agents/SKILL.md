@@ -31,6 +31,8 @@ Policy-file checks run in scan and staged scan, not in agent events. Checks appl
 
 Run golaw scan . before finishing. Run golaw scan --staged before finishing staged work. Local checks are optional aids. Remote CI or the platform pipeline is the only hard gate.
 
+Run golaw lint --surface before finishing when you changed a non-Go file. Move an inline script into a file, and export the code a test needs instead of evaluating it.
+
 Only the developer arms git rungs with golaw setup; init alone never arms them. Each rung switches off in golaw.yml without a finding. Armed rungs finish in seconds, and pre-push runs govulncheck only. The full make ci belongs in remote CI or the platform pipeline; mutation, fuzzing, benchmarks and integration stay on demand.
 
 Installed guards deny recognized violations only on enforced routes. Capture, feedback and installation alone do not prove enforcement. Do not weaken policy to bypass a finding.
