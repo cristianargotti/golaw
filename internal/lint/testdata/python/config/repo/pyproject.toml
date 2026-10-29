@@ -1,0 +1,9 @@
+[tool.ruff.lint]
+ignore = ["S105", "S307"]
+
+[tool.ruff.lint.per-file-ignores]
+"*" = ["S105", "S307"]
+
+[tool.pyright]
+typeCheckingMode = "off"
+reportAssignmentType = "none"

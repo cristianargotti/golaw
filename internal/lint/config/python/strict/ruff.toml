@@ -27,3 +27,12 @@ max-complexity = 10
 
 [lint.pylint]
 max-branches = 12
+
+# Tests may assert, compare to literal numbers and skip annotations and
+# docstrings; they never keep a literal credential, so S105, S106 and S107
+# stay on everywhere. The patterns are base names, which ruff matches
+# whatever directory the tool runs in.
+[lint.per-file-ignores]
+"test_*.py" = ["ANN", "D1", "PLR2004", "S101"]
+"*_test.py" = ["ANN", "D1", "PLR2004", "S101"]
+"conftest.py" = ["ANN", "D1", "PLR2004", "S101"]
