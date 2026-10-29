@@ -156,8 +156,13 @@ func TestPythonStrictSelectsAllWithTheFormatterIgnores(t *testing.T) {
 	if !slices.Equal(cfg.Ignore, want) {
 		t.Errorf("strict ignore = %v, want %v", cfg.Ignore, want)
 	}
-	if len(cfg.PerFileIgnores) != 0 {
-		t.Errorf("strict per-file-ignores = %v, want none yet", cfg.PerFileIgnores)
+	tests := map[string][]string{
+		"test_*.py":   {"ANN", "D1", "PLR2004", "S101"},
+		"*_test.py":   {"ANN", "D1", "PLR2004", "S101"},
+		"conftest.py": {"ANN", "D1", "PLR2004", "S101"},
+	}
+	if !maps.EqualFunc(cfg.PerFileIgnores, tests, slices.Equal[[]string]) {
+		t.Errorf("strict per-file-ignores = %v, want %v", cfg.PerFileIgnores, tests)
 	}
 	pythonExpectLimits(t, model.SurfaceStrict, cfg)
 }
@@ -178,6 +183,9 @@ func TestPythonPyrightSets(t *testing.T) {
 			"typeCheckingMode":          "strict",
 			"reportMissingImports":      "none",
 			"reportMissingModuleSource": "none",
+			"reportUnknownArgumentType": "none",
+			"reportUnknownMemberType":   "none",
+			"reportUnknownVariableType": "none",
 		}},
 	}
 	for name, tc := range tests {

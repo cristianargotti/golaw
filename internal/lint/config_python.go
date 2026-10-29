@@ -20,7 +20,9 @@ const (
 // because parity holds the mapped rules alone. Both sets turn the missing
 // import reports off: a kit-owned configuration cannot name the
 // repository's import roots, and an unresolved import of the repository's
-// own module is not a defect of the file.
+// own module is not a defect of the file. The strict set keeps every rule
+// that judges the file's own annotations and turns off the three
+// unknown-type reports an unresolved import alone raises.
 //
 //go:embed config/python
 var pythonConfigFiles embed.FS
