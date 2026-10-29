@@ -24,12 +24,12 @@ func BinPath(toolsDir string, t Tool, goos, goarch string) string {
 // NodeDir is the npm installation of the embedded lock, named by the lock
 // so a new kit version installs beside the old one instead of over it.
 func NodeDir(toolsDir string) string {
-	return filepath.Join(toolsDir, runtimeNode, lockID("package-lock.json"))
+	return filepath.Join(toolsDir, runtimeNode, lockID(npmLock))
 }
 
 // PythonDir is the virtual environment of the embedded PyPI lock.
 func PythonDir(toolsDir string) string {
-	return filepath.Join(toolsDir, runtimePython, lockID("requirements.lock"), "venv")
+	return filepath.Join(toolsDir, runtimePython, lockID(pypiLock), "venv")
 }
 
 // ConfigDir is where one kit configuration set is materialized; the

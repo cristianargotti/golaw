@@ -73,6 +73,13 @@ type Runtime struct {
 	Probe []string
 }
 
+// The embedded locks, named once because the layout, the digest and the
+// installer all read them.
+const (
+	npmLock  = "package-lock.json"
+	pypiLock = "requirements.lock"
+)
+
 // embedded carries the table and the locks inside the binary, so one kit
 // version has one toolchain (A10).
 //
@@ -167,7 +174,7 @@ func Runtimes() []Runtime {
 // of files hash alike. A cache keyed on it holds one toolchain.
 func Digest() string {
 	sum := sha256.New()
-	for _, name := range []string{"toolchain.yml", "package-lock.json", "requirements.lock"} {
+	for _, name := range []string{"toolchain.yml", npmLock, pypiLock} {
 		data, err := embeddedFile(name)
 		if err != nil {
 			return ""
