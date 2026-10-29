@@ -1,20 +1,14 @@
 # Setup
 
-M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). M4 adds the Codex CLI guard and the Cursor compatibility preview, installed as the [agent section](#codex-and-cursor-agents) below describes.
-
-Adopting repositories need Go 1.24 or newer. Building the kit needs Go 1.27. Claude Code 2.1.295 is the minimum host version; 2.1.299 is validated.
+M2 provides worktree and staged scanning, core templates, optional git rungs, and the Claude Code guard. M3 adds the capabilities and the policy-file checks, described below and in [rules.md](rules.md). M4 adds the Codex CLI guard and the Cursor compatibility preview, installed as the [agent section](#codex-and-cursor-agents) below describes. Adopting repositories need Go 1.24 or newer. Building the kit needs Go 1.27. Claude Code 2.1.295 is the minimum host version; 2.1.299 is validated.
 
 ## Install and enroll
 
 golaw setup is optional. Include that step only when you want local git rungs; agent install separately opts into the agent guard.
 
-The adoption commit stages every file listed in the reviewed init diff. That includes golaw.yml and the generated templates. The adoption commit and every init --update commit use the feat type, because commit.shape holds a commit that is not feat to 40 new files and 400 new lines. The rendered templates exceed those limits.
+The adoption commit stages every file listed in the reviewed init diff. That includes golaw.yml and the generated templates. The adoption commit and every init --update commit use the feat type, because commit.shape holds a commit that is not feat to 40 new files and 400 new lines. The rendered templates exceed those limits. The sequence below shows the default core paths. Adjust the staging list to the actual diff, including an existing decisions directory selected by init, and omit paths that init did not change. Exclude unrelated edits from the adoption commit; when a file also holds unrelated edits, stage only the reviewed adoption hunks.
 
-The sequence below shows the default core paths. Adjust the staging list to the actual diff, including an existing decisions directory selected by init, and omit paths that init did not change. Exclude unrelated edits from the adoption commit; when a file also holds unrelated edits, stage only the reviewed adoption hunks.
-
-init distinguishes writes from proposals for existing files. init --apply leaves proposed bytes untouched. Review and apply the accepted proposal hunks yourself before staging, including the include of golaw.mk in an existing Makefile. Unapplied proposals can be displayed again on a repeated init.
-
-go.mod stays your file: init proposes the require of github.com/quasilyte/go-ruleguard/dsl, the module scripts/lint/rules.go imports, and prints the go get and go mod tidy that apply it with its go.sum lines. Until go.mod requires it, golangci-lint cannot load the rules file, make lint fails, and an armed pre-commit rung names that repair and leaves the lint to the pipeline.
+init distinguishes writes from proposals for existing files. init --apply leaves proposed bytes untouched. Review and apply the accepted proposal hunks yourself before staging, including the include of golaw.mk in an existing Makefile. Unapplied proposals can be displayed again on a repeated init. go.mod stays your file: init proposes the require of github.com/quasilyte/go-ruleguard/dsl, the module scripts/lint/rules.go imports, and prints the go get and go mod tidy that apply it with its go.sum lines. Until go.mod requires it, golangci-lint cannot load the rules file, make lint fails, and an armed pre-commit rung names that repair and leaves the lint to the pipeline.
 
 ```sh
 go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.1
@@ -30,15 +24,11 @@ golaw doctor
 golaw scan --staged
 ```
 
-init without --apply prints the complete deterministic diff and writes nothing. init --apply writes the policy, core templates and external enrollment record. A repeated init --apply produces no diff. init never arms git hooks. In a repository whose hooks lefthook installed before adoption, golaw hook passes silently until setup records its receipt.
-
-The managed list in golaw.yml records kit-owned template paths and the hashes init wrote. Merged files such as Makefile and .editorconfig, and developer-owned files such as the baseline decision record, are not managed assets. The committed lefthook.yml lets teammates opt into the same rungs with golaw setup.
+init without --apply prints the complete deterministic diff and writes nothing. init --apply writes the policy, core templates and external enrollment record. A repeated init --apply produces no diff. init never arms git hooks. In a repository whose hooks lefthook installed before adoption, golaw hook passes silently until setup records its receipt. The managed list in golaw.yml records kit-owned template paths and the hashes init wrote. Merged files such as Makefile and .editorconfig, and developer-owned files such as the baseline decision record, are not managed assets. The committed lefthook.yml lets teammates opt into the same rungs with golaw setup.
 
 Commit the reviewed golaw.yml before agent install; init --apply ends with a line that asks for that commit while HEAD does not hold the policy it enrolled. On a branch that already has a commit, the policy in force is the golaw.yml at HEAD, so until a commit holds the file agent install refuses the enrolled repository and names this step, and scan exits 2, while an installed agent guard judges with the enrolled golaw.yml the index or the checkout holds, as long as it is the policy init enrolled, and otherwise denies with a reason that asks for the commit. On a new repository without a commit, the enrollment record carries the policy until the first commit.
 
-init --apply never renders over a golaw.yml the checkout already holds: it keeps the reviewed policy and records managed template hashes without replacing its settings. It enrolls that policy. The one reviewed change init makes to such a policy is the additive capability proposal of golaw init --capabilities, described under Capabilities and policy-file limits. To start again from the defaults, remove the file first.
-
-A committed change that changes the policy digest leaves the enrollment record behind: scan exits 2 and the guard denies until agent install enrolls the policy in force, printing the old and the new digest. The record follows a tightening only, so agent install and init --apply refuse to enroll a policy that weakens the enrolled one and name the floor.
+init --apply never renders over a golaw.yml the checkout already holds: it keeps the reviewed policy and records managed template hashes without replacing its settings. It enrolls that policy. The one reviewed change init makes to such a policy is the additive capability proposal of golaw init --capabilities, described under Capabilities and policy-file limits. To start again from the defaults, remove the file first. A committed change that changes the policy digest leaves the enrollment record behind: scan exits 2 and the guard denies until agent install enrolls the policy in force, printing the old and the new digest. The record follows a tightening only, so agent install and init --apply refuse to enroll a policy that weakens the enrolled one and name the floor.
 
 The default policy is core only. The default human language is pt-BR. Findings, documentation, comments, and commits remain English. Repository identity never selects a profile implicitly.
 
@@ -100,15 +90,31 @@ The policy checks read each configuration through a declared subset, stated read
 
 ## Read the result
 
-doctor distinguishes artifact presence, matching hashes, executable resolution, enabled state, trust, validated agent version, and last dispatch evidence. Presence alone does not prove dispatch.
+doctor distinguishes artifact presence, matching hashes, executable resolution, enabled state, trust, validated agent version, and last dispatch evidence. Presence alone does not prove dispatch. For git rungs, doctor reports tool versions, the setup receipt and the effective git hook routing. doctor reports managed drift: a managed file whose bytes differ from the hash init recorded, which golaw init --update shows and keeps, and a managed file gone from the checkout, which git restore --source=HEAD --staged --worktree -- <path> brings back.
 
-For git rungs, doctor reports tool versions, the setup receipt and the effective git hook routing. doctor reports managed drift: a managed file whose bytes differ from the hash init recorded, which golaw init --update shows and keeps, and a managed file gone from the checkout, which git restore --source=HEAD --staged --worktree -- <path> brings back.
-
-The version line compares the host with the 2.1.295 floor and the validated 2.1.299, and reports a newer host as unknown until it is validated. A development build reports its pin as not enforced, as scan and the hook skip it. The final line gives the time and the OS of the last hook process the host ran for the repository, which proves dispatch but not trust.
-
-A go install build reports version, module sum, and revision as metadata, with state source build, executable not verifiable.
+The version line compares the host with the 2.1.295 floor and the validated 2.1.299, and reports a newer host as unknown until it is validated. A development build reports its pin as not enforced, as scan and the hook skip it. The final line gives the time and the OS of the last hook process the host ran for the repository, which proves dispatch but not trust. A go install build reports version, module sum, and revision as metadata, with state source build, executable not verifiable.
 
 scan exits 0 when clean, 1 for findings, and 2 for usage errors, internal failures, or a required check left unmeasured.
+
+## The non-Go surface
+
+The languages of a repository other than Go are found from its files on every run; nothing needs to be enabled. The agent guards deny only the certain checks of [the surface guide](surface.md); every linter is optional on this machine, and the pipeline or remote CI is the only gate. To lint those files locally, install the pinned tools once per machine, read what doctor says and run the lint; the last two commands reproduce the coverage on new code the pipeline's gate reads:
+
+```sh
+golaw setup --surface
+golaw doctor
+golaw lint --surface
+go test -coverprofile profile.cov ./...
+golaw coverage --new-code --input profile.cov --base origin/main
+```
+
+golaw setup --surface downloads and verifies the tools the languages of the repository need, and golaw setup --surface=all every tool; it is the only command that reaches the network for them, refuses a checksum mismatch naming the expected and the observed digest, and running it again changes nothing. golaw setup without the flag installs and arms what it did before. The tools live outside the checkout, in $XDG_DATA_HOME/golaw/tools when it is set, %LOCALAPPDATA%\golaw\tools on Windows and ~/.local/share/golaw/tools elsewhere, macOS included. Node 22.13 or newer and Python 3.10 to 3.14 are prerequisites golaw never installs.
+
+doctor prints one line per tool whose language the repository holds, and none for a language it lacks, such as `surface-tool-available ruff <pin> ~/.local/share/golaw/tools/bin/ruff/<pin>/darwin-arm64/ruff (sha256 verified)`, `surface-tool-missing eslint <pin>: javascript, jsx and html scripts are not linted on this machine; run golaw setup --surface; the pipeline judges them` and `surface-runtime-missing node: the npm tools need Node 22.13 or newer on PATH`. A missing tool is a doctor line and a notice, never a denial: the hook judges the written file with the native checks alone and tells the agent once per session and tool, and an armed pre-commit rung prints the same notice and passes. golaw lint is the one command that treats a missing required tool as unmeasured and exits 2, because the lint target and CI never answer clean without measuring.
+
+Two keys of the ladder switch the local aids off without a finding: ladder.surface_lint: false removes the fast linters from the armed pre-commit rung, and ladder.hook_feedback: false stops the external tools and the non-certain feedback in the hook. The certain denials stay while an agent guard is installed, and init never arms anything. golaw init --apply writes surface.rules: strict. When the strict set already finds something in the files the repository holds, init prints the count per tool and rule; start from the reviewed floor with golaw init --surface-rules parity --apply, and raise it to strict later through a reviewed diff.
+
+In the coverage command, --since-tag in place of --base measures the lines since the last tag, as a branch analysis under a previous-version period does. A missing, empty, unparseable or stale report is unmeasured and exits 2.
 
 ## Adopt a profile
 
@@ -154,9 +160,7 @@ A release asset is named golaw_<version>_<os>-<arch>, with .exe on Windows. Inst
 
 ## Enroll remote CI
 
-A runner without a local enrollment record uses scan --enrolled <digests>, with expected policy and optional profile digests provisioned outside the checkout by a repository variable or pipeline setting.
-
-The value is a 64-character lowercase hexadecimal policy digest, optionally followed by a comma and a 64-character lowercase hexadecimal profile digest. The supplied digests replace the local enrollment lookup for this scan. A missing policy at HEAD or a digest mismatch is refused.
+A runner without a local enrollment record uses scan --enrolled <digests>, with expected policy and optional profile digests provisioned outside the checkout by a repository variable or pipeline setting. The value is a 64-character lowercase hexadecimal policy digest, optionally followed by a comma and a 64-character lowercase hexadecimal profile digest. The supplied digests replace the local enrollment lookup for this scan. A missing policy at HEAD or a digest mismatch is refused.
 
 After a person reviews the trusted policy, provision its expected digests outside the checkout. Do not derive the expected digests from the candidate checkout. Have the runner inject that external value as GOLAW_ENROLLED:
 
@@ -174,9 +178,7 @@ golaw agent uninstall --agent claude
 
 Remote CI or the platform pipeline is the only hard gate. The full make ci runs there. Mutation, fuzz, benchmarks and integration suites run on demand.
 
-If another guard exists, review the coexistence report before retiring it. Installation preserves unrelated entries and never silently disables another guard.
-
-Read agent-contracts.md for evidence boundaries and security.md for recovery.
+If another guard exists, review the coexistence report before retiring it. Installation preserves unrelated entries and never silently disables another guard. Read agent-contracts.md for evidence boundaries and security.md for recovery.
 
 ## Codex and Cursor agents
 
@@ -184,7 +186,7 @@ M4 adds the Codex CLI guard and the Cursor compatibility preview beside the Clau
 
 ### Install and remove
 
-Each command below is an alternative, not a step of a sequence. At user scope, the default:
+Each command below is an alternative, not a step of a sequence: the first six at user scope, the default, and the last six at project scope, from inside the repository:
 
 ```sh
 golaw agent install --agent codex
@@ -193,11 +195,6 @@ golaw agent install --agent all
 golaw agent uninstall --agent codex
 golaw agent uninstall --agent cursor
 golaw agent uninstall --agent all
-```
-
-At project scope, from inside the repository:
-
-```sh
 golaw agent install --agent codex --scope project
 golaw agent install --agent cursor --scope project
 golaw agent install --agent all --scope project

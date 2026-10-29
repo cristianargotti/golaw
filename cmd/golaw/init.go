@@ -27,6 +27,9 @@ type initOptions struct {
 	seedDebt        bool               // seed the reviewed debt set of a first adoption (A24)
 	coverageProfile string             // the cover profile whose files under the floor the seed exempts
 	vulnerabilities string             // the govulncheck JSON stream whose reachable advisories the seed waives
+	// surfaceRules is empty when the flag is absent: a reviewed policy
+	// keeps its surface block unless the person names one.
+	surfaceRules string
 }
 
 // initCommand previews policy and template changes before an explicit apply
@@ -52,6 +55,8 @@ func (a *app) initCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&opts.seedDebt, "seed-debt", false, "seed the reviewed debt set of a first adoption from what the repository already breaks")
 	cmd.Flags().StringVar(&opts.coverageProfile, "coverage-profile", "", "with --seed-debt, exempt the files this cover profile measures under the file floor")
 	cmd.Flags().StringVar(&opts.vulnerabilities, "vulnerabilities", "", "with --seed-debt, waive the advisories this govulncheck JSON stream reports reachable")
+	cmd.Flags().StringVar(&opts.surfaceRules, "surface-rules", "",
+		"the surface rule set golaw.yml floors at: strict, the default of a new policy, or parity, the reviewed starting floor of a tree with debt")
 	return cmd
 }
 
@@ -60,6 +65,9 @@ func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts i
 		return initFailed(fmt.Errorf("%w: --accept writes a proposal of init, while init --update keeps every local edit", model.ErrUsage))
 	}
 	if err := checkSeedFlags(opts); err != nil {
+		return initFailed(err)
+	}
+	if err := checkSurfaceFlag(opts); err != nil {
 		return initFailed(err)
 	}
 	if err := a.initProfile(ctx, path, &opts); err != nil {
@@ -88,6 +96,9 @@ func (a *app) initialize(ctx context.Context, out io.Writer, path string, opts i
 
 func (a *app) finishInit(ctx context.Context, out io.Writer, root string, plan initPlan, apply bool) error {
 	if err := printInitPolicy(out, plan); err != nil {
+		return initFailed(err)
+	}
+	if err := a.printSurfaceDebt(ctx, out, root, plan); err != nil {
 		return initFailed(err)
 	}
 	if !apply {
@@ -140,6 +151,9 @@ func (a *app) prepareInit(path string, opts initOptions) (string, []byte, *model
 	if err != nil {
 		return "", nil, nil, initFailed(err)
 	}
+	if data, err = surfacePolicy(data, existing, opts.surfaceRules); err != nil {
+		return "", nil, nil, initFailed(err)
+	}
 	compiled, err := a.compile(data, a.now())
 	if err != nil {
 		if existing {
@@ -159,6 +173,11 @@ func (a *app) unchangedPolicyStatus(root string, opts initOptions, plan initPlan
 	defaults, err := renderInitialPolicy(root, pinOf(a.buildInfo()), opts)
 	if err != nil {
 		return kept
+	}
+	if rules := surfaceRulesOf(plan.data); rules != "" {
+		if defaults, err = bootstrap.SetSurfaceRules(defaults, rules); err != nil {
+			return kept
+		}
 	}
 	if plan.notice == "" {
 		defaults, err = initManagedPolicy(defaults, plan.templates)

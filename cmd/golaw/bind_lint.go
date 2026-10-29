@@ -15,6 +15,10 @@ import (
 	"github.com/cristianargotti/golaw/internal/toolchain"
 )
 
+// scopeErrorFormat wraps a failed analyzer scope the same way in every
+// command that reads it, so the message names the root alike.
+const scopeErrorFormat = "resolve the analyzer scope of %s: %w"
+
 // lint loads the policy as coverage does, so CI lints a checkout without
 // an enrollment record, and runs the pinned linters over the analyzer
 // scope of the worktree.
@@ -32,7 +36,7 @@ func (b binding) lint(ctx context.Context, path string, now time.Time, opts lint
 	}
 	scope, err := surface.ScopeOf(ctx, snapshot, loaded.Policy)
 	if err != nil {
-		return model.Input{}, nil, fmt.Errorf("resolve the analyzer scope of %s: %w", loaded.Root, err)
+		return model.Input{}, nil, fmt.Errorf(scopeErrorFormat, loaded.Root, err)
 	}
 	// A machine with no tools directory resolves every tool missing, so the
 	// run is Unmeasured and names golaw setup --surface instead of failing.

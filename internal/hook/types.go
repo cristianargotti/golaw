@@ -2,6 +2,8 @@ package hook
 
 import (
 	"io"
+	"slices"
+	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -66,16 +68,31 @@ const (
 
 // Result keeps the agent reason separate from the human channel. Notice
 // is what an allowed event left unmeasured, for the agent, with Human
-// naming it to the person.
+// naming it to the person. Lines are the feedback after execution, each
+// path:line rule (Sonar key) message, at most twenty per file and the rest
+// counted.
 type Result struct {
 	Outcome     Outcome
 	Reason      string
 	Human       string
 	CannotJudge bool
 	Notice      string
+	Lines       []string
 
 	// A deadline preserves a measured finding, never a failure's reason.
 	enforcedFinding bool
+}
+
+// Context is what an allowed post event gives the agent: the notice, then
+// each feedback line, one per line.
+func (r Result) Context() string {
+	return strings.Join(slices.DeleteFunc(append([]string{r.Notice}, r.Lines...), func(s string) bool { return s == "" }), "\n")
+}
+
+// Blocking is the reason of a post feedback with the feedback lines after
+// it, so a finding that asks for its fix keeps the other lines in view.
+func (r Result) Blocking() string {
+	return strings.Join(append([]string{r.Reason}, r.Lines...), "\n")
 }
 
 // Reply keeps stdout and stderr separate through command integration.
