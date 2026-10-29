@@ -1,0 +1,12 @@
+{
+  "shape": "write",
+  "agent": "tester",
+  "tool": "Write",
+  "candidates": [
+    {
+      "path": "sonar-project.properties",
+      "op": "create",
+      "reconstructed": true
+    }
+  ]
+}
