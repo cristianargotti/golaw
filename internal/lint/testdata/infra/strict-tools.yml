@@ -1,0 +1,33 @@
+# The proof of the strict-only infrastructure assets: no Sonar way key, so
+# no rule map row; each red tree yields its code under the strict set.
+checks:
+  - {
+      id: lint.cfn-lint-e3002,
+      code: e3002,
+      red: cfn-e3002/red,
+      near: cfn-e3002/near,
+    }
+  - {
+      id: lint.shellcheck-sc2034,
+      code: sc2034,
+      red: sc2034/red,
+      near: sc2034/near,
+    }
+  - {
+      id: lint.shellcheck-sc2086,
+      code: sc2086,
+      red: sc2086/red,
+      near: sc2086/near,
+    }
+  - {
+      id: lint.yamllint-line-length,
+      code: line-length,
+      red: yaml-long/red,
+      near: yaml-long/near,
+    }
+  - {
+      id: lint.yamllint-truthy,
+      code: truthy,
+      red: yaml-truthy/red,
+      near: yaml-truthy/near,
+    }

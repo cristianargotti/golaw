@@ -1,0 +1,93 @@
+# The rule map rows of the Python tools (M6.4.3). Each row names the Sonar
+# way key, the local rule standing for it, where the tool runs (H the post
+# hook on the file just written, L the lint target and CI; the native
+# checks carry their own keys), how close the match is and the lowest set
+# that enables it. Every row has a proof entry in proof/python.yml.
+- {
+    sonar: "python:S1523",
+    tool: ruff,
+    rule: S102,
+    where: [H, L],
+    match: exact,
+    set: parity,
+  }
+- {
+    sonar: "python:S1523",
+    tool: ruff,
+    rule: S307,
+    where: [H, L],
+    match: exact,
+    set: parity,
+  }
+- {
+    sonar: "python:S2068",
+    tool: ruff,
+    rule: S105,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S2068",
+    tool: ruff,
+    rule: S106,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S2068",
+    tool: ruff,
+    rule: S107,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S3776",
+    tool: ruff,
+    rule: C901,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S3776",
+    tool: ruff,
+    rule: PLR0912,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S5754",
+    tool: ruff,
+    rule: BLE001,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S5754",
+    tool: ruff,
+    rule: E722,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S7519",
+    tool: ruff,
+    rule: C420,
+    where: [H, L],
+    match: exact,
+    set: parity,
+  }
+- {
+    sonar: "python:S8495",
+    tool: pyright,
+    rule: reportAssignmentType,
+    where: [L],
+    match: close,
+    set: parity,
+  }
