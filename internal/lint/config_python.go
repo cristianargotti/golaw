@@ -16,6 +16,12 @@ const (
 // pythonConfigFiles is embedded so the configuration travels with the
 // binary and is materialized into the tool directory, never the checkout.
 //
+// The parity pyright runs off with only the rule of python:S8495 at error,
+// because parity holds the mapped rules alone. Both sets turn the missing
+// import reports off: a kit-owned configuration cannot name the
+// repository's import roots, and an unresolved import of the repository's
+// own module is not a defect of the file.
+//
 //go:embed config/python
 var pythonConfigFiles embed.FS
 

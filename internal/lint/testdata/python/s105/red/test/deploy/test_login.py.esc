@@ -1,0 +1,6 @@
+"""Login checks of the deploy role."""
+
+
+def test_role_logs_in() -> None:
+    passw\u006frd = "hunt\u0065r2-role"
+    assert passw\u006frd.endswith("role")
