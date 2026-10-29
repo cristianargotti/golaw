@@ -272,6 +272,9 @@ The surface family judges the non-Go files of a Go repository: JavaScript, TypeS
 | surface.analyzer-widening | rules/4.16@1 | none | An agent write of sonar-project.properties that adds an exclusion, a coverage, copy or test inclusion entry, narrows the sources or adds an issue ignore key against the base file, because an exclusion hides code from the pipeline's gate; a person edits the file as before. |
 | surface.html-prefer-tag | rules/4.16@1 | none | A role on an HTML or JSX element where a native element exists, such as role="status" for output, fed back in the hook and a failure in scan, because markup composed across Go templates cannot be judged with certainty. |
 | surface.python-function-length | rules/4.16@1 | none | A Python function body over the function lines of the policy, read by indentation and counted as funlen counts with comments ignored, fed back in the hook and a failure in scan, because the Go function law holds for Python while its body boundary is read by indentation. |
+| docker.tag-and-digest | rules/4.16@1 | none | A FROM reference that carries both a tag and a digest, denied when introduced, because the remote analyzer reports the pair and the digest alone pins the image; the tag moves to a comment on the line above. |
+| docker.final-user | rules/4.16@1 | none | A final stage that sets no USER or whose last USER is root, 0 or 0:0, fed back in the hook and a failure in scan, because an image runs as a non-root user; a numeric non-zero user passes. |
+| cfn.bucket-https-only | rules/4.16@1 | none | An AWS::S3::Bucket without a bucket policy in the same template that denies every action when aws:SecureTransport is false, fed back in the hook and a failure in scan, because a policy in another stack would make a denial false; an exceptions entry of golaw.yml records that shape. |
 
 ## Repository laws
 

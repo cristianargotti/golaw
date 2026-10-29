@@ -24,6 +24,8 @@ func familyConditions() map[string]Condition {
 		"shell":   {Scope: model.ScopeEvent},
 		"commit":  {Scope: model.ScopeCommit},
 		"surface": {Scope: model.ScopeFile},
+		"docker":  {Scope: model.ScopeFile},
+		"cfn":     {Scope: model.ScopeFile},
 	}
 }
 

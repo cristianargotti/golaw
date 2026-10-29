@@ -6,6 +6,6 @@ import "github.com/cristianargotti/golaw/internal/model"
 func Checks() []model.Check {
 	return []model.Check{
 		CodeEval(), HardcodedCredential(), FileLength(), InlineScriptSize(), Suppression(), AnalyzerWidening(),
-		HTMLPreferTag(), PythonFunctionLength(),
+		HTMLPreferTag(), PythonFunctionLength(), DockerTagAndDigest(), DockerFinalUser(), CFNBucketHTTPSOnly(),
 	}
 }

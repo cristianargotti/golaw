@@ -34,3 +34,15 @@ checks:
     code: python-function-length
     red: testdata/surface.python-function-length/red
     near: testdata/surface.python-function-length/near
+  - id: docker.tag-and-digest
+    code: tag-and-digest
+    red: testdata/docker.tag-and-digest/red
+    near: testdata/docker.tag-and-digest/near
+  - id: docker.final-user
+    code: final-user
+    red: testdata/docker.final-user/red
+    near: testdata/docker.final-user/near
+  - id: cfn.bucket-https-only
+    code: bucket-https-only
+    red: testdata/cfn.bucket-https-only/red
+    near: testdata/cfn.bucket-https-only/near

@@ -12,5 +12,8 @@ func surfaceSentences() map[string]string {
 		"python-function-length": "função Python acima do limite de linhas da política; extraia passos com nome próprio",
 		"suppression":            "supressão que esconde a linha do analisador; corrija o problema em vez de escondê-lo do analisador",
 		"analyzer-widening":      "escopo do analisador ampliado por um agente; uma exclusão esconde código do gate do pipeline; corrija os problemas ou peça a mudança a quem cuida do repositório",
+		"tag-and-digest":         "FROM com tag e digest juntos; mantenha só o digest e deixe a tag em um comentário na linha de cima",
+		"final-user":             "estágio final do Dockerfile roda como root; termine o estágio final com USER e um usuário numérico diferente de zero",
+		"bucket-https-only":      "bucket S3 sem política que exija HTTPS; adicione uma BucketPolicy que negue toda ação quando aws:SecureTransport for false",
 	}
 }
