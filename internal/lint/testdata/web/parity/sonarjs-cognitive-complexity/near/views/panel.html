@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><title>Panel</title></head>
+<body>
+<output id="total"></output>
+<script>
+  function itemScore(item, filter) {
+    if (item.kind === filter) {
+      return Math.max(item.value, 0);
+    }
+    return item.kind === "all" ? 1 : -1;
+  }
+  function rowScore(row, filter) {
+    if (row.active) {
+      return row.items.reduce((sum, item) => sum + itemScore(item, filter), 0);
+    }
+    return row.pending ? 1 : 0;
+  }
+  function summarize(rows, filter) {
+    return rows.reduce((sum, row) => sum + rowScore(row, filter), 0);
+  }
+  document.getElementById("total").textContent = String(summarize([], "all"));
+</script>
+</body>
+</html>

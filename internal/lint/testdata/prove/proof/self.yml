@@ -1,0 +1,5 @@
+checks:
+  - id: lint.ruff-s307
+    code: s307
+    red: self/red
+    near: self/near

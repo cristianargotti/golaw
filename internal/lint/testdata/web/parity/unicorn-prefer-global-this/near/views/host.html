@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><title>Host</title></head>
+<body>
+<output id="state"></output>
+<script>
+  function onKeydown(event) {
+    document.getElementById("state").textContent = event.code;
+  }
+  globalThis.addEventListener("keydown", onKeydown);
+</script>
+</body>
+</html>
