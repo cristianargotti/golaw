@@ -1,0 +1,29 @@
+{
+  "name": "golaw-surface-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The pinned npm tools golaw runs over the non-Go surface, installed with npm ci --ignore-scripts.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@eslint/js": "10.0.1",
+    "@html-eslint/eslint-plugin": "0.67.0",
+    "@html-eslint/parser": "0.67.0",
+    "eslint": "10.13.0",
+    "eslint-plugin-html": "8.2.1",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-security": "4.2.0",
+    "eslint-plugin-sonarjs": "4.2.2",
+    "eslint-plugin-unicorn": "78.0.0",
+    "globals": "17.13.0",
+    "postcss-html": "2.0.0",
+    "pyright": "1.1.414",
+    "stylelint": "17.16.0",
+    "stylelint-config-standard": "40.0.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0"
+  }
+}
