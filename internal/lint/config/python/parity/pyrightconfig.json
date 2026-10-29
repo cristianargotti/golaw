@@ -1,0 +1,6 @@
+{
+  "typeCheckingMode": "off",
+  "reportAssignmentType": "error",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none"
+}
