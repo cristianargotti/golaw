@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><title>Panel</title></head>
+<body>
+<output id="state"></output>
+<script>
+  function show(rows, state) {
+    if (rows.length === 0) {
+      state.textContent = "empty";
+    }
+    state.hidden = false;
+  }
+  show([], document.getElementById("state"));
+</script>
+</body>
+</html>
