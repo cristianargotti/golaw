@@ -3,4 +3,4 @@ openapi: 3.1.0
 info:
   title: Hub
   version: 1.0.0
-  description: This description line is long on purpose so the strict line length rule would report it.
+  description: This description line is long on purpose so the strict line length rule would report it, because it runs past the one hundred and sixty columns the strict set allows.

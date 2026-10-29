@@ -1,2 +1,2 @@
 ---
-description: This configuration line is long on purpose so the strict line length rule reports it.
+description: This configuration line is long on purpose so the strict line length rule reports it, because it runs past the one hundred and sixty columns the strict set allows.
