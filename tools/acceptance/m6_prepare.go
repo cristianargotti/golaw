@@ -63,9 +63,15 @@ func m6WithData(env []string, data string) []string {
 	return append(out, envDataHome+"="+data)
 }
 
-// m6ToolEnv is the scope's environment over the shared data home.
+// m6ToolEnv is the scope's environment over the shared data home, with the
+// runtimes setup installed on ahead of the caller's PATH, so a row's tools
+// start on the same node and python3 the install used.
 func (s *m6Suite) m6ToolEnv() []string {
-	return m6WithData(s.env, s.shared.data)
+	env := m6WithData(s.env, s.shared.data)
+	for _, dir := range slices.Backward(s.shared.runtimes) {
+		env = prependPath(env, dir)
+	}
+	return env
 }
 
 // m6Tools installs the surface tools once per run and answers the cause
@@ -92,11 +98,17 @@ func (s *m6Suite) m6InstallTools(ctx context.Context) error {
 	if err := success(s.m5Golaw(ctx, repo, commandInit, m5CapabilitiesFlag, "go", flagApply)); err != nil {
 		return fmt.Errorf("adopt the surface tools repository: %w", err)
 	}
+	s.shared.runtimes = s.m6Runtimes(ctx)
 	env, err := s.m2PrerequisiteEnvironment(s.m6ToolEnv(), s.m2.Bin)
 	if err != nil {
 		return err
 	}
-	env = s.m6WithRuntimes(ctx, env)
+	for i, entry := range env {
+		key, value, found := strings.Cut(entry, "=")
+		if found && strings.EqualFold(key, envPath) {
+			env[i] = pathAssignment + strings.Join(slices.Concat([]string{value}, s.shared.runtimes), string(os.PathListSeparator))
+		}
+	}
 	got := s.execute(ctx, command{program: s.binary, args: []string{m6SetupCommand, m6SurfaceAll}, dir: repo, env: env})
 	if err := success(got); err != nil {
 		return fmt.Errorf("install the surface tools: %w", err)
@@ -104,29 +116,22 @@ func (s *m6Suite) m6InstallTools(ctx context.Context) error {
 	return nil
 }
 
-// m6WithRuntimes appends to the PATH of env the first directory of the
-// caller's PATH whose node, and then whose python3, answers within the bounds
-// of the kit's toolchain table: setup installs the npm and PyPI tools on the
-// person's own runtimes, the kit never installs either one, and a version
-// manager shim or an old system Python ahead of a usable one is passed over.
-// A runtime the caller lacks stays absent, so setup reports it as missing.
-func (s *m6Suite) m6WithRuntimes(ctx context.Context, env []string) []string {
-	caller := filepath.SplitList(environmentValue(s.env, envPath))
-	out := slices.Clone(env)
+// m6Runtimes answers the first directory of the caller's PATH whose node,
+// and then whose python3, answers within the bounds of the kit's toolchain
+// table: setup installs the npm and PyPI tools on the person's own runtimes,
+// the kit never installs either one, and a version manager shim or an old
+// system Python ahead of a usable one is passed over. A runtime the caller
+// lacks has no directory, so setup reports it as missing.
+func (s *m6Suite) m6Runtimes(ctx context.Context) []string {
+	var dirs []string
 	for _, rt := range toolchain.Runtimes() {
-		for _, dir := range caller {
+		for _, dir := range filepath.SplitList(environmentValue(s.env, envPath)) {
 			probe := toolchain.Resolver{GOOS: runtime.GOOS, Env: []string{pathAssignment + dir}}
-			if dir == "" || !probe.Runtime(ctx, rt).OK {
-				continue
+			if dir != "" && probe.Runtime(ctx, rt).OK {
+				dirs = append(dirs, dir)
+				break
 			}
-			for i, entry := range out {
-				key, value, found := strings.Cut(entry, "=")
-				if found && strings.EqualFold(key, envPath) {
-					out[i] = pathAssignment + value + string(os.PathListSeparator) + dir
-				}
-			}
-			break
 		}
 	}
-	return out
+	return dirs
 }

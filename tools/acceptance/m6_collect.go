@@ -28,6 +28,8 @@ type m6Shared struct {
 	now   func() time.Time
 	tried bool
 	err   error
+	// runtimes are the caller's node and python3 directories setup used.
+	runtimes []string
 }
 
 // m6Suite is a suite with the state the M6 cases of one run share.

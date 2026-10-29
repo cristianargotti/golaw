@@ -28,18 +28,29 @@ func TestM6ToolsInstallSeesTheCallersRuntimes(t *testing.T) {
 		s := newM6Suite(m2TestSuite(t))
 		dir := m6FakeRuntimes(t, s, tc.caller)
 		dirs := filepath.SplitList(m6SetupPath(t, s))
-		for _, name := range tc.want {
-			if !slices.Contains(dirs, dir(name)) {
-				t.Errorf("%s: PATH %q lacks the %s runtimes", tc.name, dirs, name)
-			}
-		}
-		for _, name := range tc.avoid {
-			if slices.Contains(dirs, dir(name)) {
-				t.Errorf("%s: PATH %q holds the %s runtimes", tc.name, dirs, name)
-			}
-		}
+		m6RequireDirs(t, tc.name, dirs, tc.want, tc.avoid, dir)
 		if len(dirs) == 0 || dirs[0] != s.m2.Bin {
 			t.Errorf("%s: PATH %q no longer starts with the isolated directories", tc.name, dirs)
+		}
+		rows := filepath.SplitList(environmentValue(s.m6ToolEnv(), envPath))
+		if len(tc.want) > 0 && (len(rows) == 0 || rows[0] != dir(tc.want[0])) {
+			t.Errorf("%s: the tool rows run on PATH %q, want the setup runtimes first", tc.name, rows)
+		}
+	}
+}
+
+// m6RequireDirs requires dirs to hold every wanted runtime set and none of
+// the avoided ones.
+func m6RequireDirs(t *testing.T, name string, dirs, want, avoid []string, dir func(string) string) {
+	t.Helper()
+	for _, set := range want {
+		if !slices.Contains(dirs, dir(set)) {
+			t.Errorf("%s: PATH %q lacks the %s runtimes", name, dirs, set)
+		}
+	}
+	for _, set := range avoid {
+		if slices.Contains(dirs, dir(set)) {
+			t.Errorf("%s: PATH %q holds the %s runtimes", name, dirs, set)
 		}
 	}
 }
