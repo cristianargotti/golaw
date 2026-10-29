@@ -1,0 +1,5 @@
+const { randomUUID } = require("node:crypto");
+
+const p\u0061ssword = randomUUID();
+
+module.exports = { p\u0061ssword };

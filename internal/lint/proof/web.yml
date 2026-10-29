@@ -82,3 +82,31 @@ checks:
     code: unicorn-require-module-specifiers
     red: ../testdata/web/parity/unicorn-require-module-specifiers/red
     near: ../testdata/web/parity/unicorn-require-module-specifiers/near
+  - id: lint.eslint-sonarjs-void-use
+    code: sonarjs-void-use
+    red: ../testdata/web/parity/sonarjs-void-use/red
+    near: ../testdata/web/parity/sonarjs-void-use/near
+  - id: lint.eslint-jsx-a11y-no-noninteractive-tabindex
+    code: jsx-a11y-no-noninteractive-tabindex
+    red: ../testdata/web/parity/jsx-a11y-no-noninteractive-tabindex/red
+    near: ../testdata/web/parity/jsx-a11y-no-noninteractive-tabindex/near
+  - id: lint.eslint-typescript-eslint-no-unnecessary-type-assertion
+    code: typescript-eslint-no-unnecessary-type-assertion
+    red: ../testdata/web/parity/typescript-eslint-no-unnecessary-type-assertion/red
+    near: ../testdata/web/parity/typescript-eslint-no-unnecessary-type-assertion/near
+  - id: lint.eslint-sonarjs-no-clear-text-protocols
+    code: sonarjs-no-clear-text-protocols
+    red: ../testdata/web/parity/sonarjs-no-clear-text-protocols/red
+    near: ../testdata/web/parity/sonarjs-no-clear-text-protocols/near
+  - id: lint.eslint-sonarjs-no-hardcoded-passwords
+    code: sonarjs-no-hardcoded-passwords
+    red: ../testdata/web/parity/sonarjs-no-hardcoded-passwords/red
+    near: ../testdata/web/parity/sonarjs-no-hardcoded-passwords/near
+  - id: lint.eslint-sonarjs-no-hardcoded-ip
+    code: sonarjs-no-hardcoded-ip
+    red: ../testdata/web/parity/sonarjs-no-hardcoded-ip/red
+    near: ../testdata/web/parity/sonarjs-no-hardcoded-ip/near
+  - id: lint.eslint-sonarjs-slow-regex
+    code: sonarjs-slow-regex
+    red: ../testdata/web/parity/sonarjs-slow-regex/red
+    near: ../testdata/web/parity/sonarjs-slow-regex/near

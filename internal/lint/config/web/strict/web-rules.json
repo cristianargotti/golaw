@@ -1,6 +1,7 @@
 {
   "eslint": {
     "jsx": {
+      "jsx-a11y/no-noninteractive-tabindex": "error",
       "jsx-a11y/prefer-tag-over-role": "error",
       "react/no-array-index-key": "error"
     },
@@ -8,15 +9,21 @@
       "@typescript-eslint/default-param-last": "error",
       "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/no-empty-function": "error",
+      "@typescript-eslint/no-unnecessary-type-assertion": "error",
       "sonarjs/code-eval": "error",
       "sonarjs/cognitive-complexity": [
         "error",
         15
       ],
+      "sonarjs/no-clear-text-protocols": "error",
       "sonarjs/no-extra-arguments": "error",
+      "sonarjs/no-hardcoded-ip": "error",
+      "sonarjs/no-hardcoded-passwords": "error",
       "sonarjs/no-nested-conditional": "error",
       "sonarjs/no-unenclosed-multiline-block": "error",
+      "sonarjs/slow-regex": "error",
       "sonarjs/unused-import": "error",
+      "sonarjs/void-use": "error",
       "unicorn/dom-node-dataset": "error",
       "unicorn/prefer-code-point": "error",
       "unicorn/prefer-global-this": "error",

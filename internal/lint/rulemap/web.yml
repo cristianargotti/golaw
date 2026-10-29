@@ -121,3 +121,45 @@
   where: [L]
   match: exact
   set: parity
+- sonar: "typescript:S3735"
+  tool: eslint
+  rule: sonarjs/void-use
+  where: [L]
+  match: exact
+  set: parity
+- sonar: "typescript:S6845"
+  tool: eslint
+  rule: jsx-a11y/no-noninteractive-tabindex
+  where: [L]
+  match: exact
+  set: parity
+- sonar: "typescript:S4325"
+  tool: eslint
+  rule: "@typescript-eslint/no-unnecessary-type-assertion"
+  where: [L]
+  match: exact
+  set: parity
+- sonar: "typescript:S5332"
+  tool: eslint
+  rule: sonarjs/no-clear-text-protocols
+  where: [L]
+  match: exact
+  set: parity
+- sonar: "javascript:S2068"
+  tool: eslint
+  rule: sonarjs/no-hardcoded-passwords
+  where: [L]
+  match: exact
+  set: parity
+- sonar: "javascript:S1313"
+  tool: eslint
+  rule: sonarjs/no-hardcoded-ip
+  where: [L]
+  match: exact
+  set: parity
+- sonar: "javascript:S5852"
+  tool: eslint
+  rule: sonarjs/slow-regex
+  where: [L]
+  match: exact
+  set: parity
