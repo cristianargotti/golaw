@@ -1,0 +1,69 @@
+# The proof of every Python rule map row: the red fixture yields the code
+# lint.Code gives the rule, the near miss does not, under the pinned tool.
+checks:
+  - {
+      id: lint.ruff-s102,
+      code: s102,
+      red: ../testdata/python/s102/red,
+      near: ../testdata/python/s102/near,
+    }
+  - {
+      id: lint.ruff-s307,
+      code: s307,
+      red: ../testdata/python/s307/red,
+      near: ../testdata/python/s307/near,
+    }
+  - {
+      id: lint.ruff-s105,
+      code: s105,
+      red: ../testdata/python/s105/red,
+      near: ../testdata/python/s105/near,
+    }
+  - {
+      id: lint.ruff-s106,
+      code: s106,
+      red: ../testdata/python/s106/red,
+      near: ../testdata/python/s106/near,
+    }
+  - {
+      id: lint.ruff-s107,
+      code: s107,
+      red: ../testdata/python/s107/red,
+      near: ../testdata/python/s107/near,
+    }
+  - {
+      id: lint.ruff-c901,
+      code: c901,
+      red: ../testdata/python/c901/red,
+      near: ../testdata/python/c901/near,
+    }
+  - {
+      id: lint.ruff-plr0912,
+      code: plr0912,
+      red: ../testdata/python/plr0912/red,
+      near: ../testdata/python/plr0912/near,
+    }
+  - {
+      id: lint.ruff-ble001,
+      code: ble001,
+      red: ../testdata/python/ble001/red,
+      near: ../testdata/python/ble001/near,
+    }
+  - {
+      id: lint.ruff-e722,
+      code: e722,
+      red: ../testdata/python/e722/red,
+      near: ../testdata/python/e722/near,
+    }
+  - {
+      id: lint.ruff-c420,
+      code: c420,
+      red: ../testdata/python/c420/red,
+      near: ../testdata/python/c420/near,
+    }
+  - {
+      id: lint.pyright-reportassignmenttype,
+      code: reportassignmenttype,
+      red: ../testdata/python/reportassignmenttype/red,
+      near: ../testdata/python/reportassignmenttype/near,
+    }
