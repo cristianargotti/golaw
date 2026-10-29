@@ -80,7 +80,9 @@ func Unreceipted(tb testing.TB, dir string, t toolchain.Tool, goos, goarch strin
 func venvPython(tb testing.TB, dir, goos string) {
 	tb.Helper()
 	python := toolchain.VenvPython(dir, goos)
-	if _, err := os.Stat(python); err == nil {
+	// A test that already placed its own interpreter keeps its behavior.
+	_, err := os.Stat(python)
+	if err == nil {
 		return
 	}
 	runnertest.Install(tb, filepath.Dir(python), strings.TrimSuffix(filepath.Base(python), exeSuffix), runnertest.Behavior{Probe: []string{"--version"}, Version: venvPythonVersion})

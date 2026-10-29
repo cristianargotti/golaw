@@ -10,11 +10,8 @@ import (
 // with once that venv exists: the PATH python3 only builds the venv, and a
 // repository may pin an older one there.
 func (r Resolver) toolRuntime(ctx context.Context, t Tool, rt Runtime) RuntimeStatus {
-	if t.Distribution == DistPyPI && r.Dir != "" {
-		python := VenvPython(r.Dir, r.GOOS)
-		if _, err := os.Stat(python); err == nil {
-			return r.probeRuntime(ctx, rt, python, "the kit's virtual environment has")
-		}
+	if t.Distribution == DistPyPI && r.Dir != "" && r.venvLive(t) {
+		return r.probeRuntime(ctx, rt, VenvPython(r.Dir, r.GOOS), "the kit's virtual environment has")
 	}
 	return r.Runtime(ctx, rt)
 }
