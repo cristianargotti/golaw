@@ -58,9 +58,10 @@ func Decide(run *Run) Decision {
 		o := &unmeasured[i]
 		d.Unmeasured = append(d.Unmeasured, Unmeasured{Check: o.Spec.ID, Reason: o.Result.Status.Reason})
 	}
-	for _, f := range d.Findings {
+	for k := range d.Findings {
+		f := &d.Findings[k]
 		if f.Enforced() {
-			d.Reason = findingReason(f)
+			d.Reason = findingReason(*f)
 			break
 		}
 	}

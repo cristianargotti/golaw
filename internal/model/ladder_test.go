@@ -8,7 +8,7 @@ import (
 
 func TestDefaultLadderArmsEveryRungButTheStagedTests(t *testing.T) {
 	t.Parallel()
-	want := model.Ladder{PreCommit: true, CommitMsg: true, PrePush: true}
+	want := model.Ladder{PreCommit: true, CommitMsg: true, PrePush: true, SurfaceLint: true, HookFeedback: true}
 	if got := model.DefaultLadder(); got != want {
 		t.Errorf("DefaultLadder() = %+v, want %+v", got, want)
 	}
@@ -27,5 +27,8 @@ func TestEffectivePolicyCarriesTheWaiversAsCommitted(t *testing.T) {
 	p := model.EffectivePolicy{Ladder: model.Ladder{PrePush: true}, Waivers: []model.Waiver{waiver}}
 	if len(p.Waivers) != 1 || p.Waivers[0] != waiver || p.Ladder.PreCommit || !p.Ladder.PrePush {
 		t.Errorf("policy = %+v", p)
+	}
+	if p.Ladder.SurfaceLint || p.Ladder.HookFeedback {
+		t.Errorf("a ladder that names neither surface key arms neither: %+v", p.Ladder)
 	}
 }

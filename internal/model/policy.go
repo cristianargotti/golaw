@@ -105,6 +105,7 @@ type EffectivePolicy struct {
 	Waivers      []Waiver           // every committed vulnerability waiver, sorted by id; the push rung judges their expiry
 	Layout       Layout             // where the main package and the decision records live
 	ProfileData  *ProfileData       // the data of the enrolled bundle (section 5.4), nil for core only
+	Surface      SurfacePolicy      // the surface block (M6.3.2): the rules floor, the analyzer scope, the script globals
 }
 
 // CoreDefaults is the policy every repository gets before its golaw.yml
@@ -114,6 +115,7 @@ func CoreDefaults() EffectivePolicy {
 	return EffectivePolicy{
 		Language: DefaultLanguage,
 		Ladder:   DefaultLadder(),
+		Surface:  DefaultSurface(),
 		Layout:   Layout{Main: DefaultMain, Decisions: DefaultDecisions},
 		Sizes:    SizeFloors{FileLines: DefaultFileLines, FunctionLines: DefaultFunctionLines},
 		Enrollment: Enrollment{

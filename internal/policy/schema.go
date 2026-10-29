@@ -21,6 +21,7 @@ type File struct {
 	Waivers      []Waiver        `yaml:"vulnerability_waivers" json:"vulnerability_waivers"`
 	Exceptions   []ExceptionRule `yaml:"exceptions" json:"exceptions"`
 	Managed      []ManagedFile   `yaml:"managed" json:"managed"`
+	Surface      *Surface        `yaml:"surface" json:"surface"`
 }
 
 // Kit pins the exact kit version that governs the repository (A10).
@@ -99,6 +100,9 @@ type Ladder struct {
 	CommitMsg  *bool `yaml:"commit_msg" json:"commit_msg"`
 	PrePush    *bool `yaml:"pre_push" json:"pre_push"`
 	TestStaged *bool `yaml:"test_staged" json:"test_staged"`
+	// SurfaceLint and HookFeedback are the two local aids of M6.6.4.
+	SurfaceLint  *bool `yaml:"surface_lint" json:"surface_lint"`
+	HookFeedback *bool `yaml:"hook_feedback" json:"hook_feedback"`
 }
 
 // Waiver is one dated vulnerability waiver of A6.
@@ -121,4 +125,32 @@ type ExceptionRule struct {
 type ManagedFile struct {
 	Path   string `yaml:"path" json:"path"`
 	SHA256 string `yaml:"sha256" json:"sha256"`
+}
+
+// Surface is the surface block of M6.3.2: the rules floor, the description
+// of the pipeline's analyzer scope and the globals a server-side splice
+// gives the scripts.
+type Surface struct {
+	Rules    *string   `yaml:"rules" json:"rules"`
+	Analyzer *Analyzer `yaml:"analyzer" json:"analyzer"`
+	Scripts  *Scripts  `yaml:"scripts" json:"scripts"`
+}
+
+// Analyzer describes which paths the remote analyzer reads as main code,
+// which as tests and which lines count for coverage; it is outside the
+// floors and the digest, like the ladder.
+type Analyzer struct {
+	From               *string  `yaml:"from" json:"from"`
+	Sources            []string `yaml:"sources" json:"sources"`
+	Tests              []string `yaml:"tests" json:"tests"`
+	TestInclusions     []string `yaml:"test_inclusions" json:"test_inclusions"`
+	Exclusions         []string `yaml:"exclusions" json:"exclusions"`
+	CoverageExclusions []string `yaml:"coverage_exclusions" json:"coverage_exclusions"`
+	CoverageReport     *string  `yaml:"coverage_report" json:"coverage_report"`
+}
+
+// Scripts names what the scripts of the repository may use without a
+// declaration because the Go side splices it at serve time.
+type Scripts struct {
+	Globals []string `yaml:"globals" json:"globals"`
 }

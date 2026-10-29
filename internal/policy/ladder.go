@@ -41,6 +41,8 @@ func (l *Ladder) ladder() model.Ladder {
 	set(&out.CommitMsg, l.CommitMsg)
 	set(&out.PrePush, l.PrePush)
 	set(&out.TestStaged, l.TestStaged)
+	set(&out.SurfaceLint, l.SurfaceLint)
+	set(&out.HookFeedback, l.HookFeedback)
 	return out
 }
 
