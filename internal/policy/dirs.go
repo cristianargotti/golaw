@@ -11,10 +11,13 @@ import (
 const appDir = "golaw"
 
 // Dirs are the per-OS directories outside the checkout: State holds the
-// enrollment records and Config the installed profile bundles.
+// enrollment records, Config the installed profile bundles and Tools the
+// pinned surface linters of M6.5.2, empty when the environment names no
+// directory for them.
 type Dirs struct {
 	State  string
 	Config string
+	Tools  string
 }
 
 // DefaultDirs resolves the directories for an operating system from the
@@ -31,7 +34,24 @@ func DefaultDirs(goos string, env func(string) string) (Dirs, error) {
 	if err != nil {
 		return Dirs{}, err
 	}
-	return Dirs{State: filepath.Join(state, appDir), Config: config}, nil
+	// The tools directory is optional: an environment without one keeps its
+	// state and config directories, and the toolchain names the cause.
+	tools, err := ToolsDir(goos, env)
+	if err != nil {
+		tools = ""
+	}
+	return Dirs{State: filepath.Join(state, appDir), Config: config, Tools: tools}, nil
+}
+
+// ToolsDir is the directory of the pinned surface linters (M6.5.2):
+// XDG_DATA_HOME when set, the local application data on Windows and
+// ~/.local/share elsewhere, macOS included, each with golaw/tools.
+func ToolsDir(goos string, env func(string) string) (string, error) {
+	data, err := baseDir(goos, env, "XDG_DATA_HOME", "LOCALAPPDATA", filepath.Join(".local", "share"))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(data, appDir, "tools"), nil
 }
 
 // ConfigDir is the config directory of DefaultDirs alone, for a load that
