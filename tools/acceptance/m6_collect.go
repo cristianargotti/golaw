@@ -54,7 +54,9 @@ type m6Catalog struct {
 // m6Catalogs are the categories of the M6 rows in report order; each row
 // task appends its own category.
 func m6Catalogs() []m6Catalog {
-	return []m6Catalog{}
+	return []m6Catalog{
+		{category: m6CoverageCategory, cases: m6CoverageCases()},
+	}
 }
 
 // m6Names are the names of cases in order.

@@ -1,0 +1,3 @@
+module example.test/cov
+
+go 1.27

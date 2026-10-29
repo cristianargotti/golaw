@@ -1,0 +1,3 @@
+sonar.projectKey=cov
+sonar.exclusions=**/*_test.go,integration/**
+sonar.go.coverage.reportPaths=profile.cov
