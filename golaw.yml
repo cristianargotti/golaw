@@ -39,3 +39,4 @@ ladder: { pre_commit: true, commit_msg: true, pre_push: true, test_staged: false
 vulnerability_waivers: []
 exceptions: []
 managed: []
+surface: { analyzer: { exclusions: ["internal/lint/config/**"] } }
