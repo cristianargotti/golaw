@@ -2,6 +2,7 @@ package lint
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"regexp"
 	"slices"
@@ -93,4 +94,25 @@ func validRow(index int, row Row, seen map[[2]string]bool) error {
 	}
 	seen[key] = true
 	return nil
+}
+
+// Rows answers the rule map of every surface, sorted by Sonar key, tool
+// and rule, so the report and the docs table read in one order.
+func Rows() []Row {
+	rows := slices.Concat(webRows(), pythonRows(), infraRows())
+	slices.SortFunc(rows, func(a, b Row) int {
+		return cmp.Or(cmp.Compare(a.Sonar, b.Sonar), cmp.Compare(a.Tool, b.Tool), cmp.Compare(a.Rule, b.Rule))
+	})
+	return rows
+}
+
+// SonarKey answers the Sonar way key a tool rule stands in for; an
+// unmapped rule has none, and its finding carries no key.
+func SonarKey(tool, rule string) (string, bool) {
+	for _, row := range Rows() {
+		if row.Tool == tool && row.Rule == rule {
+			return row.Sonar, true
+		}
+	}
+	return "", false
 }
