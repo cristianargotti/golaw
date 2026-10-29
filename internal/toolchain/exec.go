@@ -59,7 +59,8 @@ func Exec(ctx context.Context, req Request) (Execution, error) {
 	if req.Stdin != nil {
 		stdin = bytes.NewReader(req.Stdin)
 	}
-	out, err := runner.Run(run, runner.Command{Name: req.Path, Args: req.Args, Dir: req.Dir, Env: req.Env, Stdin: stdin})
+	name, args := launch(req.Path, req.Args)
+	out, err := runner.Run(run, runner.Command{Name: name, Args: args, Dir: req.Dir, Env: req.Env, Stdin: stdin})
 	got := Execution{Output: out}
 	if req.Clock != nil {
 		got.Elapsed = req.Clock().Sub(start)
