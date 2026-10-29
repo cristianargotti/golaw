@@ -3,6 +3,14 @@
 # on the written file, N a native check, L the lint target and CI), how
 # close the match is, and the lowest rule set that enables it.
 - {
+    sonar: "cloudformation:S6249",
+    tool: golaw,
+    rule: cfn.bucket-https-only,
+    where: [N, L],
+    match: close,
+    set: parity,
+  }
+- {
     sonar: "cloudformation:S6252",
     tool: checkov,
     rule: CKV_AWS_21,
@@ -76,9 +84,25 @@
   }
 - {
     sonar: "docker:S6471",
+    tool: golaw,
+    rule: docker.final-user,
+    where: [H, N],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S6471",
     tool: hadolint,
     rule: DL3002,
     where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S6472",
+    tool: golaw,
+    rule: surface.hardcoded-credential,
+    where: [H, N, L],
     match: close,
     set: parity,
   }
@@ -88,5 +112,13 @@
     rule: DL3015,
     where: [H, L],
     match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S8431",
+    tool: golaw,
+    rule: docker.tag-and-digest,
+    where: [H, N, L],
+    match: exact,
     set: parity,
   }
