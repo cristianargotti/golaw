@@ -1,0 +1,4 @@
+FROM alpine@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ARG DB_USER
+ENV DB_USER=$DB_USER
+USER 65532:65532
