@@ -20,8 +20,11 @@ const (
 	ruffConciseForm   = "concise"
 	ruffStdinName     = "--stdin-filename"
 	ruffStdin         = "-"
-	pyrightJSON       = "--outputjson"
-	pyrightProject    = "--project"
+	ruffIgnoreFlag    = "--ignore"
+	// ruffNamespacePackage is the rule no run on stdin can judge.
+	ruffNamespacePackage = "INP001"
+	pyrightJSON          = "--outputjson"
+	pyrightProject       = "--project"
 
 	// The counts of the fixed arguments, for the capacity of the lists.
 	ruffBaseArgs    = 4
@@ -56,8 +59,12 @@ func ruffCheckArgs(in Input) []string {
 	return append(ruffBase(ruffCheckCommand, in.ConfigDir, ruffOutputFlag, ruffJSON), pythonPaths(in)...)
 }
 
+// ruffHookArgs reads the bytes on stdin from the tool directory, where ruff
+// cannot see the __init__.py beside the file, so INP001 (implicit namespace
+// package) would be a false finding on every module of a package; golaw lint
+// passes the real paths and keeps it.
 func ruffHookArgs(in HookInput) []string {
-	return ruffBase(ruffCheckCommand, in.ConfigDir, ruffOutputFlag, ruffJSON, ruffStdinName, in.Path, ruffStdin)
+	return ruffBase(ruffCheckCommand, in.ConfigDir, ruffOutputFlag, ruffJSON, ruffIgnoreFlag, ruffNamespacePackage, ruffStdinName, in.Path, ruffStdin)
 }
 
 // ruffFormatArgs asks for the concise form, because the default of ruff

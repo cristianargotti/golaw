@@ -98,7 +98,7 @@ func TestPythonHookRunsRuffCheckOnTheBytes(t *testing.T) {
 	got := pythonDriver(t, FormatRuff).HookArgs(HookInput{Path: "test/deploy/test_install.py", ConfigDir: cfg})
 	want := []string{
 		"check", "--no-cache", "--config", filepath.Join(cfg, pythonRuffConfig),
-		"--output-format", "json", "--stdin-filename", "test/deploy/test_install.py", "-",
+		"--output-format", "json", "--ignore", "INP001", "--stdin-filename", "test/deploy/test_install.py", "-",
 	}
 	if !slices.Equal(got, want) {
 		t.Errorf("HookArgs = %q, want %q", got, want)
