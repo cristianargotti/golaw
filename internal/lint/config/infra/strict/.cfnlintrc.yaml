@@ -1,0 +1,3 @@
+# The strict set: cfn-lint at its default rules; the explicit file keeps a
+# repository's .cfnlintrc from ignoring any of them.
+ignore_checks: []
