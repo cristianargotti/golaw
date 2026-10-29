@@ -10,9 +10,9 @@ import (
 	"github.com/cristianargotti/golaw/internal/surface"
 )
 
-// scopeFailed wraps a scope resolution error the same way in every command
-// that reads the analyzer scope.
-const scopeFailed = "resolve the analyzer scope of %s: %w"
+// scopeFailure is the cause of every command that could not resolve the
+// analyzer scope of its root, so explain, lint and coverage word it alike.
+const scopeFailure = "resolve the analyzer scope of %s: %w"
 
 // explainSurface answers the surface lines config explain prints after the
 // policy. An app built without the production binding, as the fakes of a
@@ -40,7 +40,7 @@ func (b binding) surfaceExplain(ctx context.Context, root string, now time.Time)
 	}
 	scope, err := surface.ScopeOf(ctx, snapshot, l.Policy)
 	if err != nil {
-		return nil, fmt.Errorf(scopeFailed, root, err)
+		return nil, fmt.Errorf(scopeFailure, root, err)
 	}
 	inventory, err := surface.Take(ctx, snapshot)
 	if err != nil {
