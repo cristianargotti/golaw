@@ -61,6 +61,10 @@ type Repository struct {
 // event started from. Capture, when set, records the capture of a request
 // of an enrolled repository before the answer leaves; its error changes no
 // answer, because the record is evidence for doctor, never a verdict.
+// Tools, when set, runs the fast linters of a post event on the files it
+// is given, within the event budget, and answers their findings, the tools
+// it could not run and the files it gave up on; it never denies (M6.5.3,
+// A28).
 type Dependencies struct {
 	Home      string
 	Begin     func()
@@ -78,6 +82,7 @@ type Dependencies struct {
 	Registry  *engine.Registry
 	State     Store
 	Budget    time.Duration
+	Tools     func(ctx context.Context, repository Repository, policy *model.EffectivePolicy, files []ToolFile) ToolReport
 
 	AutomaticWith func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string][]string, error)
 	RemergedWith  func(ctx context.Context, repository Repository, merges, options []string) (map[string][]string, error)

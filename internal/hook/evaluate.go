@@ -174,9 +174,11 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 	}
 	decision := engine.Decide(dispatched)
 	gaps = withUnread(append(gaps, unapplied(run.request.Event.Candidates)...), decision.Unread)
+	fed := run.feedback(ctx, input, decision, dependencies)
+	gaps = append(gaps, fed.gaps...)
 	result := decisionResult(run.request.Event, decision, run.language())
 	if result.Outcome != Allow {
-		return withGaps(result, gaps, run.language())
+		return fed.apply(withGaps(result, gaps, run.language()), run.language())
 	}
 	switch run.request.Event.Shape {
 	case model.ShapeWrite:
@@ -193,7 +195,7 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 		}
 	case model.ShapeRead, model.ShapePost:
 	}
-	return withGaps(result, gaps, run.language())
+	return fed.apply(withGaps(result, gaps, run.language()), run.language())
 }
 
 func (run execution) language() string {
