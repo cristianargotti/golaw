@@ -1,0 +1,8 @@
+{
+  "root": true,
+  "rules": {
+    "sonarjs/no-unenclosed-multiline-block": "off",
+    "sonarjs/code-eval": "off",
+    "react/no-array-index-key": "off"
+  }
+}

@@ -57,6 +57,7 @@ func m6Catalogs() []m6Catalog {
 	return []m6Catalog{
 		{category: m6SurfaceCategory, cases: m6SurfaceCases()},
 		{category: m6MissingCategory, cases: m6MissingCases()},
+		{category: m6ConfigCategory, cases: m6ConfigCases()},
 	}
 }
 
