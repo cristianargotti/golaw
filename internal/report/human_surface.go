@@ -1,5 +1,32 @@
 package report
 
+import (
+	"strings"
+	"unicode"
+	"unicode/utf8"
+)
+
+// Fix is the remedy a person reads after the sentence that names the
+// blocked check: the part of the code's sentence after the problem it
+// names, as a sentence of its own. Only the Portuguese table has one; any
+// other language reads the blocked sentence alone, because its reason is
+// already the agent's English.
+func Fix(language, code string) (string, bool) {
+	if language != Portuguese {
+		return "", false
+	}
+	text, ok := lookup(code)
+	if !ok {
+		return "", false
+	}
+	_, remedy, found := strings.Cut(text, "; ")
+	if !found || remedy == "" {
+		return "", false
+	}
+	first, size := utf8.DecodeRuneInString(remedy)
+	return string(unicode.ToUpper(first)) + remedy[size:] + ".", true
+}
+
 // surfacePhrases are the sentences of the codes the native checks of the
 // surface family emit, one per code; surface.file-length shares the
 // file-length code of goast and so its sentence, because the table holds

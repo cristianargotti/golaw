@@ -1,5 +1,11 @@
 package report_test
 
+import (
+	"testing"
+
+	"github.com/cristianargotti/golaw/internal/report"
+)
+
 // surfaceSentences spells the sentence of every code the surface family
 // emits, as TestHumanRendersPortugueseForEveryCode reads them;
 // surface.file-length reads the file-length sentence of goast.
@@ -15,5 +21,28 @@ func surfaceSentences() map[string]string {
 		"tag-and-digest":         "FROM com tag e digest juntos; mantenha só o digest e deixe a tag em um comentário na linha de cima",
 		"final-user":             "estágio final do Dockerfile roda como root; termine o estágio final com USER e um usuário numérico diferente de zero",
 		"bucket-https-only":      "bucket S3 sem política que exija HTTPS; adicione uma BucketPolicy que negue toda ação quando aws:SecureTransport for false",
+	}
+}
+
+func TestFixIsTheSentenceAfterTheProblem(t *testing.T) {
+	t.Parallel()
+	for code, want := range map[string]string{
+		"code-eval":            "Exporte o código de um módulo e chame-o diretamente; não execute texto como código.",
+		"hardcoded-credential": "Gere a credencial em tempo de execução ou leia-a do ambiente.",
+		"file-length":          "Divida o arquivo por responsabilidade.",
+		"inline-script-size":   "Mova o script para um arquivo .js e incorpore-o ao servir a página.",
+		"suppression":          "Corrija o problema em vez de escondê-lo do analisador.",
+		"analyzer-widening":    "Uma exclusão esconde código do gate do pipeline; corrija os problemas ou peça a mudança a quem cuida do repositório.",
+		"tag-and-digest":       "Mantenha só o digest e deixe a tag em um comentário na linha de cima.",
+	} {
+		if fix, ok := report.Fix(report.Portuguese, code); !ok || fix != want {
+			t.Errorf("%s = %q, %t, want %q", code, fix, ok, want)
+		}
+	}
+	if fix, ok := report.Fix("en", "code-eval"); ok || fix != "" {
+		t.Errorf("english = %q, %t, want none: the person reads the blocked sentence alone", fix, ok)
+	}
+	if _, ok := report.Fix(report.Portuguese, "future-code"); ok {
+		t.Error("an unknown code has no fix")
 	}
 }
