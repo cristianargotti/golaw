@@ -116,7 +116,7 @@ func ciJobPlans(steps []assets.RunStep) ([]ciJobPlan, error) {
 // ciExpectedJobs requires exactly the ci job and the job of each optional
 // capability in force; cli adds no job.
 func ciExpectedJobs(jobs []ciJobPlan, caps []string) error {
-	want := []string{"ci"}
+	want := []string{"ci", "surface"}
 	for _, capability := range []string{"api", "db", "image", "hexagonal"} {
 		if slices.Contains(caps, capability) {
 			want = append(want, capability)

@@ -150,7 +150,7 @@ func m3Provisions() []m3Provision {
 		{"go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.0", ""},
 		{"npm install --global @redocly/cli@2.5.0", "api"},
 		{"npm install --global squawk-cli@2.35.0", "db"},
-		{`curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-linux-x86_64 -o "$RUNNER_TEMP/hadolint"`, "image"},
+		{`curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-x86_64 -o "$RUNNER_TEMP/hadolint"`, "image"},
 		{`curl -fsSL https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz -o "$RUNNER_TEMP/trivy.tar.gz"`, "image"},
 		{`install -m 0755 "$RUNNER_TEMP/hadolint" "$RUNNER_TEMP/golaw-bin/hadolint"`, "image"},
 		{`tar -xzf "$RUNNER_TEMP/trivy.tar.gz" -C "$RUNNER_TEMP/golaw-bin" trivy`, "image"},

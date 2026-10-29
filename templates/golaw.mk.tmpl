@@ -5,6 +5,7 @@ FUZZ ?= Fuzz
 FUZZTIME ?= 30s
 GOLAW_ENROLLED ?=
 MUTATION_BASE ?= origin/main
+COVERAGE_BASE ?=
 {{- if has .Capabilities "db"}}
 MIGRATIONS ?= db/migrations/*.sql
 {{- end}}
@@ -17,7 +18,7 @@ OPENAPI_BUNDLE ?= api/openapi.bundle.yaml
 IMAGE ?= golaw-local:check
 {{- end}}
 
-.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration deps-age generate-check vuln licenses mutation-changed ci{{if has .Capabilities "db"}} migrate-lint{{end}}{{if has .Capabilities "api"}} openapi-breaking openapi-examples-check docs-check{{end}}{{if has .Capabilities "image"}} dockerfile-lint image-pins-check image image-scan{{end}}
+.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration deps-age generate-check vuln licenses mutation-changed lint-surface coverage-new ci{{if has .Capabilities "db"}} migrate-lint{{end}}{{if has .Capabilities "api"}} openapi-breaking openapi-examples-check docs-check{{end}}{{if has .Capabilities "image"}} dockerfile-lint image-pins-check image image-scan{{end}}
 
 mod:
 	go mod verify
@@ -45,11 +46,18 @@ test:
 coverage-check:
 	golaw coverage --input coverage.out
 
+coverage-new:
+	go test -coverprofile profile.cov ./...
+	golaw coverage --new-code --input profile.cov $(if $(COVERAGE_BASE),--base $(COVERAGE_BASE))
+
 build:
 	go build ./...
 
 scan:
 	golaw scan $(if $(GOLAW_ENROLLED),--enrolled $(GOLAW_ENROLLED)) .
+
+lint-surface:
+	golaw lint --surface .
 
 secrets:
 	gitleaks dir --redact --no-banner .
@@ -99,7 +107,7 @@ docs-check:
 {{- if has .Capabilities "image"}}
 
 dockerfile-lint:
-	hadolint Dockerfile
+	golaw lint --only dockerfile .
 
 image-pins-check:
 	golaw scan .
@@ -111,4 +119,4 @@ image-scan:
 	trivy image --exit-code 1 --ignore-unfixed $(IMAGE)
 {{- end}}
 
-ci:{{if has .Capabilities "go"}} mod deps-age fmt vet generate-check test coverage-check build lint deadcode{{end}}{{if has .Capabilities "db"}} migrate-lint{{end}}{{if has .Capabilities "api"}} openapi-breaking openapi-examples-check{{end}}{{if has .Capabilities "go"}} vuln licenses{{end}}{{if has .Capabilities "api"}} docs-check{{end}}{{if has .Capabilities "go"}} secrets{{end}} scan{{if has .Capabilities "image"}} dockerfile-lint image-pins-check image image-scan{{end}}
+ci:{{if has .Capabilities "go"}} mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode{{end}}{{if has .Capabilities "db"}} migrate-lint{{end}}{{if has .Capabilities "api"}} openapi-breaking openapi-examples-check{{end}}{{if has .Capabilities "go"}} vuln licenses{{end}}{{if has .Capabilities "api"}} docs-check{{end}}{{if has .Capabilities "go"}} secrets{{end}} scan lint-surface{{if has .Capabilities "image"}} dockerfile-lint image-pins-check image image-scan{{end}}

@@ -206,19 +206,19 @@ The ladder of section 7: setup alone arms the optional git rungs, each switch of
 
 An absent Makefile is named by policy.makefile alone. A missing required target is also named by the check whose target it is (policy.ci-target, policy.generated-fresh, policy.deps-age-config). A missing lefthook.yml is not a finding. Makefile includes resolve from the repository root. An unused Makefile variable does not widen the reader's scope.
 
-The required targets are data, `policyfiles.RequiredTargets`, read alike by the two checks, the golaw.mk asset, the CI template and the acceptance rows. scan remains the golaw scan; image-scan names the image scan. docs-check is the api row, because the kit ships no generator of a configuration page and the bundled contract is the page the pipeline keeps fresh. hooks-test is profile data, not a core required target. cli and hexagonal add no make target. Without go the answer is the capability rows alone.
+The required targets are data, `policyfiles.RequiredTargets`, read alike by the two checks, the golaw.mk asset, the CI template and the acceptance rows. scan remains the golaw scan; image-scan names the image scan. docs-check is the api row, because the kit ships no generator of a configuration page and the bundled contract is the page the pipeline keeps fresh. hooks-test is profile data, not a core required target. cli and hexagonal add no make target. Without go the answer is the capability rows alone. lint-surface carries no capability: it answers NotApplicable where the snapshot holds no surface language. coverage-new measures the new Go lines the pipeline's gate reads.
 
 | Capabilities | Targets the ci target carries, in order |
 | --- | --- |
-| none | scan |
-| image | scan dockerfile-lint image-pins-check image image-scan |
-| go | mod deps-age fmt vet generate-check test coverage-check build lint deadcode vuln licenses secrets scan |
-| go,cli | mod deps-age fmt vet generate-check test coverage-check build lint deadcode vuln licenses secrets scan |
-| go,api | mod deps-age fmt vet generate-check test coverage-check build lint deadcode openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan |
-| go,db | mod deps-age fmt vet generate-check test coverage-check build lint deadcode migrate-lint vuln licenses secrets scan |
-| go,image | mod deps-age fmt vet generate-check test coverage-check build lint deadcode vuln licenses secrets scan dockerfile-lint image-pins-check image image-scan |
-| go,hexagonal | mod deps-age fmt vet generate-check test coverage-check build lint deadcode vuln licenses secrets scan |
-| go,api,cli,db,hexagonal,image | mod deps-age fmt vet generate-check test coverage-check build lint deadcode migrate-lint openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan dockerfile-lint image-pins-check image image-scan |
+| none | scan lint-surface |
+| image | scan lint-surface dockerfile-lint image-pins-check image image-scan |
+| go | mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode vuln licenses secrets scan lint-surface |
+| go,cli | mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode vuln licenses secrets scan lint-surface |
+| go,api | mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan lint-surface |
+| go,db | mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode migrate-lint vuln licenses secrets scan lint-surface |
+| go,image | mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode vuln licenses secrets scan lint-surface dockerfile-lint image-pins-check image image-scan |
+| go,hexagonal | mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode vuln licenses secrets scan lint-surface |
+| go,api,cli,db,hexagonal,image | mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode migrate-lint openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan lint-surface dockerfile-lint image-pins-check image image-scan |
 
 Two targets run the kit's own tools: `deps-age` runs `tools/depsage` with `-days 7`, and `vuln` runs `tools/vulngate` with `-scan -waivers golaw.yml`, which runs the pinned govulncheck itself and judges its stream against the committed waivers. vulngate exits 0 when clean, 1 for a reachable advisory without a valid waiver and 2 when the scanner cannot start or its stream is incomplete; a failed or incomplete remote vulnerability measurement is not clean evidence. An adopter's golaw.mk selects both tools at the kit pin, `go run github.com/cristianargotti/golaw/tools/depsage@v<pin> -days 7`, each such target preceded by its target-specific `<target>: export GOTOOLCHAIN := auto`, because a tool's go line may be newer than the repository's while `export GOTOOLCHAIN=local` keeps the module's own builds on the toolchain the machine holds; a make export keeps the recipe one plain command under cmd.exe. The kit runs its local source, `go run ./tools/depsage -days 7` and `go run ./tools/vulngate -scan -waivers golaw.yml`, and its scheduled lane runs `make vuln`.
 

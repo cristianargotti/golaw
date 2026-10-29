@@ -1,1 +1,1 @@
-mod deps-age fmt vet generate-check test coverage-check build lint deadcode migrate-lint openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan dockerfile-lint image-pins-check image image-scan:
+mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode migrate-lint openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan lint-surface dockerfile-lint image-pins-check image image-scan:

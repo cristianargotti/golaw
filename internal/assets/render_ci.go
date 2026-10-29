@@ -8,13 +8,14 @@ import (
 	"text/template"
 )
 
-// The pipeline resolves the enrollment expression when the CI file runs, so
-// the CI template alone may hand it on unrendered; any other expression, or
-// this one in another asset, is still an unresolved placeholder.
+// The pipeline resolves the enrollment and runner expressions when the CI
+// file runs, so the CI template alone may hand them on unrendered; any other
+// expression, or these in another asset, is still an unresolved placeholder.
 const (
 	ciSource      = "templates/.github/workflows/ci.yml.tmpl"
 	ciDestination = ".github/workflows/ci.yml"
 	ciEnrollment  = "${{ vars.GOLAW_ENROLLED }}"
+	ciRunnerOS    = "${{ runner.os }}"
 )
 
 func executeAsset(text string, c Context, allowCI bool) ([]byte, error) {
@@ -43,6 +44,7 @@ func executeAsset(text string, c Context, allowCI bool) ([]byte, error) {
 func unresolvedAsset(data []byte, allowCI bool) bool {
 	if allowCI {
 		data = bytes.ReplaceAll(data, []byte(ciEnrollment), nil)
+		data = bytes.ReplaceAll(data, []byte(ciRunnerOS), nil)
 	}
 	return bytes.Contains(data, []byte("{{")) || bytes.Contains(data, []byte("}}"))
 }

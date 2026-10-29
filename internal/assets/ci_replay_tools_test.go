@@ -26,6 +26,7 @@ const (
 	ciKindChecksum = "checksum"
 	ciKindInstall  = "install"
 	ciKindExtract  = "extract"
+	ciKindSurface  = "surface-tools"
 )
 
 // ciFailureCode is the exit status of the fake tool whose failure a replay
@@ -71,6 +72,8 @@ func ciCommandOf(line string) (ciCommand, error) {
 		return ciCommand{kind: ciKindNpm}, nil
 	case line == "docker version":
 		return ciCommand{kind: ciKindDocker}, nil
+	case line == "golaw setup --surface":
+		return ciCommand{kind: ciKindSurface}, nil
 	}
 	return ciDownloadCommand(line, words)
 }
@@ -143,6 +146,9 @@ func ciRecipeTool(words []string) ([]string, error) {
 	case "git":
 		return nil, nil
 	case "golaw":
+		if len(words) > 1 && words[1] == "lint" && slices.Contains(words, "dockerfile") {
+			return []string{"golaw", "hadolint"}, nil
+		}
 		if len(words) > 1 && words[1] == "lock" {
 			separator := slices.Index(words, "--")
 			if separator < 0 || separator+1 >= len(words) {

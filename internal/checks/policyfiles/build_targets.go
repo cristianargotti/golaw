@@ -29,6 +29,8 @@ func RequiredTargets(capabilities []string) []string {
 // capability per row. scan has no capability because golaw's scan carries
 // the families every repository obeys and is the one target through which a
 // violation fails the pipeline; hooks-test is profile data and stays out.
+// lint-surface has no capability because it answers NotApplicable where no
+// surface language is present (M6.9).
 func buildTargets() []buildTarget {
 	return []buildTarget{
 		{"mod", "go"},
@@ -38,6 +40,7 @@ func buildTargets() []buildTarget {
 		{"generate-check", "go"},
 		{"test", "go"},
 		{"coverage-check", "go"},
+		{"coverage-new", "go"},
 		{"build", "go"},
 		{"lint", "go"},
 		{"deadcode", "go"},
@@ -49,6 +52,7 @@ func buildTargets() []buildTarget {
 		{"docs-check", buildAPICapability},
 		{"secrets", "go"},
 		{"scan", ""},
+		{"lint-surface", ""},
 		{"dockerfile-lint", buildImageCapability},
 		{"image-pins-check", buildImageCapability},
 		{buildImageCapability, buildImageCapability},
