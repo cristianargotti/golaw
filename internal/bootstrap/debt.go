@@ -38,7 +38,8 @@ var (
 func SeedDebt(findings []model.Finding, exemptions, advisories []string, record, until string) Debt {
 	d := Debt{Exemptions: sortedSet(exemptions)}
 	seen := make(map[[2]string]bool, len(findings))
-	for _, f := range findings {
+	for k := range findings {
+		f := &findings[k]
 		key := [2]string{f.Check, f.Path}
 		if f.Path == "" || !f.Enforced() || seen[key] {
 			continue
