@@ -10,3 +10,11 @@ checks:
     code: hardcoded-credential
     red: testdata/surface.hardcoded-credential/red
     near: testdata/surface.hardcoded-credential/near
+  - id: surface.file-length
+    code: file-length
+    red: testdata/surface.file-length/red
+    near: testdata/surface.file-length/near
+  - id: surface.python-function-length
+    code: python-function-length
+    red: testdata/surface.python-function-length/red
+    near: testdata/surface.python-function-length/near
