@@ -17,4 +17,7 @@ var (
 	ErrBase = errors.New("new code base unresolvable")
 	// ErrDiff marks a git answer golaw cannot read as the new lines.
 	ErrDiff = errors.New("git could not name the new lines")
+	// ErrUnmeasured marks a measure the command could not take; it exits 2
+	// on it, never 0, so a missing number never reads as a pass (M6.8 item 6).
+	ErrUnmeasured = errors.New("coverage on new code unmeasured")
 )
