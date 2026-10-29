@@ -1,0 +1,4 @@
+export function ready(flag) {
+  // eslint-disable-next-line sonarjs/no-gratuitous-expressions -- the flag arrives as a tri-state
+  return flag === true;
+}

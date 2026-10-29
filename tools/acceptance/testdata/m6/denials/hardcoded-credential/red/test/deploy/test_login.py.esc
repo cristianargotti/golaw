@@ -1,0 +1,3 @@
+def test_login():
+    passw\u006frd = "hunt\u0065r2-admin"
+    assert passw\u006frd

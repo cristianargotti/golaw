@@ -1,0 +1,3 @@
+const assert = require("node:assert");
+const render = new Function("view", "return view.title;");
+assert.strictEqual(render({ title: "panel" }), "panel");
