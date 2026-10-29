@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
+
+	"github.com/cristianargotti/golaw/internal/toolchain"
 )
 
 // The command that installs the surface tools, the directory of the data
@@ -93,7 +96,7 @@ func (s *m6Suite) m6InstallTools(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	env = s.m6WithRuntimes(env)
+	env = s.m6WithRuntimes(ctx, env)
 	got := s.execute(ctx, command{program: s.binary, args: []string{m6SetupCommand, m6SurfaceAll}, dir: repo, env: env})
 	if err := success(got); err != nil {
 		return fmt.Errorf("install the surface tools: %w", err)
@@ -101,22 +104,28 @@ func (s *m6Suite) m6InstallTools(ctx context.Context) error {
 	return nil
 }
 
-// m6WithRuntimes appends to the isolated PATH of env the directories of the
-// node and python3 the caller resolves: setup installs the npm and PyPI tools
-// on the person's own runtimes and the kit never installs either one. A
-// runtime the caller lacks stays absent, so setup reports it as missing.
-func (s *m6Suite) m6WithRuntimes(env []string) []string {
+// m6WithRuntimes appends to the PATH of env the first directory of the
+// caller's PATH whose node, and then whose python3, answers within the bounds
+// of the kit's toolchain table: setup installs the npm and PyPI tools on the
+// person's own runtimes, the kit never installs either one, and a version
+// manager shim or an old system Python ahead of a usable one is passed over.
+// A runtime the caller lacks stays absent, so setup reports it as missing.
+func (s *m6Suite) m6WithRuntimes(ctx context.Context, env []string) []string {
+	caller := filepath.SplitList(environmentValue(s.env, envPath))
 	out := slices.Clone(env)
-	for _, name := range []string{"node", "python3"} {
-		path, err := s.lookup(name)
-		if err != nil {
-			continue
-		}
-		for i, entry := range out {
-			key, value, found := strings.Cut(entry, "=")
-			if found && strings.EqualFold(key, envPath) {
-				out[i] = pathAssignment + value + string(os.PathListSeparator) + filepath.Dir(path)
+	for _, rt := range toolchain.Runtimes() {
+		for _, dir := range caller {
+			probe := toolchain.Resolver{GOOS: runtime.GOOS, Env: []string{pathAssignment + dir}}
+			if dir == "" || !probe.Runtime(ctx, rt).OK {
+				continue
 			}
+			for i, entry := range out {
+				key, value, found := strings.Cut(entry, "=")
+				if found && strings.EqualFold(key, envPath) {
+					out[i] = pathAssignment + value + string(os.PathListSeparator) + dir
+				}
+			}
+			break
 		}
 	}
 	return out

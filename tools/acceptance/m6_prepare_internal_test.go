@@ -3,53 +3,82 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"testing"
 )
 
 // TestM6ToolsInstallSeesTheCallersRuntimes: the setup of the surface tools
-// runs on the isolated prerequisite PATH plus the directories of the node and
-// python3 the caller resolves, since the kit never installs either runtime.
+// runs on the isolated prerequisite PATH plus the first caller directory
+// whose node, and whose python3, is within the toolchain bounds, passing over
+// an older runtime ahead of it, since the kit never installs either one.
 func TestM6ToolsInstallSeesTheCallersRuntimes(t *testing.T) {
 	t.Parallel()
-	for _, tc := range []struct{ name, missing string }{
-		{"near both runtimes resolved", ""},
-		{"near python3 absent", "python3"},
+	if runtime.GOOS == goosWindows {
+		t.Skip("the fake runtimes are shell scripts")
+	}
+	for _, tc := range []struct {
+		name        string
+		caller      []string
+		want, avoid []string
+	}{
+		{"near usable runtimes behind old ones", []string{"old", "good"}, []string{"good"}, []string{"old"}},
+		{"red only old runtimes", []string{"old"}, nil, []string{"old"}},
 	} {
 		s := newM6Suite(m2TestSuite(t))
-		runtimes := map[string]string{"node": filepath.Join(s.base, "node-bin"), "python3": filepath.Join(s.base, "python-bin")}
-		parent := s.lookup
-		s.lookup = func(name string) (string, error) {
-			dir, found := runtimes[name]
-			switch {
-			case found && name == tc.missing:
-				return "", fmt.Errorf("%s: %w", name, ErrAcceptance)
-			case found:
-				return filepath.Join(dir, executable(name)), nil
+		dir := m6FakeRuntimes(t, s, tc.caller)
+		dirs := filepath.SplitList(m6SetupPath(t, s))
+		for _, name := range tc.want {
+			if !slices.Contains(dirs, dir(name)) {
+				t.Errorf("%s: PATH %q lacks the %s runtimes", tc.name, dirs, name)
 			}
-			return parent(name)
 		}
-		var path string
-		s.execute = m5Script(t, s.suite,
-			m5Reply{prefix: []string{commandInit}, once: true, answer: m5Answer(result{})},
-			m5Reply{prefix: []string{m6SetupCommand, m6SurfaceAll}, once: true, answer: func(_ *testing.T, c command) result {
-				path = environmentValue(c.env, envPath)
-				return result{}
-			}},
-		).Execute
-		if err := s.m6Tools(t.Context()); err != nil {
-			t.Fatalf("%s: install = %v", tc.name, err)
-		}
-		dirs := filepath.SplitList(path)
-		for name, dir := range runtimes {
-			if slices.Contains(dirs, dir) == (name == tc.missing) {
-				t.Errorf("%s: PATH %q and the %s directory %q", tc.name, path, name, dir)
+		for _, name := range tc.avoid {
+			if slices.Contains(dirs, dir(name)) {
+				t.Errorf("%s: PATH %q holds the %s runtimes", tc.name, dirs, name)
 			}
 		}
 		if len(dirs) == 0 || dirs[0] != s.m2.Bin {
-			t.Errorf("%s: PATH %q no longer starts with the isolated directories", tc.name, path)
+			t.Errorf("%s: PATH %q no longer starts with the isolated directories", tc.name, dirs)
 		}
 	}
+}
+
+// m6FakeRuntimes writes an old and a good node and python3, puts the caller
+// directories on the suite's PATH in order and answers where each set lives.
+func m6FakeRuntimes(t *testing.T, s *m6Suite, caller []string) func(string) string {
+	t.Helper()
+	dir := func(name string) string { return filepath.Join(s.base, "runtimes", name) }
+	for name, versions := range map[string][2]string{"old": {"v18.0.0", "Python 3.9.1"}, "good": {"v24.21.0", "Python 3.14.4"}} {
+		for i, program := range []string{"node", "python3"} {
+			script := "#!/bin/sh\necho '" + versions[i] + "'\n"
+			if err := writeFile(filepath.Join(dir(name), program), []byte(script), execMode); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	for _, name := range slices.Backward(caller) {
+		s.env = prependPath(s.env, dir(name))
+	}
+	return dir
+}
+
+// m6SetupPath installs the tools through a scripted candidate and answers
+// the PATH the setup command ran with.
+func m6SetupPath(t *testing.T, s *m6Suite) string {
+	t.Helper()
+	var path string
+	s.execute = m5Script(t, s.suite,
+		m5Reply{prefix: []string{commandInit}, once: true, answer: m5Answer(result{})},
+		m5Reply{prefix: []string{m6SetupCommand, m6SurfaceAll}, once: true, answer: func(_ *testing.T, c command) result {
+			path = environmentValue(c.env, envPath)
+			return result{}
+		}},
+	).Execute
+	if err := s.m6Tools(t.Context()); err != nil {
+		t.Fatalf("install = %v", err)
+	}
+	return path
 }
 
 // TestM6PreparationInstallsTheToolsAndTheOverlay drives the preparation of
