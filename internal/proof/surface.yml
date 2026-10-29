@@ -1,0 +1,28 @@
+# The native checks of the non-Go surface (internal/checks/surface): one
+# entry per check, the finding code its red fixture must yield and the two
+# fixture trees relative to this file.
+checks:
+  - id: surface.code-eval
+    code: code-eval
+    red: testdata/surface.code-eval/red
+    near: testdata/surface.code-eval/near
+  - id: surface.hardcoded-credential
+    code: hardcoded-credential
+    red: testdata/surface.hardcoded-credential/red
+    near: testdata/surface.hardcoded-credential/near
+  - id: surface.file-length
+    code: file-length
+    red: testdata/surface.file-length/red
+    near: testdata/surface.file-length/near
+  - id: surface.inline-script-size
+    code: inline-script-size
+    red: testdata/surface.inline-script-size/red
+    near: testdata/surface.inline-script-size/near
+  - id: surface.html-prefer-tag
+    code: prefer-tag
+    red: testdata/surface.html-prefer-tag/red
+    near: testdata/surface.html-prefer-tag/near
+  - id: surface.python-function-length
+    code: python-function-length
+    red: testdata/surface.python-function-length/red
+    near: testdata/surface.python-function-length/near

@@ -135,6 +135,11 @@ func (o *Overlay) Class(rel string) model.FileClass {
 	return o.base.Class(rel)
 }
 
+// Base answers the snapshot the candidates are folded over, so a check
+// that denies only what a candidate introduces runs its predicate on the
+// bytes on disk as well (M6.6.3).
+func (o *Overlay) Base() model.Snapshot { return o.base }
+
 // apply folds one mutation and returns its candidate.
 func (o *Overlay) apply(m Mutation) (model.Candidate, error) {
 	rel, err := o.target(m.Path)
