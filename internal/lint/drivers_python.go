@@ -7,6 +7,9 @@ import (
 	"github.com/cristianargotti/golaw/internal/surface"
 )
 
+// configFlag is shared by every driver whose tool takes its config path after --config.
+const configFlag = "--config"
+
 const (
 	pythonRuff    = "ruff"
 	pythonPyright = "pyright"
@@ -14,7 +17,6 @@ const (
 	ruffCheckCommand  = "check"
 	ruffFormatCommand = "format"
 	ruffNoCache       = "--no-cache"
-	ruffConfigFlag    = "--config"
 	ruffOutputFlag    = "--output-format"
 	ruffJSON          = "json"
 	ruffCheckOnly     = "--check"
@@ -46,7 +48,7 @@ func pythonDrivers() []Driver {
 // --config, and --no-cache keeps the checkout free of a cache directory.
 func ruffBase(command, configDir string, extra ...string) []string {
 	args := make([]string, 0, ruffBaseArgs+len(extra))
-	args = append(args, command, ruffNoCache, ruffConfigFlag, filepath.Join(configDir, pythonRuffConfig))
+	args = append(args, command, ruffNoCache, configFlag, filepath.Join(configDir, pythonRuffConfig))
 	return append(args, extra...)
 }
 

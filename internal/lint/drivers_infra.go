@@ -85,7 +85,7 @@ func hadolintHookArgs(in HookInput) []string {
 // repository or the home holds; no --ignore or --error flag, because a
 // command line rule would drop the ignored list of the file.
 func hadolintFlags(configDir string) []string {
-	return []string{"--config", filepath.Join(configDir, hadolintConfig), infraFlagFormat, infraJSON, "--no-color"}
+	return []string{configFlag, filepath.Join(configDir, hadolintConfig), infraFlagFormat, infraJSON, "--no-color"}
 }
 
 // checkovDriver checks Dockerfiles and CloudFormation templates.
