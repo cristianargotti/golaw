@@ -16,7 +16,9 @@ func TestFloorsFromPolicyOptions(t *testing.T) {
 		in   model.Options
 		want coverage.Floors
 	}{
-		{"near-defaults", nil, coverage.DefaultFloors()},
+		{"near-defaults", nil, coverage.Floors{
+			Total: 80, Package: 80, File: 80, MinStatements: 20, NewCode: model.DefaultCoverageNew,
+		}},
 		{
 			"red-independent-values",
 			model.Options{
@@ -28,7 +30,7 @@ func TestFloorsFromPolicyOptions(t *testing.T) {
 			},
 			coverage.Floors{
 				Total: 85, Package: 90, File: 95,
-				MinStatements: 0, Exemptions: []string{"a.go"},
+				MinStatements: 0, Exemptions: []string{"a.go"}, NewCode: model.DefaultCoverageNew,
 			},
 		},
 	} {

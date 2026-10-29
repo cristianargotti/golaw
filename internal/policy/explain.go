@@ -139,7 +139,7 @@ func (e *explainer) options(p *model.EffectivePolicy, schemas Schemas) {
 // catalog declares them and explain must name the same keys either way.
 func floorDefaults() map[string]model.Options {
 	percent, statements := DefaultCoverage, DefaultMinStatements
-	coverage := &Coverage{Total: &percent, Package: &percent, File: &percent, MinStatements: &statements, FileExemptions: []string{}}
+	coverage := &Coverage{Total: &percent, Package: &percent, File: &percent, MinStatements: &statements, FileExemptions: []string{}, NewCode: &percent}
 	return Checks{Coverage: coverage, Lint: &Lint{}}.options(nil)
 }
 
