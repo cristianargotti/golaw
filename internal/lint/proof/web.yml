@@ -74,3 +74,63 @@ checks:
     code: sonarjs-prefer-read-only-props
     red: ../testdata/web/parity/sonarjs-prefer-read-only-props/red
     near: ../testdata/web/parity/sonarjs-prefer-read-only-props/near
+  - id: lint.stylelint-color-no-invalid-hex
+    code: color-no-invalid-hex
+    red: ../testdata/web/parity/color-no-invalid-hex/red
+    near: ../testdata/web/parity/color-no-invalid-hex/near
+  - id: lint.stylelint-font-family-no-duplicate-names
+    code: font-family-no-duplicate-names
+    red: ../testdata/web/parity/font-family-no-duplicate-names/red
+    near: ../testdata/web/parity/font-family-no-duplicate-names/near
+  - id: lint.stylelint-font-family-no-missing-generic-family-keyword
+    code: font-family-no-missing-generic-family-keyword
+    red: ../testdata/web/parity/font-family-no-missing-generic-family-keyword/red
+    near: ../testdata/web/parity/font-family-no-missing-generic-family-keyword/near
+  - id: lint.stylelint-property-no-unknown
+    code: property-no-unknown
+    red: ../testdata/web/parity/property-no-unknown/red
+    near: ../testdata/web/parity/property-no-unknown/near
+  - id: lint.stylelint-declaration-block-no-duplicate-properties
+    code: declaration-block-no-duplicate-properties
+    red: ../testdata/web/parity/declaration-block-no-duplicate-properties/red
+    near: ../testdata/web/parity/declaration-block-no-duplicate-properties/near
+  - id: lint.stylelint-declaration-block-no-shorthand-property-overrides
+    code: declaration-block-no-shorthand-property-overrides
+    red: ../testdata/web/parity/declaration-block-no-shorthand-property-overrides/red
+    near: ../testdata/web/parity/declaration-block-no-shorthand-property-overrides/near
+  - id: lint.stylelint-block-no-empty
+    code: block-no-empty
+    red: ../testdata/web/parity/block-no-empty/red
+    near: ../testdata/web/parity/block-no-empty/near
+  - id: lint.stylelint-selector-pseudo-class-no-unknown
+    code: selector-pseudo-class-no-unknown
+    red: ../testdata/web/parity/selector-pseudo-class-no-unknown/red
+    near: ../testdata/web/parity/selector-pseudo-class-no-unknown/near
+  - id: lint.stylelint-selector-pseudo-element-no-unknown
+    code: selector-pseudo-element-no-unknown
+    red: ../testdata/web/parity/selector-pseudo-element-no-unknown/red
+    near: ../testdata/web/parity/selector-pseudo-element-no-unknown/near
+  - id: lint.stylelint-at-rule-no-unknown
+    code: at-rule-no-unknown
+    red: ../testdata/web/parity/at-rule-no-unknown/red
+    near: ../testdata/web/parity/at-rule-no-unknown/near
+  - id: lint.stylelint-comment-no-empty
+    code: comment-no-empty
+    red: ../testdata/web/parity/comment-no-empty/red
+    near: ../testdata/web/parity/comment-no-empty/near
+  - id: lint.stylelint-no-descending-specificity
+    code: no-descending-specificity
+    red: ../testdata/web/parity/no-descending-specificity/red
+    near: ../testdata/web/parity/no-descending-specificity/near
+  - id: lint.stylelint-no-empty-source
+    code: no-empty-source
+    red: ../testdata/web/parity/no-empty-source/red
+    near: ../testdata/web/parity/no-empty-source/near
+  - id: lint.stylelint-unit-no-unknown
+    code: unit-no-unknown
+    red: ../testdata/web/parity/unit-no-unknown/red
+    near: ../testdata/web/parity/unit-no-unknown/near
+  - id: lint.stylelint-function-calc-no-unspaced-operator
+    code: function-calc-no-unspaced-operator
+    red: ../testdata/web/parity/function-calc-no-unspaced-operator/red
+    near: ../testdata/web/parity/function-calc-no-unspaced-operator/near
