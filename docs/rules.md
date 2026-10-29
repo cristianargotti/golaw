@@ -264,6 +264,12 @@ The surface family judges the non-Go files of a Go repository: JavaScript, TypeS
 
 | Check | Rule | Needs | Why and boundary |
 | --- | --- | --- | --- |
+| surface.code-eval | rules/4.16@1 | none | A call that runs text as code in JavaScript, TypeScript, JSX, TSX, an HTML script or Python (the global eval, new Function, a timer given a string, the vm module, exec), denied when the candidate introduces it, because the remote analyzer reads tests as main code; the fix exports the code a test needs. |
+| surface.hardcoded-credential | rules/4.16@1 | none | A string literal assigned, passed or bound to a name whose last word is a credential word of the remote rule, a NAME=value literal with such a word, or a URL with a credential in its user info, in the script languages, Python and the ENV and ARG defaults of a Dockerfile, denied when introduced, because the gate never passes a credential in the tree; an empty value, the name or its label, stars, a placeholder, an environment read and a value built at run time never fire. |
+| surface.file-length | rules/4.16@1 | none | A JavaScript, TypeScript, JSX, TSX, Python or shell file over the file lines of the policy, counted as goast.file-length counts, denied when introduced, because the Go size law holds for the hand-written files of the other languages; markup, styles and data keep no length law. |
+| surface.inline-script-size | rules/4.16@1 | none | An inline script of an HTML file over 40 lines, denied when introduced, because a script moved into a file the Go side embeds is read whole by every linter. |
+| surface.html-prefer-tag | rules/4.16@1 | none | A role on an HTML or JSX element where a native element exists, such as role="status" for output, fed back in the hook and a failure in scan, because markup composed across Go templates cannot be judged with certainty. |
+| surface.python-function-length | rules/4.16@1 | none | A Python function body over the function lines of the policy, read by indentation and counted as funlen counts with comments ignored, fed back in the hook and a failure in scan, because the Go function law holds for Python while its body boundary is read by indentation. |
 
 ## Repository laws
 
