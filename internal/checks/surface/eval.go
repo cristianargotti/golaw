@@ -19,18 +19,24 @@ const (
 func timerGlobals() []string { return []string{"globalThis", "window", "self"} }
 
 // CodeEval denies a call that runs text as code: the global eval and
-// Function, a timer given a string and the vm module, in tests too,
+// Function, a timer given a string and the vm module, the Python builtins
+// eval and exec, in tests too,
 // because the remote analyzer reads tests as main code (A27).
 func CodeEval() model.Check {
 	return check{
 		spec:      spec("surface.code-eval"),
-		languages: []detect.Language{detect.JavaScript, detect.TypeScript, detect.JSX, detect.TSX, detect.HTML},
+		languages: []detect.Language{detect.JavaScript, detect.TypeScript, detect.JSX, detect.TSX, detect.HTML, detect.Python},
 		certain:   true,
 		judge:     judgeEval,
 	}
 }
 
+// judgeEval routes a Python file to the builtins and every other language
+// to its script units.
 func judgeEval(f source, _ model.Input) []model.Finding {
+	if f.info.Language == detect.Python {
+		return judgePythonEval(f)
+	}
 	var out []model.Finding
 	for _, u := range scriptUnits(f) {
 		tokens := significant(u.tokens)
@@ -44,12 +50,17 @@ func judgeEval(f source, _ model.Input) []model.Finding {
 				construct, first, ok = vm.use(tokens, i)
 			}
 			if ok {
-				message := "runs text as code with " + construct + evalTail
-				out = append(out, f.finding(evalCode, tokens[first].line, message, sonarKey(u.language, evalKey)))
+				out = append(out, evalFinding(f, tokens[first].line, construct, u.language))
 			}
 		}
 	}
 	return out
+}
+
+// evalFinding is the finding of one use, the same message in every
+// language.
+func evalFinding(f source, line int, construct string, language detect.Language) model.Finding {
+	return f.finding(evalCode, line, "runs text as code with "+construct+evalTail, sonarKey(language, evalKey))
 }
 
 // evalUse reads the global eval or Function called at i. A member of that
