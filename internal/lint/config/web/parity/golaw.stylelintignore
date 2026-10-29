@@ -1,0 +1,2 @@
+# Empty on purpose: golaw lint passes the files of the analyzer scope, and
+# a repository .stylelintignore must not hide one of them.

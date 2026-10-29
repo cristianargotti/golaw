@@ -1,0 +1,12 @@
+# The proof of the parity frame before any row: sonarjs recommended reads
+# the scripts inside HTML and the CommonJS tests, and a repository
+# configuration that turns a rule off changes nothing (M6.10 row 7).
+checks:
+  - id: lint.eslint-sonarjs-no-unenclosed-multiline-block
+    code: sonarjs-no-unenclosed-multiline-block
+    red: frame/sonarjs-no-unenclosed-multiline-block/red
+    near: frame/sonarjs-no-unenclosed-multiline-block/near
+  - id: lint.eslint-sonarjs-code-eval
+    code: sonarjs-code-eval
+    red: frame/sonarjs-code-eval/red
+    near: frame/sonarjs-code-eval/near
