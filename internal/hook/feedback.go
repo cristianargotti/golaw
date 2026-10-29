@@ -58,18 +58,28 @@ func (run execution) feedback(ctx context.Context, in model.Input, decision engi
 			f.findings = append(f.findings, *finding)
 		}
 	}
-	if !on || dependencies.Tools == nil {
+	var files []ToolFile
+	if on && dependencies.Tools != nil {
+		files = run.tools(ctx, in, dependencies, &f)
+	}
+	if dependencies.State.Dir == "" || !delivered(decision) || len(f.findings) == 0 && len(f.notices) == 0 {
 		return f
 	}
+	return run.once(ctx, f, in, files, dependencies)
+}
+
+// tools adds what the fast tools answer for the files the event wrote and
+// answers those files, whose bytes the session memory hashes.
+func (run execution) tools(ctx context.Context, in model.Input, dependencies Dependencies, f *fed) []ToolFile {
 	files, gaps := toolFiles(in)
 	if len(files) == 0 {
-		return f
+		return nil
 	}
 	report := dependencies.Tools(ctx, run.repository, run.policy, files)
 	f.findings = append(f.findings, report.Findings...)
 	f.notices, f.person = report.Missing, report.Person
 	f.gaps = slices.Concat(gaps, pathGaps(report.Killed, causeKilled))
-	return f
+	return files
 }
 
 // apply writes the feedback into the result of the event: the lines, and

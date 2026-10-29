@@ -59,6 +59,8 @@ func m6Catalogs() []m6Catalog {
 		{category: m6DenialCategory, cases: m6DenialCases()},
 		{category: m6SetupCategory, cases: m6SetupCases()},
 		{category: m6SurfaceCategory, cases: m6SurfaceCases()},
+		{category: m6MissingCategory, cases: m6MissingCases()},
+		{category: m6ConfigCategory, cases: m6ConfigCases()},
 	}
 }
 

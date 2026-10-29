@@ -50,6 +50,11 @@ func runDriver(ctx context.Context, o Options, set string, inv surface.Inventory
 		return unmeasured(d.Tool + " is not pinned in the toolchain table")
 	}
 	resolved := o.Resolver.Full(ctx, tool)
+	if resolved.State == toolchain.StateRuntime {
+		// The runtime detail names Node or Python alone; without the tool
+		// the person cannot tell which check it left unmeasured.
+		return unmeasured(fmt.Sprintf("%s %s: %s", tool.Name, tool.Version, resolved.Detail))
+	}
 	if !resolved.Usable() {
 		return unmeasured(resolved.Detail)
 	}
