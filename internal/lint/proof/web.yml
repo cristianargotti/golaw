@@ -42,3 +42,43 @@ checks:
     code: no-duplicate-selectors
     red: ../testdata/web/parity/no-duplicate-selectors/red
     near: ../testdata/web/parity/no-duplicate-selectors/near
+  - id: lint.eslint-typescript-eslint-no-empty-function
+    code: typescript-eslint-no-empty-function
+    red: ../testdata/web/parity/typescript-eslint-no-empty-function/red
+    near: ../testdata/web/parity/typescript-eslint-no-empty-function/near
+  - id: lint.eslint-typescript-eslint-default-param-last
+    code: typescript-eslint-default-param-last
+    red: ../testdata/web/parity/typescript-eslint-default-param-last/red
+    near: ../testdata/web/parity/typescript-eslint-default-param-last/near
+  - id: lint.eslint-typescript-eslint-no-base-to-string
+    code: typescript-eslint-no-base-to-string
+    red: ../testdata/web/parity/typescript-eslint-no-base-to-string/red
+    near: ../testdata/web/parity/typescript-eslint-no-base-to-string/near
+  - id: lint.eslint-unicorn-prefer-code-point
+    code: unicorn-prefer-code-point
+    red: ../testdata/web/parity/unicorn-prefer-code-point/red
+    near: ../testdata/web/parity/unicorn-prefer-code-point/near
+  - id: lint.eslint-unicorn-prefer-structured-clone
+    code: unicorn-prefer-structured-clone
+    red: ../testdata/web/parity/unicorn-prefer-structured-clone/red
+    near: ../testdata/web/parity/unicorn-prefer-structured-clone/near
+  - id: lint.eslint-unicorn-prefer-top-level-await
+    code: unicorn-prefer-top-level-await
+    red: ../testdata/web/parity/unicorn-prefer-top-level-await/red
+    near: ../testdata/web/parity/unicorn-prefer-top-level-await/near
+  - id: lint.eslint-unicorn-dom-node-dataset
+    code: unicorn-dom-node-dataset
+    red: ../testdata/web/parity/unicorn-dom-node-dataset/red
+    near: ../testdata/web/parity/unicorn-dom-node-dataset/near
+  - id: lint.eslint-unicorn-prefer-includes
+    code: unicorn-prefer-includes
+    red: ../testdata/web/parity/unicorn-prefer-includes/red
+    near: ../testdata/web/parity/unicorn-prefer-includes/near
+  - id: lint.eslint-unicorn-prefer-string-replace-all
+    code: unicorn-prefer-string-replace-all
+    red: ../testdata/web/parity/unicorn-prefer-string-replace-all/red
+    near: ../testdata/web/parity/unicorn-prefer-string-replace-all/near
+  - id: lint.eslint-unicorn-require-module-specifiers
+    code: unicorn-require-module-specifiers
+    red: ../testdata/web/parity/unicorn-require-module-specifiers/red
+    near: ../testdata/web/parity/unicorn-require-module-specifiers/near

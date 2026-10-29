@@ -5,6 +5,9 @@
       "react/no-array-index-key": "error"
     },
     "script": {
+      "@typescript-eslint/default-param-last": "error",
+      "@typescript-eslint/no-base-to-string": "error",
+      "@typescript-eslint/no-empty-function": "error",
       "sonarjs/code-eval": "error",
       "sonarjs/cognitive-complexity": [
         "error",
@@ -14,7 +17,14 @@
       "sonarjs/no-nested-conditional": "error",
       "sonarjs/no-unenclosed-multiline-block": "error",
       "sonarjs/unused-import": "error",
-      "unicorn/prefer-global-this": "error"
+      "unicorn/dom-node-dataset": "error",
+      "unicorn/prefer-code-point": "error",
+      "unicorn/prefer-global-this": "error",
+      "unicorn/prefer-includes": "error",
+      "unicorn/prefer-string-replace-all": "error",
+      "unicorn/prefer-structured-clone": "error",
+      "unicorn/prefer-top-level-await": "error",
+      "unicorn/require-module-specifiers": "error"
     }
   },
   "stylelint": {
