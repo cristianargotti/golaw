@@ -1,0 +1,70 @@
+# The proof of the infrastructure rows of the rule map: one entry per local
+# rule that claims a Sonar way key, with the code its red tree must yield
+# under both rule sets and its two trees relative to this file.
+checks:
+  - {
+      id: lint.checkov-ckv-aws-18,
+      code: ckv-aws-18,
+      red: ../testdata/infra/s3-logging/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-20,
+      code: ckv-aws-20,
+      red: ../testdata/infra/s3-public-acl/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-21,
+      code: ckv-aws-21,
+      red: ../testdata/infra/s3-versioning/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-53,
+      code: ckv-aws-53,
+      red: ../testdata/infra/s3-public-access/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-54,
+      code: ckv-aws-54,
+      red: ../testdata/infra/s3-public-access/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-55,
+      code: ckv-aws-55,
+      red: ../testdata/infra/s3-public-access/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-56,
+      code: ckv-aws-56,
+      red: ../testdata/infra/s3-public-access/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-57,
+      code: ckv-aws-57,
+      red: ../testdata/infra/s3-public-acl/red,
+      near: ../testdata/infra/s3-hardened/near,
+    }
+  - {
+      id: lint.checkov-ckv-aws-91,
+      code: ckv-aws-91,
+      red: ../testdata/infra/elb-logging/red,
+      near: ../testdata/infra/elb-logging/near,
+    }
+  - {
+      id: lint.hadolint-dl3002,
+      code: dl3002,
+      red: ../testdata/infra/dl3002/red,
+      near: ../testdata/infra/dl3002/near,
+    }
+  - {
+      id: lint.hadolint-dl3015,
+      code: dl3015,
+      red: ../testdata/infra/dl3015/red,
+      near: ../testdata/infra/dl3015/near,
+    }
