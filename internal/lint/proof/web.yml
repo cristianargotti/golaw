@@ -110,3 +110,35 @@ checks:
     code: sonarjs-slow-regex
     red: ../testdata/web/parity/sonarjs-slow-regex/red
     near: ../testdata/web/parity/sonarjs-slow-regex/near
+  - id: lint.eslint-sonarjs-no-unused-vars
+    code: sonarjs-no-unused-vars
+    red: ../testdata/web/parity/sonarjs-no-unused-vars/red
+    near: ../testdata/web/parity/sonarjs-no-unused-vars/near
+  - id: lint.eslint-sonarjs-no-dead-store
+    code: sonarjs-no-dead-store
+    red: ../testdata/web/parity/sonarjs-no-dead-store/red
+    near: ../testdata/web/parity/sonarjs-no-dead-store/near
+  - id: lint.eslint-sonarjs-no-ignored-exceptions
+    code: sonarjs-no-ignored-exceptions
+    red: ../testdata/web/parity/sonarjs-no-ignored-exceptions/red
+    near: ../testdata/web/parity/sonarjs-no-ignored-exceptions/near
+  - id: lint.eslint-sonarjs-todo-tag
+    code: sonarjs-todo-tag
+    red: ../testdata/web/parity/sonarjs-todo-tag/red
+    near: ../testdata/web/parity/sonarjs-todo-tag/near
+  - id: lint.eslint-sonarjs-no-identical-functions
+    code: sonarjs-no-identical-functions
+    red: ../testdata/web/parity/sonarjs-no-identical-functions/red
+    near: ../testdata/web/parity/sonarjs-no-identical-functions/near
+  - id: lint.eslint-sonarjs-no-duplicated-branches
+    code: sonarjs-no-duplicated-branches
+    red: ../testdata/web/parity/sonarjs-no-duplicated-branches/red
+    near: ../testdata/web/parity/sonarjs-no-duplicated-branches/near
+  - id: lint.eslint-sonarjs-no-gratuitous-expressions
+    code: sonarjs-no-gratuitous-expressions
+    red: ../testdata/web/parity/sonarjs-no-gratuitous-expressions/red
+    near: ../testdata/web/parity/sonarjs-no-gratuitous-expressions/near
+  - id: lint.eslint-sonarjs-no-nested-template-literals
+    code: sonarjs-no-nested-template-literals
+    red: ../testdata/web/parity/sonarjs-no-nested-template-literals/red
+    near: ../testdata/web/parity/sonarjs-no-nested-template-literals/near
