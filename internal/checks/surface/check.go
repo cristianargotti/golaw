@@ -77,14 +77,16 @@ type judge func(f source, in model.Input) []model.Finding
 
 // check is one check of the family: its spec, the languages it judges,
 // whether it judges Go files too, whether it is certain (a denial when
-// introduced) or a feedback check, and whether a feedback check fails a
-// scan only under the strict rule set.
+// introduced) or a feedback check, whether a feedback check fails a scan
+// only under the strict rule set, and whether the introduced rule compares
+// codes because the message carries a measure.
 type check struct {
 	spec      model.Spec
 	languages []detect.Language
 	goFiles   bool
 	certain   bool
 	strict    bool
+	byCode    bool
 	judge     judge
 }
 

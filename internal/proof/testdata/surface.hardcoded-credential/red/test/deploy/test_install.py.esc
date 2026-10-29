@@ -1,0 +1,13 @@
+"""Install checks of the deploy scripts."""
+
+from deploy import install
+
+
+def test_install_accepts_the_admin():
+    passw\u006frd = "hunt\u0065r2-admin"
+    assert install.login("admin", passw\u006frd)
+
+
+def test_install_sends_the_environment():
+    env = "POSTGRES_PASSW\u004fRD=hunt\u0065r2-db"
+    assert install.configure(env)

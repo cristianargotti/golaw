@@ -10,7 +10,11 @@ import (
 
 func TestChecksListsTheFamilyInReportOrder(t *testing.T) {
 	t.Parallel()
-	want := []string{"surface.code-eval"}
+	want := []string{
+		"surface.code-eval", "surface.hardcoded-credential", "surface.file-length", "surface.inline-script-size",
+		"surface.suppression", "surface.analyzer-widening", "surface.html-prefer-tag", "surface.python-function-length",
+		"docker.tag-and-digest", "docker.final-user", "cfn.bucket-https-only",
+	}
 	family := surface.Checks()
 	got := make([]string, 0, len(family))
 	for _, c := range family {
