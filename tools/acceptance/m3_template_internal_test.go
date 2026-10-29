@@ -133,3 +133,30 @@ func TestM3TemplateReplaysTheRenderedCI(t *testing.T) {
 		t.Fatalf("combinations = %q", m3TemplateNames())
 	}
 }
+
+// The rendered make ci runs coverage-new, which reads its base from the
+// remote default branch, so the replay must record it before the first step.
+func TestM3TemplateRecordsTheDefaultBranchBeforeTheReplay(t *testing.T) {
+	t.Parallel()
+	s := m2TestSuite(t)
+	var calls [][]string
+	service := m3ServiceAnswer(t, s, &calls)
+	var order []string
+	s.execute = newM2Script(t, s, func(ctx context.Context, c command) (m2Reply, bool) {
+		if filepath.Base(c.program) == executable("bash") {
+			order = append(order, "step")
+			return m2Reply{target: true}, true
+		}
+		if c.program == s.git && slices.Equal(c.args, m3CIDefaultBranch()) {
+			order = append(order, "origin")
+			return m2Reply{got: result{}}, true
+		}
+		return service(ctx, c)
+	}).Execute
+	if err := s.templateM3(t.Context(), "go"); err != nil {
+		t.Fatal(err)
+	}
+	if len(order) < 2 || order[0] != "origin" || slices.Index(order[1:], "origin") != -1 {
+		t.Fatalf("order = %q, want the default branch recorded once before the first step", order)
+	}
+}

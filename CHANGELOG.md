@@ -65,6 +65,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-29: the M3 template rows record the remote default branch before they replay the rendered CI, because its make ci runs coverage-new, which answers exit 2 in a repository with no remote default branch, so the six required Linux rows failed while a pipeline checkout passes.
 - 2026-10-23: a release run reports a missing or stale live record of the patch adapter as an optional skip instead of refusing the release, because docs/releasing.md gates a release on the plugin host record only and the patch adapter record is what support of that agent waits for; a patch adapter record that is present and wrong still fails.
 - 2026-10-23: a project install of the plugin host writes the enabled plugin, its marketplace and the read deny rules to the per-person settings.local.json of the repository, adds that file to the exclude file of the clone, and an install over an earlier project receipt moves the entries out of the shared settings.json, because the marketplace names a path under the person's state directory that the shared file would hand to every teammate and that golaw scan reports.
 - 2026-10-23: doctor reports a project receipt of the plugin host that names the shared settings.json as settings-shared until agent install moves its entries, because until then the shared file carries a path of one machine.

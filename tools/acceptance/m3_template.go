@@ -65,5 +65,10 @@ func (s *suite) templateM3(ctx context.Context, name string) error {
 	if len(steps) == 0 {
 		return fmt.Errorf("%s holds no run step: %w", m3CIFile, ErrAcceptance)
 	}
+	// The rendered make ci runs coverage-new, which reads its base from the
+	// remote default branch a CI checkout fetches.
+	if err := s.gitSteps(ctx, repo, m3CIDefaultBranch()); err != nil {
+		return fmt.Errorf("record the default branch of the CI checkout: %w", err)
+	}
 	return s.m3Replay(ctx, repo, steps)
 }
