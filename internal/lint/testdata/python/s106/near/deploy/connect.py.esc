@@ -1,0 +1,10 @@
+"""Database connection of the deploy step."""
+
+import os
+
+from deploy import database
+
+
+def open_session() -> object:
+    """Open the session the deploy step writes through."""
+    return database.connect(user="admin", passw\u006frd=os.environ["DB_SECRET"])
