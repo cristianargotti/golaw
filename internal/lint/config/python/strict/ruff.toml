@@ -1,11 +1,13 @@
 # The strict set: every stable ruff rule, minus one rule of each
-# incompatible docstring pair and the rules the formatter rewrites anyway,
+# incompatible docstring pair, the rules the formatter rewrites anyway and
+# the copyright header, which neither Sonar way nor a golaw law asks for,
 # so the findings left are the ones a person fixes.
 [lint]
 select = ["ALL"]
 ignore = [
   "COM812",
   "COM819",
+  "CPY",
   "D203",
   "D206",
   "D213",

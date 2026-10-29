@@ -99,3 +99,14 @@ func pythonMapped(issues []Issue) map[pythonKey]int {
 	}
 	return got
 }
+
+// TestTheCorrectedTwinIsCleanUnderTheStrictPythonSet: under strict the
+// corrected twin yields no finding at all, mapped or not, so the set init
+// selects never reds a tree the kit itself calls clean.
+//
+//nolint:paralleltest // the live runs resolve the tools through the test environment
+func TestTheCorrectedTwinIsCleanUnderTheStrictPythonSet(t *testing.T) {
+	for _, issue := range pythonTwinIssues(t, surfacefix.Corrected, model.SurfaceStrict) {
+		t.Errorf("%s:%d %s/%s %s", issue.Path, issue.Line, issue.Tool, issue.Rule, issue.Message)
+	}
+}

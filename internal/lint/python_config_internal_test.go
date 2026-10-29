@@ -150,8 +150,8 @@ func TestPythonStrictSelectsAllWithTheFormatterIgnores(t *testing.T) {
 		t.Errorf("strict select = %v, want [ALL]", cfg.Select)
 	}
 	want := []string{
-		"COM812", "COM819", "D203", "D206", "D213", "D300", "E111", "E114",
-		"E117", "ISC002", "Q000", "Q001", "Q002", "Q003", "Q004", "W191",
+		"COM812", "COM819", "CPY", "D203", "D206", "D213", "D300", "E111",
+		"E114", "E117", "ISC002", "Q000", "Q001", "Q002", "Q003", "Q004", "W191",
 	}
 	if !slices.Equal(cfg.Ignore, want) {
 		t.Errorf("strict ignore = %v, want %v", cfg.Ignore, want)
