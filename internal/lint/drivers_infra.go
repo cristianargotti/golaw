@@ -6,15 +6,19 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/surface"
 )
 
-// The infrastructure tools whose rules only the strict set holds.
+// The infrastructure tools: checkov and hadolint hold parity rules, the
+// others only strict ones.
 const (
 	infraCfnLint    = "cfn-lint"
+	infraCheckov    = "checkov"
+	infraHadolint   = "hadolint"
 	infraShellcheck = "shellcheck"
 	infraShfmt      = "shfmt"
 	infraYamllint   = "yamllint"
@@ -48,6 +52,72 @@ func infraPaths(root string, files []string) []string {
 		paths = append(paths, filepath.Join(root, filepath.FromSlash(f)))
 	}
 	return paths
+}
+
+// infraDrivers answers the drivers of the infrastructure surface, sorted by
+// tool.
+func infraDrivers() []Driver {
+	return []Driver{cfnLintDriver(), checkovDriver(), hadolintDriver(), shellcheckDriver(), shfmtDriver(), yamllintDriver()}
+}
+
+// hadolintDriver lints Dockerfiles in both sets and in the hook.
+func hadolintDriver() Driver {
+	return Driver{
+		Tool: infraHadolint, Languages: []surface.Language{surface.Dockerfile}, Format: FormatHadolint,
+		Args: hadolintArgs, HookArgs: hadolintHookArgs, Config: infraConfig(),
+	}
+}
+
+// hadolintArgs runs the set's file over every Dockerfile of the scope.
+func hadolintArgs(in Input) []string {
+	if !infraRuns(in, true) {
+		return nil
+	}
+	return append(hadolintFlags(in.ConfigDir), infraPaths(in.Root, in.Files)...)
+}
+
+// hadolintHookArgs reads the written bytes on stdin.
+func hadolintHookArgs(in HookInput) []string {
+	return append(hadolintFlags(in.ConfigDir), infraStdin)
+}
+
+// hadolintFlags passes the kit file, which replaces any .hadolint.yaml the
+// repository or the home holds; no --ignore or --error flag, because a
+// command line rule would drop the ignored list of the file.
+func hadolintFlags(configDir string) []string {
+	return []string{"--config", filepath.Join(configDir, hadolintConfig), infraFlagFormat, infraJSON, "--no-color"}
+}
+
+// checkovDriver checks Dockerfiles and CloudFormation templates.
+func checkovDriver() Driver {
+	return Driver{
+		Tool: infraCheckov, Languages: []surface.Language{surface.Dockerfile, surface.CloudFormation},
+		Format: FormatCheckov, Args: checkovArgs, Config: infraConfig(),
+	}
+}
+
+// checkovArgs keeps checkov offline and, under parity, whose checks are all
+// CloudFormation ones, leaves the Dockerfiles out. --skip-download stands on
+// the command line too, so no configuration merge turns the download on.
+func checkovArgs(in Input) []string {
+	files := in.Files
+	if in.Set != model.SurfaceStrict {
+		files = slices.DeleteFunc(slices.Clone(files), isDockerfile)
+	}
+	if len(files) == 0 {
+		return nil
+	}
+	args := []string{infraFlagConfigFile, filepath.Join(in.ConfigDir, checkovConfig), "--output", infraJSON, "--quiet", "--compact", "--skip-download"}
+	for _, path := range infraPaths(in.Root, files) {
+		args = append(args, "--file", path)
+	}
+	return args
+}
+
+// isDockerfile answers whether a path is a Dockerfile by its name alone.
+func isDockerfile(path string) bool {
+	language, ok := surface.ByName(path)
+	return ok && language == surface.Dockerfile
 }
 
 // shellcheckDriver lints shell scripts. Sonar way holds no shell rule, so
