@@ -68,7 +68,7 @@ func assertLatePost(t *testing.T, answer completed, enforced bool, deadline Resu
 		t.Fatalf("event = %+v, want %+v", gotEvent, answer.event)
 	}
 	if !enforced {
-		if got != deadline {
+		if !reflect.DeepEqual(got, deadline) {
 			t.Fatalf("result = %+v, want %+v", got, deadline)
 		}
 		return

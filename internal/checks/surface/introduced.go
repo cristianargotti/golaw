@@ -31,11 +31,11 @@ func (c check) introduced(in model.Input, f source, found []model.Finding) []mod
 	legacy := map[string]int{}
 	base := c.judge(source{path: f.path, src: src, info: describe(f.path, src)}, in)
 	for i := range base {
-		legacy[model.Fingerprint(base[i])]++
+		legacy[c.legacyKey(base[i])]++
 	}
 	var kept []model.Finding
 	for i := range found {
-		key := model.Fingerprint(found[i])
+		key := c.legacyKey(found[i])
 		if legacy[key] > 0 {
 			legacy[key]--
 			continue
@@ -54,4 +54,15 @@ func basePath(event *model.Event, name string) string {
 		}
 	}
 	return name
+}
+
+// legacyKey is what makes a finding the same as one of the base. A check
+// whose message carries a measure, a line count, keys by its code, so a
+// file already over the limit at the base never denies again and only a
+// file that crosses the limit is introduced.
+func (c check) legacyKey(f model.Finding) string {
+	if c.byCode {
+		return f.Code
+	}
+	return model.Fingerprint(f)
 }
