@@ -12,6 +12,10 @@ type Floors struct {
 	File          float64
 	MinStatements int
 	Exemptions    []string
+	// NewCode is the threshold of coverage on new code, carried with the
+	// floors so one policy read serves both measures; FloorsFrom fills it and
+	// DefaultFloors leaves it zero because it states only the floors of spec 7.
+	NewCode int
 }
 
 // DefaultFloors applies the kit's coverage law when no adopter policy overrides it.
