@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -92,9 +93,31 @@ func (s *m6Suite) m6InstallTools(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	env = s.m6WithRuntimes(env)
 	got := s.execute(ctx, command{program: s.binary, args: []string{m6SetupCommand, m6SurfaceAll}, dir: repo, env: env})
 	if err := success(got); err != nil {
 		return fmt.Errorf("install the surface tools: %w", err)
 	}
 	return nil
+}
+
+// m6WithRuntimes appends to the isolated PATH of env the directories of the
+// node and python3 the caller resolves: setup installs the npm and PyPI tools
+// on the person's own runtimes and the kit never installs either one. A
+// runtime the caller lacks stays absent, so setup reports it as missing.
+func (s *m6Suite) m6WithRuntimes(env []string) []string {
+	out := slices.Clone(env)
+	for _, name := range []string{"node", "python3"} {
+		path, err := s.lookup(name)
+		if err != nil {
+			continue
+		}
+		for i, entry := range out {
+			key, value, found := strings.Cut(entry, "=")
+			if found && strings.EqualFold(key, envPath) {
+				out[i] = pathAssignment + value + string(os.PathListSeparator) + filepath.Dir(path)
+			}
+		}
+	}
+	return out
 }
