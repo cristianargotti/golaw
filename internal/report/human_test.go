@@ -60,7 +60,7 @@ func TestHumanRendersPortugueseForEveryCode(t *testing.T) {
 	t.Parallel()
 	for _, family := range []map[string]string{
 		fileSentences(), goastSentences(), shellSentences(), commitSentences(),
-		policyLintSentences(), policyBuildSentences(), policyDepsSentences(), policyProfileSentences(),
+		policyLintSentences(), policyBuildSentences(), policyDepsSentences(), policyProfileSentences(), surfaceSentences(),
 	} {
 		for code, want := range family {
 			decision := engine.Decision{Mode: model.ModeHook, Verdict: engine.VerdictDeny, Findings: []model.Finding{

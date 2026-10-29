@@ -18,11 +18,12 @@ type Condition struct {
 // Each family of section 6 and the one capability its checks need.
 func familyConditions() map[string]Condition {
 	return map[string]Condition{
-		"text":   {Scope: model.ScopeFile},
-		"paths":  {Scope: model.ScopeFile},
-		"goast":  {Scope: model.ScopeFile, Needs: []string{"go"}},
-		"shell":  {Scope: model.ScopeEvent},
-		"commit": {Scope: model.ScopeCommit},
+		"text":    {Scope: model.ScopeFile},
+		"paths":   {Scope: model.ScopeFile},
+		"goast":   {Scope: model.ScopeFile, Needs: []string{"go"}},
+		"shell":   {Scope: model.ScopeEvent},
+		"commit":  {Scope: model.ScopeCommit},
+		"surface": {Scope: model.ScopeFile},
 	}
 }
 
