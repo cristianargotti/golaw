@@ -1,0 +1,10 @@
+# The strict set: yamllint's default rules, run with --strict. An OpenAPI
+# document keeps no line length law, and a key named on or yes is a key,
+# not a boolean.
+extends: default
+rules:
+  line-length:
+    ignore: |
+      **/api/**
+  truthy:
+    check-keys: false

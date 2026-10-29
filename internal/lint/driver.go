@@ -13,6 +13,10 @@ import (
 // report it.
 const SuppressedNote = "; suppressed in the source with a reason, which the pipeline's analyzer may not read"
 
+// configFlag is how ESLint, stylelint, hadolint and ruff take the kit
+// configuration file.
+const configFlag = "--config"
+
 // ToolTimeout bounds one tool in the lint target, so a hung tool fails CI
 // as Unmeasured instead of reaching the job deadline; the hook has its own
 // budgets.
@@ -58,13 +62,14 @@ type Driver struct {
 	Config fs.FS
 }
 
-// ToFinding turns an issue into a finding of the report. The Sonar key is
-// joined later from the rule map, and a suppressed issue is a note.
+// ToFinding turns an issue into a finding of the report, with the Sonar key
+// of its rule map row; a suppressed issue is a note.
 func ToFinding(i Issue) model.Finding {
 	f := model.Finding{
 		Check: "lint." + i.Tool, Rule: i.Tool + "/" + i.Rule, Path: i.Path, Line: i.Line, Column: i.Column,
 		Code: Code(i.Rule), Message: i.Message, Severity: model.SeverityFail,
 	}
+	f.Sonar, _ = SonarKey(i.Tool, i.Rule)
 	if i.Suppressed {
 		f.Severity, f.Message = model.SeverityNote, i.Message+SuppressedNote
 	}
