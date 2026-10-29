@@ -42,3 +42,35 @@ checks:
     code: no-duplicate-selectors
     red: ../testdata/web/parity/no-duplicate-selectors/red
     near: ../testdata/web/parity/no-duplicate-selectors/near
+  - id: lint.eslint-sonarjs-no-nested-functions
+    code: sonarjs-no-nested-functions
+    red: ../testdata/web/parity/sonarjs-no-nested-functions/red
+    near: ../testdata/web/parity/sonarjs-no-nested-functions/near
+  - id: lint.eslint-sonarjs-function-return-type
+    code: sonarjs-function-return-type
+    red: ../testdata/web/parity/sonarjs-function-return-type/red
+    near: ../testdata/web/parity/sonarjs-function-return-type/near
+  - id: lint.eslint-sonarjs-regex-complexity
+    code: sonarjs-regex-complexity
+    red: ../testdata/web/parity/sonarjs-regex-complexity/red
+    near: ../testdata/web/parity/sonarjs-regex-complexity/near
+  - id: lint.eslint-sonarjs-concise-regex
+    code: sonarjs-concise-regex
+    red: ../testdata/web/parity/sonarjs-concise-regex/red
+    near: ../testdata/web/parity/sonarjs-concise-regex/near
+  - id: lint.eslint-sonarjs-pseudo-random
+    code: sonarjs-pseudo-random
+    red: ../testdata/web/parity/sonarjs-pseudo-random/red
+    near: ../testdata/web/parity/sonarjs-pseudo-random/near
+  - id: lint.eslint-sonarjs-disabled-resource-integrity
+    code: sonarjs-disabled-resource-integrity
+    red: ../testdata/web/parity/sonarjs-disabled-resource-integrity/red
+    near: ../testdata/web/parity/sonarjs-disabled-resource-integrity/near
+  - id: lint.eslint-sonarjs-deprecation
+    code: sonarjs-deprecation
+    red: ../testdata/web/parity/sonarjs-deprecation/red
+    near: ../testdata/web/parity/sonarjs-deprecation/near
+  - id: lint.eslint-sonarjs-prefer-read-only-props
+    code: sonarjs-prefer-read-only-props
+    red: ../testdata/web/parity/sonarjs-prefer-read-only-props/red
+    near: ../testdata/web/parity/sonarjs-prefer-read-only-props/near

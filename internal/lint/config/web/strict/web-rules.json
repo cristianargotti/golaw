@@ -10,9 +10,17 @@
         "error",
         15
       ],
+      "sonarjs/concise-regex": "error",
+      "sonarjs/deprecation": "error",
+      "sonarjs/disabled-resource-integrity": "error",
+      "sonarjs/function-return-type": "error",
       "sonarjs/no-extra-arguments": "error",
       "sonarjs/no-nested-conditional": "error",
+      "sonarjs/no-nested-functions": "error",
       "sonarjs/no-unenclosed-multiline-block": "error",
+      "sonarjs/prefer-read-only-props": "error",
+      "sonarjs/pseudo-random": "error",
+      "sonarjs/regex-complexity": "error",
       "sonarjs/unused-import": "error",
       "unicorn/prefer-global-this": "error"
     }
