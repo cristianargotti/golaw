@@ -30,7 +30,7 @@ func m6AcceptanceRows() map[string][]string {
 // report, a SKIP that names its cause, or the statement that no native
 // run exists.
 func m6Cell(cell string) bool {
-	if strings.HasPrefix(cell, "SKIP, ") && len(strings.TrimPrefix(cell, "SKIP, ")) > 0 {
+	if strings.HasPrefix(cell, "SKIP, ") && strings.TrimPrefix(cell, "SKIP, ") != "" {
 		return true
 	}
 	for _, status := range []string{"PASS", "FAIL", "not run"} {
@@ -55,21 +55,29 @@ func m6RecordFits(text string) error {
 	}
 	for category, names := range m6AcceptanceRows() {
 		for _, name := range names {
-			prefix := "| " + category + "/" + name + " |"
-			if strings.Count(text, prefix) != 1 {
-				return fmt.Errorf("%w: row %s/%s must occur once", errM6Record, category, name)
+			if err := m6RowFits(text, category, name); err != nil {
+				return err
 			}
-			_, line, _ := strings.Cut(text, prefix)
-			line, _, _ = strings.Cut(line, "\n")
-			cells := strings.Split(strings.TrimSuffix(line, "|"), "|")
-			if len(cells) != 3 {
-				return fmt.Errorf("%w: row %s/%s needs a Linux, a macOS and a Windows cell", errM6Record, category, name)
-			}
-			for _, cell := range cells {
-				if !m6Cell(strings.TrimSpace(cell)) {
-					return fmt.Errorf("%w: row %s/%s holds %q", errM6Record, category, name, strings.TrimSpace(cell))
-				}
-			}
+		}
+	}
+	return nil
+}
+
+// m6RowFits holds one required row to a single line with three valid cells.
+func m6RowFits(text, category, name string) error {
+	prefix := "| " + category + "/" + name + " |"
+	if strings.Count(text, prefix) != 1 {
+		return fmt.Errorf("%w: row %s/%s must occur once", errM6Record, category, name)
+	}
+	_, line, _ := strings.Cut(text, prefix)
+	line, _, _ = strings.Cut(line, "\n")
+	cells := strings.Split(strings.TrimSuffix(line, "|"), "|")
+	if len(cells) != 3 {
+		return fmt.Errorf("%w: row %s/%s needs a Linux, a macOS and a Windows cell", errM6Record, category, name)
+	}
+	for _, cell := range cells {
+		if !m6Cell(strings.TrimSpace(cell)) {
+			return fmt.Errorf("%w: row %s/%s holds %q", errM6Record, category, name, strings.TrimSpace(cell))
 		}
 	}
 	return nil
