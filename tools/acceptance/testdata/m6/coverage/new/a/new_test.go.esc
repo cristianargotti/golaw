@@ -1,0 +1,14 @@
+package a_test
+
+import (
+	"testing"
+
+	"example.test/cov/a"
+	"example.test/cov/b"
+)
+
+func TestSumSignAndDouble(t *testing.T) {
+	if a.Sum([]int{1}) != 1 || a.Sign(1) != "positive" || b.Double(2) != 4 {
+		t.Fatal("the fixture arithmetic is wrong")
+	}
+}

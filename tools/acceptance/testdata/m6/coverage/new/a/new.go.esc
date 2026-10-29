@@ -1,0 +1,18 @@
+package a
+
+// Sum adds the parts.
+func Sum(parts []int) int {
+	total := 0
+	for _, p := range parts {
+		total += p
+	}
+	return total
+}
+
+// Sign names the sign of x.
+func Sign(x int) string {
+	if x < 0 {
+		return "negative"
+	}
+	return "positive"
+}

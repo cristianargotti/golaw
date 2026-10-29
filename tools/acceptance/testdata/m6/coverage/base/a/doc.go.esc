@@ -1,0 +1,2 @@
+// Package a holds the arithmetic of the coverage fixture.
+package a
