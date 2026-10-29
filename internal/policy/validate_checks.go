@@ -46,7 +46,7 @@ func (c *Coverage) validate() error {
 	if c == nil {
 		return nil
 	}
-	percentages := map[string]*int{"total": c.Total, "package": c.Package, "file": c.File}
+	percentages := map[string]*int{"total": c.Total, "package": c.Package, "file": c.File, "new_code": c.NewCode}
 	for _, name := range slices.Sorted(maps.Keys(percentages)) {
 		if err := within("checks.coverage."+name, percentages[name], DefaultCoverage, percentCap); err != nil {
 			return err

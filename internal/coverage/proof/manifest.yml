@@ -3,3 +3,7 @@ checks:
     code: coverage-floor
     red: testdata/coverage.floors/red
     near: testdata/coverage.floors/near
+  - id: coverage.new-code
+    code: coverage-new-code
+    red: testdata/coverage.new-code/red
+    near: testdata/coverage.new-code/near
