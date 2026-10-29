@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/runnertest"
+	"github.com/cristianargotti/golaw/internal/surface"
 	"github.com/cristianargotti/golaw/internal/toolchain"
 )
 
@@ -74,4 +75,24 @@ func OnPath(tb testing.TB, dir string, t toolchain.Tool, version string, b runne
 	}
 	b.Probe, b.Version = t.Probe, version
 	return runnertest.Install(tb, dir, name, b)
+}
+
+// InstallFor installs, with their receipts, a fake of every pinned tool
+// the languages need, as setup --surface would for a repository holding
+// them, and answers the paths by tool name.
+func InstallFor(tb testing.TB, dir string, langs []surface.Language, goos, goarch string, b runnertest.Behavior) map[string]string {
+	tb.Helper()
+	paths := make(map[string]string)
+	tools := toolchain.ForLanguages(langs)
+	for i := range tools {
+		paths[tools[i].Name] = Install(tb, dir, tools[i], goos, goarch, b)
+	}
+	return paths
+}
+
+// Calls answers the argument lists the fake at path was started with, in
+// order, whatever executable suffix the platform gave it.
+func Calls(tb testing.TB, path string) [][]string {
+	tb.Helper()
+	return runnertest.Calls(tb, filepath.Dir(path), strings.TrimSuffix(filepath.Base(path), ".exe"))
 }

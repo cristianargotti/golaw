@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/runner"
 )
@@ -35,6 +36,11 @@ const (
 	// outside its bounds, which the kit never installs.
 	StateRuntime State = "runtime-missing"
 )
+
+// probeTimeout bounds a version probe the caller gave no runner for; a
+// probe answers in well under a second, and the bound is far above that so
+// a loaded machine never reads a slow start as a missing tool.
+const probeTimeout = 30 * time.Second
 
 // fix is the one action that turns every unusable state into a usable one.
 const fix = "run golaw setup --surface"
@@ -64,7 +70,7 @@ type Resolver struct {
 	GOOS   string   // the target the layout names
 	GOARCH string   // the target the layout names
 	Env    []string // the PATH a lookup and a probe use; never the process's own
-	// Run starts a probe; nil is runner.Run.
+	// Run starts a probe; nil runs it through Exec under probeTimeout.
 	Run func(context.Context, runner.Command) (runner.Output, error)
 }
 
@@ -160,12 +166,18 @@ func (r Resolver) onPath(ctx context.Context, t Tool, why Resolved) Resolved {
 	return missing(t, fmt.Sprintf("%s %s is not installed: PATH has %s answering %q; %s", t.Name, t.Version, path, firstLine(out), fix))
 }
 
+// run starts a probe through r.Run, or else through Exec under
+// probeTimeout, so a tool on PATH that never answers its version cannot
+// hold lint or doctor.
 func (r Resolver) run(ctx context.Context, c runner.Command) (runner.Output, error) {
-	run := r.Run
-	if run == nil {
-		run = runner.Run
+	if r.Run != nil {
+		return r.Run(ctx, c)
 	}
-	return run(ctx, c)
+	got, err := Exec(ctx, Request{Path: c.Name, Args: c.Args, Dir: c.Dir, Env: c.Env, Timeout: probeTimeout})
+	if err == nil && got.Killed {
+		return got.Output, fmt.Errorf("%w: %s within %v", ErrProbe, c.Name, probeTimeout)
+	}
+	return got.Output, err
 }
 
 func missing(t Tool, detail string) Resolved {
