@@ -1,0 +1,44 @@
+# The proof of the public web rule map: one entry per row of
+# rulemap/web.yml; the red tree yields the row's code and the near tree does
+# not (web_rows_internal_test.go).
+checks:
+  - id: lint.eslint-sonarjs-no-unenclosed-multiline-block
+    code: sonarjs-no-unenclosed-multiline-block
+    red: ../testdata/web/frame/sonarjs-no-unenclosed-multiline-block/red
+    near: ../testdata/web/frame/sonarjs-no-unenclosed-multiline-block/near
+  - id: lint.eslint-sonarjs-code-eval
+    code: sonarjs-code-eval
+    red: ../testdata/web/frame/sonarjs-code-eval/red
+    near: ../testdata/web/frame/sonarjs-code-eval/near
+  - id: lint.eslint-sonarjs-unused-import
+    code: sonarjs-unused-import
+    red: ../testdata/web/parity/sonarjs-unused-import/red
+    near: ../testdata/web/parity/sonarjs-unused-import/near
+  - id: lint.eslint-react-no-array-index-key
+    code: react-no-array-index-key
+    red: ../testdata/web/parity/react-no-array-index-key/red
+    near: ../testdata/web/parity/react-no-array-index-key/near
+  - id: lint.eslint-sonarjs-no-nested-conditional
+    code: sonarjs-no-nested-conditional
+    red: ../testdata/web/parity/sonarjs-no-nested-conditional/red
+    near: ../testdata/web/parity/sonarjs-no-nested-conditional/near
+  - id: lint.eslint-sonarjs-cognitive-complexity
+    code: sonarjs-cognitive-complexity
+    red: ../testdata/web/parity/sonarjs-cognitive-complexity/red
+    near: ../testdata/web/parity/sonarjs-cognitive-complexity/near
+  - id: lint.eslint-unicorn-prefer-global-this
+    code: unicorn-prefer-global-this
+    red: ../testdata/web/parity/unicorn-prefer-global-this/red
+    near: ../testdata/web/parity/unicorn-prefer-global-this/near
+  - id: lint.eslint-jsx-a11y-prefer-tag-over-role
+    code: jsx-a11y-prefer-tag-over-role
+    red: ../testdata/web/parity/jsx-a11y-prefer-tag-over-role/red
+    near: ../testdata/web/parity/jsx-a11y-prefer-tag-over-role/near
+  - id: lint.eslint-sonarjs-no-extra-arguments
+    code: sonarjs-no-extra-arguments
+    red: ../testdata/web/parity/sonarjs-no-extra-arguments/red
+    near: ../testdata/web/parity/sonarjs-no-extra-arguments/near
+  - id: lint.stylelint-no-duplicate-selectors
+    code: no-duplicate-selectors
+    red: ../testdata/web/parity/no-duplicate-selectors/red
+    near: ../testdata/web/parity/no-duplicate-selectors/near

@@ -1,0 +1,35 @@
+# The proof of the strict web set: each red tree yields its code under the
+# strict set and each near tree does not (web_strict_internal_test.go).
+checks:
+  - id: lint.eslint-curly
+    code: curly
+    red: strict/curly/red
+    near: strict/curly/near
+  - id: lint.eslint-max-lines-per-function
+    code: max-lines-per-function
+    red: strict/max-lines-per-function/red
+    near: strict/max-lines-per-function/near
+  - id: lint.eslint-typescript-eslint-no-unnecessary-condition
+    code: typescript-eslint-no-unnecessary-condition
+    red: strict/typescript-eslint-no-unnecessary-condition/red
+    near: strict/typescript-eslint-no-unnecessary-condition/near
+  - id: lint.eslint-html-eslint-require-lang
+    code: html-eslint-require-lang
+    red: strict/html-eslint-require-lang/red
+    near: strict/html-eslint-require-lang/near
+  - id: lint.eslint-security-detect-non-literal-regexp
+    code: security-detect-non-literal-regexp
+    red: strict/security-detect-non-literal-regexp/red
+    near: strict/security-detect-non-literal-regexp/near
+  - id: lint.eslint-unicorn-prefer-node-protocol
+    code: unicorn-prefer-node-protocol
+    red: strict/unicorn-prefer-node-protocol/red
+    near: strict/unicorn-prefer-node-protocol/near
+  - id: lint.eslint-jsx-a11y-alt-text
+    code: jsx-a11y-alt-text
+    red: strict/jsx-a11y-alt-text/red
+    near: strict/jsx-a11y-alt-text/near
+  - id: lint.stylelint-color-hex-length
+    code: color-hex-length
+    red: strict/color-hex-length/red
+    near: strict/color-hex-length/near

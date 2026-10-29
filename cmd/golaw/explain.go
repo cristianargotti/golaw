@@ -25,17 +25,32 @@ func (a *app) configCommand() *cobra.Command {
 		Use:   "explain [path]",
 		Short: "Print every value of the policy in force and where it comes from",
 		Args:  cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			text, err := a.explain(cmd.Context(), rootArg(args), a.now())
-			if err != nil {
-				return fmt.Errorf("config explain: %w", err)
-			}
-			if _, err := io.WriteString(cmd.OutOrStdout(), text); err != nil {
-				return fmt.Errorf("config explain: write output: %w", err)
-			}
-			return nil
-		},
+		RunE:  a.runExplain,
 	}
 	config.AddCommand(explain)
 	return config
+}
+
+// explainFailed prefixes every failure of config explain.
+const explainFailed = "config explain: %w"
+
+// runExplain prints the policy lines, then the surface lines of M6.3.2:
+// the analyzer scope in force, the languages and the project shape.
+func (a *app) runExplain(cmd *cobra.Command, args []string) error {
+	root, now := rootArg(args), a.now()
+	text, err := a.explain(cmd.Context(), root, now)
+	if err != nil {
+		return fmt.Errorf(explainFailed, err)
+	}
+	lines, err := a.explainSurface(cmd.Context(), root, now)
+	if err != nil {
+		return fmt.Errorf(explainFailed, err)
+	}
+	if _, err := io.WriteString(cmd.OutOrStdout(), text); err != nil {
+		return fmt.Errorf("config explain: write output: %w", err)
+	}
+	if err := writeLines(cmd.OutOrStdout(), lines); err != nil {
+		return fmt.Errorf(explainFailed, err)
+	}
+	return nil
 }
