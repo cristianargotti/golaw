@@ -1,0 +1,6 @@
+- sonar: "python:S1523"
+  tool: ruff
+  rule: S307
+  where: [H, L]
+  match: close
+  set: parity

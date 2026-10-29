@@ -1,0 +1,20 @@
+# The parity set: hadolint's default rules at warning and above. Its JSON
+# lists every level whatever the threshold says, so the info and style rules
+# of the hadolint 2.15.1 rules table are ignored by name; DL3015 carries
+# docker:S6500 and rises to warning.
+failure-threshold: warning
+override:
+  warning:
+    - DL3015
+ignored:
+  - DL3001
+  - DL3009
+  - DL3010
+  - DL3019
+  - DL3047
+  - DL3048
+  - DL3049
+  - DL3050
+  - DL3059
+  - DL3060
+  - DL3066

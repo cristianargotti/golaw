@@ -37,7 +37,7 @@ func (a *app) doctorCommand() *cobra.Command {
 			return a.doctor(cmd.Context(), cmd.OutOrStdout(), rootArg(args), opts)
 		},
 	}
-	cmd.Flags().BoolVar(&opts.asJSON, "json", false, "print the JSON report, one document per agent")
+	cmd.Flags().BoolVar(&opts.asJSON, jsonFlag, false, "print the JSON report, one document per agent")
 	cmd.Flags().StringVar(&opts.scope, "scope", scopeUser, "the installation scope to inspect: "+scopeUser+" or "+scopeProject)
 	cmd.Flags().StringVar(&opts.release, "release", "", "verify the running binary against checksums.txt, its bundle and the attestation downloaded into this directory")
 	cmd.Flags().StringVar(&opts.trustRoot, "trust-root", "", "verify against the roots.crt and rekor.pub of this directory instead of the embedded trust root")

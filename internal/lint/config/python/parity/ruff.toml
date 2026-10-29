@@ -1,0 +1,25 @@
+# The parity set: the ruff codes whose Sonar way counterpart is exact or
+# close (rulemap/python.yml) and nothing else, so a finding here is one the
+# pipeline's analyzer also raises. The kit passes this file with --config,
+# which ruff uses for every file in place of any repository configuration.
+[lint]
+select = [
+  "BLE001",
+  "C420",
+  "C901",
+  "E722",
+  "PLR0912",
+  "S102",
+  "S105",
+  "S106",
+  "S107",
+  "S307",
+]
+
+# python:S3776 is cognitive complexity at 15; C901 measures cyclomatic
+# complexity, and 10 is where the hub's measured files first diverge.
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-branches = 12
