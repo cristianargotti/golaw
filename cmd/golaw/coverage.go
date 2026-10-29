@@ -18,6 +18,9 @@ import (
 type coverageOptions struct {
 	Input      string
 	PlainInput string
+	Base       string
+	NewCode    bool
+	SinceTag   bool
 	Floors     coverage.Floors
 	Set        map[string]bool
 }
@@ -46,19 +49,28 @@ func (a *app) coverageCommand() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.Set = make(map[string]bool)
-			for _, name := range []string{coverageTotalFlag, coveragePackageFlag, coverageFileFlag, coverageMinimumFlag} {
+			for _, name := range coverageRecordedFlags() {
 				options.Set[name] = cmd.Flags().Changed(name)
+			}
+			switch {
+			case options.NewCode:
+				return a.runCoverageNew(cmd.Context(), cmd.OutOrStdout(), rootArg(args), options)
+			case options.Base != "" || options.SinceTag:
+				return fmt.Errorf("%w: --base and --since-tag need --new-code", model.ErrUsage)
 			}
 			return a.runCoverage(cmd.Context(), cmd.OutOrStdout(), rootArg(args), options)
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&options.Input, "input", "", "coverage profile to evaluate (required)")
-	flags.StringVar(&options.PlainInput, "plain-input", "", "second coverage profile to evaluate independently")
+	flags.StringVar(&options.Input, "input", "", "coverage profile to evaluate (required); with --new-code, default the report the analyzer scope names")
+	flags.StringVar(&options.PlainInput, coveragePlainFlag, "", "second coverage profile to evaluate independently")
 	flags.Float64Var(&options.Floors.Total, coverageTotalFlag, options.Floors.Total, "tighten the total coverage floor")
 	flags.Float64Var(&options.Floors.Package, coveragePackageFlag, options.Floors.Package, "tighten the package coverage floor")
 	flags.Float64Var(&options.Floors.File, coverageFileFlag, options.Floors.File, "tighten the file coverage floor")
 	flags.IntVar(&options.Floors.MinStatements, coverageMinimumFlag, options.Floors.MinStatements, "lower the statement minimum")
+	flags.BoolVar(&options.NewCode, coverageNewCodeFlag, false, "measure coverage on new code the way the pipeline's gate does")
+	flags.StringVar(&options.Base, coverageBaseFlag, "", "the base of a pull request; default the merge base with the remote default branch")
+	flags.BoolVar(&options.SinceTag, coverageSinceTagFlag, false, "measure since the last tag reachable from HEAD")
 	return cmd
 }
 
