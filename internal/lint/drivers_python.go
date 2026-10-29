@@ -7,9 +7,6 @@ import (
 	"github.com/cristianargotti/golaw/internal/surface"
 )
 
-// configFlag is shared by every driver whose tool takes its config path after --config.
-const configFlag = "--config"
-
 const (
 	pythonRuff    = "ruff"
 	pythonPyright = "pyright"
