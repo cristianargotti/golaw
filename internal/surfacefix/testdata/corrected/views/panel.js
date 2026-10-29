@@ -4,10 +4,7 @@ export function label(count) {
   if (count === 0) {
     return "empty";
   }
-  if (count > manyRows) {
-    return "many";
-  }
-  return "some";
+  return count > manyRows ? "many" : "some";
 }
 
 export function show(state, rows) {

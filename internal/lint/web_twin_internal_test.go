@@ -33,3 +33,20 @@ func TestWebTwinYieldsTheExpectedFindings(t *testing.T) {
 		})
 	}
 }
+
+// TestTheCorrectedTwinIsCleanUnderTheStrictWebSet: under strict the
+// corrected twin yields no web finding at all, expected or not, so the set
+// init selects never reds a tree the kit itself calls clean.
+func TestTheCorrectedTwinIsCleanUnderTheStrictWebSet(t *testing.T) {
+	t.Parallel()
+	corrected := webTwin(t, surfacefix.Corrected)
+	for _, d := range webDrivers() {
+		t.Run(d.Tool, func(t *testing.T) {
+			t.Parallel()
+			dir := webMaterialize(t, d, model.SurfaceStrict)
+			for _, issue := range webIssues(t, d, webToolPath(t, d.Tool), dir, model.SurfaceStrict, corrected) {
+				t.Errorf("%s:%d %s/%s %s", issue.Path, issue.Line, issue.Tool, issue.Rule, issue.Message)
+			}
+		})
+	}
+}
