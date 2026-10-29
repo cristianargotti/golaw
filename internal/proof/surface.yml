@@ -6,3 +6,7 @@ checks:
     code: code-eval
     red: testdata/surface.code-eval/red
     near: testdata/surface.code-eval/near
+  - id: surface.hardcoded-credential
+    code: hardcoded-credential
+    red: testdata/surface.hardcoded-credential/red
+    near: testdata/surface.hardcoded-credential/near
