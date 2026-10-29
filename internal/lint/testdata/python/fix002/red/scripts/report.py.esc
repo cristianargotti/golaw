@@ -1,0 +1,7 @@
+"""Sections of the report."""
+
+
+def sections(rows: list[str]) -> list[str]:
+    """Answer the sections of the report."""
+    # T\u004fDO: split the report by section.
+    return rows

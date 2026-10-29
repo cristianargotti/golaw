@@ -1,23 +1,71 @@
 {
   "eslint": {
     "jsx": {
+      "jsx-a11y/no-noninteractive-tabindex": "error",
       "jsx-a11y/prefer-tag-over-role": "error",
       "react/no-array-index-key": "error"
     },
     "script": {
+      "@typescript-eslint/default-param-last": "error",
+      "@typescript-eslint/no-base-to-string": "error",
+      "@typescript-eslint/no-empty-function": "error",
+      "@typescript-eslint/no-unnecessary-type-assertion": "error",
       "sonarjs/code-eval": "error",
       "sonarjs/cognitive-complexity": [
         "error",
         15
       ],
+      "sonarjs/concise-regex": "error",
+      "sonarjs/deprecation": "error",
+      "sonarjs/disabled-resource-integrity": "error",
+      "sonarjs/function-return-type": "error",
+      "sonarjs/no-clear-text-protocols": "error",
+      "sonarjs/no-dead-store": "error",
+      "sonarjs/no-duplicated-branches": "error",
       "sonarjs/no-extra-arguments": "error",
+      "sonarjs/no-gratuitous-expressions": "error",
+      "sonarjs/no-hardcoded-ip": "error",
+      "sonarjs/no-hardcoded-passwords": "error",
+      "sonarjs/no-identical-functions": "error",
+      "sonarjs/no-ignored-exceptions": "error",
       "sonarjs/no-nested-conditional": "error",
+      "sonarjs/no-nested-functions": "error",
+      "sonarjs/no-nested-template-literals": "error",
       "sonarjs/no-unenclosed-multiline-block": "error",
+      "sonarjs/no-unused-vars": "error",
+      "sonarjs/prefer-read-only-props": "error",
+      "sonarjs/pseudo-random": "error",
+      "sonarjs/regex-complexity": "error",
+      "sonarjs/slow-regex": "error",
+      "sonarjs/todo-tag": "error",
       "sonarjs/unused-import": "error",
-      "unicorn/prefer-global-this": "error"
+      "sonarjs/void-use": "error",
+      "unicorn/dom-node-dataset": "error",
+      "unicorn/prefer-code-point": "error",
+      "unicorn/prefer-global-this": "error",
+      "unicorn/prefer-includes": "error",
+      "unicorn/prefer-string-replace-all": "error",
+      "unicorn/prefer-structured-clone": "error",
+      "unicorn/prefer-top-level-await": "error",
+      "unicorn/require-module-specifiers": "error"
     }
   },
   "stylelint": {
-    "no-duplicate-selectors": true
+    "at-rule-no-unknown": true,
+    "block-no-empty": true,
+    "color-no-invalid-hex": true,
+    "comment-no-empty": true,
+    "declaration-block-no-duplicate-properties": true,
+    "declaration-block-no-shorthand-property-overrides": true,
+    "font-family-no-duplicate-names": true,
+    "font-family-no-missing-generic-family-keyword": true,
+    "function-calc-no-unspaced-operator": true,
+    "no-descending-specificity": true,
+    "no-duplicate-selectors": true,
+    "no-empty-source": true,
+    "property-no-unknown": true,
+    "selector-pseudo-class-no-unknown": true,
+    "selector-pseudo-element-no-unknown": true,
+    "unit-no-unknown": true
   }
 }
