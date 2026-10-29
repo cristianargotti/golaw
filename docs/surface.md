@@ -244,7 +244,7 @@ The certain checks deny only a violation the candidate introduces, and their rea
 
 ## The lint and CI targets
 
-golaw lint --surface runs every pinned tool for the languages the snapshot holds over the files of the analyzer scope, test files under the main-code rules when the scope names no tests, and reports in the text and JSON shapes of golaw scan with the Sonar key of each mapped finding. It exits 0 clean, 1 with findings, and 2 when a required tool is missing or a file is left unmeasured, because the lint target and CI never answer clean without measuring. The golaw.mk of an adopted repository gains lint-surface and coverage-new, and its CI template a surface job that runs golaw setup --surface cached by the toolchain digest.
+golaw lint --surface runs every pinned tool for the languages the snapshot holds over the files of the analyzer scope, test files under the main-code rules when the scope names no tests, and reports in the text and JSON shapes of golaw scan with the Sonar key of each mapped finding. It exits 0 clean, 1 with findings, and 2 when a required tool is missing or a file is left unmeasured, because the lint target and CI never answer clean without measuring. The golaw.mk of an adopted repository gains lint-surface and coverage-new, and its CI template a surface job that runs golaw setup --surface with the tool directory cached by the kit version, which pins one toolchain.
 
 ## Coverage on new code
 
