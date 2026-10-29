@@ -157,6 +157,39 @@ Seven generic checks of the core read the data of a profile. A profile needing n
 
 Unsupported syntax or unavailable external evidence is Unmeasured, never a text match. A text match over a construct the reader does not understand would give false findings and false clean results alike, so the check states its limit instead. A verdict that depends on a construct outside the declared subset names the file, line and construct as a stated limit. Unrelated unsupported syntax does not broaden the reader. An armed rung names the limit and leaves it to the pipeline; a required unmeasured result cannot establish a clean remote result and is not itself a finding.
 
+## Analyzer scope and Sonar way snapshots
+
+A bundle may carry two more data files, both data and never code, both covered by the bundle digest. Each is read only when the bundle carries it; a bundle without them changes nothing.
+
+analyzer.yml describes the remote analyzer of the platform that adopts the profile: the keys of surface.analyzer in golaw.yml (sources, tests, test_inclusions, exclusions, coverage_exclusions, coverage_report), and coverage_profile names how the pipeline's test step writes its report. Under surface.analyzer.from: auto it wins over the repository's own sonar-project.properties, because a platform pipeline may delete that file before it scans. A company's exclusion list lives here, in its private profile, and never in the public tree. The analyzer scope decides which files golaw lint reads and which lines count for golaw coverage --new-code; it never relaxes a core law.
+
+```yaml
+exclusions:
+  - "**/*_test.go"
+  - "integration/**"
+  - "**/testdata/**"
+coverage_exclusions: []
+coverage_report: profile.cov
+coverage_profile:
+  coverpkg: false
+  covermode: set
+```
+
+sonar-way/<language>.yml is a snapshot of the active Sonar way rules of one server for one language, with the day it was read; the language is the Sonar language key (js, ts, css, py, docker, cloudformation, web). The parity sets of ESLint, ruff and stylelint follow it: a rule the snapshot activates joins the local parity set, and a rule it leaves out stays outside parity. The public kit ships only the map derived from public sources, the pinned plugin's recommended set and its README tables.
+
+```yaml
+read: 2026-10-27
+rules:
+  - key: S2681
+    severity: MAJOR
+    params: {}
+  - key: S125
+    severity: MAJOR
+    params: {}
+```
+
+A snapshot is as fresh as its read date: a server upgrade that activates a rule reaches the profile only when its owner reads the server again and releases a new bundle version, and an exclusion list the platform changes is a silent drift until the profile follows it.
+
 ## Remote gate and local choice
 
 A profile's remote gate is whatever the adopting platform runs. Without a remote stage, automatic kit checks run only on machines whose developers armed them. Optional manual scans such as `golaw scan .` remain available without arming git hooks; their results describe that scan, not remote enforcement. Agent guards are separately opted into by installation.
