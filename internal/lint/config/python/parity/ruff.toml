@@ -5,6 +5,8 @@
 [lint]
 select = [
   "BLE001",
+  "C402",
+  "C408",
   "C420",
   "C901",
   "E722",
@@ -13,7 +15,16 @@ select = [
   "S105",
   "S106",
   "S107",
+  "S108",
+  "S202",
   "S307",
+  "S311",
+  "S324",
+  "S501",
+  "S602",
+  "S605",
+  "S608",
+  "S701",
 ]
 
 # python:S3776 is cognitive complexity at 15; C901 measures cyclomatic

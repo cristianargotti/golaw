@@ -32,6 +32,18 @@ checks:
       near: ../testdata/python/s107/near,
     }
   - {
+      id: lint.ruff-s608,
+      code: s608,
+      red: ../testdata/python/s608/red,
+      near: ../testdata/python/s608/near,
+    }
+  - {
+      id: lint.ruff-s311,
+      code: s311,
+      red: ../testdata/python/s311/red,
+      near: ../testdata/python/s311/near,
+    }
+  - {
       id: lint.ruff-c901,
       code: c901,
       red: ../testdata/python/c901/red,
@@ -44,6 +56,48 @@ checks:
       near: ../testdata/python/plr0912/near,
     }
   - {
+      id: lint.ruff-s602,
+      code: s602,
+      red: ../testdata/python/s602/red,
+      near: ../testdata/python/s602/near,
+    }
+  - {
+      id: lint.ruff-s605,
+      code: s605,
+      red: ../testdata/python/s605/red,
+      near: ../testdata/python/s605/near,
+    }
+  - {
+      id: lint.ruff-s324,
+      code: s324,
+      red: ../testdata/python/s324/red,
+      near: ../testdata/python/s324/near,
+    }
+  - {
+      id: lint.ruff-s501,
+      code: s501,
+      red: ../testdata/python/s501/red,
+      near: ../testdata/python/s501/near,
+    }
+  - {
+      id: lint.ruff-s202,
+      code: s202,
+      red: ../testdata/python/s202/red,
+      near: ../testdata/python/s202/near,
+    }
+  - {
+      id: lint.ruff-s701,
+      code: s701,
+      red: ../testdata/python/s701/red,
+      near: ../testdata/python/s701/near,
+    }
+  - {
+      id: lint.ruff-s108,
+      code: s108,
+      red: ../testdata/python/s108/red,
+      near: ../testdata/python/s108/near,
+    }
+  - {
       id: lint.ruff-ble001,
       code: ble001,
       red: ../testdata/python/ble001/red,
@@ -54,6 +108,18 @@ checks:
       code: e722,
       red: ../testdata/python/e722/red,
       near: ../testdata/python/e722/near,
+    }
+  - {
+      id: lint.ruff-c402,
+      code: c402,
+      red: ../testdata/python/c402/red,
+      near: ../testdata/python/c402/near,
+    }
+  - {
+      id: lint.ruff-c408,
+      code: c408,
+      red: ../testdata/python/c408/red,
+      near: ../testdata/python/c408/near,
     }
   - {
       id: lint.ruff-c420,

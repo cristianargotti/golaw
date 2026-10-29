@@ -44,6 +44,22 @@
     set: parity,
   }
 - {
+    sonar: "python:S2077",
+    tool: ruff,
+    rule: S608,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S2245",
+    tool: ruff,
+    rule: S311,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
     sonar: "python:S3776",
     tool: ruff,
     rule: C901,
@@ -60,6 +76,62 @@
     set: parity,
   }
 - {
+    sonar: "python:S4721",
+    tool: ruff,
+    rule: S602,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S4721",
+    tool: ruff,
+    rule: S605,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S4790",
+    tool: ruff,
+    rule: S324,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S4830",
+    tool: ruff,
+    rule: S501,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S5042",
+    tool: ruff,
+    rule: S202,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S5247",
+    tool: ruff,
+    rule: S701,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S5443",
+    tool: ruff,
+    rule: S108,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
     sonar: "python:S5754",
     tool: ruff,
     rule: BLE001,
@@ -71,6 +143,22 @@
     sonar: "python:S5754",
     tool: ruff,
     rule: E722,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S7494",
+    tool: ruff,
+    rule: C402,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S7494",
+    tool: ruff,
+    rule: C408,
     where: [H, L],
     match: close,
     set: parity,
