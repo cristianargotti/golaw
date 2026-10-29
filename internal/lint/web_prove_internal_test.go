@@ -142,14 +142,20 @@ func webMaterialize(t *testing.T, d Driver, set string) string {
 // over the files of its languages, with the root as the working directory.
 func webIssues(t *testing.T, d Driver, path, configDir, set string, files map[string][]byte) []Issue {
 	t.Helper()
-	root := t.TempDir()
+	// The tools report real paths, and a temporary directory behind a link
+	// (/var on macOS) would leave every issue path absolute; golaw lint gets
+	// its root from git, which resolves the link the same way.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	var read []string
 	for name, data := range files {
 		target := filepath.Join(root, filepath.FromSlash(name))
-		if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
+		if err = os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(target, data, 0o600); err != nil {
+		if err = os.WriteFile(target, data, 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if language, ok := surface.ByName(name); ok && slices.Contains(d.Languages, language) {

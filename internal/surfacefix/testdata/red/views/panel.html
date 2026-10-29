@@ -57,7 +57,7 @@ function show(state, rows) {
   return classify(rows, 10, false);
 }
 
-window.addEventListener("load", function () {
+window.addEventListener("DOMContentLoaded", function () {
   const state = document.getElementById("state");
   show(state, []);
   render({ title: "panel" }, state);

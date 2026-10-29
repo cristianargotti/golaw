@@ -7,6 +7,7 @@ import path from 'node:path'
 import { load } from './golaw-load.mjs'
 
 export const SCRIPT_FILES = ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}']
+const SCRIPT_EXTENSIONS = ['.js', '.mjs', '.cjs', '.jsx', '.ts', '.mts', '.cts', '.tsx']
 export const JSX_FILES = ['**/*.{jsx,tsx}']
 export const TS_FILES = ['**/*.{ts,mts,cts,tsx}']
 export const HTML_FILES = ['**/*.{html,htm}']
@@ -21,11 +22,16 @@ const rules = JSON.parse(readFileSync(path.join(here, 'web-rules.json'), 'utf8')
 
 // The include globs of the kit program resolve from the working directory,
 // so every script of the repository is in the program the typed rules read.
+// The configuration parser keeps one file of each base name (panel.js hides
+// panel.jsx) and ESLint then fails to parse the hidden one, so the root names
+// come from the same globs read without that rule.
 function program(ts) {
   const file = path.join(here, 'tsconfig.golaw.json')
   const read = ts.readConfigFile(file, ts.sys.readFile)
   const parsed = ts.parseJsonConfigFileContent(read.config, ts.sys, process.cwd())
-  return ts.createProgram({ rootNames: parsed.fileNames, options: parsed.options })
+  const scripts = ts.sys.readDirectory(process.cwd(), SCRIPT_EXTENSIONS, read.config.exclude, read.config.include)
+  const rootNames = [...new Set([...parsed.fileNames, ...scripts])]
+  return ts.createProgram({ rootNames, options: parsed.options })
 }
 
 export async function webFrame() {
