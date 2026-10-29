@@ -75,3 +75,23 @@ func TestInstallRebuildsAVenvWhosePythonIsGone(t *testing.T) {
 		t.Errorf("a venv without its Python was kept: %q", out.String())
 	}
 }
+
+func TestFullJudgesAPyPIToolByTheVenvPythonNotThePathOne(t *testing.T) {
+	t.Parallel()
+	tools, bin := hometest.New(t).Tools(), t.TempDir()
+	path := runtimeOnPath(t, bin, pythonName(), "Python 3.9.1")
+	cfn := mustLookup(t, "cfn-lint")
+	toolchaintest.Install(t, tools, cfn, runtime.GOOS, runtime.GOARCH, runnertest.Behavior{})
+	if got := resolver(tools, bin).Full(t.Context(), cfn); got.State != toolchain.StateVerified {
+		t.Errorf("Full = %+v, want verified through the venv's own Python", got)
+	}
+	if calls := runnertest.Calls(t, bin, pythonName()); len(calls) != 0 {
+		t.Errorf("the PATH Python %s was probed: %v", path, calls)
+	}
+	python := toolchain.VenvPython(tools, runtime.GOOS)
+	runnertest.Install(t, filepath.Dir(python), strings.TrimSuffix(filepath.Base(python), ".exe"), runnertest.Behavior{Probe: []string{"--version"}, Version: "Python 3.9.1"})
+	got := resolver(tools, bin).Full(t.Context(), cfn)
+	if got.State != toolchain.StateRuntime || !strings.Contains(got.Detail, python) {
+		t.Errorf("near miss: Full = %+v, want the venv's Python below the floor named", got)
+	}
+}

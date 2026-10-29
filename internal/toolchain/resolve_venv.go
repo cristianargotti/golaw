@@ -1,9 +1,23 @@
 package toolchain
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
+
+// toolRuntime judges a PyPI tool by the interpreter its venv starts it
+// with once that venv exists: the PATH python3 only builds the venv, and a
+// repository may pin an older one there.
+func (r Resolver) toolRuntime(ctx context.Context, t Tool, rt Runtime) RuntimeStatus {
+	if t.Distribution == DistPyPI && r.Dir != "" {
+		python := VenvPython(r.Dir, r.GOOS)
+		if _, err := os.Stat(python); err == nil {
+			return r.probeRuntime(ctx, rt, python, "the kit's virtual environment has")
+		}
+	}
+	return r.Runtime(ctx, rt)
+}
 
 // venvLive reports whether the interpreter a PyPI tool starts through still
 // resolves. A venv links to the Python it was built on, so an upgrade that

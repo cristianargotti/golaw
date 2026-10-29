@@ -33,23 +33,26 @@ const executableBits = 0o111
 // Runtime probes a runtime prerequisite on the resolver's PATH, the first
 // executable of its names that is found.
 func (r Resolver) Runtime(ctx context.Context, rt Runtime) RuntimeStatus {
-	status := RuntimeStatus{Runtime: rt, Detail: runtimeNeed(rt)}
 	for _, name := range runtimeExecutables(rt.Name, r.GOOS) {
-		path, found := lookPath(name, r.Env, r.GOOS)
-		if !found {
-			continue
+		if path, found := lookPath(name, r.Env, r.GOOS); found {
+			return r.probeRuntime(ctx, rt, path, "PATH has")
 		}
-		out, err := r.run(ctx, runner.Command{Name: path, Args: rt.Probe, Env: ToolEnv(r.Env)})
-		line := firstLine(out)
-		status.Path = path
-		if err == nil {
-			status.Version = runtimeVersion.FindString(line)
-		}
-		status.OK = status.Version != "" && within(status.Version, rt)
-		if !status.OK {
-			status.Detail += fmt.Sprintf(": PATH has %s answering %s", path, line)
-		}
-		return status
+	}
+	return RuntimeStatus{Runtime: rt, Detail: runtimeNeed(rt)}
+}
+
+// probeRuntime reads the version of the runtime at path against its
+// bounds; where names, in the detail, what holds that executable.
+func (r Resolver) probeRuntime(ctx context.Context, rt Runtime, path, where string) RuntimeStatus {
+	status := RuntimeStatus{Runtime: rt, Path: path, Detail: runtimeNeed(rt)}
+	out, err := r.run(ctx, runner.Command{Name: path, Args: rt.Probe, Env: ToolEnv(r.Env)})
+	line := firstLine(out)
+	if err == nil {
+		status.Version = runtimeVersion.FindString(line)
+	}
+	status.OK = status.Version != "" && within(status.Version, rt)
+	if !status.OK {
+		status.Detail += fmt.Sprintf(": %s %s answering %s", where, path, line)
 	}
 	return status
 }

@@ -65,6 +65,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-10-29: golaw lint and doctor judge an installed PyPI tool by the Python of the kit's virtual environment instead of the python3 first on PATH, because a repository that pins an older Python with a version manager saw every PyPI tool unmeasured, lint exit 2 and doctor call working tools missing; setup keeps the PATH check, since it builds the venv.
 - 2026-10-29: a PyPI tool counts as installed only while the Python of the kit's virtual environment resolves, and golaw setup --surface rebuilds a venv whose Python is gone with --clear, because a Python upgrade or a CI cache restored onto a newer patch kept every script at its sha256 while lint answered the tools unmeasured with exit 2 and setup reported them installed.
 - 2026-10-29: the M3 template rows record the remote default branch before they replay the rendered CI, because its make ci runs coverage-new, which answers exit 2 in a repository with no remote default branch, so the six required Linux rows failed while a pipeline checkout passes.
 - 2026-10-23: a release run reports a missing or stale live record of the patch adapter as an optional skip instead of refusing the release, because docs/releasing.md gates a release on the plugin host record only and the patch adapter record is what support of that agent waits for; a patch adapter record that is present and wrong still fails.

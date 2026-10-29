@@ -95,7 +95,7 @@ func (r Resolver) Hook(t Tool) Resolved {
 // what lint and doctor use, where a process start is affordable.
 func (r Resolver) Full(ctx context.Context, t Tool) Resolved {
 	if rt, ok := runtimeOf(t); ok {
-		if status := r.Runtime(ctx, rt); !status.OK {
+		if status := r.toolRuntime(ctx, t, rt); !status.OK {
 			return Resolved{Tool: t, State: StateRuntime, Detail: status.Detail}
 		}
 	}
