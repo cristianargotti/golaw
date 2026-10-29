@@ -61,7 +61,31 @@ func Main(m *testing.M) int {
 	if slices.Contains(os.Args[1:], warmArgument) {
 		return BrokenCode // a warm start that found no behavior never runs the tests again
 	}
+	if err := os.Setenv(raceVariable, raceOptions(os.Getenv(raceVariable))); err != nil {
+		complain(os.Stderr, "set "+raceVariable, err)
+		return BrokenCode
+	}
 	return m.Run()
+}
+
+// raceVariable holds the options of the race runtime, and quickExit is the
+// one that drops the second a race-built process sleeps before it exits 0.
+// Every fake is a copy of the test binary and a rung starts go test -race
+// over its fixtures, so under -race that second, paid on every start, took
+// a package past go test's ten minutes on a loaded machine.
+const (
+	raceVariable = "GORACE"
+	quickExit    = "atexit_sleep_ms=0"
+)
+
+// raceOptions answers the race options with quickExit added; an exit sleep
+// the person already set is kept as set.
+func raceOptions(current string) string {
+	current = strings.TrimSpace(current)
+	if strings.Contains(current, "atexit_sleep_ms=") {
+		return current
+	}
+	return strings.TrimSpace(current + " " + quickExit)
 }
 
 // Install puts in dir a fake tool named name (name.exe on Windows), a copy
