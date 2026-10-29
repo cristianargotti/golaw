@@ -42,7 +42,7 @@ func stylelintDriver() Driver {
 // ESLint read that file alone, and it never reads an .eslintrc file.
 func eslintArgs(in Input) []string {
 	args := []string{
-		"--config", filepath.Join(in.ConfigDir, eslintConfigFile),
+		configFlag, filepath.Join(in.ConfigDir, eslintConfigFile),
 		"--format", "json", "--no-warn-ignored", "--no-error-on-unmatched-pattern",
 	}
 	if len(in.Globals) > 0 {
@@ -55,7 +55,7 @@ func eslintArgs(in Input) []string {
 // .stylelintignore cannot hide a file of the analyzer scope.
 func stylelintArgs(in Input) []string {
 	head := []string{
-		"--config", filepath.Join(in.ConfigDir, stylelintConfigFile),
+		configFlag, filepath.Join(in.ConfigDir, stylelintConfigFile),
 		"--ignore-path", filepath.Join(in.ConfigDir, stylelintIgnoreFile),
 		"--formatter", "json", "--allow-empty-input",
 	}
