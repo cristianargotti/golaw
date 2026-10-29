@@ -22,12 +22,12 @@ func TestFloorsFromUsesOnlyPresentTypedOptions(t *testing.T) {
 				"file": model.BoolValue(false), "min_statements": {Kind: model.OptionBool, Int: 0},
 				"file_exemptions": {Kind: model.OptionInt, Strings: []string{"value.go"}},
 			},
-			coverage.DefaultFloors(),
+			coverage.Floors{Total: 80, Package: 80, File: 80, MinStatements: 20, NewCode: model.DefaultCoverageNew},
 		},
 		{
 			"one-threshold",
 			model.Options{"package": model.IntValue(91)},
-			coverage.Floors{Total: 80, Package: 91, File: 80, MinStatements: 20},
+			coverage.Floors{Total: 80, Package: 91, File: 80, MinStatements: 20, NewCode: model.DefaultCoverageNew},
 		},
 		{
 			"explicit-zero",
@@ -35,7 +35,7 @@ func TestFloorsFromUsesOnlyPresentTypedOptions(t *testing.T) {
 				"total": model.IntValue(0), "package": model.IntValue(0),
 				"file": model.IntValue(0), "min_statements": model.IntValue(0),
 			},
-			coverage.Floors{},
+			coverage.Floors{NewCode: model.DefaultCoverageNew},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
