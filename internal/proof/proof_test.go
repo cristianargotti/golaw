@@ -9,13 +9,14 @@ import (
 	"github.com/cristianargotti/golaw/internal/proof"
 )
 
-// production is the whole proof of the kit: the five manifests (the
+// production is the whole proof of the kit: the six manifests (the
 // families of M1 and M2, the lint, build and dependency halves of the
-// policy family, and the checks the profile data turns on) with the data
-// of the fixture profile for the entries that name it (D6).
+// policy family, the checks the profile data turns on and the native
+// checks of the surface) with the data of the fixture profile for the
+// entries that name it (D6).
 func production(t *testing.T) proof.Manifest {
 	t.Helper()
-	m, err := proof.LoadManifests("manifest.yml", "policyfiles-lint.yml", "policyfiles-build.yml", "policyfiles-deps.yml", "profile.yml")
+	m, err := proof.LoadManifests("manifest.yml", "policyfiles-lint.yml", "policyfiles-build.yml", "policyfiles-deps.yml", "profile.yml", "surface.yml")
 	if err != nil {
 		t.Fatal(err)
 	}

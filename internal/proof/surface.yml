@@ -1,0 +1,8 @@
+# The native checks of the non-Go surface (internal/checks/surface): one
+# entry per check, the finding code its red fixture must yield and the two
+# fixture trees relative to this file.
+checks:
+  - id: surface.code-eval
+    code: code-eval
+    red: testdata/surface.code-eval/red
+    near: testdata/surface.code-eval/near
