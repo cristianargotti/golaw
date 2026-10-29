@@ -15,16 +15,20 @@ import (
 )
 
 func (a *app) setupCommand() *cobra.Command {
-	var uninstall bool
+	var uninstall, digest bool
+	var surfaceValue string
 	cmd := &cobra.Command{
 		Use:   "setup [path]",
-		Short: "Arm optional Git hooks or remove the hooks recorded by setup",
+		Short: "Arm optional Git hooks, remove the hooks recorded by setup, or install the surface linters",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// A person who stops setup stops it through the context, so a
 			// stop after lefthook install still puts the git hooks back.
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
+			if cmd.Flags().Changed(surfaceFlag) || digest {
+				return a.setupSurfaceCommand(ctx, cmd.OutOrStdout(), args, surfaceValue, digest, uninstall)
+			}
 			deps := setup.Dependencies{Run: runner.Run, Verify: runner.Verify}
 			plan, err := a.bind().setupPlan(ctx, rootArg(args), a.now(), uninstall, deps)
 			if err != nil {
@@ -34,6 +38,9 @@ func (a *app) setupCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&uninstall, "uninstall", false, "remove the receipt-owned hooks and keep the tools installed")
+	cmd.Flags().StringVar(&surfaceValue, surfaceFlag, "", "install the pinned surface linters: present for the languages the repository holds, all for every one")
+	cmd.Flags().Lookup(surfaceFlag).NoOptDefVal = surfacePresent
+	cmd.Flags().BoolVar(&digest, "print-digest", false, "with --surface, print the toolchain digest and install nothing")
 	return cmd
 }
 
