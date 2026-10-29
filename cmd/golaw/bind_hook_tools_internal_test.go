@@ -114,7 +114,7 @@ func TestHookToolsNameAMissingToolAndSkipTheSlowLanguages(t *testing.T) {
 	})
 	tool, _ := toolchain.Lookup("ruff")
 	agent, person := toolchain.MissingNotice(tool, checkInstall, model.DefaultLanguage)
-	if !strings.HasPrefix(person, "ruff 0.17.1 não está instalado:") {
+	if !strings.HasPrefix(person, "ruff 0.17.1 não está instalado no diretório de ferramentas do kit:") {
 		t.Fatalf("person = %q, want the pt-BR sentence of the configured language", person)
 	}
 	if !slices.Equal(report.Missing, []string{agent}) || !slices.Equal(report.Person, []string{person}) || len(report.Findings) != 0 || len(report.Killed) != 0 {
