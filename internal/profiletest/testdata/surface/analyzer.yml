@@ -1,0 +1,8 @@
+exclusions:
+  - "**/*_test.go"
+  - "integration/**"
+  - "**/gen/**"
+  - "**/testdata/**"
+  - "examples/*"
+coverage_report: profile.cov
+coverage_profile: { coverpkg: false, covermode: set }
