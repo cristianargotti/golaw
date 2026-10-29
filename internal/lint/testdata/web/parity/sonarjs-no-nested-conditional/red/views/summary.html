@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><title>Summary</title></head>
+<body>
+<output id="count"></output>
+<script>
+  function label(count) {
+    return count === 0 ? "empty" : count > 9 ? "many" : "few";
+  }
+  document.getElementById("count").textContent = label(3);
+</script>
+</body>
+</html>
