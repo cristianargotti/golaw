@@ -1,0 +1,23 @@
+{
+  "eslint": {
+    "jsx": {
+      "jsx-a11y/prefer-tag-over-role": "error",
+      "react/no-array-index-key": "error"
+    },
+    "script": {
+      "sonarjs/code-eval": "error",
+      "sonarjs/cognitive-complexity": [
+        "error",
+        15
+      ],
+      "sonarjs/no-extra-arguments": "error",
+      "sonarjs/no-nested-conditional": "error",
+      "sonarjs/no-unenclosed-multiline-block": "error",
+      "sonarjs/unused-import": "error",
+      "unicorn/prefer-global-this": "error"
+    }
+  },
+  "stylelint": {
+    "no-duplicate-selectors": true
+  }
+}

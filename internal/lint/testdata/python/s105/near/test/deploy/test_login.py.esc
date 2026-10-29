@@ -1,0 +1,8 @@
+"""Login checks of the deploy role."""
+
+import os
+
+
+def test_role_logs_in() -> None:
+    passw\u006frd = os.environ.get("ROLE_SECRET")
+    assert passw\u006frd is not None
