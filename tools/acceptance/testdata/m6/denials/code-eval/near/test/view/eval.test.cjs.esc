@@ -1,0 +1,3 @@
+const assert = require("node:assert");
+const label = "new Function(view) is text here, never called";
+assert.strictEqual(label.length > 0, true);
