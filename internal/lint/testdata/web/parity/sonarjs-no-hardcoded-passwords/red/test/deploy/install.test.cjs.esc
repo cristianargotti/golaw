@@ -1,0 +1,3 @@
+const p\u0061ssword = "blue-river-42";
+
+module.exports = { p\u0061ssword };

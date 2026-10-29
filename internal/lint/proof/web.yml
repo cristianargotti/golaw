@@ -42,3 +42,103 @@ checks:
     code: no-duplicate-selectors
     red: ../testdata/web/parity/no-duplicate-selectors/red
     near: ../testdata/web/parity/no-duplicate-selectors/near
+  - id: lint.eslint-typescript-eslint-no-empty-function
+    code: typescript-eslint-no-empty-function
+    red: ../testdata/web/parity/typescript-eslint-no-empty-function/red
+    near: ../testdata/web/parity/typescript-eslint-no-empty-function/near
+  - id: lint.eslint-typescript-eslint-default-param-last
+    code: typescript-eslint-default-param-last
+    red: ../testdata/web/parity/typescript-eslint-default-param-last/red
+    near: ../testdata/web/parity/typescript-eslint-default-param-last/near
+  - id: lint.eslint-typescript-eslint-no-base-to-string
+    code: typescript-eslint-no-base-to-string
+    red: ../testdata/web/parity/typescript-eslint-no-base-to-string/red
+    near: ../testdata/web/parity/typescript-eslint-no-base-to-string/near
+  - id: lint.eslint-unicorn-prefer-code-point
+    code: unicorn-prefer-code-point
+    red: ../testdata/web/parity/unicorn-prefer-code-point/red
+    near: ../testdata/web/parity/unicorn-prefer-code-point/near
+  - id: lint.eslint-unicorn-prefer-structured-clone
+    code: unicorn-prefer-structured-clone
+    red: ../testdata/web/parity/unicorn-prefer-structured-clone/red
+    near: ../testdata/web/parity/unicorn-prefer-structured-clone/near
+  - id: lint.eslint-unicorn-prefer-top-level-await
+    code: unicorn-prefer-top-level-await
+    red: ../testdata/web/parity/unicorn-prefer-top-level-await/red
+    near: ../testdata/web/parity/unicorn-prefer-top-level-await/near
+  - id: lint.eslint-unicorn-dom-node-dataset
+    code: unicorn-dom-node-dataset
+    red: ../testdata/web/parity/unicorn-dom-node-dataset/red
+    near: ../testdata/web/parity/unicorn-dom-node-dataset/near
+  - id: lint.eslint-unicorn-prefer-includes
+    code: unicorn-prefer-includes
+    red: ../testdata/web/parity/unicorn-prefer-includes/red
+    near: ../testdata/web/parity/unicorn-prefer-includes/near
+  - id: lint.eslint-unicorn-prefer-string-replace-all
+    code: unicorn-prefer-string-replace-all
+    red: ../testdata/web/parity/unicorn-prefer-string-replace-all/red
+    near: ../testdata/web/parity/unicorn-prefer-string-replace-all/near
+  - id: lint.eslint-unicorn-require-module-specifiers
+    code: unicorn-require-module-specifiers
+    red: ../testdata/web/parity/unicorn-require-module-specifiers/red
+    near: ../testdata/web/parity/unicorn-require-module-specifiers/near
+  - id: lint.eslint-sonarjs-void-use
+    code: sonarjs-void-use
+    red: ../testdata/web/parity/sonarjs-void-use/red
+    near: ../testdata/web/parity/sonarjs-void-use/near
+  - id: lint.eslint-jsx-a11y-no-noninteractive-tabindex
+    code: jsx-a11y-no-noninteractive-tabindex
+    red: ../testdata/web/parity/jsx-a11y-no-noninteractive-tabindex/red
+    near: ../testdata/web/parity/jsx-a11y-no-noninteractive-tabindex/near
+  - id: lint.eslint-typescript-eslint-no-unnecessary-type-assertion
+    code: typescript-eslint-no-unnecessary-type-assertion
+    red: ../testdata/web/parity/typescript-eslint-no-unnecessary-type-assertion/red
+    near: ../testdata/web/parity/typescript-eslint-no-unnecessary-type-assertion/near
+  - id: lint.eslint-sonarjs-no-clear-text-protocols
+    code: sonarjs-no-clear-text-protocols
+    red: ../testdata/web/parity/sonarjs-no-clear-text-protocols/red
+    near: ../testdata/web/parity/sonarjs-no-clear-text-protocols/near
+  - id: lint.eslint-sonarjs-no-hardcoded-passwords
+    code: sonarjs-no-hardcoded-passwords
+    red: ../testdata/web/parity/sonarjs-no-hardcoded-passwords/red
+    near: ../testdata/web/parity/sonarjs-no-hardcoded-passwords/near
+  - id: lint.eslint-sonarjs-no-hardcoded-ip
+    code: sonarjs-no-hardcoded-ip
+    red: ../testdata/web/parity/sonarjs-no-hardcoded-ip/red
+    near: ../testdata/web/parity/sonarjs-no-hardcoded-ip/near
+  - id: lint.eslint-sonarjs-slow-regex
+    code: sonarjs-slow-regex
+    red: ../testdata/web/parity/sonarjs-slow-regex/red
+    near: ../testdata/web/parity/sonarjs-slow-regex/near
+  - id: lint.eslint-sonarjs-no-unused-vars
+    code: sonarjs-no-unused-vars
+    red: ../testdata/web/parity/sonarjs-no-unused-vars/red
+    near: ../testdata/web/parity/sonarjs-no-unused-vars/near
+  - id: lint.eslint-sonarjs-no-dead-store
+    code: sonarjs-no-dead-store
+    red: ../testdata/web/parity/sonarjs-no-dead-store/red
+    near: ../testdata/web/parity/sonarjs-no-dead-store/near
+  - id: lint.eslint-sonarjs-no-ignored-exceptions
+    code: sonarjs-no-ignored-exceptions
+    red: ../testdata/web/parity/sonarjs-no-ignored-exceptions/red
+    near: ../testdata/web/parity/sonarjs-no-ignored-exceptions/near
+  - id: lint.eslint-sonarjs-todo-tag
+    code: sonarjs-todo-tag
+    red: ../testdata/web/parity/sonarjs-todo-tag/red
+    near: ../testdata/web/parity/sonarjs-todo-tag/near
+  - id: lint.eslint-sonarjs-no-identical-functions
+    code: sonarjs-no-identical-functions
+    red: ../testdata/web/parity/sonarjs-no-identical-functions/red
+    near: ../testdata/web/parity/sonarjs-no-identical-functions/near
+  - id: lint.eslint-sonarjs-no-duplicated-branches
+    code: sonarjs-no-duplicated-branches
+    red: ../testdata/web/parity/sonarjs-no-duplicated-branches/red
+    near: ../testdata/web/parity/sonarjs-no-duplicated-branches/near
+  - id: lint.eslint-sonarjs-no-gratuitous-expressions
+    code: sonarjs-no-gratuitous-expressions
+    red: ../testdata/web/parity/sonarjs-no-gratuitous-expressions/red
+    near: ../testdata/web/parity/sonarjs-no-gratuitous-expressions/near
+  - id: lint.eslint-sonarjs-no-nested-template-literals
+    code: sonarjs-no-nested-template-literals
+    red: ../testdata/web/parity/sonarjs-no-nested-template-literals/red
+    near: ../testdata/web/parity/sonarjs-no-nested-template-literals/near
