@@ -38,8 +38,11 @@ func (s *suite) m3ServiceRepository(ctx context.Context, name string, capabiliti
 	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}); err != nil {
 		return "", err
 	}
+	// The M3 rows judge the policy files, not the surface: the parity floor
+	// leaves the service's YAML to no tool, so make ci needs no surface tool
+	// and the lane stays off npm and PyPI.
 	got := s.execute(ctx, command{
-		program: s.binary, args: []string{commandInit, flagApply, "--capabilities", strings.Join(capabilities, ",")},
+		program: s.binary, args: []string{commandInit, flagApply, "--surface-rules", "parity", "--capabilities", strings.Join(capabilities, ",")},
 		dir: repo, env: s.env,
 	})
 	if err := success(got); err != nil {

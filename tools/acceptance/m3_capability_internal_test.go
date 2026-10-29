@@ -83,7 +83,7 @@ func TestM3CapabilityRowRendersBothTrees(t *testing.T) {
 	if err := s.capabilityM3(t.Context(), "image"); err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) < 2 || !slices.Equal(calls[0], []string{"init", "--apply", "--capabilities", "go,image"}) {
+	if len(calls) < 2 || !slices.Equal(calls[0], []string{"init", "--apply", "--surface-rules", "parity", "--capabilities", "go,image"}) {
 		t.Fatalf("calls = %q", calls)
 	}
 	if err := s.capabilityM3(t.Context(), "absent"); err == nil {

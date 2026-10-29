@@ -98,10 +98,22 @@ func (s *suite) m3ViolationRow(ctx context.Context, name string, violation m3Vio
 	return m3JudgeViolation(violation.check, s.m3Make(ctx, repo, "-k", "ci"))
 }
 
+// m3CIDefaultBranch records the checkout's HEAD as the remote default
+// branch: the generated CI checks out with every branch fetched, and
+// coverage-new reads its base there (decision C3 keeps a repository with no
+// remote at exit 2), so the row's local repository takes the shape of a
+// pipeline run on the default branch.
+func m3CIDefaultBranch() []string {
+	return []string{"update-ref", "refs/remotes/origin/main", m2Head}
+}
+
 // m3PassesCI runs the two steps the generated CI ends with: make ci, then
 // git diff --exit-code, so a target that rewrites a tracked file fails the
 // row as it fails the pipeline.
 func (s *suite) m3PassesCI(ctx context.Context, repo string) error {
+	if err := s.gitSteps(ctx, repo, m3CIDefaultBranch()); err != nil {
+		return fmt.Errorf("record the default branch of the CI checkout: %w", err)
+	}
 	got := s.m3Make(ctx, repo, "ci")
 	if got.err != nil {
 		return fmt.Errorf("execute make ci: %w", got.err)

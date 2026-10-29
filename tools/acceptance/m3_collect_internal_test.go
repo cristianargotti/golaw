@@ -69,15 +69,25 @@ func TestM3PolicyBaselinePassesItsOwnCI(t *testing.T) {
 		s := m2TestSuite(t)
 		s.m2.Make = "/simulated/make"
 		var calls [][]string
+		var order []string
 		service := m3ServiceAnswer(t, s, &calls)
 		s.execute = newM2Script(t, s, func(ctx context.Context, c command) (m2Reply, bool) {
 			if c.program == s.m2.Make {
+				order = append(order, "make")
 				return m2Reply{got: result{code: tc.code, stdout: "make ci\n"}, target: true}, true
+			}
+			if c.program == s.git && slices.Equal(c.args, m3CIDefaultBranch()) {
+				order = append(order, "origin")
+				return m2Reply{got: result{}}, true
 			}
 			return service(ctx, c)
 		}).Execute
 		if err := s.policyM3(t.Context(), m3Baseline); (err != nil) != tc.fail {
 			t.Fatalf("%s: baseline = %v", tc.name, err)
+		}
+		// A CI checkout holds the default branch, which coverage-new reads.
+		if !slices.Equal(order, []string{"origin", "make"}) {
+			t.Fatalf("%s: steps = %q, want the default branch recorded before make ci", tc.name, order)
 		}
 	}
 	s := m2TestSuite(t)
