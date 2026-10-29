@@ -14,6 +14,14 @@ checks:
     code: file-length
     red: testdata/surface.file-length/red
     near: testdata/surface.file-length/near
+  - id: surface.inline-script-size
+    code: inline-script-size
+    red: testdata/surface.inline-script-size/red
+    near: testdata/surface.inline-script-size/near
+  - id: surface.html-prefer-tag
+    code: prefer-tag
+    red: testdata/surface.html-prefer-tag/red
+    near: testdata/surface.html-prefer-tag/near
   - id: surface.python-function-length
     code: python-function-length
     red: testdata/surface.python-function-length/red
