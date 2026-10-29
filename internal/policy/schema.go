@@ -68,6 +68,10 @@ type Coverage struct {
 	File           *int     `yaml:"file" json:"file"`
 	MinStatements  *int     `yaml:"min_statements" json:"min_statements"`
 	FileExemptions []string `yaml:"file_exemptions" json:"file_exemptions"`
+	// NewCode is the floor of the code a change adds (M6.8 item 5). The
+	// omitempty tag keeps the digest of every block that leaves it unset,
+	// so no enrollment record goes stale.
+	NewCode *int `yaml:"new_code" json:"new_code,omitempty"`
 }
 
 // Terms is the configurable tool-name list and its allowed path prefixes.

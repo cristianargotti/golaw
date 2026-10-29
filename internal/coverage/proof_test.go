@@ -58,8 +58,10 @@ func TestCoverageManifestProof(t *testing.T) {
 		t.Fatal(err)
 	}
 	builder := engine.New()
-	if registerErr := builder.Register(coverageProofCheck{t: t}); registerErr != nil {
-		t.Fatal(registerErr)
+	for _, check := range []model.Check{coverageProofCheck{t: t}, coverageNewProofCheck{}} {
+		if registerErr := builder.Register(check); registerErr != nil {
+			t.Fatal(registerErr)
+		}
 	}
 	registry, err := builder.Build(engine.WithProofs(manifest.Names()))
 	if err != nil {
