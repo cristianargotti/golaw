@@ -4,6 +4,62 @@
 # checks carry their own keys), how close the match is and the lowest set
 # that enables it. Every row has a proof entry in proof/python.yml.
 - {
+    sonar: "python:S1066",
+    tool: ruff,
+    rule: SIM102,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S1135",
+    tool: ruff,
+    rule: FIX002,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S117",
+    tool: ruff,
+    rule: N802,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S117",
+    tool: ruff,
+    rule: N806,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S1172",
+    tool: ruff,
+    rule: ARG001,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S125",
+    tool: ruff,
+    rule: ERA001,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S1481",
+    tool: ruff,
+    rule: F841,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
     sonar: "python:S1523",
     tool: ruff,
     rule: S102,
@@ -143,6 +199,22 @@
     sonar: "python:S5754",
     tool: ruff,
     rule: E722,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S5806",
+    tool: ruff,
+    rule: A001,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "python:S6903",
+    tool: ruff,
+    rule: DTZ003,
     where: [H, L],
     match: close,
     set: parity,

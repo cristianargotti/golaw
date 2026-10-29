@@ -4,12 +4,20 @@
 # which ruff uses for every file in place of any repository configuration.
 [lint]
 select = [
+  "A001",
+  "ARG001",
   "BLE001",
   "C402",
   "C408",
   "C420",
   "C901",
+  "DTZ003",
   "E722",
+  "ERA001",
+  "F841",
+  "FIX002",
+  "N802",
+  "N806",
   "PLR0912",
   "S102",
   "S105",
@@ -25,6 +33,7 @@ select = [
   "S605",
   "S608",
   "S701",
+  "SIM102",
 ]
 
 # python:S3776 is cognitive complexity at 15; C901 measures cyclomatic

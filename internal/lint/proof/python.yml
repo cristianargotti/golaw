@@ -2,6 +2,48 @@
 # lint.Code gives the rule, the near miss does not, under the pinned tool.
 checks:
   - {
+      id: lint.ruff-sim102,
+      code: sim102,
+      red: ../testdata/python/sim102/red,
+      near: ../testdata/python/sim102/near,
+    }
+  - {
+      id: lint.ruff-fix002,
+      code: fix002,
+      red: ../testdata/python/fix002/red,
+      near: ../testdata/python/fix002/near,
+    }
+  - {
+      id: lint.ruff-n802,
+      code: n802,
+      red: ../testdata/python/n802/red,
+      near: ../testdata/python/n802/near,
+    }
+  - {
+      id: lint.ruff-n806,
+      code: n806,
+      red: ../testdata/python/n806/red,
+      near: ../testdata/python/n806/near,
+    }
+  - {
+      id: lint.ruff-arg001,
+      code: arg001,
+      red: ../testdata/python/arg001/red,
+      near: ../testdata/python/arg001/near,
+    }
+  - {
+      id: lint.ruff-era001,
+      code: era001,
+      red: ../testdata/python/era001/red,
+      near: ../testdata/python/era001/near,
+    }
+  - {
+      id: lint.ruff-f841,
+      code: f841,
+      red: ../testdata/python/f841/red,
+      near: ../testdata/python/f841/near,
+    }
+  - {
       id: lint.ruff-s102,
       code: s102,
       red: ../testdata/python/s102/red,
@@ -108,6 +150,18 @@ checks:
       code: e722,
       red: ../testdata/python/e722/red,
       near: ../testdata/python/e722/near,
+    }
+  - {
+      id: lint.ruff-a001,
+      code: a001,
+      red: ../testdata/python/a001/red,
+      near: ../testdata/python/a001/near,
+    }
+  - {
+      id: lint.ruff-dtz003,
+      code: dtz003,
+      red: ../testdata/python/dtz003/red,
+      near: ../testdata/python/dtz003/near,
     }
   - {
       id: lint.ruff-c402,
