@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks"
+	checksurface "github.com/cristianargotti/golaw/internal/checks/surface"
 	"github.com/cristianargotti/golaw/internal/engine"
 	"github.com/cristianargotti/golaw/internal/model"
 )
@@ -34,6 +35,19 @@ func TestRegistryBuildsTheCatalog(t *testing.T) {
 	for _, c := range checks.Catalog() {
 		if err := c.Spec().Validate(); err != nil {
 			t.Errorf("catalog check %s: %v", c.Spec().ID, err)
+		}
+	}
+}
+
+func TestCatalogHoldsTheSurfaceFamily(t *testing.T) {
+	t.Parallel()
+	ids := map[string]bool{}
+	for _, c := range checks.Catalog() {
+		ids[c.Spec().ID] = true
+	}
+	for _, c := range checksurface.Checks() {
+		if !ids[c.Spec().ID] {
+			t.Errorf("the catalog lacks %s", c.Spec().ID)
 		}
 	}
 }

@@ -264,6 +264,7 @@ The surface family judges the non-Go files of a Go repository: JavaScript, TypeS
 
 | Check | Rule | Needs | Why and boundary |
 | --- | --- | --- | --- |
+| surface.code-eval | rules/4.16@1 | none | A call that runs text as code in JavaScript, TypeScript, JSX, TSX, an HTML script or Python (the global eval, new Function, a timer given a string, the vm module, exec), denied when the candidate introduces it, because the remote analyzer reads tests as main code; the fix exports the code a test needs. |
 
 ## Repository laws
 
