@@ -24,7 +24,8 @@ func m5Evaluators() []string {
 // m5FindingChecks are the checks that carry a finding, each once, sorted.
 func m5FindingChecks(doc scanreport.Document) []string {
 	var checks []string
-	for _, finding := range doc.Findings {
+	for k := range doc.Findings {
+		finding := &doc.Findings[k]
 		if !slices.Contains(checks, finding.Check) {
 			checks = append(checks, finding.Check)
 		}

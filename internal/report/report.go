@@ -92,7 +92,8 @@ func statuses(run *engine.Run) []Status {
 // agree with the findings and the checks the document lists.
 func count(doc Document) Counts {
 	c := Counts{Findings: len(doc.Findings)}
-	for _, f := range doc.Findings {
+	for k := range doc.Findings {
+		f := &doc.Findings[k]
 		if f.Enforced() {
 			c.Enforced++
 		} else {
@@ -127,7 +128,8 @@ func RulesetDigest(checks []model.Check) string {
 // line shifts.
 func Multiset(findings []model.Finding) map[string]int {
 	out := make(map[string]int, len(findings))
-	for _, f := range findings {
+	for k := range findings {
+		f := &findings[k]
 		out[f.Fingerprint]++
 	}
 	return out
@@ -139,12 +141,13 @@ func Multiset(findings []model.Finding) map[string]int {
 func Introduced(candidate, base []model.Finding) []model.Finding {
 	left := Multiset(base)
 	var out []model.Finding
-	for _, f := range candidate {
+	for k := range candidate {
+		f := &candidate[k]
 		if left[f.Fingerprint] > 0 {
 			left[f.Fingerprint]--
 			continue
 		}
-		out = append(out, f)
+		out = append(out, *f)
 	}
 	return out
 }

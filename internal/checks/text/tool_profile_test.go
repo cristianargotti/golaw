@@ -41,7 +41,8 @@ func termPaths(t *testing.T, p *model.EffectivePolicy, files map[string][]byte) 
 		t.Fatal(err)
 	}
 	got := make([]string, 0, len(res.Findings))
-	for _, f := range res.Findings {
+	for k := range res.Findings {
+		f := &res.Findings[k]
 		got = append(got, f.Path)
 	}
 	slices.Sort(got)
