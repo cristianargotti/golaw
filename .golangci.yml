@@ -49,12 +49,13 @@ linters:
           allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
         families:
           list-mode: strict
-          files: ["!$test", "**/internal/checks/**", "!**/internal/checks/catalog.go", "!**/internal/checks/policyfiles/**"]
+          files: ["!$test", "**/internal/checks/**", "!**/internal/checks/catalog.go", "!**/internal/checks/policyfiles/**", "!**/internal/checks/surface/**"]
           allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
         policyfiles:
           list-mode: strict
           files: ["!$test", "**/internal/checks/policyfiles/**"]
           allow: [$gostd, github.com/cristianargotti/golaw/internal/model, gopkg.in/yaml.v3, golang.org/x/mod, github.com/BurntSushi/toml]
+        surface-family: {list-mode: strict, files: ["!$test", "**/internal/checks/surface/**"], allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/surface, gopkg.in/yaml.v3]}
         catalog:
           list-mode: strict
           files: ["!$test", "**/internal/checks/catalog.go"]
@@ -96,7 +97,7 @@ linters:
         rung:
           list-mode: strict
           files: ["!$test", "**/internal/rung/**"]
-          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/engine, github.com/cristianargotti/golaw/internal/policy, github.com/cristianargotti/golaw/internal/source, github.com/cristianargotti/golaw/internal/stage, github.com/cristianargotti/golaw/internal/runner, github.com/cristianargotti/golaw/internal/report, github.com/cristianargotti/golaw/internal/vuln]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/engine, github.com/cristianargotti/golaw/internal/policy, github.com/cristianargotti/golaw/internal/source, github.com/cristianargotti/golaw/internal/stage, github.com/cristianargotti/golaw/internal/runner, github.com/cristianargotti/golaw/internal/report, github.com/cristianargotti/golaw/internal/vuln, github.com/cristianargotti/golaw/internal/surface, github.com/cristianargotti/golaw/internal/toolchain, github.com/cristianargotti/golaw/internal/lint]
         setup:
           list-mode: strict
           files: ["!$test", "**/internal/setup/**"]
