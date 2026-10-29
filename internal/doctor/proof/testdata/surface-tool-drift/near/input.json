@@ -1,0 +1,16 @@
+{
+  "languages": ["dockerfile"],
+  "scope": [],
+  "shape": "",
+  "tools": [
+    {
+      "name": "hadolint",
+      "version": "2.15.1",
+      "languages": ["dockerfile"],
+      "state": "receipt",
+      "path": "/data/golaw/tools/bin/hadolint/2.15.1/linux-amd64/hadolint",
+      "detail": ""
+    }
+  ],
+  "runtimes": []
+}

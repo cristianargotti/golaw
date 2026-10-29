@@ -1,0 +1,2 @@
+[tool.ruff.lint]
+ignore = ["S105", "C420"]

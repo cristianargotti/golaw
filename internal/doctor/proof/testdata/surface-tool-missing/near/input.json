@@ -1,0 +1,16 @@
+{
+  "languages": ["python"],
+  "scope": [],
+  "shape": "",
+  "tools": [
+    {
+      "name": "ruff",
+      "version": "0.17.1",
+      "languages": ["python"],
+      "state": "verified",
+      "path": "/data/golaw/tools/bin/ruff/0.17.1/linux-amd64/ruff",
+      "detail": ""
+    }
+  ],
+  "runtimes": []
+}
