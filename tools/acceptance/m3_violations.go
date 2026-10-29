@@ -236,7 +236,8 @@ func m3Status(doc scanreport.Document, check string) scanreport.Status {
 // service unclean.
 func m3Enforced(doc scanreport.Document, check string) int {
 	count := 0
-	for _, finding := range doc.Findings {
+	for k := range doc.Findings {
+		finding := &doc.Findings[k]
 		if finding.Check == check && finding.Enforced() {
 			count++
 		}

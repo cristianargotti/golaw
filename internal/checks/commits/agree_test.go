@@ -63,7 +63,8 @@ func commitFinds(t *testing.T, c model.Check, code string, m message) bool {
 }
 
 func hasCode(res model.Result, code string) bool {
-	for _, f := range res.Findings {
+	for k := range res.Findings {
+		f := &res.Findings[k]
 		if f.Code == code {
 			return true
 		}
