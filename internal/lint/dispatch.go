@@ -32,12 +32,26 @@ type selection struct {
 	languages []surface.Language
 }
 
-// Drivers answers the drivers of every surface sorted by tool; the drivers
-// of one tool keep their part's order, so ruff check runs before ruff
-// format.
+// Drivers answers the drivers of every surface sorted by tool, with the
+// public web sets; the drivers of one tool keep their part's order, so ruff
+// check runs before ruff format.
 func Drivers() []Driver {
 	drivers := slices.Concat(webDrivers(), pythonDrivers(), infraDrivers())
 	slices.SortStableFunc(drivers, func(a, b Driver) int { return strings.Compare(a.Tool, b.Tool) })
+	return drivers
+}
+
+// driversFor answers the drivers of a policy: the kit's drivers in their
+// order, with the web drivers a pinned profile's Sonar way snapshot
+// governs in place of the public ones.
+func driversFor(policy *model.EffectivePolicy) []Driver {
+	drivers := Drivers()
+	web := webDriversFor(policy)
+	for i := range drivers {
+		if j := slices.IndexFunc(web, func(d Driver) bool { return d.Tool == drivers[i].Tool }); j >= 0 {
+			drivers[i] = web[j]
+		}
+	}
 	return drivers
 }
 
@@ -53,7 +67,7 @@ func Run(ctx context.Context, o Options) (*engine.Run, error) {
 	if set != model.SurfaceParity && set != model.SurfaceStrict {
 		return nil, fmt.Errorf("%w: surface set %q: want parity or strict", model.ErrUsage, set)
 	}
-	chosen, err := selected(o.Only)
+	chosen, err := selected(driversFor(o.Policy), o.Only)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +107,7 @@ func surfacePolicy(p *model.EffectivePolicy) model.SurfacePolicy {
 // selected answers the drivers --only names, each with the languages it
 // reads: a tool name keeps all of its languages, a language name narrows a
 // tool of two languages to that one.
-func selected(only []string) ([]selection, error) {
-	drivers := Drivers()
+func selected(drivers []Driver, only []string) ([]selection, error) {
 	if len(only) == 0 {
 		out := make([]selection, 0, len(drivers))
 		for _, d := range drivers {

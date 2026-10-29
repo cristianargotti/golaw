@@ -1,11 +1,14 @@
 package lint
 
 import (
+	"bytes"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"path"
 	"strings"
+	"time"
 )
 
 // webEmbedded holds the kit's own web configurations, so a repository file
@@ -33,6 +36,64 @@ func webConfig() fs.FS {
 	}
 	return tree
 }
+
+// memFileMode is the mode of a replaced file: read only, as the embedded
+// files it stands in for.
+const memFileMode fs.FileMode = 0o444
+
+// replacedFS answers some files of a base tree with other bytes, so a
+// profile's rules replace web-rules.json while every other file stays the
+// kit's. A directory listing comes from the base, so its sizes are the
+// base's: toolchain.Materialize reads each file through fs.ReadFile and
+// never trusts a listed size.
+type replacedFS struct {
+	base  fs.FS
+	files map[string][]byte
+}
+
+// Open answers a replaced path from memory and passes the rest to the base.
+func (r replacedFS) Open(name string) (fs.File, error) {
+	if data, ok := r.files[name]; ok {
+		return &memFile{Reader: bytes.NewReader(data), info: memInfo{name: path.Base(name), size: int64(len(data))}}, nil
+	}
+	file, err := r.base.Open(name)
+	if err != nil {
+		return nil, fmt.Errorf("lint: open %s: %w", name, err)
+	}
+	return file, nil
+}
+
+// memFile is one replaced file, open for reading.
+type memFile struct {
+	*bytes.Reader
+
+	info memInfo
+}
+
+// Stat answers the replaced file's name and size.
+func (f *memFile) Stat() (fs.FileInfo, error) { return f.info, nil }
+
+// Close has nothing to release: the bytes stay in the tree.
+func (f *memFile) Close() error { return nil }
+
+// memInfo describes a replaced file.
+type memInfo struct {
+	name string
+	size int64
+}
+
+func (i memInfo) Name() string { return i.name }
+
+func (i memInfo) Size() int64 { return i.size }
+
+func (memInfo) Mode() fs.FileMode { return memFileMode }
+
+// ModTime is the zero time: the embedded files carry none either.
+func (memInfo) ModTime() time.Time { return time.Time{} }
+
+func (memInfo) IsDir() bool { return false }
+
+func (memInfo) Sys() any { return nil }
 
 // sonarCognitiveThreshold is the Sonar way threshold of S3776, so the
 // parity set reports the function the pipeline reports and no other.
