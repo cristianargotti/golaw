@@ -101,7 +101,7 @@ func validateRuntimes(runtimes []runtimeEntry) error {
 			return fmt.Errorf("%w: runtime %s without probe", ErrTable, entry.Name)
 		}
 	}
-	if !slices.Equal(names, []string{"node", "python"}) {
+	if !slices.Equal(names, []string{runtimeNode, runtimePython}) {
 		return fmt.Errorf("%w: runtimes %v, want node then python", ErrTable, names)
 	}
 	return nil

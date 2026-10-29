@@ -25,6 +25,12 @@ const (
 	DistPyPI Distribution = "pypi"
 )
 
+// The runtimes the npm and PyPI tools need, named as the table names them.
+const (
+	runtimeNode   = "node"
+	runtimePython = "python"
+)
+
 // The archive kinds the installer can open with the standard library;
 // tar.xz would need a module the kit does not carry.
 const (
@@ -78,9 +84,9 @@ var embedded embed.FS
 func (t Tool) Runtime() string {
 	switch t.Distribution {
 	case DistNPM:
-		return "node"
+		return runtimeNode
 	case DistPyPI:
-		return "python"
+		return runtimePython
 	case DistBinary:
 		return ""
 	}
