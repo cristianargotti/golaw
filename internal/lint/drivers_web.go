@@ -61,3 +61,6 @@ func stylelintArgs(in Input) []string {
 	}
 	return slices.Concat(head, in.Files)
 }
+
+// webDrivers answers the web drivers in tool order.
+func webDrivers() []Driver { return []Driver{eslintDriver(), stylelintDriver()} }

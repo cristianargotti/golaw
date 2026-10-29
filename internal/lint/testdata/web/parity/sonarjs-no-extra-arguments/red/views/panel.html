@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><title>Panel</title></head>
+<body>
+<script>
+  function render(view) {
+    document.title = view.title;
+  }
+  const state = { ready: true };
+  render({ title: "panel" }, state);
+</script>
+</body>
+</html>
