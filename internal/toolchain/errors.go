@@ -29,4 +29,7 @@ var (
 	ErrInstall = errors.New("tool installation failed")
 	// ErrFetch marks a download that did not complete.
 	ErrFetch = errors.New("download failed")
+	// ErrProbe marks a version probe that never answered, which the
+	// resolver reads as a tool it cannot trust rather than a hang.
+	ErrProbe = errors.New("version probe did not answer")
 )
