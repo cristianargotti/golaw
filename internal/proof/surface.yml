@@ -18,6 +18,14 @@ checks:
     code: inline-script-size
     red: testdata/surface.inline-script-size/red
     near: testdata/surface.inline-script-size/near
+  - id: surface.suppression
+    code: suppression
+    red: testdata/surface.suppression/red
+    near: testdata/surface.suppression/near
+  - id: surface.analyzer-widening
+    code: analyzer-widening
+    red: testdata/surface.analyzer-widening/red
+    near: testdata/surface.analyzer-widening/near
   - id: surface.html-prefer-tag
     code: prefer-tag
     red: testdata/surface.html-prefer-tag/red
