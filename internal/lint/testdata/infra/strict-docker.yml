@@ -1,0 +1,15 @@
+# The proof of the strict Dockerfile rules beyond parity: an info rule of
+# hadolint and the user check of checkov's dockerfile framework.
+checks:
+  - {
+      id: lint.checkov-ckv-docker-3,
+      code: ckv-docker-3,
+      red: docker-user/red,
+      near: dl3002/near,
+    }
+  - {
+      id: lint.hadolint-dl3059,
+      code: dl3059,
+      red: dl3059/red,
+      near: dl3059/near,
+    }
