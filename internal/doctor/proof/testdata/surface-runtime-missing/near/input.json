@@ -1,0 +1,16 @@
+{
+  "languages": ["javascript"],
+  "scope": [],
+  "shape": "",
+  "tools": [],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": "24.21.0",
+      "languages": [],
+      "state": "verified",
+      "path": "/usr/local/bin/node",
+      "detail": ""
+    }
+  ]
+}
