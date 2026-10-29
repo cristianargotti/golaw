@@ -86,7 +86,7 @@ func (a *app) rootCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand(), a.hookCommand(), a.agentCommand(), a.doctorCommand(), a.setupCommand(), a.coverageCommand(), a.affectedCommand(), a.pushRangeCommand(), a.lockCommand(), a.profileCommand())
+	root.AddCommand(a.versionCommand(), a.scanCommand(), a.configCommand(), a.initCommand(), a.coexistCommand(), a.hookCommand(), a.agentCommand(), a.doctorCommand(), a.setupCommand(), a.coverageCommand(), a.lintCommand(), a.affectedCommand(), a.pushRangeCommand(), a.lockCommand(), a.profileCommand())
 	return root
 }
 

@@ -14,7 +14,7 @@ const (
 	ruffCheckCommand  = "check"
 	ruffFormatCommand = "format"
 	ruffNoCache       = "--no-cache"
-	ruffConfigFlag    = "--config"
+	ruffConfigFlag    = configFlag
 	ruffOutputFlag    = "--output-format"
 	ruffJSON          = "json"
 	ruffCheckOnly     = "--check"

@@ -38,11 +38,14 @@ func (a *app) scanCommand() *cobra.Command {
 			return a.scan(cmd.Context(), cmd.OutOrStdout(), in, asJSON)
 		},
 	}
-	cmd.Flags().BoolVar(&asJSON, "json", false, "print the JSON report instead of the text report")
+	cmd.Flags().BoolVar(&asJSON, jsonFlag, false, "print the JSON report instead of the text report")
 	cmd.Flags().BoolVar(&staged, "staged", false, "judge the index, the next commit, and report only the findings it introduces")
 	cmd.Flags().StringVar(&enrolled, "enrolled", "", "the policy digest, then a comma and the profile digest, the pipeline provisions")
 	return cmd
 }
+
+// jsonFlag selects the JSON report on every command that prints one.
+const jsonFlag = "json"
 
 // rootArg is the repository path of a command: the argument, or the
 // current directory when none is given.
