@@ -113,3 +113,19 @@ func TestLintAnswersWhatItCannotLoad(t *testing.T) {
 		t.Errorf("no home: exit = %d, stdout %q, stderr %q", code, homeless.stdout.String(), homeless.stderr.String())
 	}
 }
+
+// TestLintRefusesAPinnedScopeSourceThatIsAbsent: a policy that pins the
+// analyzer scope to a properties file the root does not hold stops the lint
+// with the cause named, never a clean run over a guessed scope.
+func TestLintRefusesAPinnedScopeSourceThatIsAbsent(t *testing.T) {
+	t.Parallel()
+	ta, _, _ := surfaceApp(t)
+	root := surfaceRepository(t, corePolicy+"surface:\n  analyzer:\n    from: properties\n", map[string]string{"views/a.js": "a()\n"})
+	if code := ta.run(t.Context(), []string{"lint", "--surface", root}); code != exitFailure {
+		t.Fatalf("exit = %d, stdout %q", code, ta.stdout.String())
+	}
+	want := "surface.analyzer.from is properties and the repository root holds no sonar-project.properties"
+	if got := ta.stderr.String(); !strings.Contains(got, "resolve the analyzer scope of ") || !strings.Contains(got, want) {
+		t.Errorf("stderr = %q, want the pinned source named", got)
+	}
+}
