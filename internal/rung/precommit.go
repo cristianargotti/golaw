@@ -103,7 +103,7 @@ func (p *precommit) run(ctx context.Context) Outcome {
 // steps of section 7 this version leaves to the pipeline.
 func (p *precommit) tools(ctx context.Context) Outcome {
 	out := Outcome{}
-	for _, step := range []func(context.Context) Outcome{p.secrets, p.goSteps} {
+	for _, step := range []func(context.Context) Outcome{p.secrets, p.goSteps, p.surface} {
 		out = join(out, step(ctx))
 	}
 	return join(out, p.leftToPipeline())
