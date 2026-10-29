@@ -50,6 +50,12 @@ func venvExec(venv, name, goos string) string {
 	return filepath.Join(venv, "bin", name)
 }
 
+// VenvPython is the interpreter of the kit's virtual environment, the one
+// every PyPI tool of the lock starts through.
+func VenvPython(toolsDir, goos string) string {
+	return venvExec(PythonDir(toolsDir), runtimePython, goos)
+}
+
 // ExecPath is the executable the runner starts for a tool.
 func ExecPath(toolsDir string, t Tool, goos, goarch string) string {
 	switch t.Distribution {

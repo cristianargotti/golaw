@@ -20,6 +20,10 @@ import (
 // dirMode keeps the fake's directory the developer's own, as setup does.
 const dirMode = 0o700
 
+// venvPythonVersion is what the fake venv interpreter answers: inside the
+// bounds of the PyPI tools.
+const venvPythonVersion = "Python 3.12.1"
+
 // Install puts a fake of t at its layout path in dir with the receipt a
 // real install writes, and answers the path.
 func Install(tb testing.TB, dir string, t toolchain.Tool, goos, goarch string, b runnertest.Behavior) string {
@@ -62,7 +66,21 @@ func Unreceipted(tb testing.TB, dir string, t toolchain.Tool, goos, goarch strin
 	if got != want {
 		tb.Fatalf("the fake of %s landed at %s, the layout names %s", t.Name, got, want)
 	}
+	if t.Distribution == toolchain.DistPyPI {
+		venvPython(tb, dir, goos)
+	}
 	return got
+}
+
+// venvPython puts the interpreter a real venv carries beside its tools, so
+// a PyPI fake resolves as one a setup run left.
+func venvPython(tb testing.TB, dir, goos string) {
+	tb.Helper()
+	python := toolchain.VenvPython(dir, goos)
+	if _, err := os.Stat(python); err == nil {
+		return
+	}
+	runnertest.Install(tb, filepath.Dir(python), strings.TrimSuffix(filepath.Base(python), ".exe"), runnertest.Behavior{Probe: []string{"--version"}, Version: venvPythonVersion})
 }
 
 // OnPath puts a fake of t in dir under the executable name PATH finds it

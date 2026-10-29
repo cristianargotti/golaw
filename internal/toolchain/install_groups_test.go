@@ -97,7 +97,7 @@ func TestInstallBuildsTheVenvAndInstallsTheHashedLock(t *testing.T) {
 		t.Fatalf("Install = %+v, %v", receipts, err)
 	}
 	// The runtime probe is a call of its own, before the one venv build.
-	if calls := runnertest.Calls(t, bin, pythonName()); len(calls) != 2 || !slices.Equal(calls[0], []string{"--version"}) || !slices.Equal(calls[1], []string{"-m", "venv", venv}) {
+	if calls := runnertest.Calls(t, bin, pythonName()); len(calls) != 2 || !slices.Equal(calls[0], []string{"--version"}) || !slices.Equal(calls[1], []string{"-m", "venv", "--clear", venv}) {
 		t.Errorf("python calls = %v, want the runtime probe then the venv", calls)
 	}
 	lock := filepath.Join(filepath.Dir(venv), "requirements.lock")

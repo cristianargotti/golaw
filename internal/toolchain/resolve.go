@@ -106,6 +106,9 @@ func (r Resolver) Full(ctx context.Context, t Tool) Resolved {
 	if !ok {
 		return r.onPath(ctx, t, miss)
 	}
+	if !r.venvLive(t) {
+		return venvGone(t, VenvPython(r.Dir, r.GOOS))
+	}
 	// A receipt that accepts the tool never falls back to PATH: a changed
 	// binary in the tool directory is shown, not bypassed.
 	if _, err := os.Stat(rec.Path); err != nil {
@@ -138,14 +141,14 @@ func (r Resolver) receipt(t Tool) (Receipt, Resolved, bool) {
 }
 
 // verified answers the receipt of the pin when the file's whole sha256
-// still equals the one it records.
+// still equals the one it records and its interpreter still resolves.
 func (r Resolver) verified(t Tool) (Receipt, bool) {
 	rec, _, ok := r.receipt(t)
 	if !ok {
 		return Receipt{}, false
 	}
 	sum, err := fileSHA256(rec.Path)
-	return rec, err == nil && sum == rec.SHA256
+	return rec, err == nil && sum == rec.SHA256 && r.venvLive(t)
 }
 
 // onPath accepts a tool on PATH only when its probe names the pin exactly;

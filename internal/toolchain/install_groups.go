@@ -69,8 +69,10 @@ func installPyPI(ctx context.Context, o InstallOptions, tools []Tool) ([]Receipt
 	if err := os.MkdirAll(home, dirMode); err != nil {
 		return nil, failed(err)
 	}
-	if _, err := os.Stat(venvExec(venv, runtimePython, o.GOOS)); err != nil {
-		if err := runInstaller(ctx, o, python.Path, []string{"-m", "venv", venv}, home); err != nil {
+	// A venv whose interpreter no longer resolves is rebuilt whole: without
+	// --clear, venv keeps the dangling link it finds.
+	if _, err := os.Stat(VenvPython(o.Dir, o.GOOS)); err != nil {
+		if err := runInstaller(ctx, o, python.Path, []string{"-m", "venv", "--clear", venv}, home); err != nil {
 			return nil, err
 		}
 	}
