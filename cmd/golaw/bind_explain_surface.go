@@ -10,6 +10,10 @@ import (
 	"github.com/cristianargotti/golaw/internal/surface"
 )
 
+// scopeFailure is the cause of every command that could not resolve the
+// analyzer scope of its root, so explain, lint and coverage word it alike.
+const scopeFailure = "resolve the analyzer scope of %s: %w"
+
 // explainSurface answers the surface lines config explain prints after the
 // policy. An app built without the production binding, as the fakes of a
 // command test are, has no tree to read and prints the policy alone;
@@ -36,7 +40,7 @@ func (b binding) surfaceExplain(ctx context.Context, root string, now time.Time)
 	}
 	scope, err := surface.ScopeOf(ctx, snapshot, l.Policy)
 	if err != nil {
-		return nil, fmt.Errorf("resolve the analyzer scope of %s: %w", root, err)
+		return nil, fmt.Errorf(scopeFailure, root, err)
 	}
 	inventory, err := surface.Take(ctx, snapshot)
 	if err != nil {

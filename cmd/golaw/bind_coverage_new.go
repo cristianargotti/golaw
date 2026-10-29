@@ -100,7 +100,7 @@ func (r *newCodeRun) snapshot(ctx context.Context) (model.Snapshot, surface.Scop
 	}
 	scope, err := surface.ScopeOf(ctx, snapshot, r.policy)
 	if err != nil {
-		return nil, surface.Scope{}, fmt.Errorf("resolve the analyzer scope of %s: %w", r.root, err)
+		return nil, surface.Scope{}, fmt.Errorf(scopeFailure, r.root, err)
 	}
 	if len(scope.Unmeasured) > 0 {
 		return nil, surface.Scope{}, &unmeasuredNewCodeError{"the analyzer scope is unmeasured: " + strings.Join(scope.Unmeasured, "; ")}

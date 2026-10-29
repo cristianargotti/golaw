@@ -32,7 +32,7 @@ func (b binding) lint(ctx context.Context, path string, now time.Time, opts lint
 	}
 	scope, err := surface.ScopeOf(ctx, snapshot, loaded.Policy)
 	if err != nil {
-		return model.Input{}, nil, fmt.Errorf("resolve the analyzer scope of %s: %w", loaded.Root, err)
+		return model.Input{}, nil, fmt.Errorf(scopeFailure, loaded.Root, err)
 	}
 	// A machine with no tools directory resolves every tool missing, so the
 	// run is Unmeasured and names golaw setup --surface instead of failing.
