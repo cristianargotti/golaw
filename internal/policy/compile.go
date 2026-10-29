@@ -42,6 +42,7 @@ func Compile(f File, now time.Time, schemas Schemas) (*model.EffectivePolicy, er
 	p.Ladder = f.Ladder.ladder()
 	p.Waivers = f.waivers()
 	p.Layout = f.Layout.layout()
+	p.Surface = f.Surface.policy()
 	return &p, nil
 }
 

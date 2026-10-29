@@ -28,7 +28,7 @@ func TestCompileCarriesTheLadderAndEveryWaiver(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (model.Ladder{PreCommit: true, CommitMsg: true, TestStaged: true}); p.Ladder != want {
+	if want := (model.Ladder{PreCommit: true, CommitMsg: true, TestStaged: true, SurfaceLint: true, HookFeedback: true}); p.Ladder != want {
 		t.Errorf("ladder = %+v, want %+v", p.Ladder, want)
 	}
 	want := []model.Waiver{
@@ -65,7 +65,7 @@ func TestCheckoutLadderReadsTheFileAsItStands(t *testing.T) {
 	}
 	writePolicy(t, root, "golaw: 1\nkit: {version: 0.1.0}\nladder: {pre_commit: false}\n")
 	got, ok := policy.CheckoutLadder(root)
-	if want := (model.Ladder{CommitMsg: true, PrePush: true}); !ok || got != want {
+	if want := (model.Ladder{CommitMsg: true, PrePush: true, SurfaceLint: true, HookFeedback: true}); !ok || got != want {
 		t.Errorf("ladder = %+v, %v, want %+v", got, ok, want)
 	}
 	writePolicy(t, root, "golaw: 1\nkit: {version: 0.1.0}\nladders: {}\n")
