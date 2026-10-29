@@ -77,7 +77,9 @@ func infraMaterialize(t *testing.T, d Driver, set string) string {
 // sorted slash paths of the files whose language the driver reads.
 func infraWrite(t *testing.T, d Driver, files map[string][]byte) (string, []string) {
 	t.Helper()
-	root := t.TempDir()
+	// checkov prints a CloudFormation path resolved through the links of the
+	// temporary directory, so the root is resolved too.
+	root := pythonRoot(t)
 	paths := make([]string, 0, len(files))
 	for rel, data := range files {
 		target := filepath.Join(root, filepath.FromSlash(rel))
