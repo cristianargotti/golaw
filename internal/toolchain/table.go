@@ -58,9 +58,12 @@ type Tool struct {
 	// Hook marks the fast tools that may run on the file just written
 	// (A28); only a binary tool qualifies, because a runtime start costs
 	// more than the hook budget.
-	Hook   bool
-	Probe  []string // the arguments that print the version
-	Bin    string   // the executable an npm or PyPI package installs
+	Hook  bool
+	Probe []string // the arguments that print the version
+	Bin   string   // the executable an npm or PyPI package installs
+	// Script marks a PyPI package that installs a plain #! script instead
+	// of an entry point, which Windows keeps with no .exe.
+	Script bool
 	Assets []Asset
 }
 

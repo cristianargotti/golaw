@@ -22,6 +22,8 @@ tools:
     languages: [dockerfile, cloudformation]
     probe: [--version]
     bin: checkov
+    # setuptools scripts, not an entry point: pip writes no checkov.exe.
+    script: true
   - name: eslint
     version: "10.13.0"
     published: "2026-10-16"

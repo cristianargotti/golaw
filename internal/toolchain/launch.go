@@ -16,18 +16,19 @@ const maxShebang = 512
 // environment under a home with a space writes for a plain script such as
 // checkov's, cannot start through the kernel, which splits that line at the
 // space; its interpreter then starts with the script as the first argument.
-// Every other file starts as it is.
-func launch(path string, args []string) (string, []string) {
-	interpreter, found := spacedInterpreter(path)
-	if !found {
+// Windows reads no #! line at all, so there every such script starts
+// through its interpreter. Every other file starts as it is.
+func launch(path string, args []string, goos string) (string, []string) {
+	interpreter, found := scriptInterpreter(path)
+	if !found || goos != goosWindows && !strings.Contains(interpreter, " ") {
 		return path, args
 	}
 	return interpreter, slices.Concat([]string{path}, args)
 }
 
-// spacedInterpreter reads the #! line of path and answers its interpreter
-// when that path holds a space and names a file.
-func spacedInterpreter(path string) (string, bool) {
+// scriptInterpreter reads the #! line of path and answers its interpreter,
+// unquoted, when that path names a file.
+func scriptInterpreter(path string) (string, bool) {
 	f, err := os.Open(path) //nolint:gosec // path is the tool the resolver chose to run
 	if err != nil {
 		return "", false
@@ -35,8 +36,8 @@ func spacedInterpreter(path string) (string, bool) {
 	defer func() { _ = f.Close() }()
 	line, err := bufio.NewReader(io.LimitReader(f, maxShebang)).ReadString('\n')
 	rest, found := strings.CutPrefix(line, "#!")
-	interpreter := strings.TrimSpace(rest)
-	if err != nil || !found || !strings.Contains(interpreter, " ") {
+	interpreter := strings.Trim(strings.TrimSpace(rest), `"`)
+	if err != nil || !found || interpreter == "" {
 		return "", false
 	}
 	if info, statErr := os.Stat(interpreter); statErr != nil || info.IsDir() {

@@ -68,6 +68,9 @@ func ExecPath(toolsDir string, t Tool, goos, goarch string) string {
 		}
 		return filepath.Join(NodeDir(toolsDir), "node_modules", ".bin", name)
 	case DistPyPI:
+		if t.Script && goos == goosWindows {
+			return filepath.Join(PythonDir(toolsDir), "Scripts", t.Bin)
+		}
 		return venvExec(PythonDir(toolsDir), t.Bin, goos)
 	}
 	return ""

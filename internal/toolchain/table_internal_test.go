@@ -44,8 +44,12 @@ func TestDecodeTableAcceptsTheMinimalTable(t *testing.T) {
 		t.Fatalf("decodeTable = %v", err)
 	}
 	tools := file.tools()
-	if len(tools) != 2 || tools[0].Name != "ruff" || tools[1].Bin != "yamllint" || tools[0].Assets[0].Member != "ruff/ruff" {
+	if len(tools) != 2 || tools[0].Name != "ruff" || tools[1].Bin != "yamllint" || tools[0].Assets[0].Member != "ruff/ruff" || tools[1].Script {
 		t.Errorf("tools = %+v", tools)
+	}
+	script, err := decodeTable([]byte(strings.Replace(minimal, "    bin: yamllint\n", "    bin: yamllint\n    script: true\n", 1)))
+	if err != nil || !script.tools()[1].Script {
+		t.Errorf("a PyPI tool that ships a plain script = %v, %v", script, err)
 	}
 }
 
@@ -63,6 +67,7 @@ func TestDecodeTableRefusesWhatTheResolverCouldNotTrust(t *testing.T) {
 		"xz archive the kit cannot open":     {"archive: tar.gz", "archive: tar.xz"},
 		"binary tool without asset":          {rufAssets, "    bin: ruff\n"},
 		"pypi tool without executable":       {"    bin: yamllint\n", ""},
+		"script on a binary tool":            {"    hook: true\n", "    hook: true\n    script: true\n"},
 		"repeated tool":                      {"  - name: yamllint", "  - name: ruff"},
 		"version that is not semantic":       {`version: "1.38.0"`, `version: "latest"`},
 		"runtime floor that is not semantic": {`floor: "3.10"`, `floor: "three"`},

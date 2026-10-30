@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ func Exec(ctx context.Context, req Request) (Execution, error) {
 	if req.Stdin != nil {
 		stdin = bytes.NewReader(req.Stdin)
 	}
-	name, args := launch(req.Path, req.Args)
+	name, args := launch(req.Path, req.Args, runtime.GOOS)
 	out, err := runner.Run(run, runner.Command{Name: name, Args: args, Dir: req.Dir, Env: req.Env, Stdin: stdin})
 	got := Execution{Output: out}
 	if req.Clock != nil {

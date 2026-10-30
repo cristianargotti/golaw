@@ -21,17 +21,23 @@ func TestLayoutPathsFollowTheToolDirectoryLayout(t *testing.T) {
 	t.Parallel()
 	dir := filepath.Join("home", "data", "golaw", "tools")
 	ruff, eslint, yamllint := mustLookup(t, "ruff"), mustLookup(t, "eslint"), mustLookup(t, "yamllint")
+	checkov, cfnLint := mustLookup(t, "checkov"), mustLookup(t, "cfn-lint")
 	node, python := toolchain.NodeDir(dir), toolchain.PythonDir(dir)
 	tests := map[string]struct{ got, want string }{
-		"binary":           {toolchain.BinPath(dir, ruff, "darwin", "arm64"), filepath.Join(dir, "bin", "ruff", "0.17.1", "darwin-arm64", "ruff")},
-		"windows binary":   {toolchain.BinPath(dir, ruff, "windows", "amd64"), filepath.Join(dir, "bin", "ruff", "0.17.1", "windows-amd64", "ruff.exe")},
-		"released config":  {toolchain.ConfigDir(dir, "0.3.0", "strict"), filepath.Join(dir, "config", "0.3.0", "strict")},
-		"dev build config": {toolchain.ConfigDir(dir, "", "parity"), filepath.Join(dir, "config", "devel", "parity")},
-		"exec of binary":   {toolchain.ExecPath(dir, ruff, "linux", "amd64"), toolchain.BinPath(dir, ruff, "linux", "amd64")},
-		"exec of npm":      {toolchain.ExecPath(dir, eslint, "linux", "amd64"), filepath.Join(node, "node_modules", ".bin", "eslint")},
-		"npm on windows":   {toolchain.ExecPath(dir, eslint, "windows", "amd64"), filepath.Join(node, "node_modules", ".bin", "eslint.cmd")},
-		"exec of pypi":     {toolchain.ExecPath(dir, yamllint, "darwin", "arm64"), filepath.Join(python, "bin", "yamllint")},
-		"pypi on windows":  {toolchain.ExecPath(dir, yamllint, "windows", "arm64"), filepath.Join(python, "Scripts", "yamllint.exe")},
+		"binary":                 {toolchain.BinPath(dir, ruff, "darwin", "arm64"), filepath.Join(dir, "bin", "ruff", "0.17.1", "darwin-arm64", "ruff")},
+		"windows binary":         {toolchain.BinPath(dir, ruff, "windows", "amd64"), filepath.Join(dir, "bin", "ruff", "0.17.1", "windows-amd64", "ruff.exe")},
+		"released config":        {toolchain.ConfigDir(dir, "0.3.0", "strict"), filepath.Join(dir, "config", "0.3.0", "strict")},
+		"dev build config":       {toolchain.ConfigDir(dir, "", "parity"), filepath.Join(dir, "config", "devel", "parity")},
+		"exec of binary":         {toolchain.ExecPath(dir, ruff, "linux", "amd64"), toolchain.BinPath(dir, ruff, "linux", "amd64")},
+		"exec of npm":            {toolchain.ExecPath(dir, eslint, "linux", "amd64"), filepath.Join(node, "node_modules", ".bin", "eslint")},
+		"npm on windows":         {toolchain.ExecPath(dir, eslint, "windows", "amd64"), filepath.Join(node, "node_modules", ".bin", "eslint.cmd")},
+		"exec of pypi":           {toolchain.ExecPath(dir, yamllint, "darwin", "arm64"), filepath.Join(python, "bin", "yamllint")},
+		"pypi on windows":        {toolchain.ExecPath(dir, yamllint, "windows", "arm64"), filepath.Join(python, "Scripts", "yamllint.exe")},
+		"entry point on windows": {toolchain.ExecPath(dir, cfnLint, "windows", "amd64"), filepath.Join(python, "Scripts", "cfn-lint.exe")},
+		// checkov ships a plain script, which pip copies with no .exe beside
+		// a .cmd that would start whatever python PATH holds.
+		"script on windows": {toolchain.ExecPath(dir, checkov, "windows", "amd64"), filepath.Join(python, "Scripts", "checkov")},
+		"script elsewhere":  {toolchain.ExecPath(dir, checkov, "linux", "amd64"), filepath.Join(python, "bin", "checkov")},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {

@@ -46,6 +46,7 @@ type toolEntry struct {
 	Hook         bool         `yaml:"hook"`
 	Probe        []string     `yaml:"probe"`
 	Bin          string       `yaml:"bin"`
+	Script       bool         `yaml:"script"`
 	Assets       []assetEntry `yaml:"assets"`
 }
 
@@ -126,11 +127,14 @@ func validateTool(entry *toolEntry, read time.Time) error {
 	}
 	switch Distribution(entry.Distribution) {
 	case DistBinary:
-		if entry.Bin != "" || len(entry.Assets) == 0 {
-			return fmt.Errorf("%w: binary %s needs assets and no bin", ErrTable, entry.Name)
+		if entry.Bin != "" || entry.Script || len(entry.Assets) == 0 {
+			return fmt.Errorf("%w: binary %s needs assets, no bin and no script", ErrTable, entry.Name)
 		}
 		return validateAssets(entry)
 	case DistNPM, DistPyPI:
+		if entry.Script && Distribution(entry.Distribution) != DistPyPI {
+			return fmt.Errorf("%w: %s %s ships no script: only a PyPI package does", ErrTable, entry.Distribution, entry.Name)
+		}
 		if entry.Hook || entry.Bin == "" || len(entry.Assets) != 0 {
 			return fmt.Errorf("%w: %s %s needs a bin, no asset and no hook", ErrTable, entry.Distribution, entry.Name)
 		}
@@ -181,7 +185,7 @@ func (f tableFile) tools() []Tool {
 		entry := &f.Tools[i]
 		tool := Tool{
 			Name: entry.Name, Version: entry.Version, Distribution: Distribution(entry.Distribution),
-			Hook: entry.Hook, Probe: entry.Probe, Bin: entry.Bin,
+			Hook: entry.Hook, Probe: entry.Probe, Bin: entry.Bin, Script: entry.Script,
 		}
 		for _, language := range entry.Languages {
 			tool.Languages = append(tool.Languages, surface.Language(language))
