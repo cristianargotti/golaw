@@ -96,7 +96,7 @@ func TestReadSonarWayRefusesWhatTheSnapshotMayNotHold(t *testing.T) {
 func TestReadSonarWayNamesWhatItCannotRead(t *testing.T) {
 	t.Parallel()
 	dir := bundleWith(t, map[string]string{SonarWayDir: "a file where the directory belongs"})
-	if _, _, err := readSonarWay(dir, "surface"); !errors.Is(err, ErrBundle) || !strings.Contains(err.Error(), "read sonar-way") {
-		t.Fatalf("readSonarWay of a file = %v", err)
+	if _, _, err := readSonarWay(dir, "surface"); !errors.Is(err, ErrBundle) || !strings.Contains(err.Error(), "read sonar-way: not a directory") {
+		t.Fatalf("readSonarWay of a file = %v, want it named on every OS", err)
 	}
 }

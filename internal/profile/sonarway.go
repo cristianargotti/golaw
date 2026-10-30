@@ -40,6 +40,9 @@ type sonarWayEntry struct {
 	Params   map[string]string `yaml:"params"`
 }
 
+// errNotDirectory names a snapshot path that holds a file.
+var errNotDirectory = errors.New("not a directory")
+
 // readSonarWay reads the snapshot of a bundle directory: every file one
 // language, every rule a key, a severity and its parameters, sorted by
 // language and key; the snapshot is as fresh as its oldest file, so Read
@@ -47,11 +50,20 @@ type sonarWayEntry struct {
 // one, answers false.
 func readSonarWay(dir, name string) (model.SonarWay, bool, error) {
 	root := filepath.Join(dir, SonarWayDir)
-	entries, err := os.ReadDir(root)
+	// Windows lists a file where the directory belongs as absent or empty,
+	// so the kind is read first and a file never passes for no snapshot.
+	info, err := os.Stat(root)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		return model.SonarWay{}, false, nil
-	case err != nil:
+	case err == nil && !info.IsDir():
+		err = errNotDirectory
+	}
+	var entries []os.DirEntry
+	if err == nil {
+		entries, err = os.ReadDir(root)
+	}
+	if err != nil {
 		return model.SonarWay{}, false, bundlef("profile %s: "+readCause, name, SonarWayDir, err)
 	}
 	var out model.SonarWay
