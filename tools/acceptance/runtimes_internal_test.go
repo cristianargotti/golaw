@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode"
 )
 
 // TestRuntimeShimStartsATargetUnderASpacedNonASCIIPath: cmd.exe splits an
@@ -28,11 +28,20 @@ func TestRuntimeShimStartsATargetUnderASpacedNonASCIIPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	body, err := os.ReadFile(shim)
-	if err != nil || string(body) != "@\""+shortPath(target)+"\" %*\r\n" {
-		t.Fatalf("shim = %q, %v, want the quoted short path of %s", body, err, target)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if runtime.GOOS == goosWindows && shortPath(target) != target && bytes.ContainsAny(body, " á") {
-		t.Errorf("shim = %q, want a path cmd reads in any code page", body)
+	named, found := runtimeShimTarget(string(body))
+	if !found {
+		t.Fatalf("shim = %q, want @\"<target>\" %%* and a CRLF", body)
+	}
+	if !sameFile(t, named, target) {
+		t.Errorf("shim = %q names %s, want %s", body, named, target)
+	}
+	// Only Windows keeps a short name, whose path holds no space and no
+	// rune a code page could read apart.
+	if runtime.GOOS == goosWindows && shortPath(target) != target && strings.ContainsFunc(named, func(r rune) bool { return r == ' ' || r > unicode.MaxASCII }) {
+		t.Errorf("shim = %q, want a target cmd reads whole in any code page", body)
 	}
 	if err := linkProgram(target, filepath.Join(target, "python"), true); err == nil {
 		t.Error("a shim under a file was accepted")
@@ -47,6 +56,27 @@ func TestRuntimeShimStartsATargetUnderASpacedNonASCIIPath(t *testing.T) {
 	if got, err := os.Readlink(link); err != nil || got != target {
 		t.Errorf("link = %q, %v, want %s", got, err, target)
 	}
+}
+
+// runtimeShimTarget is the target a shim starts: the line is the quoted
+// target and the %* tail, ended by CRLF as cmd.exe writes a batch file.
+func runtimeShimTarget(body string) (string, bool) {
+	line, found := strings.CutSuffix(body, "\" %*\r\n")
+	if !found {
+		return "", false
+	}
+	target, found := strings.CutPrefix(line, "@\"")
+	return target, found && target != "" && !strings.Contains(target, "\"")
+}
+
+func sameFile(t *testing.T, a, b string) bool {
+	t.Helper()
+	left, err := os.Stat(a)
+	if err != nil {
+		return false
+	}
+	right, err := os.Stat(b)
+	return err == nil && os.SameFile(left, right)
 }
 
 // TestRuntimeShimRunsFromASpacedNonASCIIDirectory runs a shim the way the
