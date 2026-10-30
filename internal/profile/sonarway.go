@@ -40,9 +40,6 @@ type sonarWayEntry struct {
 	Params   map[string]string `yaml:"params"`
 }
 
-// errNotDirectory names a snapshot path that holds a file.
-var errNotDirectory = errors.New("not a directory")
-
 // readSonarWay reads the snapshot of a bundle directory: every file one
 // language, every rule a key, a severity and its parameters, sorted by
 // language and key; the snapshot is as fresh as its oldest file, so Read
