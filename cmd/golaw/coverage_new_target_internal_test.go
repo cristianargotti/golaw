@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -36,10 +37,17 @@ func renderedGolawMK(t *testing.T) string {
 }
 
 // recipe is what make would run for coverage-new, printed and not run.
-func recipe(t *testing.T, dir string, vars ...string) []string {
+// GNU make announces the directory whenever it runs below another make, as
+// it does inside make ci, so the call silences it for every make flavor.
+func recipe(t *testing.T, dir string, env []string, vars ...string) []string {
 	t.Helper()
+	var environ []string
+	if env != nil {
+		environ = append(os.Environ(), env...)
+	}
 	out, err := runner.Run(t.Context(), runner.Command{
-		Name: "make", Args: append([]string{"-n", "-f", "golaw.mk", "coverage-new"}, vars...), Dir: dir,
+		Name: "make", Args: append([]string{"--no-print-directory", "-n", "-f", "golaw.mk", "coverage-new"}, vars...),
+		Dir: dir, Env: environ,
 	})
 	if errors.Is(err, runner.ErrStart) {
 		t.Skip("make is not installed here: the coverage-new recipe is proven on the runners that hold it")
@@ -77,15 +85,17 @@ func TestCoverageNewTargetWritesAndReadsThePipelineReport(t *testing.T) {
 	writeFiles(t, dir, map[string]string{"golaw.mk": renderedGolawMK(t)})
 	for _, tc := range []struct {
 		name string
+		env  []string
 		vars []string
 		base string
 	}{
-		{"near-the-default-base", nil, ""},
-		{"near-a-named-base", []string{"COVERAGE_BASE=release/base"}, "release/base"},
+		{"near-the-default-base", nil, nil, ""},
+		{"near-a-named-base", nil, []string{"COVERAGE_BASE=release/base"}, "release/base"},
+		{"near-a-parent-make", []string{"MAKEFLAGS=w", "MAKELEVEL=1"}, nil, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			lines := recipe(t, dir, tc.vars...)
+			lines := recipe(t, dir, tc.env, tc.vars...)
 			if len(lines) != 2 {
 				t.Fatalf("recipe = %q, want the report step and the judge step", lines)
 			}
