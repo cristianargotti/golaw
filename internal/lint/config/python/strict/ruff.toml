@@ -1,0 +1,40 @@
+# The strict set: every stable ruff rule, minus one rule of each
+# incompatible docstring pair, the rules the formatter rewrites anyway and
+# the copyright header, which neither Sonar way nor a golaw law asks for,
+# so the findings left are the ones a person fixes.
+[lint]
+select = ["ALL"]
+ignore = [
+  "COM812",
+  "COM819",
+  "CPY",
+  "D203",
+  "D206",
+  "D213",
+  "D300",
+  "E111",
+  "E114",
+  "E117",
+  "ISC002",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "Q004",
+  "W191",
+]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-branches = 12
+
+# Tests may assert, compare to literal numbers and skip annotations and
+# docstrings; they never keep a literal credential, so S105, S106 and S107
+# stay on everywhere. The patterns are base names, which ruff matches
+# whatever directory the tool runs in.
+[lint.per-file-ignores]
+"test_*.py" = ["ANN", "D1", "PLR2004", "S101"]
+"*_test.py" = ["ANN", "D1", "PLR2004", "S101"]
+"conftest.py" = ["ANN", "D1", "PLR2004", "S101"]

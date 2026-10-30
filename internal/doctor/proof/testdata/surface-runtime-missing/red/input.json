@@ -1,0 +1,16 @@
+{
+  "languages": ["javascript"],
+  "scope": [],
+  "shape": "",
+  "tools": [],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": "",
+      "languages": [],
+      "state": "missing",
+      "path": "",
+      "detail": "the npm tools need Node 22.13 or newer on PATH"
+    }
+  ]
+}

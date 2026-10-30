@@ -74,7 +74,7 @@ func m3DownloadChecksumName(pin *m3DownloadPin, line m3PinLine) error {
 		if !strings.HasPrefix(pin.Asset, "hadolint-") {
 			return line.problem("unrecognized hadolint asset name")
 		}
-		pin.ChecksumAsset = pin.Asset + ".sha256"
+		pin.ChecksumAsset = "checksums.sha256"
 	case "aquasecurity/trivy":
 		pattern := `^trivy_([0-9]+\.[0-9]+\.[0-9]+)_[A-Za-z0-9_-]+\.tar\.gz$`
 		match := regexp.MustCompile(pattern).FindStringSubmatch(pin.Asset)

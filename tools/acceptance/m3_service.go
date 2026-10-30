@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -38,8 +39,11 @@ func (s *suite) m3ServiceRepository(ctx context.Context, name string, capabiliti
 	if err := s.gitSteps(ctx, repo, []string{commandInit, m2Quiet}); err != nil {
 		return "", err
 	}
+	// The M3 rows judge the policy files, not the surface: the parity floor
+	// leaves the service's YAML to no tool, so its Dockerfile is the only
+	// surface the baseline's make ci measures.
 	got := s.execute(ctx, command{
-		program: s.binary, args: []string{commandInit, flagApply, "--capabilities", strings.Join(capabilities, ",")},
+		program: s.binary, args: []string{commandInit, flagApply, "--surface-rules", "parity", "--capabilities", strings.Join(capabilities, ",")},
 		dir: repo, env: s.env,
 	})
 	if err := success(got); err != nil {
@@ -114,24 +118,7 @@ func m3RequiredVersion(path, module string) (string, error) {
 // would copy something the repository does not hold.
 func m3CopyTree(source, target string) error {
 	err := filepath.WalkDir(source, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		rel, err := filepath.Rel(source, path)
-		if err != nil {
-			return fmt.Errorf("relativize copied entry: %w", err)
-		}
-		destination := filepath.Join(target, rel)
-		switch {
-		case entry.IsDir():
-			if err := os.MkdirAll(destination, dirMode); err != nil {
-				return fmt.Errorf("create copied directory: %w", err)
-			}
-			return nil
-		case entry.Type().IsRegular():
-			return m3CopyFile(path, destination, entry)
-		}
-		return fmt.Errorf("%s is neither a directory nor a regular file: %w", rel, ErrAcceptance)
+		return m3CopyEntry(source, target, path, entry, walkErr)
 	})
 	if err != nil {
 		return fmt.Errorf("copy the repository tree: %w", err)
@@ -139,12 +126,45 @@ func m3CopyTree(source, target string) error {
 	return nil
 }
 
+// m3CopyEntry skips an entry below the root that vanished after its
+// directory was listed, because git drops transient locks such as
+// maintenance.lock on its own schedule and the copy holds no lock on them.
+func m3CopyEntry(source, target, path string, entry fs.DirEntry, walkErr error) error {
+	if walkErr != nil {
+		if path != source && errors.Is(walkErr, fs.ErrNotExist) {
+			return nil
+		}
+		return walkErr
+	}
+	rel, err := filepath.Rel(source, path)
+	if err != nil {
+		return fmt.Errorf("relativize copied entry: %w", err)
+	}
+	destination := filepath.Join(target, rel)
+	switch {
+	case entry.IsDir():
+		if err := os.MkdirAll(destination, dirMode); err != nil {
+			return fmt.Errorf("create copied directory: %w", err)
+		}
+		return nil
+	case entry.Type().IsRegular():
+		return m3CopyFile(path, destination, entry)
+	}
+	return fmt.Errorf("%s is neither a directory nor a regular file: %w", rel, ErrAcceptance)
+}
+
 func m3CopyFile(path, destination string, entry fs.DirEntry) error {
 	info, err := entry.Info()
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("inspect copied file: %w", err)
 	}
 	body, err := readFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}

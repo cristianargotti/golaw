@@ -1,0 +1,48 @@
+# The native checks of the non-Go surface (internal/checks/surface): one
+# entry per check, the finding code its red fixture must yield and the two
+# fixture trees relative to this file.
+checks:
+  - id: surface.code-eval
+    code: code-eval
+    red: testdata/surface.code-eval/red
+    near: testdata/surface.code-eval/near
+  - id: surface.hardcoded-credential
+    code: hardcoded-credential
+    red: testdata/surface.hardcoded-credential/red
+    near: testdata/surface.hardcoded-credential/near
+  - id: surface.file-length
+    code: file-length
+    red: testdata/surface.file-length/red
+    near: testdata/surface.file-length/near
+  - id: surface.inline-script-size
+    code: inline-script-size
+    red: testdata/surface.inline-script-size/red
+    near: testdata/surface.inline-script-size/near
+  - id: surface.suppression
+    code: suppression
+    red: testdata/surface.suppression/red
+    near: testdata/surface.suppression/near
+  - id: surface.analyzer-widening
+    code: analyzer-widening
+    red: testdata/surface.analyzer-widening/red
+    near: testdata/surface.analyzer-widening/near
+  - id: surface.html-prefer-tag
+    code: prefer-tag
+    red: testdata/surface.html-prefer-tag/red
+    near: testdata/surface.html-prefer-tag/near
+  - id: surface.python-function-length
+    code: python-function-length
+    red: testdata/surface.python-function-length/red
+    near: testdata/surface.python-function-length/near
+  - id: docker.tag-and-digest
+    code: tag-and-digest
+    red: testdata/docker.tag-and-digest/red
+    near: testdata/docker.tag-and-digest/near
+  - id: docker.final-user
+    code: final-user
+    red: testdata/docker.final-user/red
+    near: testdata/docker.final-user/near
+  - id: cfn.bucket-https-only
+    code: bucket-https-only
+    red: testdata/cfn.bucket-https-only/red
+    near: testdata/cfn.bucket-https-only/near

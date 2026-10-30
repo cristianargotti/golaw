@@ -1,0 +1,9 @@
+export function Panel({ rows }) {
+  return (
+    <ul>
+      {rows.map((row) => (
+        <li key={row.id}>{row.name}</li>
+      ))}
+    </ul>
+  );
+}

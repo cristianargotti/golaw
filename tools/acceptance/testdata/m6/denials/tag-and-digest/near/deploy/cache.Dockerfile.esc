@@ -1,0 +1,3 @@
+# valkey/valkey:8.1-alpine
+FROM valkey/valkey@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+USER 999:1000

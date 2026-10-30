@@ -1,7 +1,9 @@
-FROM docker.example.test/library/alpine:3.20@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa AS certs
+# alpine:3.20
+FROM docker.example.test/library/alpine@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa AS certs
 RUN apk add --no-cache ca-certificates=20250911-r0
 
-FROM registry.example.test/library/golang:1.27-alpine@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb AS base
+# golang:1.27-alpine
+FROM registry.example.test/library/golang@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb AS base
 WORKDIR /src
 
 FROM base AS ci
@@ -11,6 +13,8 @@ FROM base AS builder
 COPY . .
 RUN go build -o /out/service .
 
-FROM registry.example.test/library/alpine:3.20@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+# alpine:3.20
+FROM registry.example.test/library/alpine@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 COPY --from=builder /out/service /service
+USER 65532:65532
 ENTRYPOINT ["/service"]

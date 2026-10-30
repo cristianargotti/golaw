@@ -1,0 +1,7 @@
+// Package b doubles numbers for the coverage fixture.
+package b
+
+// Double doubles x.
+func Double(x int) int {
+	return x * 2
+}

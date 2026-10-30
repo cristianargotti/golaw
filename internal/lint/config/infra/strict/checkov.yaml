@@ -1,0 +1,5 @@
+# The strict set: every check of both frameworks, offline.
+framework:
+  - cloudformation
+  - dockerfile
+skip-download: true

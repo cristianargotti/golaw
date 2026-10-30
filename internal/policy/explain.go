@@ -34,6 +34,7 @@ func Explain(l *Loaded) []Line {
 	e.head(l)
 	e.floors(l.Policy, l.File)
 	e.options(l.Policy, l.Schemas)
+	e.surface(l.Policy, l.File)
 	e.records(l.File)
 	e.add("enrollment.state", l.Policy.Enrollment.State.String(), SourceEnrollment)
 	e.add("enrollment.policy_digest", l.Policy.Enrollment.PolicyDigest, SourceEnrollment)
@@ -138,7 +139,7 @@ func (e *explainer) options(p *model.EffectivePolicy, schemas Schemas) {
 // catalog declares them and explain must name the same keys either way.
 func floorDefaults() map[string]model.Options {
 	percent, statements := DefaultCoverage, DefaultMinStatements
-	coverage := &Coverage{Total: &percent, Package: &percent, File: &percent, MinStatements: &statements, FileExemptions: []string{}}
+	coverage := &Coverage{Total: &percent, Package: &percent, File: &percent, MinStatements: &statements, FileExemptions: []string{}, NewCode: &percent}
 	return Checks{Coverage: coverage, Lint: &Lint{}}.options(nil)
 }
 
@@ -173,6 +174,7 @@ func (e *explainer) records(f File) {
 				e.add("ladder."+rung.key, strconv.FormatBool(*rung.on), e.origin)
 			}
 		}
+		e.surfaceSwitches(lad)
 	}
 	for i, m := range f.Managed {
 		e.add(fmt.Sprintf("managed[%d]", i), m.Path+" "+m.SHA256, e.origin)

@@ -121,7 +121,7 @@ func TestM5FixtureTreesHoldEveryViolationAndItsCorrection(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, fragments := range map[string][]string{
-		"Dockerfile":         {"docker.example.test/", "curl=", "FROM registry.example.test/library/alpine:3.20@sha256:c"},
+		"Dockerfile":         {"docker.example.test/", "curl=", "FROM registry.example.test/library/alpine@sha256:c"},
 		m5RedOnly:            {"agents"},
 		"deploy/values.yaml": {"runAsNonRoot: false"},
 		"ci/pipeline.md":     {"legacyci"},
@@ -133,6 +133,7 @@ func TestM5FixtureTreesHoldEveryViolationAndItsCorrection(t *testing.T) {
 		}
 	}
 	if _, found := corrected[m5RedOnly]; found || !strings.Contains(string(corrected["Dockerfile"]), "\nFROM scratch\n") ||
+		!strings.Contains(string(corrected["Dockerfile"]), "\nUSER 65532:65532\n") ||
 		!strings.Contains(string(corrected["Makefile"]), "\nci: hooks-test image-lint\n") ||
 		strings.Contains(string(corrected["ci/pipeline.md"]), "legacyci") || strings.Contains(string(corrected["Dockerfile"]), "curl") {
 		t.Fatalf("corrected tree = %q", slices.Sorted(maps.Keys(corrected)))

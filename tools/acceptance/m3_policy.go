@@ -98,11 +98,40 @@ func (s *suite) m3ViolationRow(ctx context.Context, name string, violation m3Vio
 	return m3JudgeViolation(violation.check, s.m3Make(ctx, repo, "-k", "ci"))
 }
 
-// m3PassesCI runs the two steps the generated CI ends with: make ci, then
-// git diff --exit-code, so a target that rewrites a tracked file fails the
-// row as it fails the pipeline.
+// m3CIDefaultBranch records the checkout's HEAD as the remote default
+// branch: the generated CI checks out with every branch fetched, and
+// coverage-new reads its base there (decision C3 keeps a repository with no
+// remote at exit 2), so the row's local repository takes the shape of a
+// pipeline run on the default branch.
+func m3CIDefaultBranch() []string {
+	return []string{"update-ref", "refs/remotes/origin/main", m2Head}
+}
+
+// m3SurfaceSetup is the step the generated CI runs before make ci: the
+// pinned surface linters of the languages the repository holds, because
+// make ci composes lint-surface and a gate that cannot measure fails.
+func m3SurfaceSetup() []string {
+	return []string{m6SetupCommand, "--surface"}
+}
+
+// m3PassesCI runs the steps the generated CI ends with: golaw setup
+// --surface, make ci, then git diff --exit-code, so a target that rewrites
+// a tracked file fails the row as it fails the pipeline.
 func (s *suite) m3PassesCI(ctx context.Context, repo string) error {
-	got := s.m3Make(ctx, repo, "ci")
+	if err := s.gitSteps(ctx, repo, m3CIDefaultBranch()); err != nil {
+		return fmt.Errorf("record the default branch of the CI checkout: %w", err)
+	}
+	// The generated CI sets up node and python before both steps; here the
+	// caller's usable runtimes go first, past an older shim ahead of them.
+	env := slices.Clone(s.env)
+	for _, dir := range slices.Backward(s.surfaceRuntimes(ctx)) {
+		env = prependPath(env, dir)
+	}
+	setup := s.execute(ctx, command{program: s.binary, args: m3SurfaceSetup(), dir: repo, env: env})
+	if err := success(setup); err != nil {
+		return fmt.Errorf("install the surface tools as the generated CI does: %w", err)
+	}
+	got := s.execute(ctx, command{program: s.m2.Make, args: []string{"ci"}, dir: repo, env: env})
 	if got.err != nil {
 		return fmt.Errorf("execute make ci: %w", got.err)
 	}

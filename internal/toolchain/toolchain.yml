@@ -1,0 +1,212 @@
+# The pinned external linters of the non-Go surface (M6.5.1). A pin enters
+# seven days after its publication: published is the upstream date and read
+# the day the pins and checksums were read. The sha256 of a binary asset is
+# the kit's record; for ruff and hadolint it equals the upstream checksum
+# file at pin time, shellcheck and shfmt publish none.
+read: "2026-10-27"
+runtimes:
+  - { name: node, floor: "22.13.0", probe: [--version] }
+  - { name: python, floor: "3.10", below: "3.15", probe: [--version] }
+tools:
+  - name: cfn-lint
+    version: "1.58.0"
+    published: "2026-10-20"
+    distribution: pypi
+    languages: [cloudformation]
+    probe: [--version]
+    bin: cfn-lint
+  - name: checkov
+    version: "3.3.30"
+    published: "2026-10-20"
+    distribution: pypi
+    languages: [dockerfile, cloudformation]
+    probe: [--version]
+    bin: checkov
+    # setuptools scripts, not an entry point: pip writes no checkov.exe.
+    script: true
+  - name: eslint
+    version: "10.13.0"
+    published: "2026-10-16"
+    distribution: npm
+    languages: [javascript, typescript, jsx, tsx, html]
+    probe: [--version]
+    bin: eslint
+  - name: hadolint
+    version: "2.15.1"
+    published: "2026-07-31"
+    distribution: binary
+    languages: [dockerfile]
+    hook: true
+    probe: [--version]
+    assets:
+      - {
+          platform: darwin-amd64,
+          url: "https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-macos-x86_64",
+          sha256: ffe9bb18b23d5ed1eae50237aecdbb523d016e96da0bd4e7aa432040acfc3fde,
+        }
+      - {
+          platform: darwin-arm64,
+          url: "https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-macos-arm64",
+          sha256: 5c09f3213f8e40406abe048233d985eebef336d4a6a20021be47fadb6cf480a2,
+        }
+      - {
+          platform: linux-amd64,
+          url: "https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-x86_64",
+          sha256: c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507,
+        }
+      - {
+          platform: linux-arm64,
+          url: "https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-linux-arm64",
+          sha256: f6198ef8090f404dbb771abfee086eb8c48ac177f30da7fd3510aca35b344b5d,
+        }
+      - {
+          platform: windows-amd64,
+          url: "https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-windows-x86_64.exe",
+          sha256: 01d927294962b5387f9ead4f18679158452be4f17c765ad0bdffe5264b9c7b0a,
+        }
+  - name: pyright
+    version: "1.1.414"
+    published: "2026-09-09"
+    distribution: npm
+    languages: [python]
+    probe: [--version]
+    bin: pyright
+  - name: ruff
+    version: "0.17.1"
+    published: "2026-10-15"
+    distribution: binary
+    languages: [python]
+    hook: true
+    probe: [--version]
+    assets:
+      - {
+          platform: darwin-amd64,
+          url: "https://github.com/astral-sh/ruff/releases/download/0.17.1/ruff-x86_64-apple-darwin.tar.gz",
+          sha256: 88ee16f88dba9d440e06375f46898ec85baf578042ad086764d5a33558bb6e17,
+          archive: tar.gz,
+          member: ruff-x86_64-apple-darwin/ruff,
+        }
+      - {
+          platform: darwin-arm64,
+          url: "https://github.com/astral-sh/ruff/releases/download/0.17.1/ruff-aarch64-apple-darwin.tar.gz",
+          sha256: 1c8e6e36538eaa0b996378a20c226403c4ca6369ac24884751b024d3a9530b86,
+          archive: tar.gz,
+          member: ruff-aarch64-apple-darwin/ruff,
+        }
+      - {
+          platform: linux-amd64,
+          url: "https://github.com/astral-sh/ruff/releases/download/0.17.1/ruff-x86_64-unknown-linux-musl.tar.gz",
+          sha256: 2d9878b5e6a3d0dedadbfc01a64bfe54e72f560adbfd235937cd29e1fc9238e3,
+          archive: tar.gz,
+          member: ruff-x86_64-unknown-linux-musl/ruff,
+        }
+      - {
+          platform: linux-arm64,
+          url: "https://github.com/astral-sh/ruff/releases/download/0.17.1/ruff-aarch64-unknown-linux-musl.tar.gz",
+          sha256: 255404ccf2f7950ff6aad8858321a6f416fe2a840ae4e37dfb4c21cb8774f325,
+          archive: tar.gz,
+          member: ruff-aarch64-unknown-linux-musl/ruff,
+        }
+      - {
+          platform: windows-amd64,
+          url: "https://github.com/astral-sh/ruff/releases/download/0.17.1/ruff-x86_64-pc-windows-msvc.zip",
+          sha256: a841fb7e59680508b9394bfea32e369b3907cc6620a491c65d8d1f479498db82,
+          archive: zip,
+          member: ruff.exe,
+        }
+      - {
+          platform: windows-arm64,
+          url: "https://github.com/astral-sh/ruff/releases/download/0.17.1/ruff-aarch64-pc-windows-msvc.zip",
+          sha256: 2f8ba07c7b2b8d1f011056968360e99e9ac7f0815e2d02eaab958255e110b1df,
+          archive: zip,
+          member: ruff.exe,
+        }
+  - name: shellcheck
+    version: "0.11.0"
+    published: "2025-08-04"
+    distribution: binary
+    languages: [shell]
+    hook: true
+    probe: [--version]
+    assets:
+      - {
+          platform: darwin-amd64,
+          url: "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.x86_64.tar.gz",
+          sha256: c2c15e08df0e8fbc374c335b230a7ee958c313fa5714817a59aa59f1aa594f51,
+          archive: tar.gz,
+          member: shellcheck-v0.11.0/shellcheck,
+        }
+      - {
+          platform: darwin-arm64,
+          url: "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.gz",
+          sha256: 339b930feb1ea764467013cc1f72d09cd6b869ebf1013296ba9055ab2ffbd26f,
+          archive: tar.gz,
+          member: shellcheck-v0.11.0/shellcheck,
+        }
+      - {
+          platform: linux-amd64,
+          url: "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.gz",
+          sha256: b7af85e41cc99489dcc21d66c6d5f3685138f06d34651e6d34b42ec6d54fe6f6,
+          archive: tar.gz,
+          member: shellcheck-v0.11.0/shellcheck,
+        }
+      - {
+          platform: linux-arm64,
+          url: "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.aarch64.tar.gz",
+          sha256: 68a8133197a50beb8803f8d42f9908d1af1c5540d4bb05fdfca8c1fa47decefc,
+          archive: tar.gz,
+          member: shellcheck-v0.11.0/shellcheck,
+        }
+      - {
+          platform: windows-amd64,
+          url: "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.zip",
+          sha256: 8a4e35ab0b331c85d73567b12f2a444df187f483e5079ceffa6bda1faa2e740e,
+          archive: zip,
+          member: shellcheck.exe,
+        }
+  - name: shfmt
+    version: "3.14.1"
+    published: "2026-09-06"
+    distribution: binary
+    languages: [shell]
+    probe: [--version]
+    assets:
+      - {
+          platform: darwin-amd64,
+          url: "https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_darwin_amd64",
+          sha256: d33eee0da0f92835b3562e9767a05cee7e4eaeef47daa03bfd09da17b4b590a6,
+        }
+      - {
+          platform: darwin-arm64,
+          url: "https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_darwin_arm64",
+          sha256: b7c872db63553ccffc7253aba3ed7d4885a27d83f1ba567b1138c6315a5847e5,
+        }
+      - {
+          platform: linux-amd64,
+          url: "https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_linux_amd64",
+          sha256: 76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf,
+        }
+      - {
+          platform: linux-arm64,
+          url: "https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_linux_arm64",
+          sha256: 5f2db09dae91fca848f7adbdd014632e921a383863a2ad7e0450ad3aba0c6489,
+        }
+      - {
+          platform: windows-amd64,
+          url: "https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_windows_amd64.exe",
+          sha256: 13629ce28442ca80b6b5a819f7574ab39e1c28c6e26734ca816c9714e04851df,
+        }
+  - name: stylelint
+    version: "17.16.0"
+    published: "2026-10-01"
+    distribution: npm
+    languages: [css, html]
+    probe: [--version]
+    bin: stylelint
+  - name: yamllint
+    version: "1.38.0"
+    published: "2026-01-13"
+    distribution: pypi
+    languages: [yaml]
+    probe: [--version]
+    bin: yamllint

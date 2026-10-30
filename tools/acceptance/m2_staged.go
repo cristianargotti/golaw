@@ -106,7 +106,8 @@ func m2IntroducedFinding(name string, code int, doc scanreport.Document) error {
 		path = "dirty.txt"
 	}
 	if code == 1 && doc.Verdict == "fail" && doc.Counts.Enforced > 0 {
-		for _, finding := range doc.Findings {
+		for k := range doc.Findings {
+			finding := &doc.Findings[k]
 			if finding.Check == check && finding.Path == path && finding.Severity.Valid() && finding.Enforced() {
 				return nil
 			}

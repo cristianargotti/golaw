@@ -55,10 +55,10 @@ func m3ExpectedToolPins(caps []string) (map[string]string, map[string]string, []
 				SHA256:        "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
 			},
 			{
-				Repository: "hadolint/hadolint", Tag: "v2.14.0",
+				Repository: "hadolint/hadolint", Tag: "v2.15.1",
 				Asset:         "hadolint-linux-x86_64",
-				ChecksumAsset: "hadolint-linux-x86_64.sha256",
-				SHA256:        "6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47",
+				ChecksumAsset: "checksums.sha256",
+				SHA256:        "c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507",
 			},
 		}
 	}
@@ -68,7 +68,7 @@ func m3ExpectedToolPins(caps []string) (map[string]string, map[string]string, []
 func TestM3ToolPinExtractionBoundaries(t *testing.T) {
 	t.Parallel()
 	source := string(m3CI(t, []string{"api", "db", "go", "image"}))
-	const digest = "6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47"
+	const digest = "c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507"
 	const verify = `printf '%s  %s\n' '` + digest +
 		`' "$RUNNER_TEMP/hadolint" | sha256sum -c -`
 	const install = `install -m 0755 "$RUNNER_TEMP/hadolint" "$RUNNER_TEMP/golaw-bin/hadolint"`
@@ -80,7 +80,7 @@ func TestM3ToolPinExtractionBoundaries(t *testing.T) {
 		{"floating npm", "squawk-cli@2.35.0", "squawk-cli@latest", true},
 		{"npm range", "@redocly/cli@2.5.0", "@redocly/cli@^2.5.0", true},
 		{"floating Go", "cmd/golaw@v0.2.0", "cmd/golaw@latest", true},
-		{"short digest", digest, "6bf226", true},
+		{"short digest", digest, "c7187d", true},
 		{"unchecked download", "sha256sum -c -", "cat", true},
 		{
 			"wrong checked file", verify,

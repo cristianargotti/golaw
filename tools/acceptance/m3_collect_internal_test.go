@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -59,25 +61,42 @@ func TestM3CollectCatalogsKeysEveryRowAndItsEvidence(t *testing.T) {
 func TestM3PolicyBaselinePassesItsOwnCI(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name string
-		code int
-		fail bool
+		name  string
+		setup int
+		code  int
+		fail  bool
+		steps []string
 	}{
-		{"near make ci passes", 0, false},
-		{"red make ci fails", 2, true},
+		{"near make ci passes", 0, 0, false, []string{"origin", "surface", "make"}},
+		{"red make ci fails", 0, 2, true, []string{"origin", "surface", "make"}},
+		{"red the surface tools do not install", 2, 0, true, []string{"origin", "surface"}},
 	} {
 		s := m2TestSuite(t)
 		s.m2.Make = "/simulated/make"
 		var calls [][]string
+		var order []string
 		service := m3ServiceAnswer(t, s, &calls)
 		s.execute = newM2Script(t, s, func(ctx context.Context, c command) (m2Reply, bool) {
-			if c.program == s.m2.Make {
+			switch {
+			case c.program == s.m2.Make:
+				order = append(order, "make")
 				return m2Reply{got: result{code: tc.code, stdout: "make ci\n"}, target: true}, true
+			case c.program == s.git && slices.Equal(c.args, m3CIDefaultBranch()):
+				order = append(order, "origin")
+				return m2Reply{got: result{}}, true
+			case c.program == s.binary && slices.Equal(c.args, m3SurfaceSetup()):
+				order = append(order, "surface")
+				return m2Reply{got: result{code: tc.setup}, target: true}, true
 			}
 			return service(ctx, c)
 		}).Execute
 		if err := s.policyM3(t.Context(), m3Baseline); (err != nil) != tc.fail {
 			t.Fatalf("%s: baseline = %v", tc.name, err)
+		}
+		// A CI checkout holds the default branch, which coverage-new reads,
+		// and the generated CI installs the surface tools before make ci.
+		if !slices.Equal(order, tc.steps) {
+			t.Fatalf("%s: steps = %q, want %q", tc.name, order, tc.steps)
 		}
 	}
 	s := m2TestSuite(t)
@@ -86,5 +105,41 @@ func TestM3PolicyBaselinePassesItsOwnCI(t *testing.T) {
 	}
 	if !slices.Contains(m3PolicyNames(), m3Baseline) {
 		t.Fatal("the baseline row is missing")
+	}
+}
+
+// TestM3BaselineRunsOnTheCallersUsableRuntimes: an old python3 ahead of a
+// usable one on the caller's PATH, as a version manager shim leaves it, does
+// not fail the baseline: setup and make ci run on the usable runtimes first,
+// as the M6 rows do.
+func TestM3BaselineRunsOnTheCallersUsableRuntimes(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == goosWindows {
+		t.Skip("the fake runtimes are shell scripts")
+	}
+	s := m2TestSuite(t)
+	s.m2.Make = "/simulated/make"
+	dir := m6FakeRuntimes(t, newM6Suite(s), []string{"old", "good"})
+	var calls [][]string
+	paths := map[string]string{}
+	service := m3ServiceAnswer(t, s, &calls)
+	s.execute = newM2Script(t, s, func(ctx context.Context, c command) (m2Reply, bool) {
+		switch {
+		case c.program == s.m2.Make:
+			paths["make"] = environmentValue(c.env, envPath)
+			return m2Reply{got: result{}, target: true}, true
+		case c.program == s.binary && slices.Equal(c.args, m3SurfaceSetup()):
+			paths["setup"] = environmentValue(c.env, envPath)
+			return m2Reply{got: result{}, target: true}, true
+		}
+		return service(ctx, c)
+	}).Execute
+	if err := s.policyM3(t.Context(), m3Baseline); err != nil {
+		t.Fatal(err)
+	}
+	for _, step := range []string{"setup", "make"} {
+		if first := filepath.SplitList(paths[step]); len(first) == 0 || first[0] != dir("good") {
+			t.Errorf("%s ran on PATH %q, want the usable runtimes first", step, first)
+		}
 	}
 }

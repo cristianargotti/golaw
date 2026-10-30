@@ -7,4 +7,4 @@ import (
 	"github.com/cristianargotti/golaw/internal/runnertest"
 )
 
-func TestMain(m *testing.M) { os.Exit(runnertest.Main(m)) }
+func TestMain(m *testing.M) { os.Exit(runnertest.Main(m, os.Getenv)) }

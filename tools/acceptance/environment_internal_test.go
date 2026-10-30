@@ -28,6 +28,11 @@ func TestEnvironment(t *testing.T) {
 	if got := environmentValue(env, "GOFLAGS"); got != "-mod=readonly -modcacherw" {
 		t.Fatalf("GOFLAGS = %q, want a module cache the home can drop", got)
 	}
+	if environmentValue(env, "GIT_CONFIG_COUNT") != "2" ||
+		environmentValue(env, "GIT_CONFIG_KEY_0") != "gc.auto" || environmentValue(env, "GIT_CONFIG_VALUE_0") != "0" ||
+		environmentValue(env, "GIT_CONFIG_KEY_1") != "maintenance.auto" || environmentValue(env, "GIT_CONFIG_VALUE_1") != "false" {
+		t.Fatalf("git config = %q, want no automatic maintenance in the fixture repositories", env)
+	}
 	changed := prependPath(env, "first")
 	if environmentValue(changed, "PATH") == environmentValue(env, "PATH") ||
 		environmentValue(prependPath(nil, "only"), "PATH") != "only" {

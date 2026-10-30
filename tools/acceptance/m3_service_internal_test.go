@@ -37,7 +37,7 @@ func TestM3ServiceRepositoryAdoptsTheFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) == 0 || !slices.Equal(calls[0], []string{"init", "--apply", "--capabilities", "api,go"}) {
+	if len(calls) == 0 || !slices.Equal(calls[0], []string{"init", "--apply", "--surface-rules", "parity", "--capabilities", "api,go"}) {
 		t.Fatalf("calls = %q", calls)
 	}
 	for _, path := range []string{"internal/secret/secret.go", "golaw.yml", "golaw.mk", "api/openapi.yaml"} {

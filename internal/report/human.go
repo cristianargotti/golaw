@@ -19,9 +19,10 @@ func Human(language string, decision engine.Decision) string {
 	if language != Portuguese {
 		return english(decision)
 	}
-	for _, f := range decision.Findings {
+	for k := range decision.Findings {
+		f := &decision.Findings[k]
 		if f.Enforced() {
-			return "golaw bloqueou a operação: " + phrase(f) + "."
+			return "golaw bloqueou a operação: " + phrase(*f) + "."
 		}
 	}
 	if len(decision.Unmeasured) > 0 {
@@ -77,7 +78,7 @@ func lookup(code string) (string, bool) {
 // policy family keeps its rows in a file of its own.
 func phrases() []sentence {
 	return slices.Concat(filePhrases(), goastPhrases(), shellPhrases(), commitPhrases(),
-		policyLintPhrases(), policyBuildPhrases(), policyDepsPhrases(), policyProfilePhrases())
+		policyLintPhrases(), policyBuildPhrases(), policyDepsPhrases(), policyProfilePhrases(), surfacePhrases())
 }
 
 // filePhrases are the sentences of the text and paths families.

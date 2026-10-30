@@ -1,0 +1,33 @@
+[
+  {
+    "filePath": "/work/repo/views/panel.html",
+    "messages": [
+      {
+        "ruleId": null,
+        "fatal": true,
+        "severity": 2,
+        "message": "Parsing error: Unexpected token {",
+        "line": 30,
+        "column": 7
+      }
+    ],
+    "errorCount": 1,
+    "fatalErrorCount": 1,
+    "warningCount": 0
+  },
+  {
+    "filePath": "/work/repo/views/common.js",
+    "messages": [
+      {
+        "ruleId": "no-undef",
+        "severity": 2,
+        "message": "'render' is not defined.",
+        "line": 3,
+        "column": 1
+      }
+    ],
+    "errorCount": 1,
+    "fatalErrorCount": 0,
+    "warningCount": 0
+  }
+]

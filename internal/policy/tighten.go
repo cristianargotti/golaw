@@ -101,12 +101,23 @@ func CheckTightening(inForce, proposed File, schemas Schemas) error {
 		samePin("profile.name", was.profile, next.profile),
 		samePin("profile.source", was.source, next.source),
 		optionsTighten(inForce.Checks.Options, proposed.Checks.Options, schemas),
+		surfaceTightening(inForce, proposed),
+		upward("checks.coverage.new_code", newCode(inForce), newCode(proposed)),
 	} {
 		if err != nil {
 			return fmt.Errorf("%w: proposed %s weakens %w", model.ErrPolicy, FileName, err)
 		}
 	}
 	return nil
+}
+
+// newCode answers the new code floor a file sets, the core default when
+// unset, so an absent key and an explicit 80 compare equal.
+func newCode(f File) int {
+	if c := f.Checks.Coverage; c != nil && c.NewCode != nil {
+		return *c.NewCode
+	}
+	return DefaultCoverage
 }
 
 // weakening is one rule a proposed value broke.

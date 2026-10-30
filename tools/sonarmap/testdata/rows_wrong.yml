@@ -1,0 +1,6 @@
+- sonar: "javascript:S3358"
+  tool: eslint
+  rule: sonarjs/no-unenclosed-multiline-block
+  where: [L]
+  match: exact
+  set: parity

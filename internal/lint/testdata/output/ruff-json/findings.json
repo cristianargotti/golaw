@@ -1,0 +1,24 @@
+[
+  {
+    "cell": null,
+    "code": "S307",
+    "end_location": { "column": 22, "row": 25 },
+    "filename": "/work/repo/test/deploy/test_install.py",
+    "fix": null,
+    "location": { "column": 12, "row": 25 },
+    "message": "Use of possibly insecure function; consider using `ast.literal_eval`",
+    "noqa_row": 25,
+    "url": "https://docs.astral.sh/ruff/rules/suspicious-eval-usage"
+  },
+  {
+    "cell": null,
+    "code": "invalid-syntax",
+    "end_location": { "column": 8, "row": 1 },
+    "filename": "/work/repo/scripts/broken.py",
+    "fix": null,
+    "location": { "column": 7, "row": 1 },
+    "message": "Expected a parameter or the end of the parameter list",
+    "noqa_row": null,
+    "url": null
+  }
+]

@@ -8,5 +8,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(runnertest.Main(m))
+	os.Exit(runnertest.Main(m, os.Getenv))
 }

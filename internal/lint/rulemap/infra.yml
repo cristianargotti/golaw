@@ -1,0 +1,124 @@
+# The rule map of the infrastructure surface: each row pairs a Sonar way
+# key with the local rule that carries it, where the rule runs (H the hook
+# on the written file, N a native check, L the lint target and CI), how
+# close the match is, and the lowest rule set that enables it.
+- {
+    sonar: "cloudformation:S6249",
+    tool: golaw,
+    rule: cfn.bucket-https-only,
+    where: [N, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6252",
+    tool: checkov,
+    rule: CKV_AWS_21,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6258",
+    tool: checkov,
+    rule: CKV_AWS_18,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6258",
+    tool: checkov,
+    rule: CKV_AWS_91,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6265",
+    tool: checkov,
+    rule: CKV_AWS_20,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6265",
+    tool: checkov,
+    rule: CKV_AWS_57,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6281",
+    tool: checkov,
+    rule: CKV_AWS_53,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6281",
+    tool: checkov,
+    rule: CKV_AWS_54,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6281",
+    tool: checkov,
+    rule: CKV_AWS_55,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "cloudformation:S6281",
+    tool: checkov,
+    rule: CKV_AWS_56,
+    where: [L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S6471",
+    tool: golaw,
+    rule: docker.final-user,
+    where: [H, N],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S6471",
+    tool: hadolint,
+    rule: DL3002,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S6472",
+    tool: golaw,
+    rule: surface.hardcoded-credential,
+    where: [H, N, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S6500",
+    tool: hadolint,
+    rule: DL3015,
+    where: [H, L],
+    match: close,
+    set: parity,
+  }
+- {
+    sonar: "docker:S8431",
+    tool: golaw,
+    rule: docker.tag-and-digest,
+    where: [H, N, L],
+    match: exact,
+    set: parity,
+  }

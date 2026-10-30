@@ -122,7 +122,9 @@ func m3RecordToolPin(line m3PinLine, pins map[string]string, name, version strin
 
 func m3Noninstallation(command string) bool {
 	switch command {
-	case `echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"`,
+	// golaw setup --surface installs from the kit's own pinned toolchain
+	// table, so the CI file carries no pin of its own for it.
+	case `echo "GOTOOLCHAIN=auto" >> "$GITHUB_ENV"`, "golaw setup --surface",
 		`mkdir -p "$RUNNER_TEMP/golaw-bin"`,
 		`echo "$RUNNER_TEMP/golaw-bin" >> "$GITHUB_PATH"`,
 		"docker version", "git diff --exit-code":

@@ -35,7 +35,7 @@ func TestMakefileGlobKeepsSelectiveSnapshotReads(t *testing.T) {
 	in := makeInput(nil)
 	snapshot := &buildSelectingSnapshot{Tree: proof.NewTree(map[string][]byte{
 		"Makefile":     []byte("include mk/*.mk\n"),
-		"mk/checks.mk": []byte("scan:\n"),
+		"mk/checks.mk": []byte("scan lint-surface:\n"),
 	})}
 	in.Snapshot = snapshot
 	got, err := Makefile().Run(t.Context(), in)

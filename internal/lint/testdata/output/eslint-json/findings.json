@@ -1,0 +1,51 @@
+[
+  {
+    "filePath": "/work/repo/views/panel.js",
+    "messages": [
+      {
+        "ruleId": "sonarjs/no-unenclosed-multiline-block",
+        "severity": 2,
+        "message": "This line will not be executed conditionally; only the first line of this 2-line block will be. The rest will execute unconditionally.",
+        "line": 12,
+        "column": 5,
+        "nodeType": "ExpressionStatement",
+        "endLine": 13,
+        "endColumn": 20
+      },
+      {
+        "ruleId": "sonarjs/no-nested-conditional",
+        "severity": 1,
+        "message": "Extract this nested ternary operation into an independent statement.",
+        "line": 20,
+        "column": 14
+      }
+    ],
+    "suppressedMessages": [
+      {
+        "ruleId": "sonarjs/no-nested-conditional",
+        "severity": 2,
+        "message": "Extract this nested ternary operation into an independent statement.",
+        "line": 31,
+        "column": 9,
+        "suppressions": [{ "kind": "directive", "justification": "the fallback order is the product rule" }]
+      }
+    ],
+    "errorCount": 1,
+    "fatalErrorCount": 0,
+    "warningCount": 1,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": []
+  },
+  {
+    "filePath": "/work/repo/views/charts.js",
+    "messages": [],
+    "suppressedMessages": [],
+    "errorCount": 0,
+    "fatalErrorCount": 0,
+    "warningCount": 0,
+    "fixableErrorCount": 0,
+    "fixableWarningCount": 0,
+    "usedDeprecatedRules": []
+  }
+]

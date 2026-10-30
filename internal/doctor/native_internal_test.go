@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		linger()
 		return
 	}
-	os.Exit(runnertest.Main(m))
+	os.Exit(runnertest.Main(m, os.Getenv))
 }
 
 // doubleOnPath puts a copy of the test binary on a search path under the

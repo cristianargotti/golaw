@@ -17,6 +17,8 @@ func TestCIExpressionDoesNotRelaxTemplateExhaustion(t *testing.T) {
 		fail                            bool
 	}{
 		{"enrollment", ciAssetSource, ciAssetPath, "value: " + literal + "\n", false},
+		{"runner", ciAssetSource, ciAssetPath, `key: {{printf "%s" "${{ runner.os }}"}}`, false},
+		{"runner in an ordinary asset", "templates/a.yml.tmpl", "a.yml", `key: {{printf "%s" "${{ runner.os }}"}}`, true},
 		{"ordinary asset", "templates/a.yml.tmpl", "a.yml", "value: " + literal + "\n", true},
 		{"different destination", ciAssetSource, "a.yml", "value: " + literal + "\n", true},
 		{"different source", "templates/a.yml.tmpl", ciAssetPath, "value: " + literal + "\n", true},

@@ -57,9 +57,11 @@ func TestCompleteCoreInventoryHasNoProjectAgentFiles(t *testing.T) {
 func requireCoreFile(t *testing.T, file *assets.Rendered) {
 	t.Helper()
 	body := string(file.Data)
-	// The pipeline resolves the enrollment expression, so the CI file keeps it.
+	// The pipeline resolves the enrollment and runner expressions, so the CI
+	// file keeps them.
 	if file.Path == ciAssetPath {
 		body = strings.ReplaceAll(body, ciEnrollmentExpression, "")
+		body = strings.ReplaceAll(body, ciRunnerExpression, "")
 	}
 	if strings.Contains(body, "{{") {
 		t.Errorf("remaining expression in %s", file.Path)

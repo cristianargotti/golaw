@@ -1,0 +1,7 @@
+# The proof of the profile overlay: a key the public map leaves out (S125)
+# fires once a snapshot activates it (web_overlay_internal_test.go).
+checks:
+  - id: lint.eslint-sonarjs-no-commented-code
+    code: sonarjs-no-commented-code
+    red: overlay/sonarjs-no-commented-code/red
+    near: overlay/sonarjs-no-commented-code/near

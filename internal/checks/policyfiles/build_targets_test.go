@@ -11,21 +11,21 @@ import (
 
 func TestRequiredTargetsFollowCapabilitiesAndLadderOrder(t *testing.T) {
 	t.Parallel()
-	const core = "mod deps-age fmt vet generate-check test coverage-check build lint deadcode"
-	const tail = "vuln licenses secrets scan"
+	const core = "mod deps-age fmt vet generate-check test coverage-check coverage-new build lint deadcode"
+	const tail = "vuln licenses secrets scan lint-surface"
 	for _, tc := range []struct {
 		name string
 		caps []string
 		want string
 	}{
-		{"near no capability", nil, "scan"},
+		{"near no capability", nil, "scan lint-surface"},
 		{"near go", []string{"go"}, core + " " + tail},
 		{"near cli", []string{"cli", "go"}, core + " " + tail},
 		{"near hexagonal", []string{"go", "hexagonal"}, core + " " + tail},
 		{"red db omission", []string{"db", "go"}, core + " migrate-lint " + tail},
-		{"red api omission", []string{"api", "go"}, core + " openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan"},
-		{"near image alone", []string{"image"}, "scan dockerfile-lint image-pins-check image image-scan"},
-		{"red all capabilities", model.Capabilities(), core + " migrate-lint openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan dockerfile-lint image-pins-check image image-scan"},
+		{"red api omission", []string{"api", "go"}, core + " openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan lint-surface"},
+		{"near image alone", []string{"image"}, "scan lint-surface dockerfile-lint image-pins-check image image-scan"},
+		{"red all capabilities", model.Capabilities(), core + " migrate-lint openapi-breaking openapi-examples-check vuln licenses docs-check secrets scan lint-surface dockerfile-lint image-pins-check image image-scan"},
 		{"near repeated input", []string{"go", "go"}, core + " " + tail},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

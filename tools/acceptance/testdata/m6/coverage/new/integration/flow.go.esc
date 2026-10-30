@@ -1,0 +1,5 @@
+// Package integration holds a flow the pipeline excludes.
+package integration
+
+// Flow names the step of the flow.
+func Flow() string { return "flow" }

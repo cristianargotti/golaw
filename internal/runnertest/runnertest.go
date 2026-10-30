@@ -31,6 +31,7 @@ const (
 	exeSuffix      = ".exe"
 	behaviorSuffix = ".behavior.json"
 	callsSuffix    = ".calls.jsonl"
+	inputsSuffix   = ".stdin.jsonl"
 	executableMode = 0o700
 	fileMode       = 0o600
 	warmArgument   = "-golaw.runnertest.warm"
@@ -42,14 +43,20 @@ type Behavior struct {
 	Version string   `json:"version"` // printed with a newline for the probe
 	Stdout  string   `json:"stdout"`  // printed for any other arguments
 	Stderr  string   `json:"stderr"`
-	Code    int      `json:"code"` // the exit status for any other arguments
+	Code    int      `json:"code"`  // the exit status for any other arguments
+	Delay   string   `json:"delay"` // a Go duration the fake waits before it answers any other arguments
+	Stdin   bool     `json:"stdin"` // the fake records the bytes it reads on stdin, one entry per call
+	// Script marks a fake that plays the interpreter of a #! script: its
+	// first argument is that script, dropped before it records or answers.
+	Script bool `json:"script"`
 }
 
 // Main is the body of the TestMain of a package whose tests install fake
 // tools: a process started as a fake tool answers as one and returns its
 // code without running a test; any other process runs the tests and
-// returns m.Run(). The package's TestMain passes the code to os.Exit.
-func Main(m *testing.M) int {
+// returns m.Run(). The package's TestMain hands it os.Getenv, so the
+// helper reads no environment itself, and passes the code to os.Exit.
+func Main(m *testing.M, getenv func(string) string) int {
 	if exe, err := os.Executable(); err == nil { // fallback: a binary that cannot name itself is no fake and runs its tests
 		if code, fake := play(exe, os.Args[1:], os.Stdout, os.Stderr); fake {
 			return code
@@ -58,13 +65,45 @@ func Main(m *testing.M) int {
 	if slices.Contains(os.Args[1:], warmArgument) {
 		return BrokenCode // a warm start that found no behavior never runs the tests again
 	}
+	if err := quickRace(getenv); err != nil {
+		complain(os.Stderr, "prepare the race runtime", err)
+		return BrokenCode
+	}
 	return m.Run()
+}
+
+// quickRace sets the race options every process a test starts inherits.
+func quickRace(getenv func(string) string) error {
+	if err := os.Setenv(raceVariable, raceOptions(getenv(raceVariable))); err != nil {
+		return fmt.Errorf("set %s: %w", raceVariable, err)
+	}
+	return nil
+}
+
+// raceVariable holds the options of the race runtime, and quickExit is the
+// one that drops the second a race-built process sleeps before it exits 0.
+// Every fake is a copy of the test binary and a rung starts go test -race
+// over its fixtures, so under -race that second, paid on every start, took
+// a package past go test's ten minutes on a loaded machine.
+const (
+	raceVariable = "GORACE"
+	quickExit    = "atexit_sleep_ms=0"
+)
+
+// raceOptions answers the race options with quickExit added; an exit sleep
+// the person already set is kept as set.
+func raceOptions(current string) string {
+	current = strings.TrimSpace(current)
+	if strings.Contains(current, "atexit_sleep_ms=") {
+		return current
+	}
+	return strings.TrimSpace(current + " " + quickExit)
 }
 
 // Install puts in dir a fake tool named name (name.exe on Windows), a copy
 // of the running test binary that answers b, and answers its path; a
 // second Install of the same name in the same dir replaces what it answers
-// and starts a new call record.
+// and starts a new call record and a new input record.
 func Install(tb testing.TB, dir, name string, b Behavior) string {
 	tb.Helper()
 	path := filepath.Join(dir, name)
@@ -87,8 +126,10 @@ func Install(tb testing.TB, dir, name string, b Behavior) string {
 	if fresh {
 		warm(tb, path) // after the behavior, so the copy answers as a fake and runs no test
 	}
-	if err := os.Remove(base + callsSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		tb.Fatalf("reset the calls of %s: %v", name, err)
+	for _, suffix := range []string{callsSuffix, inputsSuffix} {
+		if err := os.Remove(base + suffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			tb.Fatalf("reset the record of %s: %v", name, err)
+		}
 	}
 	return path
 }
@@ -116,12 +157,19 @@ func play(exe string, args []string, stdout, stderr io.Writer) (int, bool) {
 		complain(stderr, "read its behavior", err)
 		return BrokenCode, true
 	}
+	if b.Script && len(args) > 0 {
+		args = args[1:]
+	}
 	if err := record(base, args); err != nil {
 		complain(stderr, "record its call", err)
 		return BrokenCode, true
 	}
 	if slices.Equal(args, b.Probe) {
 		return answer(stdout, nil, b.Version+"\n", "", 0), true
+	}
+	if err := b.consume(base, os.Stdin); err != nil {
+		complain(stderr, "read its input", err)
+		return BrokenCode, true
 	}
 	return answer(stdout, stderr, b.Stdout, b.Stderr, b.Code), true
 }
@@ -222,9 +270,12 @@ func copyExecutable(tb testing.TB, path string) {
 // its coverage meta-data into GOCOVERDIR, and Windows refuses the loser's
 // rename with a line the copy prints on stderr. Once one start has written
 // the file, no later start writes it, so the starts a test judges never race.
+// macOS assesses a new executable on its first start, which takes longer
+// than a hook tool's budget, so there a fresh copy is warmed even without
+// coverage and a budget test judges the tool, not the assessment.
 func warm(tb testing.TB, path string) {
 	tb.Helper()
-	if testing.CoverMode() == "" {
+	if testing.CoverMode() == "" && runtime.GOOS != "darwin" {
 		return
 	}
 	if err := exec.CommandContext(tb.Context(), path, warmArgument).Run(); err != nil {

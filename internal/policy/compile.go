@@ -42,6 +42,7 @@ func Compile(f File, now time.Time, schemas Schemas) (*model.EffectivePolicy, er
 	p.Ladder = f.Ladder.ladder()
 	p.Waivers = f.waivers()
 	p.Layout = f.Layout.layout()
+	p.Surface = f.Surface.policy()
 	return &p, nil
 }
 
@@ -138,7 +139,7 @@ func (c Checks) options(schemas Schemas) map[string]model.Options {
 // options answers the coverage floors that are set, as options.
 func (c *Coverage) options() model.Options {
 	out := model.Options{}
-	for name, v := range map[string]*int{"total": c.Total, "package": c.Package, "file": c.File, "min_statements": c.MinStatements} {
+	for name, v := range map[string]*int{"total": c.Total, "package": c.Package, "file": c.File, "min_statements": c.MinStatements, "new_code": c.NewCode} {
 		if v != nil {
 			out[name] = model.IntValue(*v)
 		}

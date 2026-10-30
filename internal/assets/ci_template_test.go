@@ -15,6 +15,7 @@ const (
 	ciAssetPath            = ".github/workflows/ci.yml"
 	ciAssetSource          = "templates/.github/workflows/ci.yml.tmpl"
 	ciEnrollmentExpression = "${{ vars.GOLAW_ENROLLED }}"
+	ciRunnerExpression     = "${{ runner.os }}"
 )
 
 func ciCapabilitySets() [][]string {
@@ -79,7 +80,10 @@ func requireCIJobs(t *testing.T, jobs map[string]any, caps []string) int {
 	if _, ok := jobs["ci"]; !ok {
 		t.Fatal("missing ci job")
 	}
-	wantJobs := 1
+	if _, ok := jobs["surface"]; !ok {
+		t.Fatal("missing surface job")
+	}
+	wantJobs := 2
 	for _, capability := range []string{"api", "db", "image", "hexagonal"} {
 		_, present := jobs[capability]
 		enabled := slices.Contains(caps, capability)
@@ -105,6 +109,7 @@ func requireCITools(t *testing.T, body string, caps []string) {
 	}{
 		{"actions/setup-go@", true},
 		{"cmd/golaw@", true},
+		{"golaw setup --surface", true},
 		{"go-version-file: go.mod", hasGo},
 		{`go-version: "1.27.0", cache: false`, !hasGo},
 		{"golangci-lint@", hasGo},
@@ -129,7 +134,7 @@ func requireCICommands(t *testing.T, body string) {
 		"make mutation-changed", "make fuzz", "make bench",
 		"make test-integration", "GOLAW_ENROLLED:?",
 	} {
-		if strings.Contains(body, forbidden) {
+		if strings.Contains(strings.ReplaceAll(body, "golaw setup --surface", ""), forbidden) {
 			t.Errorf("unexpected CI command: %s", forbidden)
 		}
 	}

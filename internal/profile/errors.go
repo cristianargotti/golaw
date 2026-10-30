@@ -25,6 +25,8 @@ var (
 	// errRules prefixes every cause found inside the data file, so the
 	// exported functions add the bundle and the profile name around it.
 	errRules = errors.New(RulesFile)
+	// errNotDirectory names a snapshot path that holds a file.
+	errNotDirectory = errors.New("not a directory")
 )
 
 // Cause is the text of err without the sentinels of the policy chain at its

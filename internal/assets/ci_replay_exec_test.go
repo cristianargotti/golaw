@@ -204,8 +204,9 @@ func ciJobCalls(t *testing.T, replay ciJobReplay, in ciReplayInput, job ciJobPla
 		return err
 	}
 	for _, tool := range slices.Sorted(maps.Keys(job.consumed)) {
-		// The fake go stands in for the vulngate run, so no process reaches govulncheck.
-		if tool != "govulncheck" && len(runnertest.Calls(t, replay.bin, tool)) == 0 {
+		// The fake go stands in for the vulngate run and the fake golaw for
+		// golaw lint's hadolint driver, so no process reaches either tool.
+		if tool != "govulncheck" && tool != "hadolint" && len(runnertest.Calls(t, replay.bin, tool)) == 0 {
 			return fmt.Errorf("%w: job %s never ran %s (%s)", errCIReplay, job.id, tool, replay.fakes[tool])
 		}
 	}
