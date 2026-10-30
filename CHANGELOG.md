@@ -6,6 +6,7 @@ Every rule change is dated here with its reason. The format follows Keep a Chang
 
 ### Release
 
+- 2026-10-30: golaw.yml pins kit 0.3.0, and the README, docs/setup.md and the agent skill name v0.3.0, the release that carries M6, the non-Go surface of a Go repository (golaw lint, golaw setup --surface, the native certain checks, the hook feedback and coverage on new code); a kit update applies with golaw init --update --apply.
 - 2026-10-24: golaw.yml pins kit 0.2.1, and the README, docs/setup.md and the agent skill name v0.2.1, the release after v0.2.0 whose binaries the dated live record of the plugin host lets the release lane publish; a kit update applies with golaw init --update --apply.
 
 Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance record](docs/acceptance/m2.md) records.
@@ -100,7 +101,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 - 2026-10-22: policy.dependency-records reads the front matter of a decision record saved with a byte order mark, because a module such a record lists got the false finding to record it.
 - 2026-10-22: policy.gotoolchain-local reads a plain GOTOOLCHAIN=local as exported beside a bare export line or .EXPORT_ALL_VARIABLES, and states one inside a conditional block as a limit, because such a Makefile exports the local toolchain yet got the false finding that it does not.
 - 2026-10-22: policy.makefile states a GNUmakefile or makefile in place of an absent Makefile as a limit naming the rename, because a repository whose make file GNU make reads under another name got the false finding add Makefile.
-- 2026-10-22: policy.golangci reads an exclusion whose text or source pattern matches every issue, such as .*, as no narrowing, because text .* on gosec silenced a required linter everywhere while the check answered clean.
+- 2026-10-22: policy.golangci reads an exclusion whose text or source pattern matches every issue, such as ._, as no narrowing, because text ._ on gosec silenced a required linter everywhere while the check answered clean.
 - 2026-10-22: policy.image-digest judges the images COPY --from and the from of a RUN --mount pull as it judges FROM, and states an expansion or a name no stage carries there as a limit, because a tagged image pulled that way passed silently.
 - 2026-10-22: policy.gitleaks-generic also judges an allowlist path against the files of the tree whose header marks them generated, because an allowlist of the repository's own generated tree, such as the service's sqlcgen directory, passed silently.
 - 2026-10-22: the Makefile reader records a double-colon rule with its targets and states it as a limit only for a check that needs one of them, naming it as double-colon rule <target>::, because an unrelated clean:: left five build checks unmeasured with the reason ::: and scan exited 2.
