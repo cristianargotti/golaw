@@ -1,15 +1,15 @@
 {
-  "date": "2026-10-24",
+  "date": "2026-10-30",
   "agent": "claude",
   "os": "darwin",
   "arch": "arm64",
   "agent_version": "2.1.299 (Claude Code)",
-  "binary_sha256": "4eeedec91ccb88846b3bbed15e01f665aa8dd10d16d6b86051f94e7e246e0f4d",
+  "binary_sha256": "ecef60c3073545405214936f038439dcb3a1bafe8c30f8d4178dcb30e34d96c6",
   "owner": "The repository owner, who ran the session on their own workstation.",
   "environment": "macOS on Apple silicon, the pinned Claude Code 2.1.299 in print mode with setting sources project and local, golaw installed at project scope in a temporary repository enrolled with golaw init --apply, the candidate built with Go 1.27.2.",
   "credential_boundary": "The owner's own Claude Code login from the macOS keychain; no API key was created and the session read no other credential.",
   "spending_limit": "The usage limits of the owner's Claude plan; four one-turn sessions.",
-  "schedule": "On demand before the v0.2.1 tag, again whenever the candidate, the toolchain or the pinned host changes.",
+  "schedule": "On demand before the v0.3.0 tag, again whenever the candidate, the toolchain or the pinned host changes.",
   "retention": "The debug logs stay on the owner's workstation; the temporary repository is kept there and its trust entry was removed after the session.",
   "cases": {
     "allowed-control": {
