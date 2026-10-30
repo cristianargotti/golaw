@@ -121,11 +121,17 @@ func (s *suite) m3PassesCI(ctx context.Context, repo string) error {
 	if err := s.gitSteps(ctx, repo, m3CIDefaultBranch()); err != nil {
 		return fmt.Errorf("record the default branch of the CI checkout: %w", err)
 	}
-	setup := s.execute(ctx, command{program: s.binary, args: m3SurfaceSetup(), dir: repo, env: s.env})
+	// The generated CI sets up node and python before both steps; here the
+	// caller's usable runtimes go first, past an older shim ahead of them.
+	env := slices.Clone(s.env)
+	for _, dir := range slices.Backward(s.surfaceRuntimes(ctx)) {
+		env = prependPath(env, dir)
+	}
+	setup := s.execute(ctx, command{program: s.binary, args: m3SurfaceSetup(), dir: repo, env: env})
 	if err := success(setup); err != nil {
 		return fmt.Errorf("install the surface tools as the generated CI does: %w", err)
 	}
-	got := s.m3Make(ctx, repo, "ci")
+	got := s.execute(ctx, command{program: s.m2.Make, args: []string{"ci"}, dir: repo, env: env})
 	if got.err != nil {
 		return fmt.Errorf("execute make ci: %w", got.err)
 	}

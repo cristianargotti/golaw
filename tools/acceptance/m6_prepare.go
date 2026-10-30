@@ -98,7 +98,7 @@ func (s *m6Suite) m6InstallTools(ctx context.Context) error {
 	if err := success(s.m5Golaw(ctx, repo, commandInit, m5CapabilitiesFlag, "go", flagApply)); err != nil {
 		return fmt.Errorf("adopt the surface tools repository: %w", err)
 	}
-	s.shared.runtimes = s.m6Runtimes(ctx)
+	s.shared.runtimes = s.surfaceRuntimes(ctx)
 	env, err := s.m2PrerequisiteEnvironment(s.m6ToolEnv(), s.m2.Bin)
 	if err != nil {
 		return err
@@ -116,13 +116,13 @@ func (s *m6Suite) m6InstallTools(ctx context.Context) error {
 	return nil
 }
 
-// m6Runtimes answers the first directory of the caller's PATH whose node,
+// surfaceRuntimes answers the first directory of the caller's PATH whose node,
 // and then whose python3, answers within the bounds of the kit's toolchain
 // table: setup installs the npm and PyPI tools on the person's own runtimes,
 // the kit never installs either one, and a version manager shim or an old
 // system Python ahead of a usable one is passed over. A runtime the caller
 // lacks has no directory, so setup reports it as missing.
-func (s *m6Suite) m6Runtimes(ctx context.Context) []string {
+func (s *suite) surfaceRuntimes(ctx context.Context) []string {
 	var dirs []string
 	for _, rt := range toolchain.Runtimes() {
 		for _, dir := range filepath.SplitList(environmentValue(s.env, envPath)) {
