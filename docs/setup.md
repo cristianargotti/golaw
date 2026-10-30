@@ -11,7 +11,7 @@ The adoption commit stages every file listed in the reviewed init diff. That inc
 init distinguishes writes from proposals for existing files. init --apply leaves proposed bytes untouched. Review and apply the accepted proposal hunks yourself before staging, including the include of golaw.mk in an existing Makefile. Unapplied proposals can be displayed again on a repeated init. go.mod stays your file: init proposes the require of github.com/quasilyte/go-ruleguard/dsl, the module scripts/lint/rules.go imports, and prints the go get and go mod tidy that apply it with its go.sum lines. Until go.mod requires it, golangci-lint cannot load the rules file, make lint fails, and an armed pre-commit rung names that repair and leaves the lint to the pipeline.
 
 ```sh
-go install github.com/cristianargotti/golaw/cmd/golaw@v0.2.1
+go install github.com/cristianargotti/golaw/cmd/golaw@v0.3.0
 golaw init
 golaw init --apply
 go get github.com/quasilyte/go-ruleguard/dsl@v0.3.23

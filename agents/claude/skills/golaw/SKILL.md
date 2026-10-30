@@ -5,7 +5,7 @@ description: Use for Go implementation, tests, refactoring, review, dependencies
 
 # Go engineering with golaw
 
-Read golaw.yml and the rules of the kit, https://github.com/cristianargotti/golaw/blob/v0.2.1/docs/rules.md, before changing the repository.
+Read golaw.yml and the rules of the kit, https://github.com/cristianargotti/golaw/blob/v0.3.0/docs/rules.md, before changing the repository.
 
 Reuse in this order: existing repository code, the standard library, an existing platform capability, an installed dependency, then the smallest implementation that meets the need. Preserve boundary validation, error handling, and security. Record every new direct dependency and its alternatives in the configured decisions directory.
 
