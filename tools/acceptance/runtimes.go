@@ -68,28 +68,18 @@ func linkRuntime(dir, links string, names []string) error {
 		if !found {
 			continue
 		}
-		if err := linkProgram(target, filepath.Join(links, name), runtime.GOOS == goosWindows); err != nil && !errors.Is(err, fs.ErrExist) {
+		if err := linkProgram(target, filepath.Join(links, name)); err != nil && !errors.Is(err, fs.ErrExist) {
 			return err
 		}
 	}
 	return nil
 }
 
-// linkProgram links target at link, or on Windows writes link.cmd, which
-// starts target quoted by its short path: cmd.exe splits a path at a space
-// and reads a batch file in the console code page, never UTF-8.
-func linkProgram(target, link string, windows bool) error {
-	if windows {
-		return writeShim(link, target)
-	}
-	if err := os.Symlink(target, link); err != nil {
-		return fmt.Errorf("link %s: %w", filepath.Base(link), err)
-	}
-	return nil
-}
-
-// writeShim writes link.cmd confined to the links directory through an
-// os.Root, so the shim never lands outside the directory PATH names.
+// writeShim writes link.cmd, the Windows link, confined to the links
+// directory through an os.Root, so the shim never lands outside the
+// directory PATH names. It starts target quoted by its short path:
+// cmd.exe splits a path at a space and reads a batch file in the console
+// code page, never UTF-8.
 func writeShim(link, target string) error {
 	root, err := os.OpenRoot(filepath.Dir(link))
 	if err != nil {

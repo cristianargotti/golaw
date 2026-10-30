@@ -24,7 +24,7 @@ func TestRuntimeShimStartsATargetUnderASpacedNonASCIIPath(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(shim), dirMode); err != nil {
 		t.Fatal(err)
 	}
-	if err := linkProgram(target, strings.TrimSuffix(shim, ".cmd"), true); err != nil {
+	if err := writeShim(strings.TrimSuffix(shim, ".cmd"), target); err != nil {
 		t.Fatal(err)
 	}
 	body, err := os.ReadFile(shim)
@@ -43,14 +43,14 @@ func TestRuntimeShimStartsATargetUnderASpacedNonASCIIPath(t *testing.T) {
 	if runtime.GOOS == goosWindows && shortPath(target) != target && strings.ContainsFunc(named, func(r rune) bool { return r == ' ' || r > unicode.MaxASCII }) {
 		t.Errorf("shim = %q, want a target cmd reads whole in any code page", body)
 	}
-	if err := linkProgram(target, filepath.Join(target, "python"), true); err == nil {
+	if err := writeShim(filepath.Join(target, "python"), target); err == nil {
 		t.Error("a shim under a file was accepted")
 	}
 	if runtime.GOOS == goosWindows {
 		return
 	}
 	link := filepath.Join(dir, "links", "python3")
-	if err := linkProgram(target, link, false); err != nil {
+	if err := linkProgram(target, link); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := os.Readlink(link); err != nil || got != target {
@@ -91,7 +91,7 @@ func TestRuntimeShimRunsFromASpacedNonASCIIDirectory(t *testing.T) {
 	if err := os.MkdirAll(links, dirMode); err != nil {
 		t.Fatal(err)
 	}
-	if err := linkProgram(os.Getenv("ComSpec"), filepath.Join(links, "echoer"), true); err != nil {
+	if err := writeShim(filepath.Join(links, "echoer"), os.Getenv("ComSpec")); err != nil {
 		t.Fatal(err)
 	}
 	out, err := exec.CommandContext(t.Context(), filepath.Join(shortPath(links), "echoer.cmd"), "/c", "echo", "acceptance área").CombinedOutput()
@@ -109,5 +109,51 @@ func TestProgramCandidatesNameTheWindowsExtensions(t *testing.T) {
 	}
 	if got := programCandidates("node", false); !slices.Equal(got, []string{"node"}) {
 		t.Errorf("candidates = %q", got)
+	}
+}
+
+// TestSurfaceRuntimesLinksTheUsableRuntimesOnEveryOS drives the selection
+// with fake runtimes each system starts, a shell script or a batch file:
+// the usable set is linked and named by the links directory alone, a PATH
+// without one links nothing, and links that cannot be written fail.
+func TestSurfaceRuntimesLinksTheUsableRuntimesOnEveryOS(t *testing.T) {
+	t.Parallel()
+	good := t.TempDir()
+	fakeRuntime(t, good, "node", "v24.21.0")
+	fakeRuntime(t, good, "python3", "Python 3.14.4")
+	s := m2TestSuite(t)
+	s.env = prependPath(s.env, good)
+	links := filepath.Join(t.TempDir(), runtimeLinksDir)
+	dirs, err := s.surfaceRuntimes(t.Context(), links)
+	if err != nil || !slices.Equal(dirs, []string{shortPath(links)}) {
+		t.Fatalf("surfaceRuntimes = %q, %v, want the links directory alone", dirs, err)
+	}
+	for _, name := range []string{"node", "python3"} {
+		if _, found := runtimeProgram(links, name); !found {
+			t.Errorf("%s was not linked", name)
+		}
+	}
+	blocked := filepath.Join(t.TempDir(), "file")
+	checkedWrite(t, blocked, "a file where the links go\n")
+	if dirs, err := s.surfaceRuntimes(t.Context(), blocked); err == nil {
+		t.Errorf("links over a file = %q", dirs)
+	}
+	bare := m2TestSuite(t)
+	bare.env = windowsPathM2(bare.env, []string{t.TempDir()})
+	if dirs, err := bare.surfaceRuntimes(t.Context(), filepath.Join(t.TempDir(), runtimeLinksDir)); err != nil || dirs != nil {
+		t.Errorf("no usable runtime = %q, %v, want nothing linked", dirs, err)
+	}
+}
+
+// fakeRuntime writes a program that prints version, as a batch file on
+// Windows and a shell script elsewhere.
+func fakeRuntime(t *testing.T, dir, name, version string) {
+	t.Helper()
+	if runtime.GOOS == goosWindows {
+		checkedWrite(t, filepath.Join(dir, name+".cmd"), "@echo "+version+"\r\n")
+		return
+	}
+	if err := writeFile(filepath.Join(dir, name), []byte("#!/bin/sh\necho '"+version+"'\n"), execMode); err != nil {
+		t.Fatal(err)
 	}
 }

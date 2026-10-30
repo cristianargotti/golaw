@@ -2,6 +2,11 @@ package main
 
 import "syscall"
 
+// linkProgram writes link.cmd, a shim that starts target: a symbolic link
+// needs a privilege a runner may lack, and python.exe started through one
+// may miss the libraries beside its real file.
+func linkProgram(target, link string) error { return writeShim(link, target) }
+
 // shortPath is the 8.3 name Windows keeps for an existing path: no space
 // and no rune outside ASCII, so cmd.exe reads it whole in any code page.
 // A volume without short names answers the path as it is.
