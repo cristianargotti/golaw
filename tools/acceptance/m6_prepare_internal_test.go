@@ -192,36 +192,25 @@ func TestM6ToolsInstallOnceIntoTheSharedDataHome(t *testing.T) {
 
 // TestLinkRuntimeKeepsALinkAndNamesWhatItCannotLink: a second link of the
 // same program keeps the first, a program the directory lacks is skipped,
-// Windows gets a command shim that needs no privilege, and links that
-// cannot be created name the cause.
+// and links that cannot be created name the cause.
 func TestLinkRuntimeKeepsALinkAndNamesWhatItCannotLink(t *testing.T) {
 	t.Parallel()
 	dir, links := t.TempDir(), filepath.Join(t.TempDir(), runtimeLinksDir)
 	checkedWrite(t, filepath.Join(dir, executable("node")), "node\n")
 	for range 2 {
-		if err := linkRuntime(dir, links, []string{"node", "npm"}, runtime.GOOS); err != nil {
+		if err := linkRuntime(dir, links, []string{"node", "npm"}); err != nil {
 			t.Fatalf("link = %v", err)
 		}
 	}
-	if _, found := runtimeProgram(links, "npm", runtime.GOOS); found {
+	if _, found := runtimeProgram(links, "npm"); found {
 		t.Error("a program the runtime lacks was linked")
 	}
-	if _, found := runtimeProgram(links, "node", runtime.GOOS); !found {
+	if _, found := runtimeProgram(links, "node"); !found {
 		t.Error("the runtime's node was not linked")
-	}
-	windows, shims := t.TempDir(), t.TempDir()
-	checkedWrite(t, filepath.Join(windows, "python.exe"), "MZ")
-	if err := linkRuntime(windows, shims, []string{"python3", "python"}, goosWindows); err != nil {
-		t.Fatalf("shim = %v", err)
-	}
-	shim, found := runtimeProgram(shims, "python", goosWindows)
-	body, err := os.ReadFile(shim)
-	if !found || err != nil || string(body) != "@\""+filepath.Join(windows, "python.exe")+"\" %*\r\n" {
-		t.Errorf("the Windows shim = %q, %v, want one that starts the runtime's python.exe", body, err)
 	}
 	blocked := filepath.Join(t.TempDir(), "file")
 	checkedWrite(t, blocked, "a file where the links go\n")
-	if err := linkRuntime(dir, blocked, []string{"node"}, runtime.GOOS); err == nil {
+	if err := linkRuntime(dir, blocked, []string{"node"}); err == nil {
 		t.Error("links over a file were accepted")
 	}
 	locked := t.TempDir()
@@ -233,7 +222,7 @@ func TestLinkRuntimeKeepsALinkAndNamesWhatItCannotLink(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	if err := linkRuntime(dir, locked, []string{"node"}, runtime.GOOS); runtime.GOOS != goosWindows && err == nil {
+	if err := linkRuntime(dir, locked, []string{"node"}); runtime.GOOS != goosWindows && err == nil {
 		t.Error("a link into a read-only directory was accepted")
 	}
 }

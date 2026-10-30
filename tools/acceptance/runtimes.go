@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -39,7 +41,7 @@ func (s *suite) surfaceRuntimes(ctx context.Context, links string) ([]string, er
 			if dir == "" || !probe.Runtime(ctx, rt).OK {
 				continue
 			}
-			if err := linkRuntime(dir, links, runtimeLinks(rt.Name), runtime.GOOS); err != nil {
+			if err := linkRuntime(dir, links, runtimeLinks(rt.Name)); err != nil {
 				return nil, err
 			}
 			linked = true
@@ -49,46 +51,59 @@ func (s *suite) surfaceRuntimes(ctx context.Context, links string) ([]string, er
 	if !linked {
 		return nil, nil
 	}
-	return []string{links}, nil
+	// cmd.exe starts a shim by the path PATH names and splits it at a
+	// space, as the run's own directory holds one by design.
+	return []string{shortPath(links)}, nil
 }
 
 // linkRuntime puts in links each program of names that dir holds: a
 // symbolic link, or on Windows a command shim, which needs no privilege
 // and keeps the program beside the libraries it loads.
-func linkRuntime(dir, links string, names []string, goos string) error {
+func linkRuntime(dir, links string, names []string) error {
 	if err := os.MkdirAll(links, dirMode); err != nil {
 		return fmt.Errorf("create the runtime links: %w", err)
 	}
 	for _, name := range names {
-		target, found := runtimeProgram(dir, name, goos)
+		target, found := runtimeProgram(dir, name)
 		if !found {
 			continue
 		}
-		var err error
-		if goos == goosWindows {
-			err = os.WriteFile(filepath.Join(links, name+".cmd"), []byte("@\""+target+"\" %*\r\n"), fileMode)
-		} else {
-			err = os.Symlink(target, filepath.Join(links, name))
+		if err := linkProgram(target, filepath.Join(links, name), runtime.GOOS == goosWindows); err != nil && !errors.Is(err, fs.ErrExist) {
+			return err
 		}
-		if err != nil && !os.IsExist(err) {
-			return fmt.Errorf("link %s: %w", name, err)
-		}
+	}
+	return nil
+}
+
+// linkProgram links target at link, or on Windows writes link.cmd, which
+// starts target quoted by its short path: cmd.exe splits a path at a space
+// and reads a batch file in the console code page, never UTF-8.
+func linkProgram(target, link string, windows bool) error {
+	if windows {
+		return writeFile(link+".cmd", []byte("@\""+shortPath(target)+"\" %*\r\n"), fileMode)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		return fmt.Errorf("link %s: %w", filepath.Base(link), err)
 	}
 	return nil
 }
 
 // runtimeProgram is the file dir holds for name, with the extension
 // Windows starts it by.
-func runtimeProgram(dir, name, goos string) (string, bool) {
-	candidates := []string{name}
-	if goos == goosWindows {
-		candidates = []string{name + ".exe", name + ".cmd", name + ".bat"}
-	}
-	for _, candidate := range candidates {
+func runtimeProgram(dir, name string) (string, bool) {
+	for _, candidate := range programCandidates(name, runtime.GOOS == goosWindows) {
 		path := filepath.Join(dir, candidate)
 		if info, err := os.Stat(path); err == nil && !info.IsDir() {
 			return path, true
 		}
 	}
 	return "", false
+}
+
+// programCandidates are the file names a program goes by.
+func programCandidates(name string, windows bool) []string {
+	if windows {
+		return []string{name + ".exe", name + ".cmd", name + ".bat"}
+	}
+	return []string{name}
 }
