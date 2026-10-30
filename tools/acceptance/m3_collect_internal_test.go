@@ -111,7 +111,7 @@ func TestM3PolicyBaselinePassesItsOwnCI(t *testing.T) {
 // TestM3BaselineRunsOnTheCallersUsableRuntimes: an old python3 ahead of a
 // usable one on the caller's PATH, as a version manager shim leaves it, does
 // not fail the baseline: setup and make ci run on the usable runtimes first,
-// as the M6 rows do.
+// as the M6 rows do, while go stays the caller's own.
 func TestM3BaselineRunsOnTheCallersUsableRuntimes(t *testing.T) {
 	t.Parallel()
 	if runtime.GOOS == goosWindows {
@@ -138,8 +138,9 @@ func TestM3BaselineRunsOnTheCallersUsableRuntimes(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, step := range []string{"setup", "make"} {
-		if first := filepath.SplitList(paths[step]); len(first) == 0 || first[0] != dir("good") {
-			t.Errorf("%s ran on PATH %q, want the usable runtimes first", step, first)
+		m6RequireRuntimes(t, step, paths[step], []string{"good"}, []string{"old"}, dir)
+		if got := m6OnPath(paths[step], "go"); got != filepath.Join(dir("toolchain"), "go") {
+			t.Errorf("%s finds go at %q, want the caller's own toolchain", step, got)
 		}
 	}
 }
