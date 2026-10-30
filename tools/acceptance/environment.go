@@ -35,6 +35,10 @@ func isolatedEnvironment(parent []string, home, bin string) []string {
 		// go fills a module cache under the home with read-only directories,
 		// which os.RemoveAll cannot delete; -modcacherw lets the home go.
 		"GOFLAGS=-mod=readonly -modcacherw",
+		// git may start maintenance in the background after a commit, and
+		// its transient locks race the copies the harness makes of a tree.
+		"GIT_CONFIG_COUNT=2", "GIT_CONFIG_KEY_0=gc.auto", "GIT_CONFIG_VALUE_0=0",
+		"GIT_CONFIG_KEY_1=maintenance.auto", "GIT_CONFIG_VALUE_1=false",
 	}
 	for _, key := range []string{
 		"SystemRoot", "SystemDrive", "COMSPEC", "PATHEXT",

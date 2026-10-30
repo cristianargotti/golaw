@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -137,5 +139,33 @@ func TestM3CopyTreeNamesWhatItCannotCopy(t *testing.T) {
 	checkedWrite(t, target, "a file where the copy goes\n")
 	if err := m3CopyTree(source, target); err == nil {
 		t.Fatal("a copy over a file must fail")
+	}
+}
+
+func TestM3CopyTreeSkipsAnEntryThatVanishes(t *testing.T) {
+	t.Parallel()
+	source := t.TempDir()
+	lock := filepath.Join(source, "maintenance.lock")
+	checkedWrite(t, lock, "held\n")
+	entries, err := os.ReadDir(source)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("list the source = %v, %v", entries, err)
+	}
+	if err := os.Remove(lock); err != nil {
+		t.Fatal(err)
+	}
+	target := t.TempDir()
+	if err := m3CopyFile(lock, filepath.Join(target, "maintenance.lock"), entries[0]); err != nil {
+		t.Fatalf("a file gone after the listing = %v, want it skipped", err)
+	}
+	gone := fmt.Errorf("read the directory: %w", fs.ErrNotExist)
+	if err := m3CopyEntry(source, target, filepath.Join(source, "objects"), nil, gone); err != nil {
+		t.Fatalf("a directory gone after the listing = %v, want it skipped", err)
+	}
+	if err := m3CopyEntry(source, target, source, nil, gone); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("an absent root = %v, want it named", err)
+	}
+	if err := m3CopyEntry(source, target, filepath.Join(source, "denied"), nil, fs.ErrPermission); !errors.Is(err, fs.ErrPermission) {
+		t.Fatalf("an unreadable entry = %v, want it named", err)
 	}
 }
