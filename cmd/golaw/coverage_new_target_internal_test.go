@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -55,7 +56,26 @@ func recipe(t *testing.T, dir string, env []string, vars ...string) []string {
 	if err != nil || out.Code != 0 {
 		t.Fatalf("make -n coverage-new = %d, %v, %s", out.Code, err, out.Stderr)
 	}
-	return strings.Split(strings.TrimSpace(string(out.Stdout)), "\n")
+	return recipeLines(string(out.Stdout))
+}
+
+// recipeLines splits a printed recipe into its steps; make on Windows ends
+// each line with a carriage return.
+func recipeLines(stdout string) []string {
+	lines := strings.Split(strings.TrimSpace(stdout), "\n")
+	for i := range lines {
+		lines[i] = strings.TrimSuffix(lines[i], "\r")
+	}
+	return lines
+}
+
+func TestRecipeLinesDropTheCarriageReturnOfWindows(t *testing.T) {
+	t.Parallel()
+	for _, stdout := range []string{"go test ./...\r\ngolaw coverage\r\n", "go test ./...\ngolaw coverage\n"} {
+		if got := recipeLines(stdout); !slices.Equal(got, []string{"go test ./...", "golaw coverage"}) {
+			t.Fatalf("recipeLines(%q) = %q, want the steps without line ends", stdout, got)
+		}
+	}
 }
 
 func assertJudgeStep(t *testing.T, line, wantBase string) {
