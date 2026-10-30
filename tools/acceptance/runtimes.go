@@ -80,10 +80,24 @@ func linkRuntime(dir, links string, names []string) error {
 // and reads a batch file in the console code page, never UTF-8.
 func linkProgram(target, link string, windows bool) error {
 	if windows {
-		return writeFile(link+".cmd", []byte("@\""+shortPath(target)+"\" %*\r\n"), fileMode)
+		return writeShim(link, target)
 	}
 	if err := os.Symlink(target, link); err != nil {
 		return fmt.Errorf("link %s: %w", filepath.Base(link), err)
+	}
+	return nil
+}
+
+// writeShim writes link.cmd confined to the links directory through an
+// os.Root, so the shim never lands outside the directory PATH names.
+func writeShim(link, target string) error {
+	root, err := os.OpenRoot(filepath.Dir(link))
+	if err != nil {
+		return fmt.Errorf("open the runtime links: %w", err)
+	}
+	err = errors.Join(root.WriteFile(filepath.Base(link)+".cmd", []byte("@\""+shortPath(target)+"\" %*\r\n"), fileMode), root.Close())
+	if err != nil {
+		return fmt.Errorf("shim %s: %w", filepath.Base(link), err)
 	}
 	return nil
 }
