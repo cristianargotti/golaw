@@ -59,12 +59,15 @@ func TestM3CollectCatalogsKeysEveryRowAndItsEvidence(t *testing.T) {
 func TestM3PolicyBaselinePassesItsOwnCI(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name string
-		code int
-		fail bool
+		name  string
+		setup int
+		code  int
+		fail  bool
+		steps []string
 	}{
-		{"near make ci passes", 0, false},
-		{"red make ci fails", 2, true},
+		{"near make ci passes", 0, 0, false, []string{"origin", "surface", "make"}},
+		{"red make ci fails", 0, 2, true, []string{"origin", "surface", "make"}},
+		{"red the surface tools do not install", 2, 0, true, []string{"origin", "surface"}},
 	} {
 		s := m2TestSuite(t)
 		s.m2.Make = "/simulated/make"
@@ -72,22 +75,26 @@ func TestM3PolicyBaselinePassesItsOwnCI(t *testing.T) {
 		var order []string
 		service := m3ServiceAnswer(t, s, &calls)
 		s.execute = newM2Script(t, s, func(ctx context.Context, c command) (m2Reply, bool) {
-			if c.program == s.m2.Make {
+			switch {
+			case c.program == s.m2.Make:
 				order = append(order, "make")
 				return m2Reply{got: result{code: tc.code, stdout: "make ci\n"}, target: true}, true
-			}
-			if c.program == s.git && slices.Equal(c.args, m3CIDefaultBranch()) {
+			case c.program == s.git && slices.Equal(c.args, m3CIDefaultBranch()):
 				order = append(order, "origin")
 				return m2Reply{got: result{}}, true
+			case c.program == s.binary && slices.Equal(c.args, m3SurfaceSetup()):
+				order = append(order, "surface")
+				return m2Reply{got: result{code: tc.setup}, target: true}, true
 			}
 			return service(ctx, c)
 		}).Execute
 		if err := s.policyM3(t.Context(), m3Baseline); (err != nil) != tc.fail {
 			t.Fatalf("%s: baseline = %v", tc.name, err)
 		}
-		// A CI checkout holds the default branch, which coverage-new reads.
-		if !slices.Equal(order, []string{"origin", "make"}) {
-			t.Fatalf("%s: steps = %q, want the default branch recorded before make ci", tc.name, order)
+		// A CI checkout holds the default branch, which coverage-new reads,
+		// and the generated CI installs the surface tools before make ci.
+		if !slices.Equal(order, tc.steps) {
+			t.Fatalf("%s: steps = %q, want %q", tc.name, order, tc.steps)
 		}
 	}
 	s := m2TestSuite(t)

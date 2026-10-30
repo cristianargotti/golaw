@@ -107,12 +107,23 @@ func m3CIDefaultBranch() []string {
 	return []string{"update-ref", "refs/remotes/origin/main", m2Head}
 }
 
-// m3PassesCI runs the two steps the generated CI ends with: make ci, then
-// git diff --exit-code, so a target that rewrites a tracked file fails the
-// row as it fails the pipeline.
+// m3SurfaceSetup is the step the generated CI runs before make ci: the
+// pinned surface linters of the languages the repository holds, because
+// make ci composes lint-surface and a gate that cannot measure fails.
+func m3SurfaceSetup() []string {
+	return []string{m6SetupCommand, "--surface"}
+}
+
+// m3PassesCI runs the steps the generated CI ends with: golaw setup
+// --surface, make ci, then git diff --exit-code, so a target that rewrites
+// a tracked file fails the row as it fails the pipeline.
 func (s *suite) m3PassesCI(ctx context.Context, repo string) error {
 	if err := s.gitSteps(ctx, repo, m3CIDefaultBranch()); err != nil {
 		return fmt.Errorf("record the default branch of the CI checkout: %w", err)
+	}
+	setup := s.execute(ctx, command{program: s.binary, args: m3SurfaceSetup(), dir: repo, env: s.env})
+	if err := success(setup); err != nil {
+		return fmt.Errorf("install the surface tools as the generated CI does: %w", err)
 	}
 	got := s.m3Make(ctx, repo, "ci")
 	if got.err != nil {

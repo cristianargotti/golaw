@@ -18,9 +18,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
       - name: Replay M3 rows
         run: go run ./tools/acceptance -m3
 `
+
+const m3PythonStep = "      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0\n        with:\n          python-version: '3.12'\n"
 
 func TestM3Lane(t *testing.T) {
 	t.Parallel()
@@ -36,6 +41,8 @@ func TestM3Lane(t *testing.T) {
 		{"wrong replay", strings.ReplaceAll(m3LaneFixture, m3Replay, "go version"), "missing M3 replay"},
 		{"conditional replay", strings.ReplaceAll(m3LaneFixture, "- name: Replay M3 rows", "- if: false\n        name: Replay M3 rows"), "missing M3 replay"},
 		{"ignored replay", strings.ReplaceAll(m3LaneFixture, "- name: Replay M3 rows", "- continue-on-error: true\n        name: Replay M3 rows"), "missing M3 replay"},
+		{"no python for the surface setup", strings.ReplaceAll(m3LaneFixture, m3PythonStep, ""), "M3 needs Python before its replay"},
+		{"python after the replay", strings.ReplaceAll(m3LaneFixture, m3PythonStep, "") + m3PythonStep, "M3 needs Python before its replay"},
 		{"conditional job", strings.ReplaceAll(m3LaneFixture, "  m3:\n", "  m3:\n    if: false\n"), "M3 job must be required"},
 	} {
 		if got := m3LaneReason([]byte(tt.body)); got != tt.want {
@@ -69,8 +76,15 @@ func m3LaneReason(data []byte) string {
 	if !slices.Equal(systems, []string{"ubuntu-latest", "macos-latest", "windows-latest"}) {
 		return "M3 requires three native systems"
 	}
+	// The baseline row replays golaw setup --surface, whose PyPI linters
+	// need a Python the runner images do not all pin.
+	python := false
 	for _, step := range children(at(job, "steps")) {
+		python = python || strings.HasPrefix(value(at(step, "uses")), "actions/setup-python@")
 		if at(step, "if") == nil && at(step, "continue-on-error") == nil && value(at(step, "run")) == m3Replay {
+			if !python {
+				return "M3 needs Python before its replay"
+			}
 			return ""
 		}
 	}

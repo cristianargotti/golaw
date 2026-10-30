@@ -155,6 +155,11 @@ jobs:
         with:
           node-version: '22.19.0'
           package-manager-cache: false
+      # The baseline row replays the generated CI, whose golaw setup --surface
+      # installs the PyPI linters of the service's Dockerfile.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
       - name: Replay M3 rows
         run: go run ./tools/acceptance -m3
 

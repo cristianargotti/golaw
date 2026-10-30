@@ -40,8 +40,8 @@ func (s *suite) m3ServiceRepository(ctx context.Context, name string, capabiliti
 		return "", err
 	}
 	// The M3 rows judge the policy files, not the surface: the parity floor
-	// leaves the service's YAML to no tool, so make ci needs no surface tool
-	// and the lane stays off npm and PyPI.
+	// leaves the service's YAML to no tool, so its Dockerfile is the only
+	// surface the baseline's make ci measures.
 	got := s.execute(ctx, command{
 		program: s.binary, args: []string{commandInit, flagApply, "--surface-rules", "parity", "--capabilities", strings.Join(capabilities, ",")},
 		dir: repo, env: s.env,
