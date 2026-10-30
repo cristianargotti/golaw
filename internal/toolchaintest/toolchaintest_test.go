@@ -1,8 +1,11 @@
 package toolchaintest_test
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/hometest"
@@ -58,5 +61,33 @@ func TestUnreceiptedLeavesNoReceipt(t *testing.T) {
 	toolchaintest.Unreceipted(t, tools, ruff, runtime.GOOS, runtime.GOARCH, runnertest.Behavior{})
 	if _, found, err := toolchain.ReadReceipt(tools, "ruff"); found || err != nil {
 		t.Errorf("receipt found=%t, %v", found, err)
+	}
+}
+
+// TestInstallPlaysAPlainScriptToolAsPipLeavesIt: checkov ships a plain #!
+// script, which pip copies with no .exe on Windows, so its fake is such a
+// script at the layout path and answers through toolchain.Exec on every OS.
+func TestInstallPlaysAPlainScriptToolAsPipLeavesIt(t *testing.T) {
+	t.Parallel()
+	tools := hometest.New(t).Tools()
+	checkov, _ := toolchain.Lookup("checkov")
+	path := toolchaintest.Install(t, tools, checkov, runtime.GOOS, runtime.GOARCH, runnertest.Behavior{Stdout: "{}\n"})
+	if path != toolchain.ExecPath(tools, checkov, runtime.GOOS, runtime.GOARCH) {
+		t.Errorf("fake at %s", path)
+	}
+	if body, err := os.ReadFile(path); err != nil || !strings.HasPrefix(string(body), "#!") {
+		t.Fatalf("the fake at %s is no plain #! script: %v", path, err)
+	}
+	probe, err := toolchain.Exec(t.Context(), toolchain.Request{Path: path, Args: checkov.Probe})
+	if err != nil || string(probe.Output.Stdout) != "checkov 3.3.30\n" {
+		t.Errorf("probe = %+v, %v", probe, err)
+	}
+	out, err := toolchain.Exec(t.Context(), toolchain.Request{Path: path, Args: []string{"-o", "json"}})
+	if err != nil || string(out.Output.Stdout) != "{}\n" {
+		t.Errorf("answer = %+v, %v", out, err)
+	}
+	calls := toolchaintest.Calls(t, path)
+	if len(calls) != 2 || !slices.Equal(calls[0], checkov.Probe) || !slices.Equal(calls[1], []string{"-o", "json"}) {
+		t.Errorf("calls = %q, want the tool's own arguments", calls)
 	}
 }

@@ -46,6 +46,9 @@ type Behavior struct {
 	Code    int      `json:"code"`  // the exit status for any other arguments
 	Delay   string   `json:"delay"` // a Go duration the fake waits before it answers any other arguments
 	Stdin   bool     `json:"stdin"` // the fake records the bytes it reads on stdin, one entry per call
+	// Script marks a fake that plays the interpreter of a #! script: its
+	// first argument is that script, dropped before it records or answers.
+	Script bool `json:"script"`
 }
 
 // Main is the body of the TestMain of a package whose tests install fake
@@ -153,6 +156,9 @@ func play(exe string, args []string, stdout, stderr io.Writer) (int, bool) {
 	if err != nil {
 		complain(stderr, "read its behavior", err)
 		return BrokenCode, true
+	}
+	if b.Script && len(args) > 0 {
+		args = args[1:]
 	}
 	if err := record(base, args); err != nil {
 		complain(stderr, "record its call", err)

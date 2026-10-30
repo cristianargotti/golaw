@@ -5,8 +5,10 @@
 package toolchaintest
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,8 +19,14 @@ import (
 	"github.com/cristianargotti/golaw/internal/toolchain"
 )
 
+// maxShebang bounds what Calls reads of a fake to find its #! line.
+const maxShebang = 512
+
 // dirMode keeps the fake's directory the developer's own, as setup does.
 const dirMode = 0o700
+
+// scriptMode lets the kernel start a fake #! script, as pip leaves one.
+const scriptMode = 0o700
 
 // venvPythonVersion is what the fake venv interpreter answers: inside the
 // bounds of the PyPI tools.
@@ -65,7 +73,12 @@ func Unreceipted(tb testing.TB, dir string, t toolchain.Tool, goos, goarch strin
 	if err := os.MkdirAll(filepath.Dir(want), dirMode); err != nil {
 		tb.Fatalf("make the directory of %s: %v", t.Name, err)
 	}
-	got := runnertest.Install(tb, filepath.Dir(want), strings.TrimSuffix(filepath.Base(want), exeSuffix), b)
+	var got string
+	if t.Script {
+		got = script(tb, dir, want, t, b)
+	} else {
+		got = runnertest.Install(tb, filepath.Dir(want), strings.TrimSuffix(filepath.Base(want), exeSuffix), b)
+	}
 	if got != want {
 		tb.Fatalf("the fake of %s landed at %s, the layout names %s", t.Name, got, want)
 	}
@@ -73,6 +86,23 @@ func Unreceipted(tb testing.TB, dir string, t toolchain.Tool, goos, goarch strin
 		venvPython(tb, dir, goos)
 	}
 	return got
+}
+
+// script plays a PyPI tool that ships a plain #! script, as pip leaves
+// checkov: the script at the layout path names a fake interpreter, kept at
+// the top of dir so the #! line stays inside the kernel's bound.
+func script(tb testing.TB, dir, want string, t toolchain.Tool, b runnertest.Behavior) string {
+	tb.Helper()
+	b.Script = true
+	interpreters := filepath.Join(dir, "interpreters")
+	if err := os.MkdirAll(interpreters, dirMode); err != nil {
+		tb.Fatalf("make the interpreter directory of %s: %v", t.Name, err)
+	}
+	interpreter := runnertest.Install(tb, interpreters, t.Bin, b)
+	if err := os.WriteFile(want, []byte("#!"+interpreter+"\n"), scriptMode); err != nil {
+		tb.Fatalf("write the script of %s: %v", t.Name, err)
+	}
+	return want
 }
 
 // venvPython puts the interpreter a real venv carries beside its tools, so
@@ -117,5 +147,21 @@ func InstallFor(tb testing.TB, dir string, langs []surface.Language, goos, goarc
 // order, whatever executable suffix the platform gave it.
 func Calls(tb testing.TB, path string) [][]string {
 	tb.Helper()
+	// A plain script fake records through the interpreter its #! line names.
+	if interpreter, found := shebang(path); found {
+		path = interpreter
+	}
 	return runnertest.Calls(tb, filepath.Dir(path), strings.TrimSuffix(filepath.Base(path), exeSuffix))
+}
+
+// shebang answers the interpreter the #! line of the file at path names.
+func shebang(path string) (string, bool) {
+	f, err := os.Open(path) //nolint:gosec // the fake its test installed
+	if err != nil {
+		return "", false
+	}
+	defer func() { _ = f.Close() }()
+	line, err := bufio.NewReader(io.LimitReader(f, maxShebang)).ReadString('\n')
+	rest, found := strings.CutPrefix(line, "#!")
+	return strings.TrimSpace(rest), err == nil && found
 }
