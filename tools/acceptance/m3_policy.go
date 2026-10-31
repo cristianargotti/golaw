@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -122,9 +123,14 @@ func (s *suite) m3PassesCI(ctx context.Context, repo string) error {
 		return fmt.Errorf("record the default branch of the CI checkout: %w", err)
 	}
 	// The generated CI sets up node and python before both steps; here the
-	// caller's usable runtimes go first, past an older shim ahead of them.
+	// caller's usable runtimes go first, past an older shim ahead of them,
+	// and every other program keeps resolving as the caller's PATH says.
+	runtimes, err := s.surfaceRuntimes(ctx, filepath.Join(s.base, runtimeLinksDir))
+	if err != nil {
+		return err
+	}
 	env := slices.Clone(s.env)
-	for _, dir := range slices.Backward(s.surfaceRuntimes(ctx)) {
+	for _, dir := range slices.Backward(runtimes) {
 		env = prependPath(env, dir)
 	}
 	setup := s.execute(ctx, command{program: s.binary, args: m3SurfaceSetup(), dir: repo, env: env})
