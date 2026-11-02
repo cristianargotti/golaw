@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/cristianargotti/golaw/internal/gen/thirdparty"
 	"github.com/cristianargotti/golaw/internal/gentest"
@@ -14,6 +15,11 @@ import (
 )
 
 var sqlcConfig = []byte("version: \"2\"\n")
+
+// slowMachineToolLimit lets a test that proves what a generator run does,
+// not how fast it starts, pass on a loaded runner whose process start
+// alone can exceed the hook's limit.
+const slowMachineToolLimit = 30 * time.Second
 
 func sqlcGenerator() thirdparty.Generator {
 	return thirdparty.Generator{
@@ -37,6 +43,7 @@ func warmGenerators(t *testing.T, h hookBinding, b runnertest.Behavior) string {
 func TestTheHookRunsSqlcUnderItsManagedConfiguration(t *testing.T) {
 	t.Parallel()
 	h := regenBinding(t)
+	h.toolLimit = slowMachineToolLimit
 	dir := warmGenerators(t, h, runnertest.Behavior{Stdout: "ok"})
 	root := t.TempDir()
 	snap := proof.NewTree(map[string][]byte{"sqlc.yaml": sqlcConfig})

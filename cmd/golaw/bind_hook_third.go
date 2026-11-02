@@ -73,7 +73,7 @@ func (h hookBinding) runOne(ctx context.Context, root string, managed map[string
 	if missing != "" {
 		return missing, false
 	}
-	run, err := toolchain.Exec(ctx, toolchain.Request{Path: path, Args: g.Args, Dir: root, Env: env, Timeout: toolchain.HookToolBudget})
+	run, err := toolchain.Exec(ctx, toolchain.Request{Path: path, Args: g.Args, Dir: root, Env: env, Timeout: h.toolTimeout()})
 	switch {
 	case err != nil && ctx.Err() != nil:
 		return g.Name + " passed the hook's 3 s budget for external tools", false

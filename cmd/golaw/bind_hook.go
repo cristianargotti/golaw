@@ -16,6 +16,7 @@ import (
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/policy"
 	"github.com/cristianargotti/golaw/internal/source"
+	"github.com/cristianargotti/golaw/internal/toolchain"
 )
 
 // hookStateDir is the directory under the state directory that holds the
@@ -37,6 +38,17 @@ type hookBinding struct {
 	hookDigest string
 	cache      *source.Cache
 	budget     *eventBudget
+	// toolLimit replaces the hook's per tool limit in a test whose machine
+	// cannot start a process inside it; zero keeps the limit of the hook.
+	toolLimit time.Duration
+}
+
+// toolTimeout is the time one external tool of the hook may take.
+func (h hookBinding) toolTimeout() time.Duration {
+	if h.toolLimit > 0 {
+		return h.toolLimit
+	}
+	return toolchain.HookToolBudget
 }
 
 func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Dependencies, error) {

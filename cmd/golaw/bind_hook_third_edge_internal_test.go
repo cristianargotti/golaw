@@ -20,6 +20,7 @@ func TestRegenThirdTakesANewSnapshotAfterAGeneratorRan(t *testing.T) {
 	files["sqlc.yaml"] = sqlcConfig
 	repo := gentest.Module(t, files)
 	h := regenBinding(t)
+	h.toolLimit = slowMachineToolLimit
 	warmGenerators(t, h, runnertest.Behavior{Stdout: "ok"})
 	snap, err := (binding{}).snapshot(t.Context(), repo.Root)
 	if err != nil {
