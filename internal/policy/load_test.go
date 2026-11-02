@@ -234,3 +234,14 @@ func TestProposedFromCore(t *testing.T) {
 		t.Errorf("a first policy whose option weakens its core default: %v, %v", found, err)
 	}
 }
+
+func TestLoadNamesThePinBeforeAKeyOfAnotherKit(t *testing.T) {
+	t.Parallel()
+	root, d := enrolled(t, fullPolicy)
+	write(t, root, "golaw.yml", strings.Replace(fullPolicy, "kit: {version: 0.1.0}", "kit: {version: 0.9.0}", 1)+"later: {}\n")
+	commitAll(t, root, "a later kit")
+	_, err := policy.Load(t.Context(), input(root, d))
+	if !errors.Is(err, model.ErrPolicy) || !strings.Contains(err.Error(), "pins kit version 0.9.0 and this binary is 0.1.0") {
+		t.Errorf("a policy of a later kit = %v, want the pin named", err)
+	}
+}
