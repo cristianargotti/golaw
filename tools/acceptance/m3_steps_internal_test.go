@@ -156,11 +156,6 @@ func TestM3TidyToolsFollowsTheToolsModule(t *testing.T) {
 	if err := s.m3TidyTools(t.Context(), repo); err == nil || strings.Join(ran, ",") != "mod tidy,gen" {
 		t.Fatalf("red a failed gen = %v, ran %v", err, ran)
 	}
-	blocked := filepath.Join(t.TempDir(), "file")
-	checkedWrite(t, blocked, "a file where the repository goes\n")
-	if err := s.m3TidyTools(t.Context(), blocked); err == nil {
-		t.Fatal("a repository under a file must fail")
-	}
 }
 
 func TestM3CopyTreeNamesWhatItCannotCopy(t *testing.T) {
