@@ -1,0 +1,16 @@
+golaw: 1
+kit: { version: 0.3.0 }
+capabilities: [api, db, go, hexagonal]
+generate:
+  layout:
+    port: internal/application/{area}
+    usecase: internal/application/{area}
+    adapter_sql: internal/adapters/out/{package}
+    adapter_http: internal/adapters/out/{package}
+    handler: internal/adapters/in/{package}
+    wiring: cmd/{main}
+  support: internal/gensupport
+  third_party:
+    sqlc_out: internal/adapters/out/postgres/sqlcgen
+    openapi: api/openapi.yaml
+    openapi_out: api/gen

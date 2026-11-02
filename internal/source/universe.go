@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/cristianargotti/golaw/internal/genheader"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
@@ -215,7 +216,7 @@ func Classify(rel string, content []byte, tracked bool) model.FileClass {
 	switch {
 	case bytes.IndexByte(probe, 0) >= 0:
 		return model.ClassBinary
-	case generatedHeader.Match(content):
+	case generatedHeader.Match(content) && !golaw(content):
 		return model.ClassGenerated
 	case strings.HasPrefix(rel, "testdata/") || strings.Contains(rel, "/testdata/"):
 		return model.ClassFixture
@@ -226,4 +227,12 @@ func Classify(rel string, content []byte, tracked bool) model.FileClass {
 	default:
 		return model.ClassUntracked
 	}
+}
+
+// golaw reports a golaw regenerable file, which is analyzed code under the
+// class its path gives (M7.10.4); every other generated header keeps the
+// generated class.
+func golaw(content []byte) bool {
+	_, ok := genheader.Parse(content)
+	return ok
 }

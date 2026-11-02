@@ -1,0 +1,197 @@
+- id: growth.read-plan
+  recv: u
+  params: [ctx, in]
+  body: |
+    var out Plan
+    if err := u.ready(); err != nil {
+        return out, err
+    }
+    plan, err := u.deps.Ledger.ReadPlan(ctx, in)
+    if err != nil {
+        return out, gensupport.Prefix(actionReadPlan)(err)
+    }
+    plan.Since = u.deps.Clock.Now()
+    return plan, nil
+- id: growth.archive-plan
+  recv: u
+  params: [ctx, in]
+  body: |
+    var out Plan
+    if err := u.ready(); err != nil {
+        return out, err
+    }
+    wrap := gensupport.Prefix(actionArchivePlan)
+    if err := u.deps.Ledger.ArchivePlan(ctx, in); err != nil {
+        return out, wrap(err)
+    }
+    plan, err := u.deps.Ledger.ReadPlan(ctx, in)
+    return plan, wrap(err)
+- id: billing.read-rate
+  recv: u
+  params: [ctx, in]
+  body: |
+    var out Rate
+    if err := u.ready(); err != nil {
+        return out, err
+    }
+    rate, err := u.deps.Rates.ReadRate(ctx, in)
+    if err != nil {
+        return out, gensupport.Prefix(actionReadRate)(err)
+    }
+    return rate, nil
+- id: ledger.read-plan
+  params: []
+  body: |
+    return []Case{{
+        Name:   "reads the plan of a known account",
+        Method: MethodReadPlan,
+        Args:   []any{growth.AccountID("account-1")},
+        Want:   []any{growth.Plan{Account: "account-1", Name: "basic"}},
+    }}
+  imports:
+    - { path: example.com/slice/internal/application/growth }
+- id: ledger.archive-plan
+  params: []
+  body: |
+    return []Case{{
+        Name:   "archives the plan of a known account",
+        Method: MethodArchivePlan,
+        Args:   []any{growth.AccountID("account-2")},
+    }}
+  imports:
+    - { path: example.com/slice/internal/application/growth }
+- id: clock.now
+  params: []
+  body: |
+    return []Case{{Name: "answers the programmed time", Method: MethodNow, Want: []any{time.Unix(0, 0).UTC()}}}
+  imports:
+    - { path: time }
+- id: rates.read-rate
+  params: []
+  body: |
+    const cents = 1200
+    return []Case{{
+        Name:   "reads the rate of a known account",
+        Method: MethodReadRate,
+        Args:   []any{billing.AccountID("account-1")},
+        Want:   []any{billing.Rate{Account: "account-1", Cents: cents}},
+    }}
+  imports:
+    - { path: example.com/slice/internal/application/billing }
+- id: plans.read-plan
+  recv: p
+  params: [ctx, account]
+  body: |
+    plan, err := planOf(p.queries.ReadPlan(ctx, string(account)))
+    return plan, gensupport.Prefix(actionPlansReadPlan)(err)
+- id: plans.archive-plan
+  recv: p
+  params: [ctx, account]
+  body: |
+    affected, err := p.queries.ArchivePlan(ctx, string(account))
+    if err == nil && affected == 0 {
+        err = growth.ErrPlanNotFound
+    }
+    return gensupport.Prefix(actionPlansArchivePlan)(err)
+- id: plans.plan-of
+  params: [row, err]
+  body: |
+    if errors.Is(err, sql.ErrNoRows) {
+        return growth.Plan{}, growth.ErrPlanNotFound
+    }
+    return growth.Plan{Account: growth.AccountID(row.Account), Name: row.Name, Archived: row.Archived, Since: row.Since}, err
+  imports:
+    - { path: errors }
+    - { path: database/sql }
+- id: seed.plans
+  params: [t]
+  body: |
+    t.Helper()
+    t.Skip("the contract suite of a SQL adapter seeds a real database under the integration tag")
+    return ledgertest.Subject{}
+- id: client.read-rate
+  recv: c
+  params: [ctx, account]
+  body: |
+    body, code, err := gensupport.Get(ctx, c.client, c.base+"/rates/"+url.PathEscape(string(account)))
+    var rate billing.Rate
+    if err == nil {
+        err = errors.Join(gensupport.Status(code), gensupport.Decode(body, &rate))
+    }
+    return rate, gensupport.Prefix(actionClientReadRate)(err)
+  imports:
+    - { path: errors }
+    - { path: net/url }
+- id: seed.client
+  params: [t]
+  body: |
+    t.Helper()
+    server := tlstest.Server(t,
+        tlstest.Route{Method: http.MethodGet, Path: "/rates/account-1", Status: http.StatusOK, Body: []byte(`{"account":"account-1","cents":1200}`)},
+        tlstest.Route{Status: http.StatusNotFound},
+    )
+    return ratestest.Subject{Port: rateapi.NewClient(rateapi.ClientConfig{BaseURL: server.URL, Client: server.Client()})}
+- id: growthapi.find-plan
+  recv: h
+  params: [ctx, request]
+  body: |
+    plan, err := h.uc.ReadPlan.Execute(ctx, growth.AccountID(request.Body.Account))
+    if err == nil {
+        return apigen.FindPlan200JSONResponse{Account: string(plan.Account), Name: plan.Name, Archived: plan.Archived}, nil
+    }
+    if statusOf(err, statusRules()...) == http.StatusNotFound {
+        return apigen.FindPlan404ApplicationProblemPlusJSONResponse{Title: http.StatusText(http.StatusNotFound), Status: http.StatusNotFound}, nil
+    }
+    return nil, gensupport.Prefix("growthapi: find plan")(err)
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+- id: growthapi.get-plan
+  recv: h
+  params: [ctx, request]
+  body: |
+    plan, err := h.uc.ReadPlan.Execute(ctx, growth.AccountID(request.Id))
+    if err == nil {
+        return apigen.GetPlan200JSONResponse{Account: string(plan.Account), Name: plan.Name, Archived: plan.Archived}, nil
+    }
+    if statusOf(err, statusRules()...) == http.StatusNotFound {
+        return apigen.GetPlan404ApplicationProblemPlusJSONResponse{Title: http.StatusText(http.StatusNotFound), Status: http.StatusNotFound}, nil
+    }
+    return nil, gensupport.Prefix("growthapi: get plan")(err)
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+- id: growthapi.archive-plan
+  recv: h
+  params: [ctx, request]
+  body: |
+    _, err := h.uc.ArchivePlan.Execute(ctx, growth.AccountID(request.Id))
+    if err == nil {
+        return apigen.ArchivePlan204Response{}, nil
+    }
+    if statusOf(err, statusRules()...) == http.StatusNotFound {
+        return apigen.ArchivePlan404ApplicationProblemPlusJSONResponse{Title: http.StatusText(http.StatusNotFound), Status: http.StatusNotFound}, nil
+    }
+    return nil, gensupport.Prefix("growthapi: archive plan")(err)
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+- id: growthapi.status-rules
+  params: []
+  body: |
+    return []statusRule{{err: growth.ErrPlanNotFound, status: http.StatusNotFound}}
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+- id: wiring.infra
+  params: [ctx]
+  body: |
+    server := &http.Server{Handler: Wire(Infra{}), ReadHeaderTimeout: time.Second}
+    <-ctx.Done()
+    if err := server.Close(); err != nil {
+        return fmt.Errorf("wiring: close the server: %w", err)
+    }
+    return nil
+  imports:
+    - { path: net/http }
+    - { path: time }

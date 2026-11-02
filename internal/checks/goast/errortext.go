@@ -17,12 +17,23 @@ const (
 )
 
 // errorTextDirs are the layers where error text stored as data carries the
-// wrap chain into a row, a ledger or a response.
-func errorTextDirs() []string {
-	return []string{
-		"internal/application/", "internal/infrastructure/jobs/",
-		"internal/adapters/inbound/jobs/", "internal/adapters/outbound/",
+// wrap chain into a row, a ledger or a response; a declared generate block says
+// where they live (the port shares the use case root, the inbound handler is never judged).
+func errorTextDirs(p *model.EffectivePolicy) []string {
+	const infraJobs, inboundJobs = "internal/infrastructure/jobs/", "internal/adapters/inbound/jobs/"
+	if p == nil || !p.Generate.Declared {
+		return []string{"internal/application/", infraJobs, inboundJobs, "internal/adapters/outbound/"}
 	}
+	l := p.Generate.Layout
+	dirs := []string{layerPrefix(l.Usecase), layerPrefix(l.AdapterSQL), layerPrefix(l.AdapterHTTP), infraJobs, inboundJobs}
+	slices.Sort(dirs)
+	return slices.Compact(dirs)
+}
+
+// layerPrefix is the fixed directory a pattern opens with: the layer's files sit below it.
+func layerPrefix(pattern string) string {
+	before, _, _ := strings.Cut(pattern, "{")
+	return strings.TrimSuffix(before, "/") + "/"
 }
 
 // ErrorTextAsData is goast.error-text-as-data: err.Error() stored,
@@ -33,8 +44,8 @@ func ErrorTextAsData() model.Check {
 	return check{spec: spec("error-text-as-data"), judge: judgeErrorText}
 }
 
-func judgeErrorText(t *target, _ *state) ([]model.Finding, error) {
-	if !under(t.file.Path, errorTextDirs()...) || path.Base(t.file.Path) == errorsFile {
+func judgeErrorText(t *target, s *state) ([]model.Finding, error) {
+	if !under(t.file.Path, errorTextDirs(s.in.Policy)...) || path.Base(t.file.Path) == errorsFile {
 		return nil, nil
 	}
 	file, _, err := t.parsed()

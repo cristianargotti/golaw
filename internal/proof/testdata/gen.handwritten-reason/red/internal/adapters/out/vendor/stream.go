@@ -1,0 +1,2 @@
+// golaw:handwritten
+package vendor

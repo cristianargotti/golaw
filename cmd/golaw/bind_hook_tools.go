@@ -17,7 +17,7 @@ import (
 // answers within the host's limit whatever the tools do. A tool it cannot
 // run is a notice, never a denial (M6.5.3).
 func (h hookBinding) tools(ctx context.Context, _ hook.Repository, policy *model.EffectivePolicy, files []hook.ToolFile) hook.ToolReport {
-	event, cancel := context.WithTimeout(ctx, toolchain.HookEventBudget)
+	event, cancel := h.budget.context(ctx)
 	defer cancel()
 	env := toolchain.ToolEnv(h.environ())
 	run := lint.HookEnv{

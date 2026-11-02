@@ -1,0 +1,20 @@
+package {{.Package}}
+
+// The actions of {{.Type}}: each prefixes the errors of its method.
+const (
+{{- range .Methods}}
+	{{.Action}} = "{{.Phrase}}"
+{{- end}}
+)
+
+// {{.Type}} implements the {{.PortType}} port of {{.PortPkg}} over the sqlc queries.
+type {{.Type}} struct {
+	queries *{{.SQLC}}.Queries
+}
+
+// New{{.Type}} answers a {{.Type}} over db.
+func New{{.Type}}(db *sql.DB) *{{.Type}} {
+	return &{{.Type}}{queries: {{.SQLC}}.New(db)}
+}
+
+var _ {{.Port}} = (*{{.Type}})(nil)

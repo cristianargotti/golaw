@@ -1,0 +1,12 @@
+{
+  "shape": "write",
+  "agent": "tester",
+  "tool": "Write",
+  "candidates": [
+    {
+      "path": ".golaw/gen.yml",
+      "op": "replace",
+      "reconstructed": true
+    }
+  ]
+}

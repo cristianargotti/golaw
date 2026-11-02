@@ -63,7 +63,7 @@ Each group names its why and the mechanism that delivers it; a group whose mecha
 - Error identity and wrapping: failures classified by identity, never by text; goast.sentinel-decl, goast.error-text-as-data and goast.init-if-err-nil, while the failures.Prefix discipline is prose of the skill.
 - Layer boundaries and Clock injection: domain and use cases free of transport, persistence, environment and the wall clock; the depguard rule of each inner layer under hexagonal (policy.golangci), goast.env-read, goast.bare-context, goast.wall-clock and goast.clock-utc, with the context guide as prose.
 - Test isolation and coverage universes: the test target runs with the race detector and -coverpkg=./..., coverage-check holds the floors over the build universe through golaw coverage, goast.goleak holds goroutines; mutation, fuzz, benchmarks and integration are on demand, their scope prose of the evidence.
-- Generated tracking and freshness: generated code is versioned and proven fresh by the pipeline; paths.generated-tracked and policy.generated-fresh, the generate-check target running the generators.
+- Generated tracking and freshness: generated code is versioned and proven fresh by the pipeline; paths.generated-tracked and policy.generated-fresh, the generate-check target running the generators; the gen family keeps agents on the contract (gen.generated-write, gen.manifest-write, gen.handwritten-reason, gen.handwritten), and golaw gen --check, which generate-check runs first, fails a drifted regenerable file or an open hole.
 - Supply-chain age and records: a version enters seven days after publication and every direct module has a reviewed record; policy.deps-age-config, policy.dependabot-cooldown, policy.dependency-records, policy.image-digest, policy.gotoolchain-local and the vuln and licenses targets.
 - Migration safety: policy.squawk-config holds the configuration migrate-lint reads; expand and contract, lock budgets and rollback tests are prose of the checklists.
 - API contracts: policy.openapi-assertions holds the Redocly rules and the contract, openapi-breaking runs oasdiff in the pipeline; the strict handler signature and the contract hash in liveness are prose.
@@ -276,9 +276,20 @@ The surface family judges the non-Go files of a Go repository: JavaScript, TypeS
 | docker.final-user | rules/4.16@1 | none | A final stage that sets no USER or whose last USER is root, 0 or 0:0, fed back in the hook and a failure in scan, because an image runs as a non-root user; a numeric non-zero user passes. |
 | cfn.bucket-https-only | rules/4.16@1 | none | An AWS::S3::Bucket without a bucket policy in the same template that denies every action when aws:SecureTransport is false, fed back in the hook and a failure in scan, because a policy in another stack would make a denial false; an exceptions entry of golaw.yml records that shape. |
 
+## rules/4.17@1
+
+The gen family keeps generated files in the hands of their generators: golaw writes the regenerable part of every kind from its contract and the pinned sqlc and oapi-codegen write theirs, so an agent edits the contract and never the output. A certain check denies an agent's write, edit, move or delete of a generated file or of the generation manifest, and a bare handwritten marker, and its reason names the contract or the command that fixes it; a person is never denied, and golaw gen --check fails the pipeline on a hand edit, a missing regenerable file, a stale third party output or an open hole. docs/generate.md holds the kinds, the holes and the template laws.
+
+| Check | Rule | Needs | Why and boundary |
+| --- | --- | --- | --- |
+| gen.generated-write | rules/4.17@1 | none | An agent's write, edit, move or delete of a file whose base carries the generated header before its package clause, or that the manifest lists as regenerable, denied because a generated file changes only through its contract; a hand written file that quotes the header in its body is never denied, and the output of a generator golaw does not know is left to the pipeline. |
+| gen.manifest-write | rules/4.17@1 | none | An agent's write, edit, move or delete of .golaw/gen.yml, denied because the manifest is written only by golaw new and golaw gen and must merge as a plain append; a file of the same name elsewhere passes. |
+| gen.handwritten-reason | rules/4.17@1 | none | A golaw:handwritten marker with nothing after it in the leading comments of a Go file, denied when the candidate introduces it, because the escape stays reviewable only with its reason; a marker with a reason passes. |
+| gen.handwritten | rules/4.17@1 | none | A Go file whose leading comments carry the golaw:handwritten marker, reported as a note in scan with its reason, because the escape must stay visible; the marker in a body comment is not the escape. |
+
 ## Repository laws
 
-Files contain at most 300 lines. Functions contain at most 40 lines under funlen semantics, with comments ignored. Tests retain the file limit and lose the function limit. Generated code, a file whose header marks it generated, has no author to hold to either limit and is exempt, as scan exempts it; the templates under templates/examples/service/api/generated render the output of oapi-codegen with that header, so their size is the generator's.
+Files contain at most 300 lines. Functions contain at most 40 lines under funlen semantics, with comments ignored. Tests retain the file limit and lose the function limit. Third party generated code, a file whose header marks it generated by another tool, has no author to hold to either limit and is exempt, as scan exempts it, while a golaw regenerable file, whose header names golaw and its kind, is held to both limits like hand written code; the templates under templates/examples/service/api/gen render the output of oapi-codegen with that header, so their size is the generator's.
 
 Coverage is at least 80 percent total, per package, and per file, with the 20 statement minimum and no kit exemptions.
 

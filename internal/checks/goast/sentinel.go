@@ -4,11 +4,18 @@ import (
 	"go/ast"
 	"go/token"
 	"path"
+	"strings"
 
+	"github.com/cristianargotti/golaw/internal/genheader"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
 const codeSentinelDecl = "sentinel-decl"
+
+// The support package a golaw kind writes keeps its sentinels in its
+// generated errors files, the only Go source the kit writes into a
+// repository (M7.4.3), so those files hold the role errors.go holds.
+const golawErrorsName = "zz_generated_errors"
 
 // SentinelDecl is goast.sentinel-decl: a package declares its failure
 // modes once, in errors.go, so a package-level errors.New anywhere else is
@@ -18,7 +25,7 @@ func SentinelDecl() model.Check {
 }
 
 func judgeSentinelDecl(t *target, _ *state) ([]model.Finding, error) {
-	if path.Base(t.file.Path) == errorsFile {
+	if path.Base(t.file.Path) == errorsFile || golawErrorsFile(t.file.Path, t.src) {
 		return nil, nil
 	}
 	file, _, err := t.parsed()
@@ -53,4 +60,17 @@ func sentinelValues(gen *ast.GenDecl) []ast.Expr {
 		}
 	}
 	return out
+}
+
+// golawErrorsFile reports a golaw generated errors file: the name alone is
+// not enough, because a hand written file of that name is still judged.
+func golawErrorsFile(p string, src []byte) bool {
+	base := path.Base(p)
+	if strings.HasSuffix(base, "_test.go") {
+		return false
+	}
+	named := base == golawErrorsName+".go" ||
+		(strings.HasPrefix(base, golawErrorsName+"_") && strings.HasSuffix(base, ".go"))
+	_, golaw := genheader.Parse(src)
+	return named && golaw
 }

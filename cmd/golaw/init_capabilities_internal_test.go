@@ -95,7 +95,7 @@ func TestInitGrowsTheCapabilitiesOfAReviewedPolicy(t *testing.T) {
 	if pending := capabilityRun(t, ta, exitFindings, "scan", repo.Root); !strings.Contains(pending, "depguard has no strict rule over internal/domain") {
 		t.Fatalf("scan before the update = %q", pending)
 	}
-	capabilityRun(t, ta, exitClean, "init", "--update", "--apply", repo.Root)
+	acceptGrownRecord(t, ta, capabilityRun(t, ta, exitClean, "init", "--update", "--apply", repo.Root), repo.Root, "github.com/jmattheis/goverter")
 	capabilityRun(t, ta, exitClean, "scan", repo.Root)
 	kept := capabilityRun(t, ta, exitClean, "init", "--capabilities", "db", repo.Root)
 	if !strings.Contains(kept, "+capabilities: [db, go, hexagonal]\n") {
@@ -204,8 +204,34 @@ func TestInitDefersCapabilityGrowthAfterAnUnenrolledCommit(t *testing.T) {
 	if pending := capabilityRun(t, ta, exitFindings, "scan", repo.Root); !strings.Contains(pending, "add required target migrate-lint to Makefile") {
 		t.Fatalf("scan before the update = %q", pending)
 	}
-	capabilityRun(t, ta, exitClean, "init", "--update", "--apply", repo.Root)
+	acceptGrownRecord(t, ta, capabilityRun(t, ta, exitClean, "init", "--update", "--apply", repo.Root), repo.Root, "github.com/jmattheis/goverter", "github.com/sqlc-dev/sqlc")
 	repo.Git("add", "-A")
 	repo.Commit("build: render the database targets", nil)
 	capabilityRun(t, ta, exitClean, "scan", repo.Root)
+}
+
+// acceptGrownRecord holds the one step a grown capability leaves to the
+// person: the tools module the update wrote pins the generator of the new
+// capability, the update proposes it into the baseline record, the
+// person's file it never writes, the scan names the record until then, and
+// the record the person applies from the proposal makes the scan clean.
+func acceptGrownRecord(t *testing.T, ta testApp, update, root string, modules ...string) {
+	t.Helper()
+	pending := capabilityRun(t, ta, exitFindings, "scan", root)
+	record := filepath.Join(root, "docs", "adr", "0001-inherited-baseline.md")
+	data, err := os.ReadFile(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := make([]string, 0, len(modules))
+	for _, module := range modules {
+		if !strings.Contains(pending, "record "+module+" in the modules front matter") || !strings.Contains(update, "+  - "+module+"\n") {
+			t.Errorf("the update or the scan does not name %s:\n%s\n%s", module, update, pending)
+		}
+		lines = append(lines, "  - "+module+"\n")
+	}
+	applied := strings.Replace(string(data), "  - golang.org/x/vuln\n---\n", "  - golang.org/x/vuln\n"+strings.Join(lines, "")+"---\n", 1)
+	if err := os.WriteFile(record, []byte(applied), 0o600); err != nil {
+		t.Fatal(err)
+	}
 }

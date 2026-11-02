@@ -131,13 +131,13 @@ func productionDirectory(tree fs.FS, name string) error {
 	return nil
 }
 
-// Test-only imports from other directories identify packages that serve tests by design.
+// Test-only imports from other directories identify packages that serve tests by design; a helper named like httptest imports for tests too.
 func productionFacts(files map[string]*ast.File, module string) map[string]bool {
 	facts := make(map[string]bool)
 	for name, file := range files {
 		prefix := "test:"
 		if !strings.HasSuffix(name, "_test.go") {
-			prefix = "import:"
+			prefix = map[bool]string{false: "import:", true: "test:"}[strings.HasSuffix(path.Dir(name), "test")]
 			header := func(match func(string) bool) bool {
 				return slices.ContainsFunc(file.Comments, func(group *ast.CommentGroup) bool {
 					return slices.ContainsFunc(group.List, func(comment *ast.Comment) bool { return comment.Pos() < file.Package && match(comment.Text) })

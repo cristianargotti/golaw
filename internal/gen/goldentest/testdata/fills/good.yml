@@ -1,0 +1,7 @@
+- id: greeter.greet
+  body: |
+    return g.prefix + " " + name, ctx.Err()
+- id: welcomer.greet
+  imports: [{ path: strings }]
+  body: |
+    return strings.Join([]string{g.prefix, name}, " "), ctx.Err()

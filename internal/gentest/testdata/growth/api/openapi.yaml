@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info:
+  title: Plans
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: /
+security: []
+paths:
+  /plans/{id}:
+    get:
+      operationId: getPlan
+      summary: Read the plan of an account
+      tags: [plans]
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, maxLength: 64 }
+      responses:
+        "200":
+          description: The plan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+              example: { account: account-1, name: basic, archived: false }
+        "404":
+          description: No plan for the account
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example: { title: Not Found, status: 404 }
+  /plans/{id}/archive:
+    post:
+      operationId: archivePlan
+      summary: Archive the plan of an account
+      tags: [plans]
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, maxLength: 64 }
+      responses:
+        "204":
+          description: Archived
+        "404":
+          description: No plan for the account
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example: { title: Not Found, status: 404 }
+  /plans:
+    post:
+      operationId: findPlan
+      summary: Find the plan of the account the body names
+      tags: [plans]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Plan" }
+            example: { account: account-1, name: basic, archived: false }
+      responses:
+        "200":
+          description: The plan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Plan" }
+              example: { account: account-1, name: basic, archived: false }
+        "404":
+          description: No plan for the account
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example: { title: Not Found, status: 404 }
+components:
+  schemas:
+    Plan:
+      type: object
+      required: [account, name, archived]
+      properties:
+        account: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 128 }
+        archived: { type: boolean }
+    Problem:
+      type: object
+      required: [title, status]
+      properties:
+        title: { type: string, maxLength: 128 }
+        status: { type: integer, format: int32 }
+        detail: { type: string, maxLength: 512 }

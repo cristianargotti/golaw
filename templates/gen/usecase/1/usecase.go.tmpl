@@ -1,0 +1,18 @@
+package {{.Package}}
+{{with .Usecase}}{{if .DeclareIn}}
+// {{.In}} is what {{.Type}} reads.
+type {{.In}} struct{}
+{{end}}{{if .DeclareOut}}
+// {{.Out}} is what {{.Type}} answers.
+type {{.Out}} struct{}
+{{end}}
+// Execute runs the use case {{.Type}}.
+func (u *{{.Type}}) Execute(ctx context.Context, in {{.In}}) ({{.Out}}, error) {
+	var out {{.Out}}
+	if err := u.ready(); err != nil {
+		return out, err
+	}
+	// {{$.Marker}} {{.Hole}} {{.Constraint}}
+	return out, gensupport.Hole("{{.Hole}}", ctx, in)
+}
+{{- end}}

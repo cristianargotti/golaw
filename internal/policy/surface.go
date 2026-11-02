@@ -162,12 +162,13 @@ func (e *explainer) surface(p *model.EffectivePolicy, f File) {
 	}
 }
 
-// surfaceSwitches explains the two ladder entries of M6.6.4 the file sets.
+// surfaceSwitches explains the ladder entries of the agent and surface aids
+// the file sets: the two of M6.6.4 and the regeneration of M7.6.2.
 func (e *explainer) surfaceSwitches(l *Ladder) {
 	for _, rung := range []struct {
 		name string
 		on   *bool
-	}{{"surface_lint", l.SurfaceLint}, {"hook_feedback", l.HookFeedback}} {
+	}{{"surface_lint", l.SurfaceLint}, {"hook_feedback", l.HookFeedback}, {"hook_regenerate", l.HookRegenerate}} {
 		if rung.on != nil {
 			e.add("ladder."+rung.name, strconv.FormatBool(*rung.on), e.origin)
 		}

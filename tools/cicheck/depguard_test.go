@@ -39,7 +39,7 @@ func TestDepguardDrawsTheDirectionOfEveryNewPackage(t *testing.T) {
 	}
 	want := map[string][]string{
 		"runner":     {"model"},
-		"coverage":   {"model"},
+		"coverage":   {"model", "genheader"},
 		"vuln":       {"model"},
 		"stage":      {"model", "engine", "source", "policy", "report"},
 		"rung":       {"model", "engine", "policy", "source", "stage", "runner", "report", "vuln", "surface", "toolchain", "lint"},

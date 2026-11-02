@@ -3,6 +3,7 @@ package assets_test
 import (
 	"bytes"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -14,7 +15,7 @@ import (
 
 func templateValues() assets.Values {
 	tools := make(map[string]string)
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		tools[tool.Name] = tool.Version
 	}
 	return assets.Values{

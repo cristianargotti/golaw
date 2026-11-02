@@ -1,0 +1,8 @@
+{{range .M.Doc}}// {{.}}
+{{end}}func ({{.D.Recv}} *{{.D.Type}}) {{.M.Name}}{{.M.Signature}} {
+	// golaw:hole {{.M.Hole}} {{.M.Constraint}}
+{{- range .M.Zeros}}
+	var {{.Name}} {{.Type}}
+{{- end}}
+	return {{.M.Returns}}gensupport.Hole("{{.M.Hole}}", {{.M.Action}}, {{.D.Recv}}.queries{{.M.HoleArgs}})
+}

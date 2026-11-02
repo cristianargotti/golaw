@@ -36,7 +36,7 @@ func m3Capabilities() [][]string {
 func m3CI(t *testing.T, capabilities []string) []byte {
 	t.Helper()
 	tools := make(map[string]string)
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		tools[tool.Name] = tool.Version
 	}
 	values := assets.Values{

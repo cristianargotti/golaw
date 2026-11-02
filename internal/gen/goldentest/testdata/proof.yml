@@ -1,0 +1,18 @@
+entries:
+  - { law: S107-parameters, red: laws/s107/red, near: laws/s107/near }
+  - { law: S1192-literals, red: laws/s1192/red, near: laws/s1192/near }
+  - { law: no-regexp, red: laws/regexp/red, near: laws/regexp/near }
+  - { law: no-http-literal, red: laws/http/red, near: laws/http/near }
+  - { law: doc-ranges-only, red: laws/ip/red, near: laws/ip/near }
+  - {
+      law: no-suppression,
+      red: laws/suppression/red,
+      near: laws/suppression/near,
+    }
+  - { law: file-modes, red: laws/modes/red, near: laws/modes/near }
+  - {
+      law: no-credential-literal,
+      red: laws/credential/red,
+      near: laws/credential/near,
+    }
+  - { law: context-from-test, red: laws/context/red, near: laws/context/near }

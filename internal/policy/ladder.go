@@ -43,6 +43,7 @@ func (l *Ladder) ladder() model.Ladder {
 	set(&out.TestStaged, l.TestStaged)
 	set(&out.SurfaceLint, l.SurfaceLint)
 	set(&out.HookFeedback, l.HookFeedback)
+	set(&out.HookRegenerate, l.HookRegenerate)
 	return out
 }
 

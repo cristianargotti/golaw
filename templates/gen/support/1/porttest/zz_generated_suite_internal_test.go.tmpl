@@ -1,0 +1,217 @@
+package porttest
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
+	"testing"
+)
+
+const greet = "Greet"
+
+// greeter is the port these tests drive through the suite.
+type greeter interface {
+	Greet(ctx context.Context, name string) (string, error)
+}
+
+// script answers one fixed answer and keeps every call it records.
+type script struct {
+	answer []any
+	calls  [][]any
+}
+
+func (s *script) Answer(_ string, args ...any) []any {
+	s.calls = append(s.calls, args)
+	return s.answer
+}
+
+// fake is a recording fake of greeter, the shape the port kind writes.
+type fake struct {
+	rec *script
+}
+
+func (f fake) Greet(ctx context.Context, name string) (string, error) {
+	r, err := Answer(ctx, f.rec, greet, name)
+	return Next[string](r), err
+}
+
+// panicky panics on zero values: the red case of the zero values check.
+type panicky struct{}
+
+func (panicky) Greet(context.Context, string) (string, error) {
+	panic("no name to greet")
+}
+
+// bare answers the context's error with no prefix: the red case of the
+// canceled context check.
+type bare struct{}
+
+func (bare) Greet(ctx context.Context, _ string) (string, error) {
+	return "", ctx.Err()
+}
+
+// collect is a Reporter that keeps what the suite tells it.
+type collect struct {
+	lines  []string
+	helped int
+}
+
+func (c *collect) Helper() {
+	c.helped++
+}
+
+func (c *collect) Errorf(format string, args ...any) {
+	c.lines = append(c.lines, fmt.Sprintf(format, args...))
+}
+
+func greetMethod() Method[greeter] {
+	return Method[greeter]{
+		Name: greet, Hole: "greeter.greet", Context: true, Failing: true,
+		Call: func(ctx context.Context, p greeter, args []any) []any {
+			return Pack(p.Greet(ctx, Next[string](NewValues(args))))
+		},
+	}
+}
+
+func TestRunPassesAFakeThatKeepsTheContract(t *testing.T) {
+	t.Parallel()
+	factory := func(t *testing.T) Subject[greeter] {
+		t.Helper()
+		rec := &script{}
+		return Subject[greeter]{Port: fake{rec: rec}, Seed: func(t *testing.T, c Case) {
+			t.Helper()
+			rec.answer = append(slices.Clone(c.Want), c.WantErr)
+		}}
+	}
+	cases := []Case{
+		{Name: "greets by name", Method: greet, Args: []any{"ada"}, Want: []any{"hello ada"}},
+		{Name: "refuses a name", Method: greet, Args: []any{""}, WantErr: errors.ErrUnsupported},
+	}
+	Run(t, factory, []Method[greeter]{greetMethod()}, cases)
+}
+
+func TestTheSuiteNamesEveryProblem(t *testing.T) {
+	t.Parallel()
+	g := greetMethod()
+	answered := func(answer ...any) greeter { return fake{rec: &script{answer: answer}} }
+	silent := Method[greeter]{Name: greet, Call: func(context.Context, greeter, []any) []any { return nil }}
+	tests := map[string]struct {
+		problems func(ctx context.Context) []string
+		want     string
+	}{
+		"red: a method without a case": {
+			problems: func(context.Context) []string { return missing([]Method[greeter]{g}, nil) },
+			want:     "hole greeter.greet is open: declare the inputs and the expected answer of Greet for every implementation",
+		},
+		"near: a method with a case": {
+			problems: func(context.Context) []string { return missing([]Method[greeter]{g}, []Case{ {Name: "greets", Method: greet}}) },
+		},
+		"red: a panic on zero values": {
+			problems: func(ctx context.Context) []string { return zeroValues(ctx, greeter(panicky{}), g) },
+			want:     "Greet panicked on zero values: no name to greet",
+		},
+		"near: zero values answered": {
+			problems: func(ctx context.Context) []string { return zeroValues(ctx, answered(), g) },
+		},
+		"red: a bare canceled error": {
+			problems: func(ctx context.Context) []string { return canceled(ctx, greeter(bare{}), g) },
+			want:     "want context.Canceled behind the action prefix",
+		},
+		"red: a canceled call answering nothing": {
+			problems: func(ctx context.Context) []string { return canceled(ctx, answered(), silent) },
+			want:     "Greet on a canceled context answered <nil>",
+		},
+		"near: a prefixed canceled error": {
+			problems: func(ctx context.Context) []string { return canceled(ctx, answered(), g) },
+		},
+		"red: another error": {
+			problems: func(context.Context) []string {
+				return outcome(Case{Name: "greets", WantErr: errors.ErrUnsupported}, true, []any{"hello", nil})
+			},
+			want: "greets answered the error <nil>, want unsupported operation",
+		},
+		"red: another value": {
+			problems: func(context.Context) []string { return outcome(Case{Name: "greets", Want: []any{"hi"}}, true, []any{"hello", nil}) },
+			want:     "greets answered hello at result 0, want hi",
+		},
+		"red: too few values": {
+			problems: func(context.Context) []string { return outcome(Case{Name: "greets", Want: []any{"hi", "there"}}, false, []any{"hi"}) },
+			want:     "greets answered <nil> at result 1, want there",
+		},
+		"near: the wanted error wrapped": {
+			problems: func(context.Context) []string {
+				return outcome(Case{Name: "greets", WantErr: errors.ErrUnsupported}, true, []any{"", fmt.Errorf("greet: %w", errors.ErrUnsupported)})
+			},
+		},
+		"near: no error and none wanted": {
+			problems: func(context.Context) []string { return outcome(Case{Name: "greets", Want: []any{"hi"}}, true, []any{"hi", nil}) },
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			assertProblems(t, tc.problems(t.Context()), tc.want)
+		})
+	}
+}
+
+func assertProblems(t *testing.T, got []string, want string) {
+	t.Helper()
+	if want == "" {
+		if len(got) != 0 {
+			t.Errorf("problems = %q, want none", got)
+		}
+		return
+	}
+	if len(got) != 1 || !strings.Contains(got[0], want) {
+		t.Errorf("problems = %q, want one naming %q", got, want)
+	}
+}
+
+func TestBehaveNamesACaseOfAnotherMethod(t *testing.T) {
+	t.Parallel()
+	var got collect
+	subject := Subject[greeter]{Port: fake{rec: &script{}}}
+	behave(t, &got, subject, []Method[greeter]{greetMethod()}, Case{Name: "shouts", Method: "Shout"})
+	want := []string{"case shouts names Shout, which is no method of the port"}
+	if !slices.Equal(got.lines, want) || got.helped == 0 {
+		t.Errorf("behave told %q, helped %d", got.lines, got.helped)
+	}
+}
+
+func TestOpenNamesAHoleNoMethodReaches(t *testing.T) {
+	t.Parallel()
+	var got collect
+	Open(&got, "greeter.methods", "declare the methods of greeter")
+	want := []string{"hole greeter.methods is open: declare the methods of greeter"}
+	if !slices.Equal(got.lines, want) || got.helped == 0 {
+		t.Errorf("Open told %q, helped %d", got.lines, got.helped)
+	}
+}
+
+func TestTheValuesComeOutInOrderAndTyped(t *testing.T) {
+	t.Parallel()
+	v := NewValues([]any{"ada", 7})
+	if got := Next[string](v); got != "ada" {
+		t.Errorf("first value = %q", got)
+	}
+	if got := Next[string](v); got != "" {
+		t.Errorf("an int read as a string = %q", got)
+	}
+	if got := Next[int](v); got != 0 {
+		t.Errorf("spent values answered %d", got)
+	}
+	if got := Next[int](nil); got != 0 {
+		t.Errorf("no values answered %d", got)
+	}
+	rec := &script{answer: []any{"hi"}}
+	if got := Next[string](Record(rec, greet, "ada")); got != "hi" || len(rec.calls) != 1 {
+		t.Errorf("Record answered %q after %d calls", got, len(rec.calls))
+	}
+	r, err := Failing(&script{answer: []any{"hi", errors.ErrUnsupported}}, greet)
+	if Next[string](r) != "hi" || !errors.Is(err, errors.ErrUnsupported) || !strings.HasPrefix(err.Error(), greet+": ") {
+		t.Errorf("Failing answered %v", err)
+	}
+}

@@ -1,0 +1,11 @@
+func {{.M.Test .D.Type}}(t *testing.T) {
+	t.Parallel()
+	db := sqltest.Open(t, sqltest.Step{Err: sql.ErrNoRows})
+{{- range .M.Inputs}}
+	var {{.Name}} {{.Type}}
+{{- end}}
+	{{.M.Discard}}err := {{.D.Package}}.New{{.D.Type}}(db).{{.M.Name}}({{.M.CallArgs}})
+	if errors.Is(err, gensupport.ErrNotImplemented) {
+		t.Fatal({{.M.Message .M.Constraint}})
+	}
+}

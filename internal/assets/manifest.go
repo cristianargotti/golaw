@@ -11,6 +11,12 @@ import (
 	"strings"
 )
 
+// GenPrefix is the generator template tree. The generator kinds embed their
+// templates and prove their own tree, so the agents manifest neither lists
+// nor requires it and each kind directory keeps a single owner instead of
+// every kind editing one shared list.
+const GenPrefix = "templates/gen/"
+
 type manifest struct {
 	Files []string `json:"files"`
 }
@@ -62,7 +68,7 @@ func manifestNames(source fs.FS) ([]string, error) {
 }
 
 func assetPath(name string) bool {
-	return fs.ValidPath(name) &&
+	return fs.ValidPath(name) && !strings.HasPrefix(name, GenPrefix) &&
 		(strings.HasPrefix(name, "agents/") || strings.HasPrefix(name, "templates/"))
 }
 
@@ -72,7 +78,7 @@ func complete(source fs.FS, seen map[string]bool) error {
 			if walkErr != nil {
 				return fmt.Errorf("%w: walk: %w", ErrManifest, walkErr)
 			}
-			if !entry.IsDir() && !seen[name] {
+			if !entry.IsDir() && !seen[name] && !strings.HasPrefix(name, GenPrefix) {
 				return fmt.Errorf("%w: unlisted asset %s", ErrManifest, name)
 			}
 			return nil

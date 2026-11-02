@@ -27,9 +27,9 @@ func TestAPITemplates(t *testing.T) {
 	context := assetContext()
 	context.Capabilities = []string{"go", "api"}
 	for _, tc := range []struct{ path, feature, output string }{
-		{"api/codegen/types.yaml", "models: true", "api/generated/types.gen.go"},
-		{"api/codegen/server.yaml", "strict-server: true", "api/generated/server.gen.go"},
-		{"api/codegen/spec.yaml", "embedded-spec: true", "api/generated/spec.gen.go"},
+		{"api/codegen/types.yaml", "models: true", "api/gen/types.gen.go"},
+		{"api/codegen/server.yaml", "strict-server: true", "api/gen/server.gen.go"},
+		{"api/codegen/spec.yaml", "embedded-spec: true", "api/gen/spec.gen.go"},
 	} {
 		body := string(renderedAsset(t, tc.path, context).Data)
 		if !strings.Contains(body, tc.feature) || !strings.Contains(body, tc.output) {

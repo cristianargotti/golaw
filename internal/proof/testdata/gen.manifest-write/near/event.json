@@ -1,0 +1,12 @@
+{
+  "shape": "write",
+  "agent": "tester",
+  "tool": "Write",
+  "candidates": [
+    {
+      "path": "docs/gen.yml",
+      "op": "replace",
+      "reconstructed": true
+    }
+  ]
+}

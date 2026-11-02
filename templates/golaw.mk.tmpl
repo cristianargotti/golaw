@@ -37,6 +37,7 @@ vet:
 	go vet ./...
 
 generate-check:
+	golaw gen --check .
 	go generate ./...
 	git diff --exit-code
 

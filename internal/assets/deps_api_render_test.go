@@ -34,7 +34,7 @@ func TestAPIGenerationRemainsSeparate(t *testing.T) {
 			if err := yaml.Unmarshal(data, &config); err != nil {
 				t.Fatal(err)
 			}
-			if config.Package != "api" || config.Output != "api/generated/"+tc.name+".gen.go" ||
+			if config.Package != "apigen" || config.Output != "api/gen/"+tc.name+".gen.go" ||
 				!reflect.DeepEqual(config.Generate, tc.generate) {
 				t.Fatalf("generation configuration = %+v", config)
 			}

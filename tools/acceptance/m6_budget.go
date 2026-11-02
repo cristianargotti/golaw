@@ -266,25 +266,35 @@ func (s *m6Suite) m6SlowTool(ctx context.Context) error {
 // budget, with a second of margin for the process start the wall time holds,
 // allowing the write with the killed notice.
 func m6JudgeKilled(elapsed time.Duration, got result) error {
-	switch {
-	case elapsed < toolchain.HookToolBudget:
-		return fmt.Errorf("the post event answered in %s, before the slow tool could be killed: it did not run: %w", elapsed, ErrAcceptance)
-	case elapsed >= toolchain.HookEventBudget+time.Second:
-		return fmt.Errorf("the post event answered in %s, past the event budget: %w", elapsed, ErrAcceptance)
-	case got.err != nil:
-		return fmt.Errorf(m6RunCandidate, got.err)
-	case got.code != 0 || got.stderr != "":
-		return fmt.Errorf("the post event answered exit %d %q, want 0 with no stderr: %w", got.code, strings.TrimSpace(got.stderr), ErrAcceptance)
-	}
-	var decoded answer
-	if err := json.Unmarshal([]byte(got.stdout), &decoded); err != nil {
-		return fmt.Errorf("decode the post event answer: %w", err)
-	}
-	if decoded.Decision == decisionBlock {
-		return fmt.Errorf("the slow tool blocked the write: %s: %w", decoded.Reason, ErrAcceptance)
+	decoded, err := m6KilledAnswer(elapsed, got)
+	if err != nil {
+		return err
 	}
 	if !strings.Contains(decoded.Hook.Additional, m6KilledMeasure) || !strings.Contains(decoded.Hook.Additional, m6KilledVerdict) {
 		return fmt.Errorf("the agent context %q lacks the notice %q: %w", decoded.Hook.Additional, m6KilledNotice, ErrAcceptance)
 	}
 	return nil
+}
+
+// m6KilledAnswer is the allowed answer of a post event whose slow tool was
+// killed, shared with the M7 slow generator row so neither copies it.
+func m6KilledAnswer(elapsed time.Duration, got result) (answer, error) {
+	switch {
+	case elapsed < toolchain.HookToolBudget:
+		return answer{}, fmt.Errorf("the post event answered in %s, before the slow tool could be killed: it did not run: %w", elapsed, ErrAcceptance)
+	case elapsed >= toolchain.HookEventBudget+time.Second:
+		return answer{}, fmt.Errorf("the post event answered in %s, past the event budget: %w", elapsed, ErrAcceptance)
+	case got.err != nil:
+		return answer{}, fmt.Errorf(m6RunCandidate, got.err)
+	case got.code != 0 || got.stderr != "":
+		return answer{}, fmt.Errorf("the post event answered exit %d %q, want 0 with no stderr: %w", got.code, strings.TrimSpace(got.stderr), ErrAcceptance)
+	}
+	var decoded answer
+	if err := json.Unmarshal([]byte(got.stdout), &decoded); err != nil {
+		return answer{}, fmt.Errorf("decode the post event answer: %w", err)
+	}
+	if decoded.Decision == decisionBlock {
+		return answer{}, fmt.Errorf("the slow tool blocked the write: %s: %w", decoded.Reason, ErrAcceptance)
+	}
+	return decoded, nil
 }

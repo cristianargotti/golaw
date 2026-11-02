@@ -1,0 +1,8 @@
+package main
+
+// Serve opens the infrastructure values, serves the routes Wire composes
+// and closes them once ctx ends; the deployment alone knows those values.
+func Serve(ctx context.Context) error {
+	// golaw:hole {{.ID}} {{.Constraint}}
+	return fmt.Errorf("wiring: %w", {{.SupportName}}.Hole("{{.ID}}", ctx))
+}

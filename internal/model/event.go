@@ -13,16 +13,19 @@ var agentPattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 // rule runs on the shape, never on the vendor payload.
 type EventShape int
 
-// The four shapes of section 8.1.
+// The four shapes of section 8.1 and the session start of M7.8.
 const (
 	ShapeWrite EventShape = iota + 1 // candidate files about to change
 	ShapeRead                        // a file about to be read
 	ShapeShell                       // a command about to run
 	ShapePost                        // a tool that already ran
+	// ShapeSession is a session start event: no tool, no candidates; the
+	// hook answers context and never denies.
+	ShapeSession
 )
 
-// Valid reports whether the shape is one of the four.
-func (s EventShape) Valid() bool { return s >= ShapeWrite && s <= ShapePost }
+// Valid reports whether the shape is one of the five.
+func (s EventShape) Valid() bool { return s >= ShapeWrite && s <= ShapeSession }
 
 // String names the shape; it is also the JSON form.
 func (s EventShape) String() string {
@@ -35,6 +38,8 @@ func (s EventShape) String() string {
 		return "shell"
 	case ShapePost:
 		return "post"
+	case ShapeSession:
+		return "session"
 	default:
 		return unknownName
 	}
@@ -45,7 +50,7 @@ func (s EventShape) MarshalText() ([]byte, error) { return []byte(s.String()), n
 
 // UnmarshalText reads a shape name; an unknown one is a usage error.
 func (s *EventShape) UnmarshalText(text []byte) error {
-	for candidate := ShapeWrite; candidate <= ShapePost; candidate++ {
+	for candidate := ShapeWrite; candidate <= ShapeSession; candidate++ {
 		if candidate.String() == string(text) {
 			*s = candidate
 			return nil
@@ -126,6 +131,10 @@ type ShellCommand struct {
 	Command string `json:"command"` // the command text, wrappers included
 	Cwd     string `json:"cwd"`     // where it would run
 	Tool    string `json:"tool"`    // the tool name the agent used: Bash, PowerShell, exec_command
+	// Root is the repository root the hook judges the command in, in the OS
+	// form, set by the hook core, so a check resolves the command's relative
+	// targets without knowing the checkout.
+	Root string `json:"root,omitempty"`
 }
 
 // PostResult is a post event: detection after execution, never prevention.
@@ -159,7 +168,7 @@ func (e *Event) Validate() error {
 		return fmt.Errorf("%w: nil event", ErrUsage)
 	}
 	if !e.Shape.Valid() {
-		return fmt.Errorf("%w: event shape %d is not write, read, shell or post", ErrUsage, int(e.Shape))
+		return fmt.Errorf("%w: event shape %d is not write, read, shell, post or session", ErrUsage, int(e.Shape))
 	}
 	if !agentPattern.MatchString(e.Agent) {
 		return fmt.Errorf("%w: event agent %q is not a lower case id", ErrUsage, e.Agent)

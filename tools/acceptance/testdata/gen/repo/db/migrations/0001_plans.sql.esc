@@ -1,0 +1,6 @@
+CREATE TABLE plans (
+    account TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    since TIMESTAMPTZ NOT NULL
+);

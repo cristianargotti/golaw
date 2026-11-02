@@ -1,0 +1,14 @@
+package planapi_test
+
+import (
+	"testing"
+
+	"example.com/slice/internal/adapters/out/planapi"
+)
+
+func TestClientDefaults(t *testing.T) {
+	t.Parallel()
+	if planapi.NewClient(planapi.ClientConfig{BaseURL: "http\u003a//api.example.com"}) == nil {
+		t.Fatal("NewClient answered nil")
+	}
+}

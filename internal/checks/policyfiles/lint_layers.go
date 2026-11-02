@@ -37,18 +37,6 @@ type layerReadError struct{ cause error }
 func (e layerReadError) Error() string { return e.cause.Error() }
 func (e layerReadError) Unwrap() error { return e.cause }
 
-type layer struct {
-	dir     string
-	imports []string
-}
-
-func innerLayers() []layer {
-	return []layer{
-		{dir: layerDomain, imports: []string{layerDomain}},
-		{dir: layerApplication, imports: []string{layerDomain, layerApplication}},
-	}
-}
-
 // Without a declared module, only $all certainly opens an inner layer.
 func judgeLayers(in model.Input, cfg golangci) ([]model.Finding, error) {
 	if !in.Policy.Has(capabilityHexagonal) {
@@ -65,7 +53,7 @@ func judgeLayers(in model.Input, cfg golangci) ([]model.Finding, error) {
 	}
 	line := cfg.settingLine(linterDepguard)
 	var out []model.Finding
-	for _, l := range innerLayers() {
+	for _, l := range innerLayers(in.Policy.Generate.Support) {
 		f, ok, err := judgeLayer(cfg.path, line, entries(rules), l, module)
 		if err != nil {
 			return nil, err
@@ -197,7 +185,7 @@ func outsideLayer(allow string, l layer, module string) bool {
 		return false
 	}
 	return !slices.ContainsFunc(l.imports, func(dir string) bool {
-		inner := module + "/internal/" + dir
+		inner := module + "/" + dir
 		return allow == inner || strings.HasPrefix(allow, inner+"/")
 	})
 }

@@ -39,6 +39,7 @@ func TestPluginFragment(t *testing.T) {
 		"PreToolUse":         {"Write|Edit|NotebookEdit", "Read", "Bash|PowerShell"},
 		"PostToolUse":        {"Write|Edit|NotebookEdit", "Bash|PowerShell"},
 		"PostToolUseFailure": {"Bash|PowerShell"},
+		"SessionStart":       {""},
 	}
 	if len(document.Hooks) != len(expected) {
 		t.Fatal("event count differs")

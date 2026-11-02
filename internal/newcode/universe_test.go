@@ -137,7 +137,7 @@ func TestStaleReportIsOlderThanAGoFileInScope(t *testing.T) {
 		{"red-a-source-in-scope-is-newer", "integration/flow.go", true},
 		{"near-a-test-file-is-newer", "value_test.go", false},
 		{"near-a-script-is-newer", "web/app.js", false},
-		{"near-a-generated-file-is-newer", "api.pb.go", false},
+		{"near-a-third-party-generated-file-is-newer", "api.pb.go", false},
 		{"near-a-nested-module-is-newer", "nested/inner.go", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

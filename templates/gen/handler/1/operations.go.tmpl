@@ -1,0 +1,8 @@
+package {{.Package}}
+{{range .Ops}}
+// {{.Name}} serves {{.Pattern}}.
+func (h *Handler) {{.Name}}(ctx context.Context, request apigen.{{.Name}}RequestObject) (apigen.{{.Name}}ResponseObject, error) {
+	// golaw:hole {{.Hole}} {{.Constraint}}
+	return nil, gensupport.Hole({{printf "%q" .Hole}}, ctx, request)
+}
+{{end}}

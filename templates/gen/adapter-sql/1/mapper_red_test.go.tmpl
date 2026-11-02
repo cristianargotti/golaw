@@ -1,0 +1,7 @@
+func {{.P.Test}}(t *testing.T) {
+	t.Parallel()
+	var row {{.P.Model}}
+	if _, err := {{.P.Name}}(row, nil); errors.Is(err, gensupport.ErrNotImplemented) {
+		t.Fatal({{.P.Message}})
+	}
+}

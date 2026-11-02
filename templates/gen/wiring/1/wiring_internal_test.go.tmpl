@@ -1,0 +1,12 @@
+package main
+
+// TestServeHoleWiringInfra is the red test of the hole: it fails while Serve
+// still answers the hole, and passes once Serve returns on a done context.
+func TestServeHoleWiringInfra(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := Serve(ctx); errors.Is(err, {{.SupportName}}.ErrNotImplemented) {
+		t.Fatalf("hole {{.ID}} is open: {{.Constraint}}")
+	}
+}

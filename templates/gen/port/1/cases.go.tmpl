@@ -1,0 +1,11 @@
+// Package {{.Package}} holds the fake of the port {{.Area}}.{{.Port}} and
+// the contract suite every implementation of it passes.
+package {{.Package}}
+{{range .Methods}}
+// {{.Cases}} are the behavioral cases of {{.Name}} every implementation of
+// {{$.Area}}.{{$.Port}} passes.
+func {{.Cases}}() []Case {
+	// {{$.Marker}} {{.Hole}} declare the inputs and the expected answer of {{.Name}} for every implementation of {{$.Area}}.{{$.Port}}: Args after the context, Want the results before the error, WantErr a sentinel of {{$.Area}} matched with errors.Is
+	return nil
+}
+{{end}}

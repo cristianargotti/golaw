@@ -53,6 +53,7 @@ golaw scan --staged
 - Profiles, the optional bundle of platform data a repository pins: `docs/profiles.md`.
 - Security model and recovery: `docs/security.md`.
 - Agent contracts and evidence: `docs/agent-contracts.md`.
+- Generators, golaw new, golaw gen and golaw map: `docs/generate.md`.
 - The laws of this repository: `CONTRIBUTING.md`.
 - Security policy: `SECURITY.md`.
 - Decision records: `docs/adr/`.

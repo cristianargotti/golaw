@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/cristianargotti/golaw"
@@ -27,7 +28,7 @@ func coreAssets(t *testing.T, root string) {
 	t.Helper()
 	capabilities := policyCapabilities(t, root)
 	tools := make(map[string]string)
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		tools[tool.Name] = tool.Version
 	}
 	rendered, err := assets.RenderAllContext(golaw.FS, assets.Context{

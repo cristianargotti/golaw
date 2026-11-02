@@ -1,0 +1,9 @@
+// {{.Lower}}Subject answers {{.Type}} over a TLS test server scripted per case.
+func {{.Lower}}Subject(t *testing.T) {{.Suite}}.Subject {
+	t.Helper()
+	// golaw:hole {{.Seed}} {{.SeedConstraint}}
+	if err := gensupport.Hole("{{.Seed}}", t); err != nil {
+		t.Fatalf("hole {{.Seed}} is open: {{.SeedConstraint}}: %v", err)
+	}
+	return {{.Suite}}.Subject{}
+}

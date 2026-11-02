@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ import (
 func TestM3MakePinsResolve(t *testing.T) {
 	t.Parallel()
 	tools := make(map[string]string)
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		tools[tool.Name] = tool.Version
 	}
 	rendered, err := assets.RenderAllContext(golaw.FS, assets.Context{

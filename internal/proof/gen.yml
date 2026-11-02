@@ -1,0 +1,21 @@
+# The gen family of M7 (internal/checks/genguard): one entry per check, the
+# finding code its red fixture must yield and the two fixture trees relative
+# to this file. The family starts empty and each check adds its entry with
+# its fixtures in the task that registers it.
+checks:
+  - id: gen.generated-write
+    code: generated-write
+    red: testdata/gen.generated-write/red
+    near: testdata/gen.generated-write/near
+  - id: gen.manifest-write
+    code: manifest-write
+    red: testdata/gen.manifest-write/red
+    near: testdata/gen.manifest-write/near
+  - id: gen.handwritten-reason
+    code: handwritten-reason
+    red: testdata/gen.handwritten-reason/red
+    near: testdata/gen.handwritten-reason/near
+  - id: gen.handwritten
+    code: handwritten
+    red: testdata/gen.handwritten/red
+    near: testdata/gen.handwritten/near

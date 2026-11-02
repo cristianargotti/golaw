@@ -16,7 +16,7 @@ import (
 // serviceDestinations are the files of the service fixture, in path order.
 func serviceDestinations() []string {
 	return []string{
-		"Dockerfile", "api/generated/server.gen.go", "api/generated/spec.gen.go", "api/generated/types.gen.go",
+		"Dockerfile", "api/gen/server.gen.go", "api/gen/spec.gen.go", "api/gen/types.gen.go",
 		"api/openapi.base.yaml", "api/openapi.yaml", "db/migrations/0001_create_items.sql", "db/queries/items.sql",
 		"go.mod", "go.sum",
 		"internal/adapters/outbound/postgres/sqlcgen/db.go", "internal/adapters/outbound/postgres/sqlcgen/items.sql.go",

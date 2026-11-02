@@ -16,4 +16,8 @@ var (
 	ErrModule = errors.New("cannot read module metadata")
 	// ErrAccept marks a destination without a proposal init can safely write.
 	ErrAccept = errors.New("not a proposal init can write")
+	// ErrLayout marks a kind init cannot place without guessing: the
+	// person names the layout, so generated code never lands in a tree
+	// the repository does not use.
+	ErrLayout = errors.New("two layouts hold hand written adapters for one kind")
 )

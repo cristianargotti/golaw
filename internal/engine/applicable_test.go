@@ -38,6 +38,7 @@ func hookInput(shape model.EventShape) model.Input {
 	case model.ShapePost:
 		e.Post = &model.PostResult{Response: "ok", Changed: []string{"a.go"}}
 		in.Targets = []model.File{{Path: "a.go", Class: model.ClassUntracked}}
+	case model.ShapeSession:
 	default:
 	}
 	in.Event = e

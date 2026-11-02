@@ -1,0 +1,5 @@
+// {{.P.Name}} converts a {{.P.Model}} row and its query error into a {{.P.Domain}}.
+func {{.P.Name}}(row {{.P.Model}}, err error) ({{.P.Domain}}, error) {
+	// golaw:hole {{.P.Hole}} {{.P.Constraint}}
+	return gensupport.HoleOf[{{.P.Domain}}]("{{.P.Hole}}", row, err)
+}

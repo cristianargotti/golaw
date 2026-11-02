@@ -1,0 +1,26 @@
+package {{.Package}}
+
+var (
+	errDeclared = errors.New("declared")
+	errOther    = errors.New("other")
+)
+
+func TestStatusOfMapsEveryAnswer(t *testing.T) {
+	t.Parallel()
+	rules := []statusRule{{"{{"}}err: errDeclared, status: http.StatusNotFound{{"}}"}}
+	for name, tc := range map[string]struct {
+		err  error
+		want int
+	}{
+		"no error answers ok":             {err: nil, want: http.StatusOK},
+		"a wrapped declared error":        {err: fmt.Errorf("wrapped: %w", errDeclared), want: http.StatusNotFound},
+		"an undeclared error is internal": {err: errOther, want: http.StatusInternalServerError},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if got := statusOf(tc.err, rules...); got != tc.want {
+				t.Errorf("statusOf(%v) = %d, want %d", tc.err, got, tc.want)
+			}
+		})
+	}
+}

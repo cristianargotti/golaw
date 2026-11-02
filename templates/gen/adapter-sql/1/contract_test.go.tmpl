@@ -1,0 +1,9 @@
+//go:build integration
+
+package {{.Package}}_test
+
+// Test{{.Type}}Contract runs the contract suite of {{.Port}} against {{.Type}} over the integration database.
+func Test{{.Type}}Contract(t *testing.T) {
+	t.Parallel()
+	{{.Suite}}.Run(t, {{.Lower}}Subject)
+}

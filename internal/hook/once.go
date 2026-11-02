@@ -50,6 +50,7 @@ func (run execution) once(ctx context.Context, f fed, in model.Input, files []To
 	}
 	f.findings = kept
 	f.notices, f.person = run.seenTool(ctx, f.notices, f.person, dependencies)
+	f.regen = run.onceRegen(ctx, f.regen, dependencies)
 	return f
 }
 

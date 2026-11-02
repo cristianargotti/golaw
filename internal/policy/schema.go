@@ -22,6 +22,7 @@ type File struct {
 	Exceptions   []ExceptionRule `yaml:"exceptions" json:"exceptions"`
 	Managed      []ManagedFile   `yaml:"managed" json:"managed"`
 	Surface      *Surface        `yaml:"surface" json:"surface"`
+	Generate     *Generate       `yaml:"generate" json:"generate"`
 }
 
 // Kit pins the exact kit version that governs the repository (A10).
@@ -107,6 +108,8 @@ type Ladder struct {
 	// SurfaceLint and HookFeedback are the two local aids of M6.6.4.
 	SurfaceLint  *bool `yaml:"surface_lint" json:"surface_lint"`
 	HookFeedback *bool `yaml:"hook_feedback" json:"hook_feedback"`
+	// HookRegenerate is the post hook regeneration of M7.6.2.
+	HookRegenerate *bool `yaml:"hook_regenerate" json:"hook_regenerate"`
 }
 
 // Waiver is one dated vulnerability waiver of A6.

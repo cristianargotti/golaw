@@ -259,6 +259,18 @@ The A15 key reads the session from conversation_id, the agent identity field fro
 - A post event answers a finding, a cannot-judge reason or a notice as `additional_context`, and an empty post answer is `{}`.
 - Every Cursor reply with exit 0 is a JSON document. Under failClosed an empty output is a failure that blocks the action.
 
+## Generators
+
+A pre event denies an agent's write of a generated file, of `.golaw/gen.yml` or of a bare handwritten marker, and its reason names the contract to edit. A post event that wrote a contract the manifest names regenerates its kinds and answers the summary, the holes opened and closed and the decisions through the feedback channel of M6. The reason of a denial is the same text on every agent; the person reads it in the configured language.
+
+| Agent | Read only denial | Regeneration feedback | Map at session start |
+| --- | --- | --- | --- |
+| Claude Code | Write, Edit and NotebookEdit at PreToolUse, and a shell redirection, tee, sed -i, cp, mv or rm whose target is a literal generated path | PostToolUse and PostToolUseFailure additionalContext | SessionStart additionalContext in an enrolled repository |
+| Codex CLI | apply_patch Add File over a generated file, Update File, Delete File and Move at PreToolUse, and a literal shell target | the reason of the PostToolUse decision block | the skill rule |
+| Cursor | none at the pre event: Cursor writes are captured and allowed, so the rule is post feedback | postToolUse and postToolUseFailure additional_context | the skill rule |
+
+The offline evidence is the m7-denial and m7-regen rows of `docs/acceptance/m7.md`. Codex and Cursor get a session event only once a live record proves it (M7.17 item 1). There is no live record of M7 yet, so no live record of M7 is claimed here; the macOS record is the owner's.
+
 ## M2 rung assurance
 
 M2 rung acceptance runs on Linux, macOS and Windows. This is the required native CI contract; the [M2 acceptance record](acceptance/m2.md) lists execution status and retained evidence for each system. Local simulated tests do not establish native M2 success or latency. Windows rung CI evidence does not establish live agent enforcement. The agent evidence and limitations above remain in force.

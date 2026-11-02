@@ -3,6 +3,7 @@ package lint
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ const kitSurfaceLine = "surface: { rules: strict }\n"
 func TestTheKitsOwnYAMLIsCleanUnderTheStrictSet(t *testing.T) {
 	t.Parallel()
 	tools := make(map[string]string)
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		tools[tool.Name] = tool.Version
 	}
 	rendered, err := assets.RenderAllContext(golaw.FS, assets.Context{

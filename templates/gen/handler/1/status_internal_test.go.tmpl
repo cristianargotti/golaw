@@ -1,0 +1,8 @@
+package {{.Package}}
+
+func TestStatusRulesHoleIsOpen(t *testing.T) {
+	t.Parallel()
+	if len(statusRules()) == 0 {
+		t.Fatal({{printf "%q" .StatusMessage}})
+	}
+}

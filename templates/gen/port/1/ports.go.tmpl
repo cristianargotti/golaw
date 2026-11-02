@@ -1,0 +1,8 @@
+{{if .Doc}}// Package {{.Area}} holds the use cases of {{.Area}} and the ports they
+// consume.
+{{end}}package {{.Area}}
+
+// {{.Port}} is a port of {{.Area}}: declare its methods and the hook
+// regenerates its fake and its contract suite.
+type {{.Port}} interface { // {{.Marker}} {{.Hole}} {{.Constraint}}
+}

@@ -35,6 +35,7 @@ func Explain(l *Loaded) []Line {
 	e.floors(l.Policy, l.File)
 	e.options(l.Policy, l.Schemas)
 	e.surface(l.Policy, l.File)
+	e.generate(l.File, l.Policy)
 	e.records(l.File)
 	e.add("enrollment.state", l.Policy.Enrollment.State.String(), SourceEnrollment)
 	e.add("enrollment.policy_digest", l.Policy.Enrollment.PolicyDigest, SourceEnrollment)

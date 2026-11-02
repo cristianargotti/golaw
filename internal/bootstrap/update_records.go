@@ -61,8 +61,18 @@ func (plan *TemplatePlan) addRecordModules(files map[string]assets.Rendered) err
 	return nil
 }
 
+// generatedRuntimes answers the modules the outputs of a pinned generator
+// import, which go mod tidy adds to the person's go.mod after golaw gen.
+func generatedRuntimes(generator string) []string {
+	if generator == "github.com/oapi-codegen/oapi-codegen/v2" {
+		return []string{"github.com/getkin/kin-openapi", "github.com/oapi-codegen/runtime"}
+	}
+	return nil
+}
+
 // kitModules lists the requires of the kit's go.mod lines, then of its
-// tools module, in their order.
+// tools module, each generator followed by the runtimes its outputs import,
+// in their order.
 func kitModules(files map[string]assets.Rendered) []string {
 	var modules []string
 	for _, name := range []string{goModule, toolsModule} {
@@ -76,6 +86,7 @@ func kitModules(files map[string]assets.Rendered) []string {
 		}
 		for _, require := range parsed.Require {
 			modules = append(modules, require.Mod.Path)
+			modules = append(modules, generatedRuntimes(require.Mod.Path)...)
 		}
 	}
 	return modules

@@ -1,0 +1,13 @@
+entries:
+  - law: S107-parameters
+    red: red/S107-parameters
+    near: near/S107-parameters
+  - law: no-http-literal
+    red: red/no-http-literal
+    near: near/no-http-literal
+  - law: doc-ranges-only
+    red: red/doc-ranges-only
+    near: near/doc-ranges-only
+  - law: context-from-test
+    red: red/context-from-test
+    near: near/context-from-test

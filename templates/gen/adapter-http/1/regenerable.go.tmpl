@@ -1,0 +1,27 @@
+package {{.Package}}
+
+// The actions of {{.Type}}: each prefixes the errors of its method.
+const (
+{{- range .Methods}}
+	{{.Action}} = "{{.Phrase}}"
+{{- end}}
+)
+
+// {{.Type}}Config configures a {{.Type}}: BaseURL is the https root of the API,
+// Timeout bounds a request when Client is nil, Client replaces the default.
+type {{.Type}}Config = gensupport.HTTPConfig
+
+// {{.Type}} implements the {{.PortType}} port of {{.PortPkg}} over HTTP.
+type {{.Type}} struct {
+	base   string
+	client *http.Client
+}
+
+// New{{.Type}} answers a {{.Type}} over cfg, with a client bounded by cfg.Timeout
+// when cfg.Client is nil.
+func New{{.Type}}(cfg {{.Type}}Config) *{{.Type}} {
+	base, client := cfg.Endpoint()
+	return &{{.Type}}{base: base, client: client}
+}
+
+var _ {{.Port}} = (*{{.Type}})(nil)

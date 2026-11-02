@@ -165,7 +165,7 @@ func eventTargets(e *model.Event, tree *Tree) []model.File {
 		}
 	case model.ShapePost:
 		paths = e.Post.Changed
-	case model.ShapeRead, model.ShapeShell:
+	case model.ShapeRead, model.ShapeShell, model.ShapeSession:
 		return nil
 	default:
 		return nil

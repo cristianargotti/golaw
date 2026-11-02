@@ -50,7 +50,7 @@ func TestDatabasePreparationRemainsSeparate(t *testing.T) {
 			"sqlc.yaml", map[string]any{
 				"engine": "postgresql", "schema": "db/migrations", "queries": "db/queries",
 				"gen": map[string]any{"go": map[string]any{
-					"package": "sqlcgen", "out": "internal/adapters/outbound/postgres/sqlcgen",
+					"package": "sqlcgen", "out": "internal/adapters/out/postgres/sqlcgen",
 					"sql_package": "database/sql",
 				}},
 				"rules": []any{"many-needs-bound"},

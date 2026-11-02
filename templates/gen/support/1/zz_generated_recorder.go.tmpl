@@ -1,0 +1,59 @@
+package {{.Package}}
+
+import (
+	"slices"
+	"sync"
+)
+
+// Recorder is the memory of every generated fake: the results programmed
+// per method and the arguments of each call, guarded so a parallel test can
+// share one fake.
+type Recorder struct {
+	mu       sync.Mutex
+	programs map[string][]any
+	calls    map[string][][]any
+}
+
+// NewRecorder answers an empty recorder.
+func NewRecorder() *Recorder {
+	return &Recorder{programs: map[string][]any{}, calls: map[string][][]any{}}
+}
+
+// Program sets the results every later call of method answers; the slice is
+// copied so the caller may reuse its own.
+func (r *Recorder) Program(method string, results ...any) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.programs[method] = slices.Clone(results)
+}
+
+// Answer records one call of method and answers its programmed results, nil
+// when none were programmed.
+func (r *Recorder) Answer(method string, args ...any) []any {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.calls[method] = append(r.calls[method], slices.Clone(args))
+	return slices.Clone(r.programs[method])
+}
+
+// Calls answers the arguments of every call of method, in call order.
+func (r *Recorder) Calls(method string) [][]any {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return slices.Clone(r.calls[method])
+}
+
+// Result answers the i-th value of an answer as T, and the zero value when
+// the index is out of range or the value is of another type, so a fake
+// method never panics on a result the test did not program.
+func Result[T any](answer []any, i int) T {
+	var zero T
+	if i < 0 || i >= len(answer) {
+		return zero
+	}
+	value, ok := answer[i].(T)
+	if !ok {
+		return zero
+	}
+	return value
+}

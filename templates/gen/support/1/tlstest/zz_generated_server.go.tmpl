@@ -1,0 +1,79 @@
+// Package tlstest serves scripted HTTPS answers to the tests of HTTP
+// adapters, so no test needs a clear text URL or a network.
+package tlstest
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"testing"
+)
+
+// Route is one scripted answer: the method and path it matches, an empty one
+// matching any, and the status and body it writes.
+type Route struct {
+	Method string
+	Path   string
+	Status int
+	Body   []byte
+}
+
+// Routes is the script of a server, which a contract suite seed extends per
+// case while the server runs.
+type Routes struct {
+	mu     sync.Mutex
+	routes []Route
+}
+
+// Add scripts one more route.
+func (r *Routes) Add(route Route) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.routes = append(r.routes, route)
+}
+
+func (r *Routes) match(method, path string) (Route, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, route := range r.routes {
+		if (route.Method == "" || route.Method == method) && (route.Path == "" || route.Path == path) {
+			return route, true
+		}
+	}
+	return Route{}, false
+}
+
+// Server starts a TLS test server answering routes and closed at cleanup;
+// tests pass its own Client to the adapter.
+func Server(tb testing.TB, routes ...Route) *httptest.Server {
+	tb.Helper()
+	return Serve(tb, &Routes{routes: routes})
+}
+
+// Serve starts a TLS test server answering the routes of script: an
+// unscripted request and a failed write are test errors, never ignored.
+func Serve(tb testing.TB, script *Routes) *httptest.Server {
+	tb.Helper()
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		answer(tb, w, r, script)
+	}))
+	tb.Cleanup(server.Close)
+	return server
+}
+
+func answer(tb testing.TB, w http.ResponseWriter, r *http.Request, script *Routes) {
+	tb.Helper()
+	route, ok := script.match(r.Method, r.URL.Path)
+	if !ok {
+		tb.Errorf("tlstest: unscripted request %s %s", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(route.Status)
+	if len(route.Body) == 0 {
+		return
+	}
+	if _, err := w.Write(route.Body); err != nil {
+		tb.Errorf("tlstest: write %s %s: %v", r.Method, r.URL.Path, err)
+	}
+}

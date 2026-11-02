@@ -43,6 +43,7 @@ func (a *app) doctorReports(ctx context.Context, root string, opts doctorOptions
 	lines = append(lines, a.bind().goToolchainDoctor(ctx, root)...)
 	lines = append(lines, a.bind().capabilitiesDoctor(ctx, root, a.now())...)
 	lines = append(lines, a.bind().surfaceDoctor(ctx, root, a.now())...)
+	lines = append(lines, a.bind().generateDoctor(ctx, root, a.now())...)
 	lines = append(lines, a.bind().profileDoctor(ctx, root, a.now()), release)
 	return withSetupLines(reports, lines), nil
 }

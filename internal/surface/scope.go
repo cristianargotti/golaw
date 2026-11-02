@@ -99,6 +99,12 @@ func (s Scope) Covered(name string) bool {
 	return s.Role(name) == RoleMain && !matchAny(s.CoverageExclusions, name)
 }
 
+// Names reports a path an inclusion of the scope matches; a scope without
+// inclusions names no path, it only admits every one.
+func (s Scope) Names(name string) bool {
+	return len(s.Inclusions) > 0 && matchAny(s.Inclusions, name)
+}
+
 // under reports a path inside one of the directories or files of a list;
 // "." is the whole tree.
 func under(paths []string, name string) bool {

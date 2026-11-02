@@ -24,6 +24,11 @@ import (
 // ruleguardModule is the module a rendered ruleguard rules file imports.
 const ruleguardModule = "github.com/quasilyte/go-ruleguard/dsl"
 
+// serviceSQLCOut is the sqlc output the service fixture keeps: the example
+// stays under its outbound tree until its own move is reviewed, so the
+// fixture renders sqlc.yaml with the layout init reads from that tree.
+const serviceSQLCOut = "internal/adapters/outbound/postgres/sqlcgen"
+
 // serviceFiles is the service fixture beside every core template init
 // renders for the capabilities; the go.mod is the fixture's own, and its
 // direct requires reach the inherited baseline as init records them.
@@ -31,6 +36,7 @@ func serviceFiles(t *testing.T, capabilities []string) map[string][]byte {
 	t.Helper()
 	context := assetContext()
 	context.Capabilities = capabilities
+	context.Generate.ThirdParty.SQLCOut = serviceSQLCOut
 	service, err := assets.RenderService(golaw.FS, context.Values)
 	if err != nil {
 		t.Fatal(err)

@@ -1,0 +1,3 @@
+golaw-gen: 1
+support: { path: internal/gensupport, template: support@1 }
+entries: []

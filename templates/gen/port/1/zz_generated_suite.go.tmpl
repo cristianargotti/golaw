@@ -1,0 +1,53 @@
+package {{.Package}}
+
+// Case is one behavioral case of a method of {{.Area}}.{{.Port}}.
+type Case = porttest.Case
+
+// Subject is one implementation of {{.Area}}.{{.Port}} under the suite and
+// the step that seeds a case into it.
+type Subject = porttest.Subject[{{.Area}}.{{.Port}}]
+
+// Factory builds a fresh subject for each case.
+type Factory = porttest.Factory[{{.Area}}.{{.Port}}]
+
+// Run drives an implementation of {{.Area}}.{{.Port}} through the
+// mechanical cases of every method, then through Cases.
+func Run(t *testing.T, factory Factory) {
+	t.Helper()
+	porttest.Run(t, factory, methods(), Cases())
+{{- if not .Methods}}
+	porttest.Open(t, "{{.Hole}}", "{{.Constraint}}")
+{{- end}}
+}
+
+// Cases are the behavioral cases of every method in method order; the
+// cases of each method live in cases.go, which the repository owns.
+func Cases() []Case {
+{{- if .Concat}}
+	return slices.Concat({{range $i, $m := .Methods}}{{if $i}}, {{end}}{{$m.Cases}}(){{end}})
+{{- else if .Methods}}
+	return {{(index .Methods 0).Cases}}()
+{{- else}}
+	return nil
+{{- end}}
+}
+
+func methods() []porttest.Method[{{.Area}}.{{.Port}}] {
+{{- if .Methods}}
+	return []porttest.Method[{{.Area}}.{{.Port}}]{
+{{- range .Methods}}
+		{Name: {{.Const}}, Hole: "{{.Hole}}", Context: {{.Context}}, Failing: {{.Failing}}, Call: {{.Call}}},
+{{- end}}
+	}
+{{- else}}
+	return nil
+{{- end}}
+}
+{{range .Methods}}
+func {{.Call}}{{.CallSignature}} {
+{{- if .Values}}
+	in := porttest.NewValues(args)
+{{- end}}
+	{{.Invoke}}
+}
+{{end}}

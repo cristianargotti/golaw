@@ -1,0 +1,32 @@
+package {{.Package}}_test
+
+func TestFakeKeepsTheContractOf{{.Port}}(t *testing.T) {
+	t.Parallel()
+	{{.Package}}.Run(t, func(t *testing.T) {{.Package}}.Subject {
+		t.Helper()
+		fake := {{.Package}}.NewFake()
+		return {{.Package}}.Subject{Port: fake, Seed: func(t *testing.T, c {{.Package}}.Case) {
+			t.Helper()
+			fake.Program(c.Method, append(slices.Clone(c.Want), c.WantErr)...)
+		}}
+	})
+}
+{{with .First}}
+func TestFakeRecordsWhatItIsCalledWith(t *testing.T) {
+	t.Parallel()
+	fake := {{$.Package}}.NewFake()
+	fake.Program({{$.Package}}.{{.Const}}, errors.ErrUnsupported)
+{{- range .Vars}}
+	{{.}}
+{{- end}}
+	{{.Invoke}}
+{{- if .Failing}}
+	if !errors.Is(err, errors.ErrUnsupported) {
+		t.Errorf("{{.Name}} answered %v, want the programmed error", err)
+	}
+{{- end}}
+	if got := fake.Calls({{$.Package}}.{{.Const}}); len(got) != 1 {
+		t.Errorf("Calls({{.Const}}) = %v, want one call", got)
+	}
+}
+{{end}}

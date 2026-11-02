@@ -1,4 +1,4 @@
-package: api
+package: apigen
 generate:
   embedded-spec: true
-output: api/generated/spec.gen.go
+output: {{or .Generate.ThirdParty.OpenAPIOut "api/gen"}}/spec.gen.go

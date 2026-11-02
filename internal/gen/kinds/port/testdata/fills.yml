@@ -1,0 +1,29 @@
+- id: ledger.read-plan
+  body: |2
+    	account := growth.AccountID("acct1")
+    	return []Case{{Name: "ledger reads the plan of an account", Method: MethodReadPlan, Args: []any{account}, Want: []any{growth.Plan{Account: account, Name: "basic"}}}}
+  imports:
+    - path: example.com/slice/internal/application/growth
+- id: ledger.archive-plan
+  body: |2
+    	return []Case{{Name: "ledger archives the plan of an account", Method: MethodArchivePlan, Args: []any{growth.AccountID("acct1")}}}
+  imports:
+    - path: example.com/slice/internal/application/growth
+- id: clock.now
+  body: |2
+    	return []Case{{Name: "clock answers the programmed time", Method: MethodNow, Want: []any{time.Unix(0, 0).UTC()}}}
+  imports:
+    - path: time
+- id: growth.read-plan
+  body: |2
+    	var out Plan
+    	if err := u.ready(); err != nil {
+    		return out, err
+    	}
+    	wrap := gensupport.Prefix(actionReadPlan)
+    	plan, err := u.deps.Ledger.ReadPlan(ctx, in)
+    	if err != nil {
+    		return out, wrap(err)
+    	}
+    	plan.Since = u.deps.Clock.Now()
+    	return plan, nil

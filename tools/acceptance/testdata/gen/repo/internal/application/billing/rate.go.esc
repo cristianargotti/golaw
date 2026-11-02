@@ -1,0 +1,10 @@
+package billing
+
+// AccountID names one account the rates service knows.
+type AccountID string
+
+// Rate is the monthly rate of one account, in cents.
+type Rate struct {
+	Account AccountID
+	Cents   int64
+}

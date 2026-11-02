@@ -57,9 +57,11 @@ func TestStrictLinterRetainsEveryUnchangedSetting(t *testing.T) {
 // kitLintConfig is the kit's .golangci.yml with the substitutions of the
 // asset: the module path, the seven linters of inventory 4.5 with the
 // settings it names, forbidigo keeping float32 alone, because the wall
-// clock is goast.wall-clock's in domain and application (section 6), and
-// neither the iface exclusion of the kit's model nor the clock exclusion of
-// its cmd.
+// clock is goast.wall-clock's in domain and application (section 6), the
+// support package globs of wrapcheck, because the kit has no support
+// package, neither the iface exclusion of the kit's model nor the clock
+// exclusion of its cmd, and the exclusion of the port stubs golaw new
+// writes, which the kit has none of.
 func kitLintConfig(t *testing.T) map[string]any {
 	t.Helper()
 	data, err := os.ReadFile("../../.golangci.yml")
@@ -76,6 +78,8 @@ func kitLintConfig(t *testing.T) map[string]any {
 	settings := yamlMap(t, linters, "settings")
 	forbidigo := yamlMap(t, settings, "forbidigo")
 	forbidigo["forbid"] = anyList(t, forbidigo["forbid"])[:1]
+	support := templateValues().ModulePath + "/internal/gensupport"
+	yamlMap(t, settings, "wrapcheck")["ignore-package-globs"] = []any{support, support + "/*"}
 	settings["tagliatelle"] = map[string]any{"case": map[string]any{"rules": map[string]any{"json": "camel"}}}
 	settings["testifylint"] = map[string]any{"enable-all": true}
 	exclusions := yamlMap(t, linters, "exclusions")
@@ -85,6 +89,9 @@ func kitLintConfig(t *testing.T) map[string]any {
 			t.Fatal("exclusion rule is not a mapping")
 		}
 		return fields["path"] == "internal/model/" || fields["path"] == `(^cmd/|_test\.go)`
+	})
+	exclusions["rules"] = append(anyList(t, exclusions["rules"]), map[string]any{
+		"path": `(^|/)ports\.go$`, "source": `^type \w+ interface \{ // golaw:hole `, "linters": []any{"modernize", "iface"},
 	})
 	return config
 }
@@ -106,7 +113,7 @@ func wantDepguard(module string, hex bool) map[string]any {
 		}
 		rules["application"] = map[string]any{
 			"list-mode": "strict", "files": []any{"!$test", "**/internal/application/**"},
-			"allow": []any{"$gostd", module + "/internal/domain", module + "/internal/application"},
+			"allow": []any{"$gostd", module + "/internal/domain", module + "/internal/application", module + "/internal/gensupport"},
 		}
 	}
 	return rules

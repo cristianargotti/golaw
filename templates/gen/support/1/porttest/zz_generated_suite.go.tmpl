@@ -1,0 +1,250 @@
+// Package porttest runs the contract suite of a port: the mechanical cases
+// every implementation passes and the behavioral cases of the port's test
+// package, against the fake and every real adapter alike.
+package porttest
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"reflect"
+	"slices"
+	"testing"
+)
+
+// Recorder is the part of the support recorder a fake answers through.
+type Recorder interface {
+	Answer(method string, args ...any) []any
+}
+
+// Reporter is the part of testing.T the suite reports a problem through.
+type Reporter interface {
+	Helper()
+	Errorf(format string, args ...any)
+}
+
+// Case is one behavioral case of a port method: the arguments after the
+// context, the results before the error and the error errors.Is matches.
+type Case struct {
+	Name    string
+	Method  string
+	Args    []any
+	Want    []any
+	WantErr error
+}
+
+// Subject is one implementation under the suite and the arrange step that
+// seeds a case into it before the case runs.
+type Subject[P any] struct {
+	Port P
+	Seed func(t *testing.T, c Case)
+}
+
+// Factory builds a fresh subject for each case.
+type Factory[P any] func(t *testing.T) Subject[P]
+
+// Method is one port method as the suite drives it.
+type Method[P any] struct {
+	Name    string
+	Hole    string
+	Context bool
+	Failing bool
+	Call    func(ctx context.Context, port P, args []any) []any
+}
+
+// Values hands out the values of a call or of an answer in order.
+type Values struct {
+	values []any
+	next   int
+}
+
+// NewValues answers values handed out from the first.
+func NewValues(values []any) *Values {
+	return &Values{values: values}
+}
+
+// Next answers the next value as a T, or the zero T when the values are
+// spent or the next one is of another type.
+func Next[T any](v *Values) T {
+	var zero T
+	if v == nil || v.next >= len(v.values) {
+		return zero
+	}
+	value, ok := v.values[v.next].(T)
+	v.next++
+	if !ok {
+		return zero
+	}
+	return value
+}
+
+// Pack answers the results of a call as values, so the suite compares the
+// answer of any method the same way.
+func Pack(values ...any) []any {
+	return values
+}
+
+// Answer records a call that takes a context: on a done context it answers
+// no value and the context's error behind the method name.
+func Answer(ctx context.Context, rec Recorder, method string, args ...any) (*Values, error) {
+	if err := ctx.Err(); err != nil {
+		return NewValues(nil), fmt.Errorf("%s: %w", method, err)
+	}
+	return Failing(rec, method, args...)
+}
+
+// Failing records a call whose last result is an error: the last value
+// programmed is that error, behind the method name.
+func Failing(rec Recorder, method string, args ...any) (*Values, error) {
+	answer := rec.Answer(method, args...)
+	if len(answer) == 0 {
+		return NewValues(nil), nil
+	}
+	err := lastError(answer)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", method, err)
+	}
+	return NewValues(answer[:len(answer)-1]), err
+}
+
+// Record records a call without an error result and answers its values.
+func Record(rec Recorder, method string, args ...any) *Values {
+	return NewValues(rec.Answer(method, args...))
+}
+
+// Run drives every method through the mechanical cases and every case
+// through its method, each in a subtest of its own.
+func Run[P any](t *testing.T, factory Factory[P], methods []Method[P], cases []Case) {
+	t.Helper()
+	report(t, missing(methods, cases))
+	for _, m := range methods {
+		t.Run(m.Name+" zero values", func(t *testing.T) {
+			report(t, zeroValues(t.Context(), factory(t).Port, m))
+		})
+		if m.Context && m.Failing {
+			t.Run(m.Name+" canceled", func(t *testing.T) {
+				report(t, canceled(t.Context(), factory(t).Port, m))
+			})
+		}
+	}
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			behave(t, t, factory(t), methods, c)
+		})
+	}
+}
+
+// Open reports a hole no method reaches, such as a port interface that
+// declares no method yet.
+func Open(r Reporter, id, constraint string) {
+	r.Helper()
+	r.Errorf("%s", open(id, constraint))
+}
+
+func open(id, constraint string) string {
+	return "hole " + id + " is open: " + constraint
+}
+
+// missing names the hole of every method no case drives: the suite of a
+// port is red until each method has a behavioral case.
+func missing[P any](methods []Method[P], cases []Case) []string {
+	problems := make([]string, 0, len(methods))
+	for _, m := range methods {
+		if !slices.ContainsFunc(cases, func(c Case) bool { return c.Method == m.Name }) {
+			problems = append(problems, open(m.Hole, "declare the inputs and the expected answer of "+m.Name+" for every implementation"))
+		}
+	}
+	return problems
+}
+
+// zeroValues calls a method with zero arguments and reports a panic.
+func zeroValues[P any](ctx context.Context, port P, m Method[P]) []string {
+	var problems []string
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				problems = append(problems, fmt.Sprintf("%s panicked on zero values: %v", m.Name, r))
+			}
+		}()
+		m.Call(ctx, port, nil)
+	}()
+	return problems
+}
+
+// canceled calls a method on a canceled context: its error wraps
+// context.Canceled and carries a prefix, the action of its layer.
+func canceled[P any](ctx context.Context, port P, m Method[P]) []string {
+	done, cancel := context.WithCancel(ctx)
+	cancel()
+	err := lastError(m.Call(done, port, nil))
+	if errors.Is(err, context.Canceled) && err.Error() != context.Canceled.Error() {
+		return nil
+	}
+	return []string{fmt.Sprintf("%s on a canceled context answered %v: want context.Canceled behind the action prefix", m.Name, err)}
+}
+
+// behave seeds one case and reports how its method's answer differs from
+// what the case wants.
+func behave[P any](t *testing.T, r Reporter, s Subject[P], methods []Method[P], c Case) {
+	t.Helper()
+	i := slices.IndexFunc(methods, func(m Method[P]) bool { return m.Name == c.Method })
+	if i < 0 {
+		report(r, []string{"case " + c.Name + " names " + c.Method + ", which is no method of the port"})
+		return
+	}
+	if s.Seed != nil {
+		s.Seed(t, c)
+	}
+	report(r, outcome(c, methods[i].Failing, methods[i].Call(t.Context(), s.Port, c.Args)))
+}
+
+// outcome compares an answer with what a case wants: the error through
+// errors.Is, each value through reflect.DeepEqual.
+func outcome(c Case, failing bool, got []any) []string {
+	var problems []string
+	values := got
+	if failing && len(got) > 0 {
+		values = got[:len(got)-1]
+		if err := lastError(got); !sameError(err, c.WantErr) {
+			problems = append(problems, fmt.Sprintf("%s answered the error %v, want %v", c.Name, err, c.WantErr))
+		}
+	}
+	for i, want := range c.Want {
+		if i >= len(values) || !reflect.DeepEqual(values[i], want) {
+			problems = append(problems, fmt.Sprintf("%s answered %v at result %d, want %v", c.Name, at(values, i), i, want))
+		}
+	}
+	return problems
+}
+
+func sameError(got, want error) bool {
+	if want == nil {
+		return got == nil
+	}
+	return errors.Is(got, want)
+}
+
+func lastError(values []any) error {
+	if len(values) == 0 {
+		return nil
+	}
+	err, ok := values[len(values)-1].(error)
+	if !ok {
+		return nil
+	}
+	return err
+}
+
+func at(values []any, i int) any {
+	if i < len(values) {
+		return values[i]
+	}
+	return nil
+}
+
+func report(r Reporter, problems []string) {
+	r.Helper()
+	for _, p := range problems {
+		r.Errorf("%s", p)
+	}
+}

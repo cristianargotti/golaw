@@ -36,6 +36,7 @@ type hookBinding struct {
 	agent      string
 	hookDigest string
 	cache      *source.Cache
+	budget     *eventBudget
 }
 
 func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Dependencies, error) {
@@ -55,14 +56,20 @@ func (b binding) hookDependencies(agent agents.Agent, now time.Time) (hook.Depen
 	if err != nil {
 		return hook.Dependencies{}, fmt.Errorf("build the registry: %w", err)
 	}
-	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest, cache: source.NewCache()}
+	h := hookBinding{binding: b, dirs: dirs, state: state, now: now, agent: agent.ID, hookDigest: digest, cache: source.NewCache(), budget: &eventBudget{}}
 	return hook.Dependencies{
-		Home: b.processHome(), Begin: h.cache.Reset,
+		Home: b.processHome(), Begin: h.begin,
 		Enroll: h.enroll, Policy: h.policy, Snapshot: h.snapshot, Changes: h.changes, Moved: h.moved, Hashes: h.hashes, Overlay: h.overlay,
 		Commits: h.commits, Committer: h.committer, Automatic: h.automatic, Remerged: h.remerged,
 		AutomaticWith: h.automaticWith, RemergedWith: h.remergedWith, Conflicts: h.conflicts, Restyled: h.restyled, Parents: h.parents,
-		Registry: registry, Tools: h.tools, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now}, Capture: h.capture,
+		Registry: registry, Tools: h.tools, Regenerate: h.regenerate, State: hook.Store{Dir: filepath.Join(dirs.State, hookStateDir), Now: now}, Capture: h.capture, Session: h.session,
 	}, nil
+}
+
+// begin starts an event: an empty read cache and a fresh external budget.
+func (h hookBinding) begin() {
+	h.cache.Reset()
+	h.budget.reset()
 }
 
 // processHome is the home directory of the hook process, the one the host

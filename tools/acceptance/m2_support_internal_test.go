@@ -165,7 +165,7 @@ func m2Render(t *testing.T, dir string) []assets.Rendered {
 			values.GoVersion = version
 		}
 	}
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		values.Tools[tool.Name] = tool.Version
 	}
 	files, err := assets.RenderAllContext(golaw.FS, assets.Context{Values: values, CIBackend: "none"})

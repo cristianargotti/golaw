@@ -70,6 +70,7 @@ func (f File) Validate(schemas Schemas) error {
 		f.Checks.validate(schemas),
 		f.validateRecords(),
 		f.Surface.validate(),
+		f.Generate.validate(),
 	} {
 		if err != nil {
 			return err

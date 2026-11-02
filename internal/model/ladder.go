@@ -13,13 +13,18 @@ type Ladder struct {
 	// HookFeedback has the agent hooks run the fast tools at post events and
 	// feed back the native checks that are not certain.
 	HookFeedback bool
+	// HookRegenerate has the agent post hook regenerate the parts of a
+	// contract the agent just edited (M7.6.2), so the agent never runs the
+	// generator by hand; a person switches it off without a finding.
+	HookRegenerate bool
 }
 
 // DefaultLadder is the ladder of a policy that names none: every rung runs
 // once the person armed it, test_staged stays off (decision 8), and the
-// surface aids of M6 are on wherever their rung or guard is installed.
+// surface aids of M6 and the regeneration of M7 are on wherever their rung
+// or guard is installed.
 func DefaultLadder() Ladder {
-	return Ladder{PreCommit: true, CommitMsg: true, PrePush: true, SurfaceLint: true, HookFeedback: true}
+	return Ladder{PreCommit: true, CommitMsg: true, PrePush: true, SurfaceLint: true, HookFeedback: true, HookRegenerate: true}
 }
 
 // Waiver is one dated vulnerability waiver of A6, as golaw.yml commits it.

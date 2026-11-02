@@ -1,0 +1,13 @@
+package {{.Package}}_test
+{{with .Usecase}}
+// Test{{.Type}} is the first test of {{$.Package}}.{{.Type}}: replace its
+// single case with the table of domain cases when the hole is filled.
+func Test{{.Type}}(t *testing.T) {
+	t.Parallel()
+	var in {{$.Package}}.{{.In}}
+	_, err := {{$.Package}}.New{{.Type}}(newFakes().deps()).Execute(t.Context(), in)
+	if errors.Is(err, gensupport.ErrNotImplemented) {
+		t.Fatal("hole {{.Hole}} is open: {{.Constraint}}")
+	}
+}
+{{- end}}

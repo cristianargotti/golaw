@@ -23,6 +23,7 @@ type fixture struct {
 	options      model.Options      // the policy values of the check's options
 	layout       *model.Layout      // the core default when nil
 	data         *model.ProfileData // the data of the enrolled profile, none when nil; it names the profile when profile is empty
+	support      string             // the generate.support of the policy, the default when empty
 }
 
 // measure dispatches the check over the fixture and answers its result.
@@ -64,6 +65,9 @@ func policyOf(c model.Check, f fixture) *model.EffectivePolicy {
 	p.Options = map[string]model.Options{c.Spec().ID: f.options}
 	if f.layout != nil {
 		p.Layout = *f.layout
+	}
+	if f.support != "" {
+		p.Generate.Support = f.support
 	}
 	return &p
 }

@@ -1,0 +1,12 @@
+func {{.M.Test .D.Type}}(t *testing.T) {
+	t.Parallel()
+	server := tlstest.Server(t, tlstest.Route{Status: http.StatusNotFound})
+	adapter := {{.D.Package}}.New{{.D.Type}}({{.D.Package}}.{{.D.Type}}Config{BaseURL: server.URL, Client: server.Client()})
+{{- range .M.Inputs}}
+	var {{.Name}} {{.Type}}
+{{- end}}
+	{{.M.Discard}}err := adapter.{{.M.Name}}({{.M.CallArgs}})
+	if errors.Is(err, gensupport.ErrNotImplemented) {
+		t.Fatal({{.M.Message .M.Constraint}})
+	}
+}

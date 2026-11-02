@@ -1,0 +1,172 @@
+package {{.Package}}
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
+
+var errTransport = errors.New("transport down")
+
+type roundTrip func(*http.Request) (*http.Response, error)
+
+func (f roundTrip) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+type failingBody struct{}
+
+func (failingBody) Read([]byte) (int, error) { return 0, errTransport }
+
+func (failingBody) Close() error { return nil }
+
+func TestClientBoundsEveryRequest(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name          string
+		timeout, want time.Duration
+	}{
+		{"unset", 0, DefaultTimeout},
+		{"negative", -time.Second, DefaultTimeout},
+		{"set", time.Second, time.Second},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := Client(tc.timeout).Timeout; got != tc.want {
+				t.Errorf("Client(%v).Timeout = %v, want %v", tc.timeout, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestEndpointResolvesTheConfiguration(t *testing.T) {
+	t.Parallel()
+	own := &http.Client{}
+	base, client := HTTPConfig{BaseURL: "https://api.example.com/", Client: own}.Endpoint()
+	if base != "https://api.example.com" || client != own {
+		t.Errorf("Endpoint = %q, %p, want the trimmed base and the configured client", base, client)
+	}
+	base, client = HTTPConfig{BaseURL: "https://api.example.com", Timeout: time.Second}.Endpoint()
+	if base != "https://api.example.com" || client.Timeout != time.Second {
+		t.Errorf("Endpoint = %q, %v, want the base and a client bounded by the timeout", base, client.Timeout)
+	}
+}
+
+type sender func(ctx context.Context, client *http.Client, target string) ([]byte, int, error)
+
+func post(body []byte) sender {
+	return func(ctx context.Context, client *http.Client, target string) ([]byte, int, error) {
+		return Send(ctx, client, http.MethodPost, target, body)
+	}
+}
+
+func TestSendAnswersTheBoundedBody(t *testing.T) {
+	t.Parallel()
+	echo := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := io.Copy(w, r.Body); err != nil {
+			t.Errorf("echo: %v", err)
+		}
+	}))
+	t.Cleanup(echo.Close)
+	large := &http.Client{Transport: roundTrip(func(r *http.Request) (*http.Response, error) {
+		body := io.NopCloser(bytes.NewReader(bytes.Repeat([]byte("a"), MaxBody+1)))
+		return &http.Response{StatusCode: http.StatusOK, Body: body, Request: r}, nil
+	})}
+	tests := []struct {
+		name   string
+		send   sender
+		client *http.Client
+		want   int
+	}{
+		{"get", Get, echo.Client(), 0},
+		{"post", post([]byte(`{"name":"a"}`)), echo.Client(), len(`{"name":"a"}`)},
+		{"a body past MaxBody", Get, large, MaxBody},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			body, code, err := tc.send(t.Context(), tc.client, echo.URL)
+			if err != nil || code != http.StatusOK || len(body) != tc.want {
+				t.Errorf("answer = %d bytes, %d, %v; want %d bytes", len(body), code, err, tc.want)
+			}
+		})
+	}
+}
+
+func TestSendNamesTheStepThatFailed(t *testing.T) {
+	t.Parallel()
+	broken := &http.Client{Transport: roundTrip(func(*http.Request) (*http.Response, error) {
+		return nil, errTransport
+	})}
+	unreadable := &http.Client{Transport: roundTrip(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Body: failingBody{}, Request: r}, nil
+	})}
+	tests := []struct {
+		name, method string
+		client       *http.Client
+		code         int
+		transport    bool
+	}{
+		{"build", "BAD METHOD", broken, 0, false},
+		{"send", http.MethodGet, broken, 0, true},
+		{"read", http.MethodGet, unreadable, http.StatusOK, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, code, err := Send(t.Context(), tc.client, tc.method, "https://api.example.com/plans", nil)
+			if err == nil || code != tc.code || errors.Is(err, errTransport) != tc.transport {
+				t.Errorf("Send = %d, %v", code, err)
+			}
+		})
+	}
+}
+
+func TestStatusGatesTheExpectedCodes(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		code int
+		want []int
+		fail bool
+	}{
+		{"ok by default", http.StatusOK, nil, false},
+		{"one of want", http.StatusNoContent, []int{http.StatusOK, http.StatusNoContent}, false},
+		{"not found by default", http.StatusNotFound, nil, true},
+		{"outside want", http.StatusInternalServerError, []int{http.StatusNoContent}, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := Status(tc.code, tc.want...); errors.Is(err, ErrStatus) != tc.fail {
+				t.Errorf("Status(%d) = %v", tc.code, err)
+			}
+		})
+	}
+}
+
+func TestDecodeWrapsABodyThatIsNotJSON(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, body string
+		fail       bool
+	}{
+		{"json", `{"name":"a"}`, false},
+		{"truncated", `{`, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var v struct {
+				Name string `json:"name"`
+			}
+			if err := Decode([]byte(tc.body), &v); errors.Is(err, ErrDecode) != tc.fail {
+				t.Errorf("Decode(%q) = %v", tc.body, err)
+			}
+		})
+	}
+}

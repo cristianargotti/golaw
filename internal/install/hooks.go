@@ -38,8 +38,9 @@ func ParseHooks(data []byte) (Hooks, error) {
 	return value, nil
 }
 
-// ValidateHooks pins the six exec handlers, because a shell string, a missing
-// matcher or a softer fail mode would let a tool call pass unjudged.
+// ValidateHooks pins the seven exec handlers, because a shell string, a
+// missing matcher or a softer fail mode would let a tool call pass unjudged;
+// the session start handler has no matcher, so every start gets the map.
 func ValidateHooks(data []byte) error {
 	value, err := ParseHooks(data)
 	if err != nil {
@@ -51,6 +52,7 @@ func ValidateHooks(data []byte) error {
 		"PreToolUse":         {write, "Read", shell},
 		"PostToolUse":        {write, shell},
 		"PostToolUseFailure": {shell},
+		"SessionStart":       {""},
 	}
 	if len(value.Hooks) != len(expected) {
 		return fmt.Errorf("%w: event set differs", ErrHooks)
