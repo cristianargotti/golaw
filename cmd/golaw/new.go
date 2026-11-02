@@ -26,14 +26,23 @@ type newOptions struct {
 // adapter sql <name>, beside the two of every other kind.
 const addendumArgs = 3
 
+// newExamples is one line per kind, so an agent copies the spelling and
+// the flags instead of learning them from refusals.
+const newExamples = `  golaw new port growth.Ledger --usecase ReadPlan
+  golaw new usecase growth.ReadPlan --ports Ledger,Clock --in AccountID --out Plan
+  golaw new adapter sql postgres.Plans --port growth.Ledger
+  golaw new adapter http metagraph.Client --port meta.Graph
+  golaw new handler cockpitapi --usecases growth`
+
 // newCommand writes one kind instance with its holes (M7.8), so an agent
 // starts from the shape and the tests and fills the domain logic only.
 func (a *app) newCommand() *cobra.Command {
 	var opts newOptions
 	cmd := &cobra.Command{
-		Use:   "new <kind> <name>",
-		Short: "Write a port, adapter (sql or http), use case or handler with its holes, red tests and manifest entry",
-		Args:  cobra.RangeArgs(2, addendumArgs),
+		Use:     "new <kind> <name>",
+		Short:   "Write a port, adapter (sql or http), use case or handler with its holes, red tests and manifest entry",
+		Example: newExamples,
+		Args:    cobra.RangeArgs(2, addendumArgs),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := a.newKind(cmd.Context(), cmd.OutOrStdout(), cmd.ErrOrStderr(), args, opts); err != nil {
 				return fmt.Errorf("new: %w", err)
