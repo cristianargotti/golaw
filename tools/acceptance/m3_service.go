@@ -52,6 +52,9 @@ func (s *suite) m3ServiceRepository(ctx context.Context, name string, capabiliti
 	if err := s.m3AcceptModule(ctx, repo); err != nil {
 		return "", err
 	}
+	if err := s.m3TidyTools(ctx, repo); err != nil {
+		return "", err
+	}
 	if err := s.gitSteps(ctx, repo, []string{gitAdd, "."}, commitArgs("feat: adopt the golaw policy")); err != nil {
 		return "", err
 	}
@@ -94,6 +97,19 @@ func (s *suite) m3AcceptModule(ctx context.Context, repo string) error {
 		}
 	}
 	return nil
+}
+
+// m3TidyTools takes the step docs/setup.md names after init: init never
+// reaches the network, so the go.sum lines of the pinned generators in the
+// tools module come from go mod tidy, run and committed by a person.
+func (s *suite) m3TidyTools(ctx context.Context, repo string) error {
+	if _, err := os.Stat(filepath.Join(repo, "tools", moduleFile)); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("inspect the tools module: %w", err)
+	}
+	return success(s.execute(ctx, command{program: s.goTool, args: []string{"-C", "tools", "mod", "tidy"}, dir: repo, env: s.env}))
 }
 
 func m3RequiredVersion(path, module string) (string, error) {
