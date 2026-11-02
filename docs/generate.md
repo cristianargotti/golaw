@@ -112,7 +112,7 @@ generate:
     openapi_out: api/gen
 ```
 
-`init` detects the layout of an existing repository: under each candidate root it counts the packages that hold hand written Go files and ignores a directory whose Go files all carry a generated header. An empty repository gets the defaults above; two candidates with hand written packages for one kind are an error that names both and the key to set. `sqlc_out` is derived as the `sqlcgen` directory of the SQL adapter path and rendered into the managed `sqlc.yaml`; a moved path in an enrolled repository is an `init --update` diff the person reviews. `ladder.hook_regenerate` is local convenience, never a floor.
+`init` detects the layout of an existing repository: under each candidate root it counts the packages that hold hand written Go files and ignores a directory whose Go files all carry a generated header. An empty repository gets the defaults above; two candidates with hand written packages for one kind are an error that names both and the key to set. `sqlc_out` is derived as the `sqlcgen` directory of the SQL adapter path and rendered into the managed `sqlc.yaml`; a moved path in an enrolled repository is an `init --update` diff the person reviews, followed by `golaw gen`, the removal of the old directory and the imports pointed at the new one, all in the same commit. `ladder.hook_regenerate` is local convenience, never a floor.
 
 ## Commands
 
