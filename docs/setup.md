@@ -34,6 +34,8 @@ The default policy is core only. The default human language is pt-BR. Findings, 
 
 The agent installer shows its changes, preserves unrelated settings in order, and records owned artifacts by hash. A repeated installation must produce no diff. User scope is the default.
 
+Claude Code keeps an installed plugin under its manifest version, so the installer writes a version that carries a digest of the skill and the hooks, and a new kit reaches the host. A project installation registers a marketplace named after the project, turns the person's golaw plugin off in that project and prints the two commands a session without a prompt (`claude -p`) needs once: `claude plugin marketplace add <path> --scope local` and `claude plugin install golaw@<name> --scope local`. After upgrading a user installation, `claude plugin marketplace update golaw` makes the host read the new version.
+
 ## Choose local git rungs
 
 Choose an absolute GOBIN and put it first on PATH before running golaw setup. Keep the pinned golaw executable on that PATH too. setup installs missing or mismatched pinned tools into the chosen GOBIN, verifies the versions that PATH resolves, and runs lefthook install. It records the resolved golaw path, tool versions and paths, effective hooks directory and installed hook hashes in its external receipt.

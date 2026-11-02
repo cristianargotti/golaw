@@ -74,6 +74,8 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-11-02: agent install writes a plugin version that carries a digest of the skill and the hooks, and a project installation registers a marketplace named after the project and turns the person's golaw plugin off there, because the plugin host keeps a plugin under its manifest version and one path per marketplace name, so no upgrade and no project copy reached it.
+- 2026-11-02: a golaw.yml whose kit pin differs from the binary names the version to install before any key the binary does not know, because the strict decode used to answer with a YAML field.
 - 2026-11-02: the wiring refuses, naming the file and the name, a main package whose other source file already declares Run, Wire, Infra or Serve, and docs/generate.md lists Run in the regenerable wiring, because the exported Run 967b0e6 added made an existing composition root that declares Run stop compiling after any golaw new.
 - 2026-11-02: a cmd/golaw test drives one post event through a slow generator, a slow formatter and a slow M6 linter and requires the answer within the 3 s event budget plus the stop of a tool, with the killed generator named, the in-process fixes kept and every linted file given up, because the shared deadline was proven only on the budget type alone.
 - 2026-11-02: the surface step of the golden slices judges the non-Go files a slice writes under the strict set init writes into a new policy and skips only when a surface tool is absent, because under the parity set of the fixture policy it skipped on every slice and proved nothing.

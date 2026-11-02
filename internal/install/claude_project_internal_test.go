@@ -74,8 +74,17 @@ func TestProjectInstallWritesLocalSettings(t *testing.T) {
 	}
 	data := mustRead(t, local)
 	must(t, json.Unmarshal(data, &settings))
-	if !settings.Plugins["golaw@golaw"] || settings.Markets["golaw"].Source.Path != plan.Receipt.Bundle {
+	name := MarketplaceName(plan.Receipt.Scope, plan.Receipt.ProjectID)
+	enabled, decided := settings.Plugins["golaw@golaw"]
+	if name == "golaw" || !settings.Plugins["golaw@"+name] || settings.Markets[name].Source.Path != plan.Receipt.Bundle || !decided || enabled {
 		t.Fatalf("local settings miss the owned entries: %s", data)
+	}
+	market := mustRead(t, filepath.Join(plan.Receipt.Bundle, ".claude-plugin", "marketplace.json"))
+	if !strings.Contains(string(market), `"name": "`+name+`"`) {
+		t.Fatalf("the marketplace manifest does not carry its name %s: %s", name, market)
+	}
+	if last := plan.Notes[len(plan.Notes)-1]; !strings.Contains(last, "claude plugin install golaw@"+name+" --scope local") {
+		t.Fatalf("the headless note does not name the install: %q", plan.Notes)
 	}
 	exclude := filepath.Join(options.Root, ".git", "info", "exclude")
 	if got := mustRead(t, exclude); string(got) != excludeLine+"\n" {
@@ -153,7 +162,7 @@ func TestProjectUninstallKeepsTheRestOfTheExcludeFile(t *testing.T) {
 func sharedLayout(t *testing.T, options Options, plan Plan, person []byte) string {
 	t.Helper()
 	shared := filepath.Join(filepath.Dir(plan.Receipt.SettingsPath), "settings.json")
-	merged, owned, err := MergeSettings(person, plan.Receipt.Bundle, options.ReadRules, Ownership{})
+	merged, owned, err := MergeSettings(person, "golaw", plan.Receipt.Bundle, options.ReadRules, Ownership{})
 	must(t, err)
 	must(t, os.WriteFile(shared, merged, 0o600))
 	must(t, os.Remove(plan.Receipt.SettingsPath))
@@ -184,7 +193,7 @@ func TestProjectInstallMovesSharedSettings(t *testing.T) {
 		t.Fatal("the earlier receipt is not read as shared")
 	}
 	upgrade := mustPlan(t, options)
-	if len(upgrade.Notes) != 2 || !strings.Contains(upgrade.Notes[0], shared) {
+	if len(upgrade.Notes) != 3 || !strings.Contains(upgrade.Notes[0], shared) {
 		t.Fatalf("the move is not named: %q", upgrade.Notes)
 	}
 	applyPlan(t, upgrade)

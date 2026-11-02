@@ -15,14 +15,14 @@ func TestSettingsOwnershipLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	rules := []string{"Read(**/*.pem)", "Read(**/*.key)"}
-	first, owned, err := MergeSettings(original, "/catalog", rules, Ownership{})
+	first, owned, err := MergeSettings(original, "golaw", "/catalog", rules, Ownership{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(owned.Deny, []string{"Read(**/*.key)"}) {
 		t.Fatalf("preexisting deny became owned: %#v", owned)
 	}
-	second, next, err := MergeSettings(first, "/catalog", rules, owned)
+	second, next, err := MergeSettings(first, "golaw", "/catalog", rules, owned)
 	if err != nil || !bytes.Equal(first, second) {
 		t.Fatalf("second merge changed bytes: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestSettingsOwnershipLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertJSONEqual(t, original, restored)
-	updated, upgrade, err := MergeSettings(first, "/new", []string{"Read(**/*.tfvars)"}, owned)
+	updated, upgrade, err := MergeSettings(first, "golaw", "/new", []string{"Read(**/*.tfvars)"}, owned)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,11 +53,11 @@ func TestSettingsOwnershipLifecycle(t *testing.T) {
 func TestSettingsEmptyMalformedAndChanged(t *testing.T) {
 	t.Parallel()
 	for _, data := range []string{"null", "[]", "{", `{"permissions":{"deny":7}}`} {
-		if _, _, err := MergeSettings([]byte(data), "/catalog", nil, Ownership{}); err == nil {
+		if _, _, err := MergeSettings([]byte(data), "golaw", "/catalog", nil, Ownership{}); err == nil {
 			t.Fatalf("malformed settings accepted: %s", data)
 		}
 	}
-	data, owned, err := MergeSettings(nil, "/catalog", nil, Ownership{})
+	data, owned, err := MergeSettings(nil, "golaw", "/catalog", nil, Ownership{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestSettingsEmptyMalformedAndChanged(t *testing.T) {
 		t.Fatalf("created settings not removed: %s %v", restored, err)
 	}
 	data, owned, err = MergeSettings([]byte(`{"enabledPlugins":{"golaw@golaw":null}}`),
-		"/catalog", nil, Ownership{})
+		"golaw", "/catalog", nil, Ownership{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestMergeKeepsForeignBytesAndKeyOrder(t *testing.T) {
 	original := []byte(`{"model":"fixed","permissions":{"defaultMode":"plan","deny":["Bash(echo <done>)"],` +
 		`"allow":["Bash(make && make test)"]},"hooks":{"PreToolUse":[{"matcher":"Bash",` +
 		`"hooks":[{"type":"command","command":"test -f a && echo <ok>"}]}]}}`)
-	merged, owned, err := MergeSettings(original, "/catalog", []string{"Read(private/**)"}, Ownership{})
+	merged, owned, err := MergeSettings(original, "golaw", "/catalog", []string{"Read(private/**)"}, Ownership{})
 	must(t, err)
 	for _, fragment := range []string{`"test -f a && echo <ok>"`, `"Bash(echo <done>)"`, `"Bash(make && make test)"`} {
 		if !bytes.Contains(merged, []byte(fragment)) {
@@ -153,5 +153,33 @@ func TestMergeKeepsForeignBytesAndKeyOrder(t *testing.T) {
 	must(t, json.Compact(&compact, restored))
 	if !bytes.Equal(compact.Bytes(), original) {
 		t.Fatalf("uninstall did not restore the original document:\n%s", restored)
+	}
+}
+
+func TestMergeSettingsMovesAnOldProjectToItsOwnMarketplace(t *testing.T) {
+	t.Parallel()
+	original := []byte(`{"enabledPlugins":{"other@x":true}}`)
+	old, owned, err := MergeSettings(original, "golaw", "/catalog", nil, Ownership{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved, next, err := MergeSettings(old, "golaw-0123456789ab", "/catalog", nil, owned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var settings struct {
+		Plugins map[string]bool            `json:"enabledPlugins"`
+		Markets map[string]json.RawMessage `json:"extraKnownMarketplaces"`
+	}
+	if json.Unmarshal(moved, &settings) != nil {
+		t.Fatalf("moved settings = %s", moved)
+	}
+	enabled, decided := settings.Plugins["golaw@golaw"]
+	if _, stale := settings.Markets["golaw"]; stale || !decided || enabled || !settings.Plugins["golaw@golaw-0123456789ab"] || !settings.Plugins["other@x"] {
+		t.Fatalf("moved settings = %s", moved)
+	}
+	restored, err := RestoreSettings(moved, next)
+	if err != nil || !equalJSON(restored, original) {
+		t.Fatalf("restored = %s, %v, want %s", restored, err, original)
 	}
 }

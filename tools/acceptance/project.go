@@ -131,6 +131,17 @@ func (s *suite) projectIgnored(ctx context.Context, t m4Target) error {
 	return nil
 }
 
+// projectMarketplace finds the marketplace a project installation names
+// after the project, golaw and a suffix, so it never shares the person's.
+func projectMarketplace(doc projectDocument) (string, bool) {
+	for name := range doc.Markets {
+		if strings.HasPrefix(name, golawMarketplace+"-") {
+			return name, true
+		}
+	}
+	return "", false
+}
+
 // projectInstalled reads both settings files: the local one holds the
 // plugin and its marketplace, the shared one holds none of them and, when
 // it is kept, the person's key.
@@ -139,13 +150,14 @@ func projectInstalled(repo string, sharedKept bool) error {
 	if err := projectRead(filepath.Join(repo, claudeConfigDir, localSettings), &local, true); err != nil {
 		return err
 	}
-	if !local.Plugins[golawPluginID] || local.Markets[golawMarketplace] == nil {
+	name, found := projectMarketplace(local)
+	if enabled, decided := local.Plugins[golawPluginID]; !found || !local.Plugins["golaw@"+name] || !decided || enabled {
 		return fmt.Errorf("%s misses the golaw entries: %w", localSettings, ErrAcceptance)
 	}
 	if err := projectRead(filepath.Join(repo, claudeConfigDir, sharedSettings), &shared, sharedKept); err != nil {
 		return err
 	}
-	if shared.Plugins[golawPluginID] || shared.Markets[golawMarketplace] != nil || sharedKept != (shared.Model != "") {
+	if _, found := projectMarketplace(shared); found || shared.Plugins[golawPluginID] || shared.Markets[golawMarketplace] != nil || sharedKept != (shared.Model != "") {
 		return fmt.Errorf("%s holds golaw entries or lost the person's key: %+v: %w", sharedSettings, shared, ErrAcceptance)
 	}
 	return nil

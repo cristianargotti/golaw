@@ -3,6 +3,7 @@ package doctor
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 )
 
 type settingsDocument struct {
@@ -16,11 +17,22 @@ func pluginLines(snapshot Snapshot) []Line {
 	var settings settingsDocument
 	err := json.Unmarshal([]byte(snapshot.Settings), &settings)
 	line := Line{ID: "doctor.plugin", State: stateOK, Code: "plugin-enabled"}
-	if err != nil || !settings.EnabledPlugins["golaw@golaw"] {
+	if err != nil || !golawEnabled(settings.EnabledPlugins) {
 		line.State, line.Code = stateRed, "plugin-disabled"
 	}
 	line.Detail = "configured enablement; live dispatch is not established"
 	return []Line{line}
+}
+
+// golawEnabled reports whether the settings turn the kit's plugin on, from
+// the person's marketplace or from a project's own.
+func golawEnabled(plugins map[string]bool) bool {
+	for id, on := range plugins {
+		if on && (id == "golaw@golaw" || strings.HasPrefix(id, "golaw@golaw-")) {
+			return true
+		}
+	}
+	return false
 }
 
 func readLines(snapshot Snapshot) []Line {

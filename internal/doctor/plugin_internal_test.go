@@ -62,3 +62,19 @@ func TestTrustNeverBecomesVerified(t *testing.T) {
 		}
 	}
 }
+
+func TestPluginLineAcceptsAProjectMarketplace(t *testing.T) {
+	t.Parallel()
+	cases := map[string]string{
+		`{"enabledPlugins":{"golaw@golaw":true}}`:                                  stateOK,
+		`{"enabledPlugins":{"golaw@golaw":false,"golaw@golaw-0123456789ab":true}}`: stateOK,
+		`{"enabledPlugins":{"golaw@golaw":false}}`:                                 stateRed,
+		`{"enabledPlugins":{"golaw@golawx":true}}`:                                 stateRed,
+		`not json`: stateRed,
+	}
+	for settings, want := range cases {
+		if got := pluginLines(Snapshot{Settings: settings})[0].State; got != want {
+			t.Errorf("%s: state %s, want %s", settings, got, want)
+		}
+	}
+}

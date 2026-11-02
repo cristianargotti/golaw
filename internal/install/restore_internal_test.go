@@ -26,7 +26,7 @@ func TestVerifySettingsJudgesOwnedEntriesOnly(t *testing.T) {
 	t.Parallel()
 	original, err := os.ReadFile("testdata/foreign.json")
 	must(t, err)
-	data, owned, err := MergeSettings(original, "/catalog", []string{"Read(**/*.key)"}, Ownership{})
+	data, owned, err := MergeSettings(original, "golaw", "/catalog", []string{"Read(**/*.key)"}, Ownership{})
 	must(t, err)
 	foreign := bytes.Replace(data, []byte(`"model": "fixed"`), []byte(`"model": "opus"`), 1)
 	if bytes.Equal(foreign, data) {
