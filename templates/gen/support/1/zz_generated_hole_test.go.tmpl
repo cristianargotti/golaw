@@ -1,0 +1,28 @@
+package {{.Package}}_test
+
+import (
+	"errors"
+	"testing"
+
+	"{{.Import}}"
+)
+
+func TestHoleWrapsNotImplementedWithTheID(t *testing.T) {
+	t.Parallel()
+	// The id is a variable, so the hole finder never reads this test as an
+	// open hole of the repository.
+	id := "support.self-test"
+	err := {{.Package}}.Hole(id, t.Context(), id)
+	if !errors.Is(err, {{.Package}}.ErrNotImplemented) || err.Error() != "golaw hole not implemented: "+id {
+		t.Errorf("Hole = %v", err)
+	}
+}
+
+func TestHoleOfAnswersTheZeroValueAndTheHole(t *testing.T) {
+	t.Parallel()
+	id := "support.self-test"
+	got, err := {{.Package}}.HoleOf[int](id, t.Context())
+	if got != 0 || !errors.Is(err, {{.Package}}.ErrNotImplemented) {
+		t.Errorf("HoleOf = %d, %v", got, err)
+	}
+}

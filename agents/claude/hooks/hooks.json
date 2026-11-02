@@ -11,6 +11,9 @@
     ],
     "PostToolUseFailure": [
       {"matcher":"Bash|PowerShell","hooks":[{"type":"command","command":"golaw","args":["hook","claude"],"timeout":10,"onFailure":"block"}]}
+    ],
+    "SessionStart": [
+      {"hooks":[{"type":"command","command":"golaw","args":["hook","claude"],"timeout":10,"onFailure":"block"}]}
     ]
   }
 }

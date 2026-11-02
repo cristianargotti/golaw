@@ -1,4 +1,4 @@
-package: api
+package: apigen
 generate:
   models: true
-output: api/generated/types.gen.go
+output: {{or .Generate.ThirdParty.OpenAPIOut "api/gen"}}/types.gen.go

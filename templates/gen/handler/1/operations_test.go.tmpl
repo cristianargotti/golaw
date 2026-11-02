@@ -1,0 +1,10 @@
+package {{.Package}}_test
+{{range .Ops}}
+func Test{{.Name}}HoleIsOpen(t *testing.T) {
+	t.Parallel()
+	_, err := newTestHandler().{{.Name}}(t.Context(), filled[apigen.{{.Name}}RequestObject]())
+	if errors.Is(err, gensupport.ErrNotImplemented) {
+		t.Fatal({{printf "%q" .Message}})
+	}
+}
+{{end}}

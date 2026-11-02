@@ -1,0 +1,9 @@
+package {{.Package}}
+
+import "errors"
+
+// ErrStatus marks an answer whose status the caller did not expect.
+var ErrStatus = errors.New("unexpected http status")
+
+// ErrDecode marks an answer body that is not the JSON the caller expects.
+var ErrDecode = errors.New("undecodable http body")

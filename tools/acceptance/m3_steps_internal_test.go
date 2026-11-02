@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -125,6 +126,35 @@ func TestM3AcceptModuleFollowsTheRulesFile(t *testing.T) {
 	s.root = t.TempDir()
 	if err := s.m3AcceptModule(t.Context(), repo); err == nil || started {
 		t.Fatalf("red a kit without go.mod = %v, started %v", err, started)
+	}
+}
+
+func TestM3TidyToolsFollowsTheToolsModule(t *testing.T) {
+	t.Parallel()
+	s := m2TestSuite(t)
+	var got []string
+	s.execute = func(_ context.Context, c command) result {
+		got = append(slices.Clone(c.args), c.dir)
+		return result{err: ErrAcceptance}
+	}
+	repo := t.TempDir()
+	if err := s.m3TidyTools(t.Context(), repo); err != nil || got != nil {
+		t.Fatalf("near no tools module = %v, ran %v", err, got)
+	}
+	checkedWrite(t, filepath.Join(repo, dirTools, moduleFile), "module tools\n")
+	if err := s.m3TidyTools(t.Context(), repo); err == nil || strings.Join(got, " ") != "mod tidy "+filepath.Join(repo, dirTools) {
+		t.Fatalf("red a failed tidy = %v, ran %v", err, got)
+	}
+	var ran []string
+	s.execute = func(_ context.Context, c command) result {
+		ran = append(ran, strings.Join(c.args, " "))
+		if c.program == s.binary {
+			return result{err: ErrAcceptance}
+		}
+		return result{}
+	}
+	if err := s.m3TidyTools(t.Context(), repo); err == nil || strings.Join(ran, ",") != "mod tidy,gen" {
+		t.Fatalf("red a failed gen = %v, ran %v", err, ran)
 	}
 }
 

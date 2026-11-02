@@ -1,0 +1,21 @@
+package {{.Package}}
+{{with .Usecase}}
+// {{.Action}} is the action of {{.Type}}, the prefix of every error it
+// answers.
+const {{.Action}} = "{{.Text}}"
+
+// {{.Type}} is the use case {{$.Package}}.{{.Type}} over the ports {{.PortList}}.
+type {{.Type}} struct {
+	deps Deps
+}
+
+// New{{.Type}} builds the use case {{.Type}} over deps.
+func New{{.Type}}(deps Deps) *{{.Type}} {
+	return &{{.Type}}{deps: deps}
+}
+
+// ready refuses to run {{.Type}} while one of its ports is not wired.
+func (u *{{.Type}}) ready() error {
+	return gensupport.Ready({{.Action}}, {{.Ready}})
+}
+{{- end}}

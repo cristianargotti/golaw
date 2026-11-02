@@ -1,0 +1,47 @@
+package {{.Package}}_test
+
+// fakes holds one fake per port the use cases of {{.Package}} consume, so
+// every test of the package builds its Deps the same way.
+type fakes struct {
+{{- range .Ports}}
+	{{.Name}} *{{.Package}}.Fake
+{{- end}}
+}
+
+func newFakes() fakes {
+	return fakes{
+{{- range .Ports}}
+		{{.Name}}: {{.Package}}.NewFake(),
+{{- end}}
+	}
+}
+
+func (f fakes) deps() {{.Package}}.Deps {
+	return {{.Package}}.Deps{
+{{- range .Ports}}
+		{{.Name}}: f.{{.Name}},
+{{- end}}
+	}
+}
+
+func TestEveryUseCaseRefusesAPortNotWired(t *testing.T) {
+	t.Parallel()
+	uc := {{.Package}}.NewUseCases({{.Package}}.Deps{})
+	tests := map[string]func(ctx context.Context) []any{
+{{- range .Usecases}}
+		"{{.Type}}": func(ctx context.Context) []any {
+			var in {{$.Package}}.{{.In}}
+			return porttest.Pack(uc.{{.Type}}.Execute(ctx, in))
+		},
+{{- end}}
+	}
+	for name, execute := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got := execute(t.Context())
+			if err, ok := got[len(got)-1].(error); !ok || !errors.Is(err, gensupport.ErrPortMissing) {
+				t.Errorf("%s without its ports answered %v, want ErrPortMissing", name, err)
+			}
+		})
+	}
+}

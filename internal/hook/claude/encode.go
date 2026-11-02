@@ -23,6 +23,9 @@ type output struct {
 
 // Encode preserves the reason while selecting the host response surface.
 func Encode(event model.Event, result hook.Result) hook.Reply {
+	if event.Shape == model.ShapeSession {
+		return sessionReply(result)
+	}
 	if result.CannotJudge {
 		return cannotReply(result.Reason)
 	}
@@ -45,6 +48,15 @@ func Encode(event model.Event, result hook.Result) hook.Reply {
 	default:
 		return cannotReply("cannot judge: invalid hook outcome")
 	}
+}
+
+// sessionReply gives the map of an allowed session start as its context
+// and answers nothing otherwise, because a session start never blocks.
+func sessionReply(result hook.Result) hook.Reply {
+	if result.Outcome != hook.Allow || result.CannotJudge || result.Context() == "" {
+		return hook.Reply{}
+	}
+	return marshalReply(output{Specific: &specificOutput{Event: sessionEvent, Context: result.Context()}})
 }
 
 func postReply(event model.Event, result hook.Result) hook.Reply {

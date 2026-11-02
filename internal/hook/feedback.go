@@ -26,6 +26,7 @@ type fed struct {
 	notices  []string
 	person   []string
 	gaps     []Gap
+	regen    RegenReport
 }
 
 // certainCheck answers whether a check is one of the certain checks of A27,
@@ -51,6 +52,7 @@ func (run execution) feedback(ctx context.Context, in model.Input, decision engi
 	if run.request.Event.Shape != model.ShapePost || run.policy == nil {
 		return f
 	}
+	f.regen = run.regenerate(ctx, in, dependencies)
 	on := run.policy.Ladder.HookFeedback
 	for i := range decision.Findings {
 		finding := &decision.Findings[i]
@@ -62,7 +64,7 @@ func (run execution) feedback(ctx context.Context, in model.Input, decision engi
 	if on && dependencies.Tools != nil {
 		files = run.tools(ctx, in, dependencies, &f)
 	}
-	if dependencies.State.Dir == "" || !delivered(decision) || len(f.findings) == 0 && len(f.notices) == 0 {
+	if dependencies.State.Dir == "" || !delivered(decision) || len(f.findings) == 0 && len(f.notices) == 0 && f.regen.empty() {
 		return f
 	}
 	return run.once(ctx, f, in, files, dependencies)
@@ -82,24 +84,28 @@ func (run execution) tools(ctx context.Context, in model.Input, dependencies Dep
 	return files
 }
 
-// apply writes the feedback into the result of the event: the lines, and
-// on an allow the tool notices beside the notice of the gaps and a line
-// for the person; on feedback the notices follow the reason. A result
-// that could not judge keeps its own answer.
+// apply writes the feedback into the result of the event: the lines, the
+// regeneration's ahead of the linters' because the regenerated files are
+// what the linters then read (M7.9.4), and on an allow the notices beside
+// the notice of the gaps and a line for the person; on feedback the
+// notices follow the reason. A result that could not judge keeps its own
+// answer.
 func (f fed) apply(result Result, language string) Result {
-	if result.CannotJudge || len(f.findings) == 0 && len(f.notices) == 0 && len(f.person) == 0 {
+	if result.CannotJudge || len(f.findings) == 0 && len(f.notices) == 0 && len(f.person) == 0 && f.regen.empty() {
 		return result
 	}
-	result.Lines = feedbackLines(f.findings)
+	linted := feedbackLines(f.findings)
+	result.Lines = slices.Concat(f.regen.Lines, linted)
+	notices := slices.Concat(f.regen.Notices, f.notices)
 	switch result.Outcome {
 	case Allow:
-		if len(result.Lines) > 0 && result.Human == "" {
-			result.Human = feedbackHuman(language, len(result.Lines))
+		if len(linted) > 0 && result.Human == "" {
+			result.Human = feedbackHuman(language, len(linted))
 		}
-		result.Notice = joinSentences(result.Notice, f.notices)
-		result.Human = joinSentences(result.Human, f.person)
+		result.Notice = joinSentences(result.Notice, notices)
+		result.Human = joinSentences(result.Human, slices.Concat(f.regen.Person, f.person))
 	case Feedback:
-		result.Reason = joinSentences(result.Reason, f.notices)
+		result.Reason = joinSentences(result.Reason, notices)
 	case Deny:
 	}
 	return result

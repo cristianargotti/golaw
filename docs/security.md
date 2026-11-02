@@ -152,6 +152,22 @@ Node and Python are prerequisites the kit never installs. A machine without them
 
 A missing tool, a missing runtime or a checksum drift is never a denial and never a finding in a hook or a rung. golaw never calls a Sonar server, a scanner or its API and never reads a token for it.
 
+## Generators in the hook
+
+When an agent edits a contract the generation manifest names (a port interface file, api/openapi.yaml, a query or a migration file), the post event of that tool call regenerates the code of that contract, so the agent never has to remember the generator. This amends the hook execution contract a second time, after the surface tools above, and narrowly; ladder.hook_regenerate: false in golaw.yml switches it off without a finding.
+
+The agent hooks may write into the checkout only at a post event, never at a pre event, and only the regenerable files the manifest lists for the changed contract, the append only hole stubs in the owned files of the same entries, and the mechanical formatting of files the same event wrote; never golaw.yml, never .golaw/gen.yml, never a path outside the manifest's entries. Each file is written atomically, and only while its bytes on disk still equal the bytes the event observed: a file a concurrent edit changed is skipped and named. Regeneration takes the repository's generation lock, an operating-system file lock tried without waiting; a second hook of the same repository that finds it held skips regeneration and answers regeneration deferred: run golaw gen.
+
+The agent hooks may run two pinned generators, sqlc and oapi-codegen, only from the kit's tool directory with a matching receipt, which golaw setup --gen, run by a person, is the only command to build and record, and only when the repository's sqlc.yaml and oapi-codegen configuration equal the managed hashes recorded in golaw.yml. The kit's templates declare no sqlc plugin and no oapi-codegen user template, so a configuration that could execute code or fetch a template never matches. They run with the repository root as the working directory, the environment reduced as for the surface tools, stdin closed, a kill at 1.5 s per tool and 3 s of external work per event, and they write only the output paths of that managed configuration. Neither executes code it reads; both read data files, the schema, the queries and the OpenAPI document. A killed tool, a missing tool or a configuration that does not match leaves the third party output as it was and answers not regenerated in the hook: run golaw gen with the cause, never a denial and never a finding.
+
+No go command, no go generate, no make, no goverter and no golangci-lint run with package loading starts from a hook. A change of a converter interface answers that goverter regenerates converters outside the hook, through golaw gen.
+
+These residuals remain:
+
+- The hook writing into the checkout is new: an agent's next edit of a file the hook formatted may meet the host's check that the file changed since it was read, and spend a turn rereading it. The fix writes only when the bytes differ and names the file.
+- A write to a generated file is denied only when its target is literal: a shell write to a generated path that is not literal is fed back, not denied, and the file stays edited until golaw gen. golaw gen --check in remote CI or the platform pipeline is the backstop.
+- sqlc and oapi-codegen in the hook trust their managed configuration, so a future feature of either that executes code from a data file would widen this contract. Their pins move only through reviewed diffs, and the receipt pins the binary.
+
 ## Distribution and profile bundles
 
 golaw doctor --release <dir> verifies a downloaded binary inside the kit, with no network: the asset line of checksums.txt equals the SHA-256 of the running executable; the certificate of checksums.txt.sigstore.json chains to the trust root with the code signing usage at the integrated time of its log entry and names release.yml of this repository at the tag and the GitHub Actions issuer; its signature verifies over checksums.txt; the signed entry timestamp of its log entry verifies under the log key; and the attestation names the asset with the same digest under the same identity. A red result exits 1. These residuals remain:

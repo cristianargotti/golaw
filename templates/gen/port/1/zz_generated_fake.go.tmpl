@@ -1,0 +1,41 @@
+package {{.Package}}
+{{if .Methods}}
+const (
+{{- range .Methods}}
+	// {{.Const}} names {{.Name}} in Program and Calls.
+	{{.Const}} = "{{.Name}}"
+{{- end}}
+)
+{{end}}
+var _ {{.Area}}.{{.Port}} = (*Fake)(nil)
+
+// Fake is the recording fake of {{.Area}}.{{.Port}}: each method records
+// its call and answers what Program set for it.
+type Fake struct {
+	rec *gensupport.Recorder
+}
+
+// NewFake answers a fake with nothing programmed.
+func NewFake() *Fake {
+	return &Fake{rec: gensupport.NewRecorder()}
+}
+{{range .Methods}}
+// {{.Name}} records its call and answers what Program set for {{.Const}}.
+func (f *Fake) {{.Name}}{{.Declaration}} {
+	{{.Answer}}
+{{- if .Return}}
+	{{.Return}}
+{{- end}}
+}
+{{end}}
+// Program sets what the calls of method answer: its results in order, the
+// error last.
+func (f *Fake) Program(method string, results ...any) {
+	f.rec.Program(method, results...)
+}
+
+// Calls answers the arguments of every call of method, the context left
+// out.
+func (f *Fake) Calls(method string) [][]any {
+	return f.rec.Calls(method)
+}

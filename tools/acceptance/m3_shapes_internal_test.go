@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -53,7 +54,7 @@ func m3BirthTree(t *testing.T, capabilities []string) map[string][]byte {
 		t.Fatal(err)
 	}
 	tools := make(map[string]string)
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		tools[tool.Name] = tool.Version
 	}
 	rendered, err := assets.RenderAllContext(golaw.FS, assets.Context{

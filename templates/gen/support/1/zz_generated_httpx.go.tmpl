@@ -1,0 +1,101 @@
+package {{.Package}}
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"slices"
+	"strings"
+	"time"
+)
+
+// DefaultTimeout bounds a request whose adapter configured no timeout.
+const DefaultTimeout = 10 * time.Second
+
+// MaxBody bounds the bytes read from one answer.
+const MaxBody = 1 << 20
+
+// Client answers an http.Client bounded by timeout, DefaultTimeout when
+// timeout is not positive, so no adapter ever waits without a bound.
+func Client(timeout time.Duration) *http.Client {
+	if timeout <= 0 {
+		timeout = DefaultTimeout
+	}
+	return &http.Client{Timeout: timeout}
+}
+
+// HTTPConfig configures an HTTP adapter: BaseURL is the https root of the
+// API, Timeout bounds a request when Client is nil, Client replaces the
+// default.
+type HTTPConfig struct {
+	BaseURL string
+	Timeout time.Duration
+	Client  *http.Client
+}
+
+// Endpoint answers the base URL without its trailing slash and the client
+// of cfg, one bounded by cfg.Timeout when cfg.Client is nil. It lives here
+// so two adapters of one kind never repeat the same constructor body.
+func (cfg HTTPConfig) Endpoint() (string, *http.Client) {
+	client := cfg.Client
+	if client == nil {
+		client = Client(cfg.Timeout)
+	}
+	return strings.TrimSuffix(cfg.BaseURL, "/"), client
+}
+
+// Get sends a GET request without a body and answers the bounded body and
+// the status code.
+func Get(ctx context.Context, client *http.Client, target string) ([]byte, int, error) {
+	return Send(ctx, client, http.MethodGet, target, nil)
+}
+
+// Send sends one request, with http.NoBody when body is nil and a JSON body
+// otherwise, and answers the body read through MaxBody and the status code.
+func Send(ctx context.Context, client *http.Client, method, target string, body []byte) ([]byte, int, error) {
+	reader := io.Reader(http.NoBody)
+	if body != nil {
+		reader = bytes.NewReader(body)
+	}
+	request, err := http.NewRequestWithContext(ctx, method, target, reader)
+	if err != nil {
+		return nil, 0, fmt.Errorf("build %s request: %w", method, err)
+	}
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, 0, fmt.Errorf("send %s request: %w", method, err)
+	}
+	defer response.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(response.Body, MaxBody))
+	if err != nil {
+		return nil, response.StatusCode, fmt.Errorf("read %s answer: %w", method, err)
+	}
+	return data, response.StatusCode, nil
+}
+
+// Status answers nil when code is one of want, http.StatusOK when want is
+// empty, and ErrStatus with the code otherwise.
+func Status(code int, want ...int) error {
+	if len(want) == 0 {
+		want = []int{http.StatusOK}
+	}
+	if slices.Contains(want, code) {
+		return nil
+	}
+	return fmt.Errorf("%w: %d", ErrStatus, code)
+}
+
+// Decode unmarshals the JSON body into v, ErrDecode wrapped when it does not
+// decode.
+func Decode(body []byte, v any) error {
+	if err := json.Unmarshal(body, v); err != nil {
+		return fmt.Errorf("%w: %w", ErrDecode, err)
+	}
+	return nil
+}

@@ -49,6 +49,9 @@ func evaluateParsed(ctx context.Context, agent string, parse func() (Parsed, err
 	if err != nil {
 		return completed{event: event, result: failureLanguage(event, err, run.language()), language: run.language()}
 	}
+	if event.Shape == model.ShapeSession {
+		return completed{event: event, result: run.session(ctx, dependencies), language: run.language()}
+	}
 	return run.answer(ctx, event, data, dependencies)
 }
 
@@ -193,7 +196,7 @@ func (run execution) evaluate(ctx context.Context, data []byte, dependencies Dep
 		if writes := run.request.Writes; writes == nil || !writes.Intercepted {
 			run.saveBefore(ctx, data, dependencies)
 		}
-	case model.ShapeRead, model.ShapePost:
+	case model.ShapeRead, model.ShapePost, model.ShapeSession:
 	}
 	return fed.apply(withGaps(result, gaps, run.language()), run.language())
 }

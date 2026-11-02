@@ -154,6 +154,9 @@ func (a *app) prepareInit(path string, opts initOptions) (string, []byte, *model
 	if data, err = surfacePolicy(data, existing, opts.surfaceRules); err != nil {
 		return "", nil, nil, initFailed(err)
 	}
+	if data, err = generatePolicy(root, data, existing); err != nil {
+		return "", nil, nil, initFailed(err)
+	}
 	compiled, err := a.compile(data, a.now())
 	if err != nil {
 		if existing {
@@ -178,6 +181,9 @@ func (a *app) unchangedPolicyStatus(root string, opts initOptions, plan initPlan
 		if defaults, err = bootstrap.SetSurfaceRules(defaults, rules); err != nil {
 			return kept
 		}
+	}
+	if defaults, err = generatePolicy(root, defaults, false); err != nil {
+		return kept
 	}
 	if plan.notice == "" {
 		defaults, err = initManagedPolicy(defaults, plan.templates)

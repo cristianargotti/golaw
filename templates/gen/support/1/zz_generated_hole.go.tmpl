@@ -1,0 +1,19 @@
+package {{.Package}}
+
+import "fmt"
+
+// Hole is the body of code the agent still has to write: it answers
+// ErrNotImplemented with the hole id, so the red test of the hole fails by
+// name. It takes the caller's parameters so an open hole raises no unused
+// parameter finding before the logic that reads them exists.
+func Hole(id string, _ ...any) error {
+	return fmt.Errorf("%w: %s", ErrNotImplemented, id)
+}
+
+// HoleOf is Hole for a function that answers a value before its error: the
+// zero value of T and the error of Hole, so an open hole of an unexported
+// function raises no finding that its value is always zero.
+func HoleOf[T any](id string, args ...any) (T, error) {
+	var zero T
+	return zero, Hole(id, args...)
+}

@@ -1,0 +1,61 @@
+// Package {{.Package}} holds the behavior every golaw kind calls instead of
+// copying it, so a sentinel, a hole and a recorder have one definition in
+// the repository. It imports the standard library alone, so any package of
+// the module may call it without a dependency cycle or a new module.
+package {{.Package}}
+
+import (
+	"fmt"
+	"reflect"
+)
+
+// sentinelError lets the sentinels be constants, so no package variable
+// can be reassigned and errors.Is still matches them by value.
+type sentinelError string
+
+func (s sentinelError) Error() string { return string(s) }
+
+// ErrNotImplemented is what an open hole answers, so a red test names the
+// hole and a caller tells unfinished code from a real failure.
+const ErrNotImplemented = sentinelError("golaw hole not implemented")
+
+// ErrPortMissing is what a use case answers when the composition root left
+// one of its ports unset, instead of a nil pointer panic deep in a call.
+const ErrPortMissing = sentinelError("port not wired")
+
+// Prefix wraps every error of one action with the action's name, so the
+// reason a caller reads names the layer and the step that failed.
+func Prefix(action string) func(error) error {
+	return func(err error) error {
+		if err == nil {
+			return nil
+		}
+		return fmt.Errorf("%s: %w", action, err)
+	}
+}
+
+// Ready answers ErrPortMissing for the first port that is nil, typed nil
+// pointers included, because an interface holding one is not nil itself.
+func Ready(action string, ports ...any) error {
+	for i, port := range ports {
+		if isNil(port) {
+			return fmt.Errorf("%s: port %d: %w", action, i, ErrPortMissing)
+		}
+	}
+	return nil
+}
+
+func isNil(v any) bool {
+	if v == nil {
+		return true
+	}
+	value := reflect.ValueOf(v)
+	return nillable(value.Kind()) && value.IsNil()
+}
+
+// nillable is one expression rather than a switch, because a switch over
+// reflect.Kind would have to name every kind to satisfy exhaustive.
+func nillable(kind reflect.Kind) bool {
+	return kind == reflect.Pointer || kind == reflect.Map || kind == reflect.Slice ||
+		kind == reflect.Func || kind == reflect.Chan || kind == reflect.Interface
+}

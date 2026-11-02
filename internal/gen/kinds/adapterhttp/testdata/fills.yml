@@ -1,0 +1,76 @@
+- id: client.read-plan
+  body: |
+    wrap := gensupport.Prefix(actionClientReadPlan)
+    body, code, err := gensupport.Get(ctx, c.client, c.base+"/plans/"+url.PathEscape(string(account)))
+    if err == nil && code == http.StatusNotFound {
+    	err = growth.ErrPlanNotFound
+    }
+    var plan growth.Plan
+    if err == nil {
+    	err = errors.Join(gensupport.Status(code), gensupport.Decode(body, &plan))
+    }
+    return plan, wrap(err)
+  imports:
+    - { path: errors }
+    - { path: net/http }
+    - { path: net/url }
+- id: client.archive-plan
+  body: |
+    _, code, err := gensupport.Send(ctx, c.client, http.MethodPost, c.base+"/plans/"+url.PathEscape(string(account))+"/archive", nil)
+    if err == nil && code == http.StatusNotFound {
+    	err = growth.ErrPlanNotFound
+    }
+    if err == nil {
+    	err = gensupport.Status(code, http.StatusNoContent)
+    }
+    return gensupport.Prefix(actionClientArchivePlan)(err)
+  imports:
+    - { path: net/http }
+    - { path: net/url }
+- id: mirror.read-plan
+  body: |
+    body, code, err := gensupport.Get(ctx, m.client, m.base+"/mirror/"+url.PathEscape(string(account)))
+    if err == nil && code == http.StatusNotFound {
+    	err = growth.ErrPlanNotFound
+    }
+    var plan growth.Plan
+    if err == nil {
+    	err = errors.Join(gensupport.Status(code), gensupport.Decode(body, &plan))
+    }
+    return plan, gensupport.Prefix(actionMirrorReadPlan)(err)
+  imports:
+    - { path: errors }
+    - { path: net/http }
+    - { path: net/url }
+- id: mirror.archive-plan
+  body: |
+    _, code, err := gensupport.Send(ctx, m.client, http.MethodDelete, m.base+"/mirror/"+url.PathEscape(string(account)), nil)
+    if err == nil && code == http.StatusNotFound {
+    	err = growth.ErrPlanNotFound
+    }
+    return gensupport.Prefix(actionMirrorArchivePlan)(errors.Join(err, gensupport.Status(code, http.StatusNoContent)))
+  imports:
+    - { path: errors }
+    - { path: net/http }
+    - { path: net/url }
+- id: seed.client
+  body: |
+    t.Helper()
+    server := tlstest.Server(t,
+    	tlstest.Route{Method: http.MethodGet, Path: "/plans/acct1", Status: http.StatusOK, Body: []byte(`{"account":"acct1","name":"basic"}`)},
+    	tlstest.Route{Method: http.MethodPost, Path: "/plans/acct1/archive", Status: http.StatusNoContent},
+    	tlstest.Route{Status: http.StatusNotFound},
+    )
+    return ledgertest.Subject{Port: planapi.NewClient(planapi.ClientConfig{BaseURL: server.URL, Client: server.Client()})}
+  imports:
+    - { path: net/http }
+- id: seed.mirror
+  body: |
+    t.Helper()
+    plan := tlstest.Route{Method: http.MethodGet, Path: "/mirror/acct1", Status: http.StatusOK, Body: []byte(`{"account":"acct1","name":"basic"}`)}
+    archive := tlstest.Route{Method: http.MethodDelete, Path: "/mirror/acct1", Status: http.StatusNoContent}
+    server := tlstest.Server(t, plan, archive, tlstest.Route{Status: http.StatusNotFound})
+    adapter := planapi.NewMirror(planapi.MirrorConfig{BaseURL: server.URL, Client: server.Client()})
+    return ledgertest.Subject{Port: adapter}
+  imports:
+    - { path: net/http }

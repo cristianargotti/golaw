@@ -1,0 +1,46 @@
+package main
+
+// Infra holds the infrastructure values the adapters read, opened by Serve
+// from the configuration, so Wire stays a pure composition over them.
+type Infra struct{{if .Infra}} {
+{{- range .Infra}}
+	{{.Name}} {{.Type}}
+{{- end}}
+}{{else}}{}{{end}}
+
+// Wire builds every adapter, use case and handler over infra and mounts the
+// handlers on one mux, the routes Serve answers.
+func Wire({{if .UsesInfra}}infra{{else}}_{{end}} Infra) *http.ServeMux {
+	mux := http.NewServeMux()
+{{- range .Areas}}
+	{{if .Used}}{{.Var}} :={{else}}_ ={{end}} {{.Func}}({{if .Param}}infra{{end}})
+{{- end}}
+{{- range .Handlers}}
+	{{.Qualifier}}.Mount(mux, {{.Ctor}}({{.Args}}))
+{{- end}}
+	return mux
+}
+{{- range .Areas}}
+
+// {{.Func}} binds every port of the {{.Name}} use cases to its adapter.
+func {{.Func}}({{if .Param}}infra Infra{{end}}) {{.Qualifier}}.UseCases {
+	return {{.Ctor}}({{.Qualifier}}.Deps{
+{{- range .Deps}}
+		{{.Port}}: {{.Call}},
+{{- end}}
+	})
+}
+{{- end}}
+
+// Run serves until an interrupt and answers the exit code of the process:
+// 0 once serve returns nil, 1 after logging the error it answers. main only
+// passes Serve, so the root's own statements stay in the generated suite.
+func Run(ctx context.Context, serve func(context.Context) error) int {
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
+	defer stop()
+	if err := serve(ctx); err != nil {
+		slog.ErrorContext(ctx, "serve stopped", slog.Any("error", err))
+		return 1
+	}
+	return 0
+}

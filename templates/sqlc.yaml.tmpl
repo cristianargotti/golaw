@@ -6,7 +6,7 @@ sql:
     gen:
       go:
         package: sqlcgen
-        out: internal/adapters/outbound/postgres/sqlcgen
+        out: {{with .Generate.ThirdParty.SQLCOut}}{{.}}{{else}}internal/adapters/out/postgres/sqlcgen{{end}}
         sql_package: database/sql
     rules:
       - many-needs-bound

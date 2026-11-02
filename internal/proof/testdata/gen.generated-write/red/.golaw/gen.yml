@@ -1,0 +1,12 @@
+golaw-gen: 1
+support: { path: internal/gensupport, template: support@1 }
+entries:
+  - kind: port
+    template: port@1
+    name: growth.Ledger
+    contracts:
+      - { path: internal/application/growth/ports.go, symbol: Ledger }
+    regenerable:
+      - internal/application/growth/ledgertest/zz_generated_fake.go
+    owned:
+      - internal/application/growth/ledgertest/cases.go

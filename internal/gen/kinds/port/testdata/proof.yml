@@ -1,0 +1,12 @@
+# One entry per template law the port kind's shapes could break: the red
+# tree violates the law, the near tree is the shape the templates write.
+entries:
+  - law: context-from-test
+    red: red/context-from-test
+    near: near/context-from-test
+  - law: S1192-literals
+    red: red/S1192-literals
+    near: near/S1192-literals
+  - law: S107-parameters
+    red: red/S107-parameters
+    near: near/S107-parameters

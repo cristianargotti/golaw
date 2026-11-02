@@ -163,7 +163,7 @@ func TestClaudeFactsReadTheFrameFromTheM1Evidence(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "receipt.json")
 	writeReceipt(t, path, install.Receipt{Schema: 1, ProjectID: "repository", Bundle: "bundle"})
 	facts := claudeFacts(Input{Scope: "user", ReceiptPath: path}, snapshot)
-	if facts.Agent != agentClaude || facts.Receipt.State != receiptRead || len(facts.Receipt.Drift) != 0 || len(facts.Events) != 3 {
+	if facts.Agent != agentClaude || facts.Receipt.State != receiptRead || len(facts.Receipt.Drift) != 0 || len(facts.Events) != 4 {
 		t.Fatalf("facts = %+v", facts)
 	}
 	for _, event := range facts.Events {

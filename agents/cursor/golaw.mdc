@@ -4,6 +4,7 @@ alwaysApply: true
 ---
 
 Read .agents/skills/golaw/SKILL.md before Go work.
+Run golaw map before you explore an enrolled repository; create kinds with golaw new, fill their golaw:hole markers, and pass golaw gen --check before you finish.
 Use the kit's docs/rules.md and docs/checklists.md on demand.
 This integration is a compatibility preview.
 Write and Delete capture is not enforcement; post feedback is advisory.

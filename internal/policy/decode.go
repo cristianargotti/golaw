@@ -30,3 +30,27 @@ func Decode(data []byte) (File, error) {
 	}
 	return f, nil
 }
+
+// checkPin compares the kit pin with this binary before the strict
+// decode, so a policy written by another kit version names the version
+// to install instead of a key this binary does not know (A10). A file
+// whose pin cannot be read is left to Decode to report.
+func checkPin(data []byte, version string) error {
+	pin, ok := pinOf(data)
+	if version == "" || !ok || pin == version {
+		return nil
+	}
+	return fmt.Errorf("%w: %s pins kit version %s and this binary is %s: install the pinned version or run init --update",
+		model.ErrPolicy, FileName, pin, version)
+}
+
+// pinOf reads only the kit pin, ignoring every other key.
+func pinOf(data []byte) (string, bool) {
+	var f struct {
+		Kit Kit `yaml:"kit"`
+	}
+	if yaml.Unmarshal(data, &f) != nil {
+		return "", false
+	}
+	return f.Kit.Version, true
+}

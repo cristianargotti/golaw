@@ -1,0 +1,10 @@
+// Package billing holds the rate an account pays and the port that reads it.
+package billing
+
+import "context"
+
+// Rates reads the rate of an account from the rates service.
+type Rates interface {
+	// ReadRate reads the monthly rate of one account.
+	ReadRate(ctx context.Context, account AccountID) (Rate, error)
+}

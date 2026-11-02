@@ -167,7 +167,7 @@ func postWriteFixtures() []fixture {
 			out = append(out, fixture{
 				name: name, category: wantPost, event: eventPost, tool: tool, want: want,
 				input:  map[string]any{keyFilePath: pathSize, "notebook_path": pathSize},
-				before: map[string]string{pathSize: goLines(lines)},
+				before: map[string]string{pathSize: formattedLines(lines)},
 			})
 		}
 	}
@@ -196,6 +196,13 @@ func postShellFixtures() []fixture {
 
 func goLines(lines int) string {
 	return "package fixture\n" + strings.Repeat("\n", lines-1)
+}
+
+// formattedLines is goLines in the bytes go/format keeps: the post hook
+// formats the Go file an event wrote (A45), so a control row whose bytes
+// gofmt would change answers the formatting line instead of an allow.
+func formattedLines(lines int) string {
+	return "package fixture\n\n" + strings.Repeat("// Filler holds the file at its line count.\n", lines-2)
 }
 
 func functionLines(countedBodyLines int) string {

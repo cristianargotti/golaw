@@ -17,10 +17,13 @@ const (
 // The lines a Claude project installation ends with: Claude Code reads the
 // marketplace of the project and local settings only in a workspace the
 // person trusted, and an install that moved the entries out of the shared
-// settings.json leaves a change to commit when git holds that file.
+// settings.json leaves a change to commit when git holds that file. A
+// session without a prompt (claude -p) never offers the install, so the
+// headless note names the two commands that register and install it.
 const (
-	claudeProjectNote = "Confie no projeto no Claude Code para carregar o plugin do golaw."
-	claudeMovedNote   = "As entradas do golaw saíram de %s e foram para %s; faça commit da mudança se o git guarda o primeiro."
+	claudeProjectNote  = "Confie no projeto no Claude Code para carregar o plugin do golaw."
+	claudeHeadlessNote = "Numa sessão sem interface (claude -p), registre e instale o plugin uma vez: claude plugin marketplace add %s --scope local && claude plugin install golaw@%s --scope local"
+	claudeMovedNote    = "As entradas do golaw saíram de %s e foram para %s; faça commit da mudança se o git guarda o primeiro."
 )
 
 // Options contains resolved command inputs rather than environment reads.
@@ -77,7 +80,8 @@ func PlanClaude(options Options) (Plan, error) {
 		return Plan{}, err
 	}
 	if plan.Receipt.Scope == scopeProject {
-		plan.Notes = append(plan.Notes, claudeProjectNote)
+		plan.Notes = append(plan.Notes, claudeProjectNote,
+			fmt.Sprintf(claudeHeadlessNote, plan.Receipt.Bundle, MarketplaceName(plan.Receipt.Scope, plan.Receipt.ProjectID)))
 	}
 	encoded, err := json.MarshalIndent(plan.Receipt, "", "  ")
 	if err != nil {
@@ -173,7 +177,7 @@ func addSettings(plan *Plan, rules []string, previous Receipt) error {
 	if err != nil {
 		return err
 	}
-	desired, owned, err := MergeSettings(current, plan.Receipt.Bundle, rules, prior)
+	desired, owned, err := MergeSettings(current, MarketplaceName(plan.Receipt.Scope, plan.Receipt.ProjectID), plan.Receipt.Bundle, rules, prior)
 	if err != nil {
 		return err
 	}

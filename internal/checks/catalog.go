@@ -1,13 +1,15 @@
 // Package checks composes every check family into the production catalog
 // the binary dispatches and the proof test verifies. A family joins the
 // list in the task that adds its first check, so the catalog and the proof
-// manifest grow together.
+// manifest grow together; the gen family alone joins empty, as the seam
+// its parallel checks append to.
 package checks
 
 import (
 	"fmt"
 
 	"github.com/cristianargotti/golaw/internal/checks/commits"
+	"github.com/cristianargotti/golaw/internal/checks/genguard"
 	"github.com/cristianargotti/golaw/internal/checks/goast"
 	"github.com/cristianargotti/golaw/internal/checks/paths"
 	"github.com/cristianargotti/golaw/internal/checks/policyfiles"
@@ -28,7 +30,7 @@ func Catalog() []model.Check {
 
 // families are the constructors of the check families, in report order.
 func families() []Family {
-	return []Family{text.Checks, paths.Checks, goast.Checks, policyfiles.Checks, shell.Checks, commits.Checks, checksurface.Checks}
+	return []Family{text.Checks, paths.Checks, goast.Checks, policyfiles.Checks, shell.Checks, commits.Checks, checksurface.Checks, genguard.Checks}
 }
 
 // concat joins the families into one list, keeping their order.

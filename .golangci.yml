@@ -33,7 +33,8 @@ linters:
     depguard:
       # The package direction of section 5.1: model imports nothing internal,
       # engine imports model, the check families import model, the policy
-      # family also reads YAML, go.mod and TOML, and the catalog composes them.
+      # family also reads YAML, go.mod and TOML, the sentinel check reads the
+      # golaw header of a generated errors file, and the catalog composes them.
       rules:
         model:
           list-mode: strict
@@ -46,24 +47,20 @@ linters:
         source:
           list-mode: strict
           files: ["!$test", "**/internal/source/**"]
-          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/genheader]
         families:
           list-mode: strict
-          files: ["!$test", "**/internal/checks/**", "!**/internal/checks/catalog.go", "!**/internal/checks/policyfiles/**", "!**/internal/checks/surface/**"]
+          files: ["!$test", "**/internal/checks/**", "!**/internal/checks/catalog.go", "!**/internal/checks/policyfiles/**", "!**/internal/checks/surface/**", "!**/internal/checks/goast/sentinel.go", "!**/internal/checks/genguard/**", "!**/internal/checks/shell/shape.go"]
           allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
         policyfiles:
           list-mode: strict
           files: ["!$test", "**/internal/checks/policyfiles/**"]
           allow: [$gostd, github.com/cristianargotti/golaw/internal/model, gopkg.in/yaml.v3, golang.org/x/mod, github.com/BurntSushi/toml]
         surface-family: {list-mode: strict, files: ["!$test", "**/internal/checks/surface/**"], allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/surface, gopkg.in/yaml.v3]}
-        catalog:
-          list-mode: strict
-          files: ["!$test", "**/internal/checks/catalog.go"]
-          allow:
-            - $gostd
-            - github.com/cristianargotti/golaw/internal/model
-            - github.com/cristianargotti/golaw/internal/engine
-            - github.com/cristianargotti/golaw/internal/checks
+        shell-shape: {list-mode: strict, files: ["!$test", "**/internal/checks/shell/shape.go"], allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/genheader]}
+        goast-sentinel: {list-mode: strict, files: ["!$test", "**/internal/checks/goast/sentinel.go"], allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/genheader]}
+        genguard: {list-mode: strict, files: ["!$test", "**/internal/checks/genguard/**"], allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/genheader, github.com/cristianargotti/golaw/internal/gen/manifest, github.com/cristianargotti/golaw/internal/checks/shell]}
+        catalog: {list-mode: strict, files: ["!$test", "**/internal/checks/catalog.go"], allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/engine, github.com/cristianargotti/golaw/internal/checks]}
         policy:
           list-mode: strict
           files: ["!$test", "**/internal/policy/**"]
@@ -75,6 +72,7 @@ linters:
             - $gostd
             - github.com/cristianargotti/golaw/internal/model
             - github.com/cristianargotti/golaw/internal/engine
+            - github.com/cristianargotti/golaw/internal/genheader
             - gopkg.in/yaml.v3
         # The rungs: runner, coverage and vuln speak model alone, the staged scan, a rung
         # and setup compose the layers below them, and the two test helpers use the stdlib.
@@ -85,7 +83,7 @@ linters:
         coverage:
           list-mode: strict
           files: ["!$test", "**/internal/coverage/**"]
-          allow: [$gostd, github.com/cristianargotti/golaw/internal/model]
+          allow: [$gostd, github.com/cristianargotti/golaw/internal/model, github.com/cristianargotti/golaw/internal/genheader]
         vuln:
           list-mode: strict
           files: ["!$test", "**/internal/vuln/**"]
@@ -235,7 +233,7 @@ linters:
          {name: deep-exit}, {name: import-shadowing}, {name: struct-tag}, {name: unhandled-error},
          {name: range-val-address}, {name: string-of-int}, {name: use-errors-new}, {name: redundant-build-tag},
          {name: file-length-limit, arguments: [{max: 300, skipComments: false, skipBlankLines: false}]},
-         {name: function-length, arguments: [0, 40]}]
+         {name: argument-limit, arguments: [7]}, {name: function-length, arguments: [0, 40]}]
     sloglint:
       no-mixed-args: true
       attr-only: true

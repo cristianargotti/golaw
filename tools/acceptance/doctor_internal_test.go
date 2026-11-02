@@ -16,7 +16,7 @@ import (
 // plugin ships, the hook lines doctor owes the simulated receipt.
 func shippedHooks() []string {
 	return []string{
-		"PostToolUse/Bash|PowerShell", "PostToolUse/Write|Edit|NotebookEdit", "PostToolUseFailure/Bash|PowerShell",
+		"SessionStart/", "PostToolUse/Bash|PowerShell", "PostToolUse/Write|Edit|NotebookEdit", "PostToolUseFailure/Bash|PowerShell",
 		"PreToolUse/Bash|PowerShell", "PreToolUse/Read", "PreToolUse/Write|Edit|NotebookEdit",
 	}
 }

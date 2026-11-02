@@ -1,0 +1,41 @@
+- id: plans.read-plan
+  body: |2
+    	plan, err := planOf(p.queries.ReadPlan(ctx, string(account)))
+    	return plan, gensupport.Prefix(actionPlansReadPlan)(err)
+- id: plans.archive-plan
+  body: |2
+    	affected, err := p.queries.ArchivePlan(ctx, string(account))
+    	if err == nil && affected == 0 {
+    		err = growth.ErrPlanNotFound
+    	}
+    	return gensupport.Prefix(actionPlansArchivePlan)(err)
+- id: plans.plan-of
+  body: |2
+    	if errors.Is(err, sql.ErrNoRows) {
+    		return growth.Plan{}, growth.ErrPlanNotFound
+    	}
+    	return growth.Plan{Account: growth.AccountID(row.Account), Name: row.Name, Archived: row.Archived, Since: row.Since}, err
+  imports:
+    - { path: errors }
+    - { path: database/sql }
+- id: replica.read-plan
+  body: |2
+    	plan, err := planOf(r.queries.ReadPlan(ctx, string(account)))
+    	return plan, gensupport.Prefix(actionReplicaReadPlan)(err)
+- id: replica.archive-plan
+  body: |2
+    	affected, err := r.queries.ArchivePlan(ctx, string(account))
+    	if err == nil && affected == 0 {
+    		err = growth.ErrPlanNotFound
+    	}
+    	return gensupport.Prefix(actionReplicaArchivePlan)(err)
+- id: seed.plans
+  body: |2
+    	t.Helper()
+    	t.Skip("the integration target opens the database of the repository")
+    	return ledgertest.Subject{}
+- id: seed.replica
+  body: |2
+    	t.Helper()
+    	t.Skip("the integration target opens the database of the repository")
+    	return ledgertest.Subject{}

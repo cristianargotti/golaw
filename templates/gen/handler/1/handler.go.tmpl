@@ -1,0 +1,42 @@
+package {{.Package}}
+
+// Handler serves the operations of {{.API}} through the use cases of {{.AreaList}}.
+type Handler struct {
+{{- range .Areas}}
+	{{.Field}} {{.Name}}.UseCases
+{{- end}}
+}
+
+// NewHandler answers the handler over the use cases the composition root built.
+func NewHandler({{.Params}}) *Handler {
+	return &Handler{ {{- .Fields -}} }
+}
+
+var _ apigen.StrictServerInterface = (*Handler)(nil)
+
+// Mount registers every operation of {{.API}} on mux, each served by h.
+func Mount(mux *http.ServeMux, h *Handler) {
+	apigen.HandlerFromMux(apigen.NewStrictHandler(h, nil), mux)
+}
+
+// statusRule maps one domain error to the HTTP status a handler answers.
+type statusRule struct {
+	err    error
+	status int
+}
+
+// statusOf is the one mapping of an answer to its HTTP status every
+// operation calls, so no operation copies it: http.StatusOK without an
+// error, the status of the first rule whose error err wraps, and
+// http.StatusInternalServerError for any other error.
+func statusOf(err error, rules ...statusRule) int {
+	if err == nil {
+		return http.StatusOK
+	}
+	for _, rule := range rules {
+		if errors.Is(err, rule.err) {
+			return rule.status
+		}
+	}
+	return http.StatusInternalServerError
+}

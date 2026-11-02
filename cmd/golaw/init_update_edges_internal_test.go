@@ -67,9 +67,18 @@ func TestInitUpdateKeepsReviewedSettingsAndUnrenderableRecords(t *testing.T) {
 
 func requireUnrenderableUpdate(t *testing.T, ta testApp, root, reviewed, hash string) {
 	t.Helper()
-	want := strings.Replace(reviewed, "9.9.8", testVersion, 1)
+	// The reviewed policy names no generate block, so the update appends
+	// the layout it detects (T35); every reviewed byte stays as written.
+	detected, err := bootstrap.DetectGenerate(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := bootstrap.SetGenerate([]byte(strings.Replace(reviewed, "9.9.8", testVersion, 1)), detected)
+	if err != nil {
+		t.Fatal(err)
+	}
 	got, err := bootstrap.Current(root)
-	if err != nil || !bytes.Equal(got, []byte(want)) {
+	if err != nil || !bytes.Equal(got, want) {
 		t.Fatalf("reviewed bytes = %q, want %q: %v", got, want, err)
 	}
 	out := ta.stdout.String()
@@ -82,7 +91,7 @@ func requireUnrenderableUpdate(t *testing.T, ta testApp, root, reviewed, hash st
 		t.Fatal(err)
 	}
 	record, found, err := policy.ReadRecord(dirs.State, root)
-	if err != nil || !found || record.Bootstrap != want || record.KitVersion != testVersion {
+	if err != nil || !found || record.Bootstrap != string(want) || record.KitVersion != testVersion {
 		t.Fatalf("updated enrollment = %+v, %v, %v", record, found, err)
 	}
 }

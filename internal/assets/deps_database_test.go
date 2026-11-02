@@ -28,7 +28,7 @@ func TestDatabaseTemplates(t *testing.T) {
 	main := string(renderedAsset(t, "sqlc.yaml", context).Data)
 	vet := string(renderedAsset(t, "sqlc.vet.yaml", context).Data)
 	if !strings.Contains(main, "many-needs-bound") ||
-		!strings.Contains(main, "internal/adapters/outbound/postgres/sqlcgen") ||
+		!strings.Contains(main, "internal/adapters/out/postgres/sqlcgen") ||
 		strings.Contains(main, "sqlc/db-prepare") ||
 		!strings.Contains(vet, "sqlc/db-prepare") {
 		t.Fatalf("database configurations = %q and %q", main, vet)

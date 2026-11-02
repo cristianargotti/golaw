@@ -26,6 +26,7 @@ func familyConditions() map[string]Condition {
 		"surface": {Scope: model.ScopeFile},
 		"docker":  {Scope: model.ScopeFile},
 		"cfn":     {Scope: model.ScopeFile},
+		"gen":     {Scope: model.ScopeEvent},
 	}
 }
 
@@ -38,6 +39,7 @@ func checkConditions() map[string]Condition {
 	return map[string]Condition{
 		"paths.secret-material":      {Scope: model.ScopeEvent},
 		"surface.analyzer-widening":  {Scope: model.ScopeEvent},
+		"gen.handwritten":            {Scope: model.ScopeFile},
 		"goast.raw-error-response":   {Scope: model.ScopeFile, Needs: []string{"go", "api"}},
 		"policy.golangci":            tree("go"),
 		"policy.ruleguard":           tree("go"),

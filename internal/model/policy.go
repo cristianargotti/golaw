@@ -106,6 +106,7 @@ type EffectivePolicy struct {
 	Layout       Layout             // where the main package and the decision records live
 	ProfileData  *ProfileData       // the data of the enrolled bundle (section 5.4), nil for core only
 	Surface      SurfacePolicy      // the surface block (M6.3.2): the rules floor, the analyzer scope, the script globals
+	Generate     GeneratePolicy     // the generate block (M7.6.2); outside the floors and the digest (A43)
 }
 
 // CoreDefaults is the policy every repository gets before its golaw.yml
@@ -116,6 +117,7 @@ func CoreDefaults() EffectivePolicy {
 		Language: DefaultLanguage,
 		Ladder:   DefaultLadder(),
 		Surface:  DefaultSurface(),
+		Generate: DefaultGenerate(),
 		Layout:   Layout{Main: DefaultMain, Decisions: DefaultDecisions},
 		Sizes:    SizeFloors{FileLines: DefaultFileLines, FunctionLines: DefaultFunctionLines},
 		Enrollment: Enrollment{

@@ -1,0 +1,13 @@
+//go:build integration
+
+package {{.Package}}_test
+
+// {{.Lower}}Subject answers {{.Type}} over the integration database, seeded per case.
+func {{.Lower}}Subject(t *testing.T) {{.Suite}}.Subject {
+	t.Helper()
+	// golaw:hole {{.Seed}} {{.SeedConstraint}}
+	if err := gensupport.Hole("{{.Seed}}", t); err != nil {
+		t.Fatalf("hole {{.Seed}} is open: {{.SeedConstraint}}: %v", err)
+	}
+	return {{.Suite}}.Subject{}
+}

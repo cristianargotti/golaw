@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"go/version"
+	"slices"
 	"strings"
 
 	"github.com/cristianargotti/golaw"
@@ -122,12 +123,12 @@ func initValues(config policy.File, layout bootstrap.Layout) assets.Values {
 	values := assets.Values{
 		KitVersion: config.Kit.Version, Language: model.DefaultLanguage,
 		Capabilities: config.Capabilities, Main: layout.Main, Decisions: layout.Decisions,
-		Tools: make(map[string]string),
+		Tools: make(map[string]string), Generate: config.Generate.Resolve(),
 	}
 	if config.Language != nil {
 		values.Language = *config.Language
 	}
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		values.Tools[tool.Name] = tool.Version
 	}
 	return values

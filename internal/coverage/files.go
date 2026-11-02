@@ -13,11 +13,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/cristianargotti/golaw/internal/genheader"
 )
 
 // generatedPattern is the header of generated Go code, which has no author
 // to hold to the coverage law, in the form scan and the proof read it,
-// swaggo's included: an optional Package prefix and no final period.
+// swaggo's included: an optional Package prefix and no final period. A
+// golaw regenerable file matches it too and is still measured (M7.10.4).
 var generatedPattern = regexp.MustCompile(`(?m)^// (?:Package \S+ )?Code generated .* DO NOT EDIT\.?$`)
 
 func skippedDirs() map[string]bool {
@@ -125,7 +128,7 @@ func needsCoverage(path string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("read %s: %w", path, err)
 	}
-	if generatedPattern.Match(data) {
+	if generatedPattern.Match(data) && !golawGenerated(data) {
 		return false, nil
 	}
 	file, err := parser.ParseFile(token.NewFileSet(), path, data, parser.SkipObjectResolution)
@@ -133,6 +136,14 @@ func needsCoverage(path string) (bool, error) {
 		return false, fmt.Errorf("parse %s: %w", path, err)
 	}
 	return hasStatements(file), nil
+}
+
+// golawGenerated holds a golaw regenerable file to the strict floors like
+// any source: it sits beside owned code and the pipeline analyses it
+// (M7.10.4), while third party output keeps leaving through its header.
+func golawGenerated(data []byte) bool {
+	_, ok := genheader.Parse(data)
+	return ok
 }
 
 // Package-level function literals are instrumented even without function declarations.

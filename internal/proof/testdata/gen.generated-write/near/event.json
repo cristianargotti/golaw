@@ -1,0 +1,12 @@
+{
+  "shape": "write",
+  "agent": "tester",
+  "tool": "Write",
+  "candidates": [
+    {
+      "path": "internal/application/growth/notes.go",
+      "op": "replace",
+      "reconstructed": true
+    }
+  ]
+}

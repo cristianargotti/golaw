@@ -114,6 +114,8 @@ func curCorpusPayload(t *testing.T, request hook.Request, want cursorCorpusCase)
 			request.Event.Post.Failed != want.failed {
 			t.Fatalf("post = %+v", request.Event.Post)
 		}
+	case model.ShapeSession:
+		t.Fatal("the Cursor corpus holds no session event")
 	}
 }
 

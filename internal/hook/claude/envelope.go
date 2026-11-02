@@ -11,6 +11,7 @@ const (
 	preEvent     = "PreToolUse"
 	postEvent    = "PostToolUse"
 	failureEvent = "PostToolUseFailure"
+	sessionEvent = "SessionStart"
 	writeTool    = "Write"
 	editTool     = "Edit"
 	notebookTool = "NotebookEdit"
@@ -53,6 +54,8 @@ func header(w wire, target string) (model.Event, error) {
 	case postEvent, failureEvent:
 		event.Shape = model.ShapePost
 		event.Post = &model.PostResult{Failed: w.Name == failureEvent}
+	case sessionEvent:
+		event.Shape = model.ShapeSession
 	default:
 		return model.Event{}, fmt.Errorf("%w: unsupported Claude event", model.ErrCannotJudge)
 	}
@@ -76,8 +79,9 @@ func preShape(tool string) model.EventShape {
 }
 
 // envelope decodes the envelope of an event in one pass and refuses the
-// envelope of another agent and one without the event, the tool, the
-// working directory or a tool input that is an object.
+// envelope of another agent and one without the event or the working
+// directory; every envelope but a session start, which carries no tool,
+// also needs the tool and a tool input that is an object.
 func envelope(data []byte) (wire, error) {
 	var w wire
 	if err := json.Unmarshal(data, &w); err != nil {
@@ -86,7 +90,10 @@ func envelope(data []byte) (wire, error) {
 	if w.Conversation != nil || w.Generation != nil || w.Roots != nil || w.Version != nil {
 		return wire{}, fmt.Errorf("%w: envelope does not belong to claude", model.ErrCannotJudge)
 	}
-	if w.Name == "" || w.Tool == "" || w.Cwd == "" || len(w.Input) == 0 || w.Input[0] != '{' {
+	if w.Name == "" || w.Cwd == "" {
+		return wire{}, fmt.Errorf("%w: incomplete Claude envelope", model.ErrCannotJudge)
+	}
+	if w.Name != sessionEvent && (w.Tool == "" || len(w.Input) == 0 || w.Input[0] != '{') {
 		return wire{}, fmt.Errorf("%w: incomplete Claude envelope", model.ErrCannotJudge)
 	}
 	return w, nil

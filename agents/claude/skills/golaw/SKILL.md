@@ -5,6 +5,10 @@ description: Use for Go implementation, tests, refactoring, review, dependencies
 
 # Go engineering with golaw
 
+Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new`; never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish.
+
+Queries go through the pinned sqlc and HTTP contracts through the pinned oapi-codegen, both run by `golaw gen`; write the migration and the query before `golaw new adapter sql`.
+
 Read golaw.yml and the rules of the kit, https://github.com/cristianargotti/golaw/blob/v0.3.0/docs/rules.md, before changing the repository.
 
 Reuse in this order: existing repository code, the standard library, an existing platform capability, an installed dependency, then the smallest implementation that meets the need. Preserve boundary validation, error handling, and security. Record every new direct dependency and its alternatives in the configured decisions directory.

@@ -19,6 +19,9 @@ func Decode(data []byte, base hook.Base, snapshot model.Snapshot) (hook.Request,
 
 // decode is the request of an event from its one parse.
 func decode(w wire, event model.Event, in toolInput, base hook.Base, snapshot model.Snapshot) (hook.Request, error) {
+	if event.Shape == model.ShapeSession {
+		return hook.Request{Event: event}, nil
+	}
 	if event.Shape == model.ShapePost {
 		return postRequest(w, event, in, base)
 	}

@@ -1,0 +1,52 @@
+package {{.Package}}_test
+
+import (
+	"errors"
+	"testing"
+
+	"{{.Import}}"
+)
+
+const action = "growth: read plan"
+
+type port struct{}
+
+func TestPrefixWrapsTheActionAndKeepsNil(t *testing.T) {
+	t.Parallel()
+	wrap := {{.Package}}.Prefix(action)
+	if err := wrap(nil); err != nil {
+		t.Errorf("Prefix(nil) = %v, want nil", err)
+	}
+	err := wrap({{.Package}}.ErrPortMissing)
+	if !errors.Is(err, {{.Package}}.ErrPortMissing) || err.Error() != action+": port not wired" {
+		t.Errorf("Prefix = %v", err)
+	}
+}
+
+func TestReadyNamesTheFirstNilPort(t *testing.T) {
+	t.Parallel()
+	var missing *port
+	tests := map[string]struct {
+		ports []any
+		want  string
+	}{
+		"every port set":      {ports: []any{&port{}, port{}}},
+		"a nil interface":     {ports: []any{port{}, nil}, want: action + ": port 1: port not wired"},
+		"a typed nil pointer": {ports: []any{missing, &port{}}, want: action + ": port 0: port not wired"},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			err := {{.Package}}.Ready(action, tc.ports...)
+			if tc.want == "" {
+				if err != nil {
+					t.Errorf("Ready = %v, want nil", err)
+				}
+				return
+			}
+			if !errors.Is(err, {{.Package}}.ErrPortMissing) || err.Error() != tc.want {
+				t.Errorf("Ready = %v, want %s", err, tc.want)
+			}
+		})
+	}
+}

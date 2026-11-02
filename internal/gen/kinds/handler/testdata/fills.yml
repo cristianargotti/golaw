@@ -1,0 +1,48 @@
+- id: plansapi.archive-plan
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+  body: |2
+    	wrap := gensupport.Prefix("plansapi: archive plan")
+    	_, err := h.uc.ArchivePlan.Execute(ctx, growth.AccountID(request.Id))
+    	if err == nil {
+    		return apigen.ArchivePlan204Response{}, nil
+    	}
+    	if statusOf(err, statusRules()...) == http.StatusNotFound {
+    		return apigen.ArchivePlan404ApplicationProblemPlusJSONResponse{Title: http.StatusText(http.StatusNotFound), Status: http.StatusNotFound}, nil
+    	}
+    	return nil, wrap(err)
+- id: plansapi.find-plan
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+  body: |2
+    	wrap := gensupport.Prefix("plansapi: find plan")
+    	plan, err := h.uc.ReadPlan.Execute(ctx, growth.AccountID(request.Body.Account))
+    	if err == nil {
+    		return apigen.FindPlan200JSONResponse{Account: string(plan.Account), Name: plan.Name, Archived: plan.Archived}, nil
+    	}
+    	if statusOf(err, statusRules()...) == http.StatusNotFound {
+    		return apigen.FindPlan404ApplicationProblemPlusJSONResponse{Title: http.StatusText(http.StatusNotFound), Status: http.StatusNotFound}, nil
+    	}
+    	return nil, wrap(err)
+- id: plansapi.get-plan
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+  body: |2
+    	wrap := gensupport.Prefix("plansapi: get plan")
+    	plan, err := h.uc.ReadPlan.Execute(ctx, growth.AccountID(request.Id))
+    	if err == nil {
+    		return apigen.GetPlan200JSONResponse{Account: string(plan.Account), Name: plan.Name, Archived: plan.Archived}, nil
+    	}
+    	if statusOf(err, statusRules()...) == http.StatusNotFound {
+    		return apigen.GetPlan404ApplicationProblemPlusJSONResponse{Title: http.StatusText(http.StatusNotFound), Status: http.StatusNotFound}, nil
+    	}
+    	return nil, wrap(err)
+- id: plansapi.status-rules
+  imports:
+    - { path: net/http }
+    - { path: example.com/slice/internal/application/growth }
+  body: |2
+    	return []statusRule{{err: growth.ErrPlanNotFound, status: http.StatusNotFound}}

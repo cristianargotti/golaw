@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cristianargotti/golaw/internal/genheader"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/surface"
 )
@@ -17,9 +18,11 @@ const (
 
 // Universe answers whether a path is a Go file whose lines the pipeline's
 // coverage measures (M6.8 item 3). The scope never widens a core law, it
-// only describes what the pipeline measures (M6.3.2); generated paths
-// without the generated header leave only through the scope's exclusions,
-// as the profile lists them.
+// only describes what the pipeline measures (M6.3.2). A golaw generated
+// file has the class of its path (C-1) and counts like the owned code
+// beside it. A third party generated file is left out, as the parity
+// number of M6 measured on the gate, unless an inclusion of the scope names
+// it, so the local number is never harsher than the gate.
 func Universe(s model.Snapshot, scope surface.Scope) func(path string) bool {
 	var nested []string
 	for _, file := range s.Files() {
@@ -37,9 +40,28 @@ func Universe(s model.Snapshot, scope surface.Scope) func(path string) bool {
 				return false
 			}
 		}
-		class := s.Class(name)
-		return (class == model.ClassTracked || class == model.ClassUntracked) && scope.Covered(name)
+		return counted(s, scope, name)
 	}
+}
+
+// counted reports a Go file of the module whose class the pipeline counts.
+func counted(s model.Snapshot, scope surface.Scope, name string) bool {
+	class := s.Class(name)
+	if class == model.ClassGenerated {
+		return (golawHeaded(s, name) || scope.Names(name)) && scope.Covered(name)
+	}
+	return (class == model.ClassTracked || class == model.ClassUntracked) && scope.Covered(name)
+}
+
+// golawHeaded reports a generated file whose first line is the golaw
+// header; a file that cannot be read proves nothing.
+func golawHeaded(s model.Snapshot, name string) bool {
+	content, err := s.Read(name)
+	if err != nil {
+		return false
+	}
+	_, ok := genheader.Parse(content)
+	return ok
 }
 
 // buildable drops the paths go test ./... never names: a segment that

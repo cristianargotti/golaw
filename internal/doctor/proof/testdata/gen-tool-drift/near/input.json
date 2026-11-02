@@ -1,0 +1,11 @@
+{
+  "tools": [
+    {
+      "name": "sqlc",
+      "version": "1.31.1",
+      "state": "receipt",
+      "path": "/data/golaw/tools/bin/sqlc/1.31.1/linux-amd64/sqlc",
+      "detail": ""
+    }
+  ]
+}

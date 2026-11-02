@@ -1,0 +1,12 @@
+{
+  "shape": "write",
+  "agent": "tester",
+  "tool": "Write",
+  "candidates": [
+    {
+      "path": "internal/application/growth/ledgertest/zz_generated_fake.go",
+      "op": "replace",
+      "reconstructed": true
+    }
+  ]
+}

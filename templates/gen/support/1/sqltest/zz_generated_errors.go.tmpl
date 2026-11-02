@@ -1,0 +1,6 @@
+package sqltest
+
+import "errors"
+
+// ErrUnscripted answers a statement the test did not script.
+var ErrUnscripted = errors.New("sqltest: unscripted statement")

@@ -15,17 +15,20 @@ import (
 )
 
 func (a *app) setupCommand() *cobra.Command {
-	var uninstall, digest bool
+	var uninstall, digest, gen bool
 	var surfaceValue string
 	cmd := &cobra.Command{
 		Use:   "setup [path]",
-		Short: "Arm optional Git hooks, remove the hooks recorded by setup, or install the surface linters",
+		Short: "Arm optional Git hooks, remove the hooks recorded by setup, or install the surface linters, or build the generators",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// A person who stops setup stops it through the context, so a
 			// stop after lefthook install still puts the git hooks back.
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
+			if gen {
+				return a.setupGenCommand(ctx, cmd.OutOrStdout(), args, cmd.Flags().Changed(surfaceFlag), uninstall)
+			}
 			if cmd.Flags().Changed(surfaceFlag) || digest {
 				return a.setupSurfaceCommand(ctx, cmd.OutOrStdout(), args, surfaceValue, digest, uninstall)
 			}
@@ -40,6 +43,7 @@ func (a *app) setupCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&uninstall, "uninstall", false, "remove the receipt-owned hooks and keep the tools installed")
 	cmd.Flags().StringVar(&surfaceValue, surfaceFlag, "", "install the pinned surface linters: present for the languages the repository holds, all for every one")
 	cmd.Flags().Lookup(surfaceFlag).NoOptDefVal = surfacePresent
+	cmd.Flags().BoolVar(&gen, genFlag, false, "build the pinned generators and golangci-lint from tools/go.mod into the tool directory")
 	cmd.Flags().BoolVar(&digest, "print-digest", false, "with --surface, print the toolchain digest and install nothing")
 	return cmd
 }

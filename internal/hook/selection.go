@@ -28,7 +28,9 @@ func (run execution) input(ctx context.Context, dependencies Dependencies) (mode
 		}
 		snapshot, err = dependencies.Overlay(ctx, snapshot, event.Candidates, run.request.Content)
 		paths = candidatePaths(event.Candidates)
-	case model.ShapeRead, model.ShapeShell:
+	case model.ShapeRead, model.ShapeSession:
+	case model.ShapeShell:
+		event.Shell = rootedShell(event.Shell, run.repository.Root)
 	case model.ShapePost:
 		paths, gaps = run.postPaths(ctx, dependencies)
 		if event.Post != nil {
@@ -43,6 +45,21 @@ func (run execution) input(ctx context.Context, dependencies Dependencies) (mode
 	return model.Input{
 		Mode: model.ModeHook, Policy: run.policy, Snapshot: snapshot, Targets: selectFiles(snapshot, paths), Event: &event,
 	}, gaps, nil
+}
+
+// rootedShell answers a copy of the shell payload with the repository
+// root set, so the request's event is never changed; nil stays nil. The
+// working directory is resolved as discovery resolves the root, because a
+// host that reaches the repository through a link (the temporary directory
+// of macOS) would otherwise place every literal target outside it.
+func rootedShell(shell *model.ShellCommand, root string) *model.ShellCommand {
+	if shell == nil {
+		return nil
+	}
+	rooted := *shell
+	rooted.Root = root
+	rooted.Cwd = resolvePath(shell.Cwd)
+	return &rooted
 }
 
 // postPaths are the files a post event judges: the file a write tool wrote,

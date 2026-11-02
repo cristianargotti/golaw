@@ -63,7 +63,7 @@ func VerifySettings(data []byte, owned Ownership) error {
 }
 
 func restorePointers(root map[string]json.RawMessage, owned Ownership) error {
-	for _, key := range pointerKeys() {
+	for _, key := range pointerKeys(owned) {
 		current, err := field(root, key)
 		if err != nil {
 			return err

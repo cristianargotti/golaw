@@ -1,0 +1,11 @@
+{
+  "tools": [
+    {
+      "name": "sqlc",
+      "version": "1.31.1",
+      "state": "missing",
+      "path": "",
+      "detail": "sqlc 1.31.1 is not installed"
+    }
+  ]
+}

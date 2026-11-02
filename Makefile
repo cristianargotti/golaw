@@ -7,7 +7,7 @@
 # itself; the CI file installs the toolchain go.mod names before make ci.
 export GOTOOLCHAIN=local
 
-.PHONY: mod deps-age fmt lint lint-pkg test coverage build scan lint-surface coverage-new secrets ci vet coverage-check generate-check deadcode licenses vuln release-gate-dry-run release-verify
+.PHONY: mod deps-age fmt lint lint-pkg test coverage build scan lint-surface golden-gen coverage-new secrets ci vet coverage-check generate-check deadcode licenses vuln release-gate-dry-run release-verify
 
 mod:
 	go mod verify
@@ -61,6 +61,13 @@ scan:
 lint-surface:
 	go run ./cmd/golaw lint --surface .
 
+# The golden slice of every generator kind (M7.10.3): a module each kind
+# writes, built, linted, scanned and measured for coverage on new code,
+# duplication and drift; the tests skip a step whose tool is absent and
+# name it, which -v prints.
+golden-gen:
+	go test -count=1 -v -run TestGolden ./internal/gen/...
+
 COVERAGE_BASE ?= origin/main
 
 coverage-new: test
@@ -70,7 +77,7 @@ secrets:
 	gitleaks dir --redact --no-banner .
 	gitleaks git --redact --no-banner .
 
-ci: mod deps-age fmt lint test coverage build scan secrets vet generate-check coverage-check deadcode licenses coverage-new lint-surface
+ci: mod deps-age fmt lint test coverage build scan secrets vet generate-check coverage-check deadcode licenses coverage-new lint-surface golden-gen
 
 # The release gate's decision replayed over a saved answer of the runs
 # endpoint of ci.yml, on any machine: make release-gate-dry-run SHA=<commit> RUNS=<file>

@@ -1,0 +1,84 @@
+package tlstest
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"sync"
+	"testing"
+)
+
+// recorder keeps the errors a server reports instead of failing the test.
+type recorder struct {
+	testing.TB
+
+	mu       sync.Mutex
+	reported []string
+}
+
+func (r *recorder) Errorf(format string, args ...any) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.reported = append(r.reported, fmt.Sprintf(format, args...))
+}
+
+func (r *recorder) count() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.reported)
+}
+
+func call(t *testing.T, client *http.Client, method, target string) (int, string) {
+	t.Helper()
+	request, err := http.NewRequestWithContext(t.Context(), method, target, http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response.StatusCode, string(body)
+}
+
+func TestServerAnswersItsRoutes(t *testing.T) {
+	t.Parallel()
+	routes := []Route{
+		{Method: http.MethodGet, Path: "/plans/a", Status: http.StatusOK, Body: []byte("plan")},
+		{Method: http.MethodGet, Path: "/empty", Status: http.StatusNoContent, Body: []byte("forbidden")},
+	}
+	tests := []struct {
+		name, method, path, body string
+		status, reported         int
+	}{
+		{"scripted", http.MethodGet, "/plans/a", "plan", http.StatusOK, 0},
+		{"unscripted", http.MethodPost, "/plans/a", "", http.StatusNotFound, 1},
+		{"a body the status forbids", http.MethodGet, "/empty", "", http.StatusNoContent, 1},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			rec := &recorder{TB: t}
+			server := Server(rec, routes...)
+			status, body := call(t, server.Client(), tc.method, server.URL+tc.path)
+			if status != tc.status || body != tc.body || rec.count() != tc.reported {
+				t.Errorf("answer = %d %q with %d reports", status, body, rec.count())
+			}
+		})
+	}
+}
+
+func TestServeTakesTheRoutesASeedAdds(t *testing.T) {
+	t.Parallel()
+	script := &Routes{}
+	server := Serve(t, script)
+	script.Add(Route{Status: http.StatusAccepted})
+	if status, _ := call(t, server.Client(), http.MethodPut, server.URL+"/any"); status != http.StatusAccepted {
+		t.Errorf("a route without method and path answered %d", status)
+	}
+}

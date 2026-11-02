@@ -1,0 +1,15 @@
+package {{.Package}}_test
+
+// Test{{.Type}}Contract runs the contract suite of {{.Port}} against {{.Type}} over a TLS test server.
+func Test{{.Type}}Contract(t *testing.T) {
+	t.Parallel()
+	{{.Suite}}.Run(t, {{.Lower}}Subject)
+}
+
+// TestNew{{.Type}}BoundsItsDefaultClient proves the default client of an empty configuration.
+func TestNew{{.Type}}BoundsItsDefaultClient(t *testing.T) {
+	t.Parallel()
+	if {{.Package}}.New{{.Type}}({{.Package}}.{{.Type}}Config{}) == nil {
+		t.Fatal("New{{.Type}} answered nil")
+	}
+}

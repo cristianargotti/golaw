@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cristianargotti/golaw/internal/genheader"
 	"github.com/cristianargotti/golaw/internal/model"
 )
 
@@ -56,11 +57,16 @@ func judgeShape(in model.Input, segs []segment) ([]model.Finding, error) {
 }
 
 // commitKind returns the conventional type of the first commit the command
-// line creates, empty when its subject has none, and false without a commit.
+// line creates, empty when its subject has none, and false without a commit
+// or when the message comes from a file, a template or the editor, whose
+// subject the command line does not hold: the commit rung judges that one.
 func commitKind(segs []segment) (string, bool) {
 	for _, call := range gitCalls(segs) {
 		if !isCommit(call) {
 			continue
+		}
+		if len(messagesOf(call)) == 0 {
+			return "", false
 		}
 		subject, _, _ := strings.Cut(messageOf(call), "\n")
 		if m := subjectType.FindStringSubmatch(subject); m != nil {
@@ -73,16 +79,17 @@ func commitKind(segs []segment) (string, bool) {
 
 // staged counts the files the command line stages and the new lines they
 // carry, each path once, with the files over the read bound whose lines
-// it could not count.
+// it could not count. A file golaw generated is no theme a person wrote,
+// so it counts neither as a file nor as lines.
 func staged(segs []segment, snap model.Snapshot) (int, int, []string, error) {
-	seen, lines := map[string]bool{}, 0
+	seen, generated, lines := map[string]bool{}, map[string]bool{}, 0
 	var unread []string
 	for _, call := range gitCalls(segs) {
 		if call.sub != "add" {
 			continue
 		}
 		for _, named := range addPaths(call.args) {
-			added, over, err := newLines(expand(named, snap), snap, seen)
+			added, over, err := newLines(expand(named, snap), snap, seen, generated)
 			if err != nil {
 				return 0, 0, nil, err
 			}
@@ -90,13 +97,13 @@ func staged(segs []segment, snap model.Snapshot) (int, int, []string, error) {
 			unread = append(unread, over...)
 		}
 	}
-	return len(seen), lines, unread, nil
+	return len(seen) - len(generated), lines, unread, nil
 }
 
 // newLines records every file of the list as staged and counts the lines
 // of the untracked ones, each path once; a file over the read bound counts
 // as staged and is answered aside, its lines uncounted.
-func newLines(files []model.File, snap model.Snapshot, seen map[string]bool) (int, []string, error) {
+func newLines(files []model.File, snap model.Snapshot, seen, generated map[string]bool) (int, []string, error) {
 	lines := 0
 	var unread []string
 	for _, f := range files {
@@ -114,6 +121,10 @@ func newLines(files []model.File, snap model.Snapshot, seen map[string]bool) (in
 		}
 		if err != nil {
 			return 0, nil, fmt.Errorf("read %s: %w", f.Path, err)
+		}
+		if _, golaw := genheader.Parse(content); golaw {
+			generated[f.Path] = true
+			continue
 		}
 		lines += lineCount(content)
 	}

@@ -235,3 +235,11 @@ checks:
     code: surface-shape
     red: testdata/surface-shape/red
     near: testdata/surface-shape/near
+  - id: doctor.gen-tool-missing
+    code: gen-tool-missing
+    red: testdata/gen-tool-missing/red
+    near: testdata/gen-tool-missing/near
+  - id: doctor.gen-tool-drift
+    code: gen-tool-drift
+    red: testdata/gen-tool-drift/red
+    near: testdata/gen-tool-drift/near

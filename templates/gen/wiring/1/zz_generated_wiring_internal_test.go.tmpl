@@ -1,0 +1,24 @@
+package main
+
+// TestWireAnswersTheRoutes builds the whole root over the zero Infra, so every
+// constructor call of the regenerable file runs in the generated suite.
+func TestWireAnswersTheRoutes(t *testing.T) {
+	t.Parallel()
+	if Wire(Infra{}) == nil {
+		t.Fatal("Wire answered no mux")
+	}
+}
+
+var errListen = errors.New("listen: address in use")
+
+// TestRunAnswersTheOutcomeOfServe drives Run over a serve that returns and
+// one that fails, the two exit codes main hands to os.Exit.
+func TestRunAnswersTheOutcomeOfServe(t *testing.T) {
+	t.Parallel()
+	if code := Run(t.Context(), func(context.Context) error { return nil }); code != 0 {
+		t.Errorf("Run over a serve that returns = %d, want 0", code)
+	}
+	if code := Run(t.Context(), func(context.Context) error { return errListen }); code != 1 {
+		t.Errorf("Run over a serve that fails = %d, want 1", code)
+	}
+}

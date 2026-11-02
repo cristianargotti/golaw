@@ -1,0 +1,7 @@
+entries:
+  - law: S107-parameters
+    red: red/s107-parameters
+    near: near/s107-parameters
+  - law: no-regexp
+    red: red/no-regexp
+    near: near/no-regexp

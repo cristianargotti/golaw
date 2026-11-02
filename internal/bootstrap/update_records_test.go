@@ -52,10 +52,38 @@ func TestUpdateProposesTheKitModulesTheRecordsLack(t *testing.T) {
 	}
 }
 
+// TestUpdateProposesTheRuntimesOfTheGeneratedCode holds the update of an
+// adoption whose tools module pins oapi-codegen: the code golaw gen writes
+// with it imports kin-openapi and the oapi-codegen runtime, so the record
+// proposal names them beside the generator, or golaw scan denies the
+// modules of code the kit generated.
+func TestUpdateProposesTheRuntimesOfTheGeneratedCode(t *testing.T) {
+	t.Parallel()
+	tools := "module example.test/app/tools\n\ngo 1.27\n\nrequire github.com/oapi-codegen/oapi-codegen/v2 v2.8.0\n"
+	for name, tc := range map[string]struct{ tools, want string }{
+		"red: the oapi generator": {tools, recordHead + "modules:\n  - github.com/quasilyte/go-ruleguard/dsl\n" +
+			"  - github.com/oapi-codegen/oapi-codegen/v2\n  - github.com/getkin/kin-openapi\n  - github.com/oapi-codegen/runtime\n" + recordBody},
+		"near: no generator": {kitTools, recordHead + "modules:\n" + kitLines + recordBody},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if got := proposedRecordOver(t, recordHead+"modules:\n  []\n"+recordBody, "", tc.tools, true); got != tc.want {
+				t.Fatalf("record proposal = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 // proposedRecord plans the update of a repository holding the record, and
 // another decision when given, and answers the record proposal, empty when
 // the plan proposes none.
 func proposedRecord(t *testing.T, record, other string, adopted bool) string {
+	t.Helper()
+	return proposedRecordOver(t, record, other, kitTools, adopted)
+}
+
+// proposedRecordOver is proposedRecord over another tools module.
+func proposedRecordOver(t *testing.T, record, other, tools string, adopted bool) string {
 	t.Helper()
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "docs", "adr"), 0o700); err != nil {
@@ -66,11 +94,11 @@ func proposedRecord(t *testing.T, record, other string, adopted bool) string {
 	writeCurrent(t, filepath.Join(root, "go.mod"), "module example.test/app\n")
 	var recorded []policy.ManagedFile
 	if adopted {
-		recorded = []policy.ManagedFile{{Path: "tools/go.mod", SHA256: install.Digest([]byte(kitTools))}}
+		recorded = []policy.ManagedFile{{Path: "tools/go.mod", SHA256: install.Digest([]byte(tools))}}
 	}
 	plan, err := bootstrap.PlanUpdate(root, []assets.Rendered{
 		templateFile("go.mod", "require github.com/quasilyte/go-ruleguard/dsl v0.3.23\n", assets.OwnedMerged),
-		templateFile("tools/go.mod", kitTools, assets.OwnedByKit),
+		templateFile("tools/go.mod", tools, assets.OwnedByKit),
 		templateFile(recordPath, recordHead+"modules:\n  - fresh\n"+recordBody, assets.OwnedByDeveloper),
 	}, recorded)
 	if err != nil {

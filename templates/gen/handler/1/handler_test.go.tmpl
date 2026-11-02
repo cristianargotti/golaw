@@ -1,0 +1,112 @@
+package {{.Package}}_test
+
+// newTestHandler is the handler over the use cases of every area, each port
+// served by its generated fake, so a test reaches an operation without a
+// database or a remote service.
+func newTestHandler() *{{.Package}}.Handler {
+	return {{.Package}}.NewHandler(
+{{- range .Areas}}
+		{{.Name}}.NewUseCases({{.Name}}.Deps{
+{{- range .Fakes}}
+			{{.Port}}: {{.Ident}}.NewFake(),
+{{- end}}
+		}),
+{{- end}}
+	)
+}
+
+// sampleRequest is a request the route pattern matches, each path parameter
+// set to one sample value, so the route table holds each route once.
+func sampleRequest(t *testing.T, pattern string) *http.Request {
+	t.Helper()
+	method, path, _ := strings.Cut(pattern, " ")
+	segments := strings.Split(path, "/")
+	for i, segment := range segments {
+		if strings.HasPrefix(segment, "{") {
+			segments[i] = "sample"
+		}
+	}
+	return httptest.NewRequestWithContext(t.Context(), method, strings.Join(segments, "/"), http.NoBody)
+}
+
+// requireRoutes proves Mount registers every pattern on one mux.
+func requireRoutes(t *testing.T, patterns []string) {
+	t.Helper()
+	mux := http.NewServeMux()
+	{{.Package}}.Mount(mux, newTestHandler())
+	for _, pattern := range patterns {
+		if _, got := mux.Handler(sampleRequest(t, pattern)); got != pattern {
+			t.Errorf("Mount routes %s to %q", pattern, got)
+		}
+	}
+}
+
+// fillDepth is how deep filled sets pointers: the request, its body and
+// parameters, and the fields of those, the shapes oapi-codegen writes.
+const fillDepth = 3
+
+// filled answers a request whose pointers, the body and each optional
+// parameter, point at a zero value and whose reader body is empty, so an
+// operation that reads them meets a request a client could send.
+func filled[Request any]() Request {
+	var request Request
+	fill(reflect.ValueOf(&request).Elem(), fillDepth)
+	return request
+}
+
+// fill sets every settable pointer and reader of a struct, then fills what
+// they point at; the direct fields alone, since a promoted one is reached
+// through its embedded field.
+func fill(value reflect.Value, depth int) {
+	if depth == 0 || value.Kind() != reflect.Struct {
+		return
+	}
+	reader := reflect.TypeFor[*strings.Reader]()
+	for _, field := range reflect.VisibleFields(value.Type()) {
+		target := value.FieldByIndex(field.Index)
+		if len(field.Index) != 1 || !target.CanSet() {
+			continue
+		}
+		if target.Kind() == reflect.Pointer {
+			target.Set(reflect.New(field.Type.Elem()))
+			target = target.Elem()
+		}
+		if target.Kind() == reflect.Interface && field.Type.NumMethod() > 0 && reader.Implements(field.Type) {
+			target.Set(reflect.ValueOf(strings.NewReader("")))
+		}
+		fill(target, depth-1)
+	}
+}
+
+// call adapts an operation to a call with a filled request, so the cause
+// table of a route file holds one short line per operation.
+func call[Request, Response any](operation func(context.Context, Request) (Response, error)) func(context.Context) error {
+	return func(ctx context.Context) error {
+		_, err := operation(ctx, filled[Request]())
+		return err
+	}
+}
+
+// wrapped reports whether err carries a cause, one or several, the shape
+// gensupport.Prefix and errors.Join give an error.
+func wrapped(err error) bool {
+	var one interface{ Unwrap() error }
+	var many interface{ Unwrap() []error }
+	return errors.As(err, &one) || errors.As(err, &many)
+}
+
+// requireCauses calls every operation on a canceled context: an operation
+// that answers an error keeps a cause in its chain, the wrap each
+// operation's hole asks for, whether the use case answered the context's
+// error or refused the request first. An open hole is its red test's to
+// report.
+func requireCauses(t *testing.T, operations map[string]func(context.Context) error) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	for name, operation := range operations {
+		if err := operation(ctx); err != nil && !errors.Is(err, gensupport.ErrNotImplemented) && !wrapped(err) {
+			t.Errorf("%s on a canceled context = %v, want an error wrapped with gensupport.Prefix", name, err)
+		}
+	}
+}

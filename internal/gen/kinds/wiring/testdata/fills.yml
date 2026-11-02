@@ -1,0 +1,11 @@
+- id: wiring.infra
+  body: |
+    server := &http.Server{Handler: Wire(Infra{}), ReadHeaderTimeout: time.Second}
+    <-ctx.Done()
+    if err := server.Close(); err != nil {
+        return fmt.Errorf("wiring: close the server: %w", err)
+    }
+    return nil
+  imports:
+    - path: net/http
+    - path: time

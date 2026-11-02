@@ -1,0 +1,10 @@
+entries:
+  - law: S107-parameters
+    red: proof/s107-parameters/red
+    near: proof/s107-parameters/near
+  - law: S1192-literals
+    red: proof/s1192-literals/red
+    near: proof/s1192-literals/near
+  - law: context-from-test
+    red: proof/context-from-test/red
+    near: proof/context-from-test/near

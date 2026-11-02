@@ -3,6 +3,7 @@ package install
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 )
 
@@ -18,7 +19,9 @@ type Ownership struct {
 }
 
 // MergeSettings retains foreign array order and the first ownership record.
-func MergeSettings(data []byte, marketplace string, rules []string, prior Ownership) ([]byte, Ownership, error) {
+// name is the marketplace the settings point at, MarketplaceName of the
+// installation.
+func MergeSettings(data []byte, name, marketplace string, rules []string, prior Ownership) ([]byte, Ownership, error) {
 	root, err := settingsObject(data)
 	if err != nil {
 		return nil, prior, err
@@ -29,7 +32,7 @@ func MergeSettings(data []byte, marketplace string, rules []string, prior Owners
 	}
 	owned := initialOwnership(root, data, prior, hadDeny)
 	deny = mergeRules(deny, rules, &owned)
-	err = mergePointers(root, marketplace, &owned)
+	err = mergePointers(root, name, marketplace, &owned)
 	if err != nil {
 		return nil, prior, err
 	}
@@ -69,7 +72,7 @@ func mergeRules(deny, rules []string, owned *Ownership) []string {
 	return deny
 }
 
-func mergePointers(root map[string]json.RawMessage, path string, owned *Ownership) error {
+func mergePointers(root map[string]json.RawMessage, name, path string, owned *Ownership) error {
 	market, err := marshal(map[string]any{
 		"source": map[string]string{"source": "directory", "path": path},
 	})
@@ -77,10 +80,19 @@ func mergePointers(root map[string]json.RawMessage, path string, owned *Ownershi
 		return fmt.Errorf("encode marketplace: %w", err)
 	}
 	desired := map[string]json.RawMessage{
-		"enabledPlugins/golaw@golaw":   json.RawMessage("true"),
-		"extraKnownMarketplaces/golaw": market,
+		"enabledPlugins/golaw@" + name:   json.RawMessage("true"),
+		"extraKnownMarketplaces/" + name: market,
 	}
-	for _, key := range pointerKeys() {
+	if name != userMarketplace {
+		// The host keeps one path per marketplace name across every scope,
+		// so a project marketplace under its own name turns off the person's
+		// plugin in this project and never resolves to that older copy.
+		desired["enabledPlugins/golaw@"+userMarketplace] = json.RawMessage("false")
+	}
+	if err := dropStale(root, desired, owned); err != nil {
+		return err
+	}
+	for _, key := range slices.Sorted(maps.Keys(desired)) {
 		if _, exists := owned.Original[key]; !exists {
 			before, err := field(root, key)
 			if err != nil {
@@ -99,8 +111,48 @@ func mergePointers(root map[string]json.RawMessage, path string, owned *Ownershi
 	return nil
 }
 
-func pointerKeys() []string {
-	return []string{"enabledPlugins/golaw@golaw", "extraKnownMarketplaces/golaw"}
+// dropStale gives back the original value of every field an earlier
+// installation wrote that this one no longer writes, such as the shared
+// marketplace name of a project installed before it had its own.
+func dropStale(root, desired map[string]json.RawMessage, owned *Ownership) error {
+	for _, key := range pointerKeys(*owned) {
+		if _, kept := desired[key]; kept {
+			continue
+		}
+		original := owned.Original[key]
+		if slices.Contains(owned.Missing, key) {
+			original = nil
+		}
+		if err := putField(root, key, original); err != nil {
+			return err
+		}
+		delete(owned.Original, key)
+		owned.Missing = slices.DeleteFunc(owned.Missing, func(missing string) bool { return missing == key })
+	}
+	return nil
+}
+
+// userMarketplace is the marketplace name of a user installation.
+const userMarketplace = "golaw"
+
+// MarketplaceName is the marketplace an installation registers: golaw for
+// the person, and for a project a name of its own derived from the
+// project identity, because the host records a single path per name.
+func MarketplaceName(scope, projectID string) string {
+	id := []rune(projectID)
+	if scope != scopeProject || len(id) < 12 {
+		return userMarketplace
+	}
+	return userMarketplace + "-" + string(id[:12])
+}
+
+// pointerKeys lists the settings fields an installation wrote, the two of
+// a receipt written before the project marketplace had its own name.
+func pointerKeys(owned Ownership) []string {
+	if len(owned.Installed) == 0 {
+		return []string{"enabledPlugins/golaw@golaw", "extraKnownMarketplaces/golaw"}
+	}
+	return slices.Sorted(maps.Keys(owned.Installed))
 }
 
 func removeOwned(values, owned []string) []string {

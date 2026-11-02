@@ -44,12 +44,22 @@ func surfaceReason(f model.Finding) string {
 	return fmt.Sprintf("%s:%d %s", f.Path, f.Line, f.Message)
 }
 
+// genCheck answers whether a check belongs to the gen family of
+// internal/checks/genguard, whose reasons M7.9.6 writes in the place first
+// form of the surface families; the prefix keeps the hook core free of
+// check imports.
+func genCheck(id string) bool {
+	return strings.HasPrefix(id, "gen.")
+}
+
 // withSurfaceReason rewrites the reason and the person's line of a result
 // whose first enforced finding, the one the engine's reason names, is of
-// the surface families; any other family keeps both as they were.
+// the surface families or of the gen family; any other family keeps both
+// as they were. A gen finding's remedy names the contract its message
+// names, so the person and the agent are told to edit the same file.
 func withSurfaceReason(result Result, event model.Event, decision engine.Decision, language string) Result {
 	i := slices.IndexFunc(decision.Findings, model.Finding.Enforced)
-	if i < 0 || !surfaceCheck(decision.Findings[i].Check) {
+	if i < 0 || (!surfaceCheck(decision.Findings[i].Check) && !genCheck(decision.Findings[i].Check)) {
 		return result
 	}
 	f := decision.Findings[i]
@@ -60,10 +70,14 @@ func withSurfaceReason(result Result, event model.Event, decision engine.Decisio
 	}
 	result.Reason = surfaceReason(f)
 	result.Human = fmt.Sprintf(sentence, f.Check, f.Path)
-	if fix, ok := report.Fix(language, f.Code); ok {
-		if f.Code == fileLengthCode {
+	fix, ok := report.GenFix(language, f)
+	if !ok {
+		fix, ok = report.Fix(language, f.Code)
+		if ok && f.Code == fileLengthCode {
 			fix = withLimit(fix, f.Message)
 		}
+	}
+	if ok {
 		result.Human += " " + fix
 	}
 	return result

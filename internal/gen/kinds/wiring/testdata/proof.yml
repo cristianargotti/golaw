@@ -1,0 +1,7 @@
+entries:
+  - law: S107-parameters
+    red: red/s107-parameters
+    near: near/s107-parameters
+  - law: context-from-test
+    red: red/context-from-test
+    near: near/context-from-test

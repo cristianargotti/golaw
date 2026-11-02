@@ -1,0 +1,12 @@
+{
+  "shape": "write",
+  "agent": "tester",
+  "tool": "Write",
+  "candidates": [
+    {
+      "path": "internal/adapters/out/vendor/stream.go",
+      "op": "create",
+      "reconstructed": true
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+package {{.Package}}_test
+
+func TestMountRoutes{{if gt .Chunk 1}}{{.Chunk}}{{end}}(t *testing.T) {
+	t.Parallel()
+	requireRoutes(t, []string{
+{{- range .Patterns}}
+		{{printf "%q" .}},
+{{- end}}
+	})
+}
+
+func TestOperationsKeepTheCauseOfAnError{{if gt .Chunk 1}}{{.Chunk}}{{end}}(t *testing.T) {
+	t.Parallel()
+	h := newTestHandler()
+	requireCauses(t, map[string]func(context.Context) error{
+{{- range .Calls}}
+		{{printf "%q" .}}: call(h.{{.}}),
+{{- end}}
+	})
+}

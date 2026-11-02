@@ -112,12 +112,11 @@ func Load(ctx context.Context, in Input) (*Loaded, error) {
 		l.Policy = &p
 		return l, nil
 	}
+	if pinErr := checkPin(data, in.Version); pinErr != nil {
+		return nil, pinErr
+	}
 	if l.File, err = Decode(data); err != nil {
 		return nil, err
-	}
-	if in.Version != "" && l.File.Kit.Version != in.Version {
-		return nil, fmt.Errorf("%w: %s pins kit version %s and this binary is %s: install the pinned version or run init --update",
-			model.ErrPolicy, FileName, l.File.Kit.Version, in.Version)
 	}
 	if l.Policy, err = Compile(l.File, in.Now, in.Schemas); err != nil {
 		return nil, err

@@ -26,6 +26,9 @@ linters:
       # the action it failed at, so a hook reason names the layer without a
       # stack trace; %w keeps errors.Is working on the sentinels underneath.
       ignore-sigs: [.Errorf(, errors.New(, errors.Unwrap(, errors.Join(, context.Context).Err(]
+      # The support package answers errors that already name their hole or
+      # their action, and every generated file returns them as they are.
+      ignore-package-globs: ["{{.ModulePath}}/{{or .Generate.Support "internal/gensupport"}}", "{{.ModulePath}}/{{or .Generate.Support "internal/gensupport"}}/*"]
     depguard:
       rules:
 {{if has .Capabilities "hexagonal"}}
@@ -40,6 +43,7 @@ linters:
             - $gostd
             - "{{.ModulePath}}/internal/domain"
             - "{{.ModulePath}}/internal/application"
+            - "{{.ModulePath}}/{{or .Generate.Support "internal/gensupport"}}"
 {{end}}
         main:
           list-mode: lax
@@ -174,6 +178,9 @@ linters:
             - max: 300
               skipComments: false
               skipBlankLines: false
+        # go:S107: a constructor takes the port values or one Deps or Config struct (A51).
+        - name: argument-limit
+          arguments: [7]
         - name: function-length
           arguments: [0, 40]
     sloglint:
@@ -212,6 +219,14 @@ linters:
       - path: _test\.go
         text: function-length
         linters: [revive]
+      # M7: the stub golaw new writes for a port its area does not declare
+      # yet carries its methods hole on the line of its type. Until the agent
+      # declares a method, modernize would spell the empty interface any and
+      # iface would call a second stub identical; a declared port loses the
+      # marker, so both judge it again.
+      - path: (^|/)ports\.go$
+        source: '^type \w+ interface \{ // golaw:hole '
+        linters: [modernize, iface]
 
 formatters:
   enable: [gofumpt, gci]

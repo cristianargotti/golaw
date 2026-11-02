@@ -32,6 +32,19 @@ func Toolchain() []Tool {
 	}
 }
 
+// Generators lists the pinned generators of the enrolled repository's tools
+// module in name order (M7.11.1). They stay apart from Toolchain because
+// golaw setup verifies the rung tools on every machine, and a repository
+// without a database or an HTTP contract must never need sqlc or
+// oapi-codegen; each probe prints v and the pin, which Matches accepts.
+func Generators() []Tool {
+	return []Tool{
+		{Name: "goverter", Module: "github.com/jmattheis/goverter/cmd/goverter", Version: "1.11.1", Probe: []string{probeVersion}},
+		{Name: "oapi-codegen", Module: "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen", Version: "2.8.0", Probe: []string{"-version"}},
+		{Name: "sqlc", Module: "github.com/sqlc-dev/sqlc/cmd/sqlc", Version: "1.31.1", Probe: []string{probeVersion}},
+	}
+}
+
 // LookupTool finds a tool of the toolchain by name.
 func LookupTool(name string) (Tool, bool) {
 	tools := Toolchain()

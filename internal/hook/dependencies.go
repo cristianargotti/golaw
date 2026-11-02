@@ -64,25 +64,31 @@ type Repository struct {
 // Tools, when set, runs the fast linters of a post event on the files it
 // is given, within the event budget, and answers their findings, the tools
 // it could not run and the files it gave up on; it never denies (M6.5.3,
-// A28).
+// A28). Regenerate, when set, regenerates the kinds of the contracts a post
+// event wrote and applies the mechanical fixes, answering the lines, their
+// person forms and the notices; it never denies (M7.9.1). Session, when
+// set, answers the map text a session event of an enrolled repository
+// receives as context; it never denies.
 type Dependencies struct {
-	Home      string
-	Begin     func()
-	Enroll    func(ctx context.Context, dir, cwd string) (Repository, error)
-	Policy    func(context.Context, Repository) (*model.EffectivePolicy, error)
-	Snapshot  func(context.Context, Repository) (model.Snapshot, error)
-	Changes   func(ctx context.Context, repository Repository, also []string) (Changes, error)
-	Moved     func(ctx context.Context, repository Repository, from, to string) (map[string]string, error)
-	Commits   func(ctx context.Context, repository Repository, since, now string, from int64) ([]Commit, error)
-	Committer func(ctx context.Context, repository Repository) (string, error)
-	Remerged  func(ctx context.Context, repository Repository, merges []string) (map[string][]string, error)
-	Hashes    func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
-	Automatic func(ctx context.Context, repository Repository, ours, theirs string, paths []string) (map[string][]string, error)
-	Overlay   func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
-	Registry  *engine.Registry
-	State     Store
-	Budget    time.Duration
-	Tools     func(ctx context.Context, repository Repository, policy *model.EffectivePolicy, files []ToolFile) ToolReport
+	Home       string
+	Begin      func()
+	Enroll     func(ctx context.Context, dir, cwd string) (Repository, error)
+	Policy     func(context.Context, Repository) (*model.EffectivePolicy, error)
+	Snapshot   func(context.Context, Repository) (model.Snapshot, error)
+	Changes    func(ctx context.Context, repository Repository, also []string) (Changes, error)
+	Moved      func(ctx context.Context, repository Repository, from, to string) (map[string]string, error)
+	Commits    func(ctx context.Context, repository Repository, since, now string, from int64) ([]Commit, error)
+	Committer  func(ctx context.Context, repository Repository) (string, error)
+	Remerged   func(ctx context.Context, repository Repository, merges []string) (map[string][]string, error)
+	Hashes     func(ctx context.Context, repository Repository, paths []string) (map[string]string, error)
+	Automatic  func(ctx context.Context, repository Repository, ours, theirs string, paths []string) (map[string][]string, error)
+	Overlay    func(context.Context, model.Snapshot, []model.Candidate, map[string][]byte) (model.Snapshot, error)
+	Registry   *engine.Registry
+	State      Store
+	Budget     time.Duration
+	Tools      func(ctx context.Context, repository Repository, policy *model.EffectivePolicy, files []ToolFile) ToolReport
+	Regenerate func(ctx context.Context, repository Repository, policy *model.EffectivePolicy, written []string) RegenReport
+	Session    func(ctx context.Context, repository Repository, policy *model.EffectivePolicy) string
 
 	AutomaticWith func(ctx context.Context, repository Repository, ours, theirs string, options, paths []string) (map[string][]string, error)
 	RemergedWith  func(ctx context.Context, repository Repository, merges, options []string) (map[string][]string, error)

@@ -1,4 +1,4 @@
-{{- $dsl := false}}{{range .DirectRequires}}{{if eq .Path "github.com/quasilyte/go-ruleguard/dsl"}}{{$dsl = true}}{{end}}{{end -}}
+{{- $dsl := false}}{{$kin := false}}{{$runtime := false}}{{range .DirectRequires}}{{if eq .Path "github.com/quasilyte/go-ruleguard/dsl"}}{{$dsl = true}}{{end}}{{if eq .Path "github.com/getkin/kin-openapi"}}{{$kin = true}}{{end}}{{if eq .Path "github.com/oapi-codegen/runtime"}}{{$runtime = true}}{{end}}{{end -}}
 ---
 record: 1
 title: inherited dependency baseline
@@ -12,6 +12,21 @@ modules:
 {{- end}}
   - github.com/evilmartians/lefthook/v2
   - github.com/golangci/golangci-lint/v2
+{{- if has .Capabilities "hexagonal"}}
+  - github.com/jmattheis/goverter
+{{- end}}
+{{- if has .Capabilities "api"}}
+  - github.com/oapi-codegen/oapi-codegen/v2
+{{- if not $kin}}
+  - github.com/getkin/kin-openapi
+{{- end}}
+{{- if not $runtime}}
+  - github.com/oapi-codegen/runtime
+{{- end}}
+{{- end}}
+{{- if has .Capabilities "db"}}
+  - github.com/sqlc-dev/sqlc
+{{- end}}
   - github.com/zricethezav/gitleaks/v8
   - golang.org/x/vuln
 ---
@@ -31,6 +46,9 @@ This list records existing direct dependencies. A denied entry requires replacem
 {{end}}{{if not $dsl}}| github.com/quasilyte/go-ruleguard/dsl | v0.3.23 | kit |
 {{end}}| github.com/evilmartians/lefthook/v2 | v{{.Tools.lefthook}} | kit tool |
 | github.com/golangci/golangci-lint/v2 | v{{index .Tools "golangci-lint"}} | kit tool |
-| github.com/zricethezav/gitleaks/v8 | v{{.Tools.gitleaks}} | kit tool |
+{{if has .Capabilities "hexagonal"}}| github.com/jmattheis/goverter | v{{.Tools.goverter}} | kit tool |
+{{end}}{{if has .Capabilities "api"}}| github.com/oapi-codegen/oapi-codegen/v2 | v{{index .Tools "oapi-codegen"}} | kit tool |
+{{end}}{{if has .Capabilities "db"}}| github.com/sqlc-dev/sqlc | v{{.Tools.sqlc}} | kit tool |
+{{end}}| github.com/zricethezav/gitleaks/v8 | v{{.Tools.gitleaks}} | kit tool |
 | golang.org/x/vuln | v{{.Tools.govulncheck}} | kit tool |
 

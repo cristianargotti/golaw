@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io/fs"
+
+	"github.com/cristianargotti/golaw/internal/model"
 )
 
 // Values keeps adopter inputs explicit so rendering never probes a machine.
@@ -16,6 +18,9 @@ type Values struct {
 	Decisions    string
 	Main         string
 	Tools        map[string]string
+	// Generate is the layout the codegen and sqlc templates render their
+	// output paths from, so an adopter's generated trees follow golaw.yml.
+	Generate model.GeneratePolicy
 }
 
 // Rendered binds ownership and destination to the exact bytes being applied.

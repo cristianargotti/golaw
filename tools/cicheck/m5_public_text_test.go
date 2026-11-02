@@ -99,7 +99,7 @@ func m5BuildArgs(config []byte, output string) ([]string, []string, error) {
 // m5Values are the values the render tests of the kit use, with a module path.
 func m5Values(module string, capabilities []string) assets.Values {
 	tools := make(map[string]string)
-	for _, tool := range runner.Toolchain() {
+	for _, tool := range slices.Concat(runner.Toolchain(), runner.Generators()) {
 		tools[tool.Name] = tool.Version
 	}
 	return assets.Values{

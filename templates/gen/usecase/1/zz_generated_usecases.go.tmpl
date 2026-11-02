@@ -1,0 +1,24 @@
+package {{.Package}}
+
+// Deps holds every port the use cases of {{.Package}} consume.
+type Deps struct {
+{{- range .Ports}}
+	{{.Name}} {{.Name}}
+{{- end}}
+}
+
+// UseCases holds every use case of {{.Package}}, built from one Deps.
+type UseCases struct {
+{{- range .Usecases}}
+	{{.Type}} *{{.Type}}
+{{- end}}
+}
+
+// NewUseCases builds every use case of {{.Package}} over deps.
+func NewUseCases(deps Deps) UseCases {
+	return UseCases{
+{{- range .Usecases}}
+		{{.Type}}: New{{.Type}}(deps),
+{{- end}}
+	}
+}

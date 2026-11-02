@@ -27,6 +27,9 @@ func Oversized(input io.Reader) (hook.Parsed, error) {
 		return hook.Parsed{}, fmt.Errorf("an input over the bound: %w", err)
 	}
 	w, event, in, err := parse(shrunk)
+	if err == nil && event.Shape == model.ShapeSession {
+		err = fmt.Errorf("%w: a session start is never over the bound of the hook", model.ErrCannotJudge)
+	}
 	if err != nil {
 		return hook.Parsed{}, err
 	}

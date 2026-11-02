@@ -176,12 +176,12 @@ func TestCoverageNewCodeNeverAnswersCleanWithoutAReport(t *testing.T) {
 		{"red-missing", "", false, "cannot be read: write it with go test -coverprofile"},
 		{"red-empty", "", true, "empty or opens without a mode line"},
 		{"red-unparseable", "garbage\n", true, "empty or opens without a mode line"},
-		{"red-names-no-file-of-the-universe", "mode: set\n" + newCodeModule + "/gen.pb.go:5.16,7.2 1 1\n", true, "names no file of the coverage universe"},
+		{"red-names-no-file-of-the-universe", "mode: set\n" + newCodeModule + "/testdata/gen.pb.go:5.16,7.2 1 1\n", true, "names no file of the coverage universe"},
 		{"red-a-source-the-checkout-lacks", newCodeProfile(4, newCodeModule+"/absent.go:1.1,2.2 1 1"), true, "absent.go"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			f := newCodeFixture(t, newCodeCase{extra: map[string]string{"gen.pb.go": generated}})
+			f := newCodeFixture(t, newCodeCase{extra: map[string]string{"testdata/gen.pb.go": generated}})
 			report := filepath.Join(f.repo.Root, "profile.cov")
 			if tc.write {
 				report = f.write(t, "profile.cov", tc.profile, true)
