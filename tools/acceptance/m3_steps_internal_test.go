@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -133,15 +134,15 @@ func TestM3TidyToolsFollowsTheToolsModule(t *testing.T) {
 	s := m2TestSuite(t)
 	var got []string
 	s.execute = func(_ context.Context, c command) result {
-		got = c.args
+		got = append(slices.Clone(c.args), c.dir)
 		return result{err: ErrAcceptance}
 	}
 	repo := t.TempDir()
 	if err := s.m3TidyTools(t.Context(), repo); err != nil || got != nil {
 		t.Fatalf("near no tools module = %v, ran %v", err, got)
 	}
-	checkedWrite(t, filepath.Join(repo, "tools", moduleFile), "module tools\n")
-	if err := s.m3TidyTools(t.Context(), repo); err == nil || strings.Join(got, " ") != "-C tools mod tidy" {
+	checkedWrite(t, filepath.Join(repo, dirTools, moduleFile), "module tools\n")
+	if err := s.m3TidyTools(t.Context(), repo); err == nil || strings.Join(got, " ") != "mod tidy "+filepath.Join(repo, dirTools) {
 		t.Fatalf("red a failed tidy = %v, ran %v", err, got)
 	}
 	blocked := filepath.Join(t.TempDir(), "file")

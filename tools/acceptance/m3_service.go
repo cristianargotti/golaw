@@ -91,7 +91,7 @@ func (s *suite) m3AcceptModule(ctx context.Context, repo string) error {
 	if err != nil {
 		return err
 	}
-	for _, args := range [][]string{{"get", m3RuleguardModule + "@" + version}, {"mod", "tidy"}} {
+	for _, args := range [][]string{{"get", m3RuleguardModule + "@" + version}, {goSubMod, goSubTidy}} {
 		if err := success(s.execute(ctx, command{program: s.goTool, args: args, dir: repo, env: s.env})); err != nil {
 			return err
 		}
@@ -103,14 +103,21 @@ func (s *suite) m3AcceptModule(ctx context.Context, repo string) error {
 // reaches the network, so the go.sum lines of the pinned generators in the
 // tools module come from go mod tidy, run and committed by a person.
 func (s *suite) m3TidyTools(ctx context.Context, repo string) error {
-	if _, err := os.Stat(filepath.Join(repo, "tools", moduleFile)); err != nil {
+	if _, err := os.Stat(filepath.Join(repo, dirTools, moduleFile)); err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 		return fmt.Errorf("inspect the tools module: %w", err)
 	}
-	return success(s.execute(ctx, command{program: s.goTool, args: []string{"-C", "tools", "mod", "tidy"}, dir: repo, env: s.env}))
+	return success(s.execute(ctx, command{program: s.goTool, args: []string{goSubMod, goSubTidy}, dir: filepath.Join(repo, dirTools), env: s.env}))
 }
+
+// The go command that leaves a module's go.mod and go.sum as a person's
+// tidy does.
+const (
+	goSubMod  = "mod"
+	goSubTidy = "tidy"
+)
 
 func m3RequiredVersion(path, module string) (string, error) {
 	body, err := readFile(path)

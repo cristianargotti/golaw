@@ -24,7 +24,7 @@ const (
 // that import the generators' runtimes: go tool, setup --gen and go test
 // refuse a module without its requires and checksums.
 func (s *m7Suite) m7Tidy(ctx context.Context, dir string) error {
-	tidy := command{program: s.goTool, args: []string{"mod", "tidy"}, dir: dir, env: s.env, timeout: m2MeasurementTimeout}
+	tidy := command{program: s.goTool, args: []string{goSubMod, goSubTidy}, dir: dir, env: s.env, timeout: m2MeasurementTimeout}
 	if err := success(s.execute(ctx, tidy)); err != nil {
 		return fmt.Errorf("tidy the module of %s: %w", dir, err)
 	}
