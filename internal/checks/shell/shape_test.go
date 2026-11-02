@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cristianargotti/golaw/internal/checks/shell"
+	"github.com/cristianargotti/golaw/internal/genheader"
 	"github.com/cristianargotti/golaw/internal/model"
 	"github.com/cristianargotti/golaw/internal/proof"
 )
@@ -76,6 +77,8 @@ func TestShapeCountsNamedFiles(t *testing.T) {
 		adds(41) + ` && git commit -m "dump"`:                true,
 		"git add f01.go ./f01.go && git commit -m 'fix: x'":  false,
 		`git commit -m "refactor: x"`:                        false,
+		adds(41) + ` && git commit -F /tmp/message.txt`:      false,
+		adds(41) + ` && git commit`:                          false,
 	})
 	res := judge(t, shell.Shape(), adds(41)+` && git commit -m "dump"`)
 	if !strings.Contains(res.Findings[0].Message, "a typeless commit stages 41 files and 0 new lines") {
@@ -149,5 +152,19 @@ func TestShapeLeavesAFileOverTheBoundUnread(t *testing.T) {
 	res, err = shell.Shape().Run(t.Context(), input(adds(41)+` data && git commit -m "fix: data"`, proof.Policy(), tree))
 	if err != nil || len(res.Findings) != 1 || len(res.Unread) != 0 {
 		t.Fatalf("over the file limit = %+v, %v", res, err)
+	}
+}
+
+func TestShapeLeavesGolawGeneratedFilesOut(t *testing.T) {
+	t.Parallel()
+	header := genheader.Header{Version: "0.3.0", Kind: "port", Template: 1}.Line() + "\n"
+	generated := header + strings.Repeat("x\n", 500)
+	tree := worktree{
+		files:     map[string]string{"internal/app/zz_generated_port.go": generated, "internal/app/port.go": strings.Repeat("x\n", 10)},
+		untracked: []string{"internal/app/zz_generated_port.go", "internal/app/port.go"},
+	}
+	res, err := shell.Shape().Run(t.Context(), input(`git add internal/app && git commit -m "refactor: regenerate"`, proof.Policy(), tree))
+	if err != nil || len(res.Findings) != 0 {
+		t.Fatalf("generated lines counted: %+v, %v", res, err)
 	}
 }
