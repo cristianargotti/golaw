@@ -32,9 +32,7 @@ init --apply never renders over a golaw.yml the checkout already holds: it keeps
 
 The default policy is core only. The default human language is pt-BR. Findings, documentation, comments, and commits remain English. Repository identity never selects a profile implicitly.
 
-The agent installer shows its changes, preserves unrelated settings in order, and records owned artifacts by hash. A repeated installation must produce no diff. User scope is the default.
-
-Claude Code keeps an installed plugin under its manifest version, so the installer writes a version that carries a digest of the skill and the hooks, and a new kit reaches the host. A project installation registers a marketplace named after the project, turns the person's golaw plugin off in that project and prints the two commands a session without a prompt (`claude -p`) needs once: `claude plugin marketplace add <path> --scope local` and `claude plugin install golaw@<name> --scope local`. After upgrading a user installation, `claude plugin marketplace update golaw` makes the host read the new version.
+The agent installer shows its changes, preserves unrelated settings in order, and records owned artifacts by hash. A repeated installation must produce no diff. User scope is the default. Claude Code keeps an installed plugin under its manifest version, so the installer writes a version that carries a digest of the skill and the hooks, and a new kit reaches the host. A project installation registers a marketplace named after the project, turns the person's golaw plugin off in that project and prints the two commands a session without a prompt (`claude -p`) needs once: `claude plugin marketplace add <path> --scope local` and `claude plugin install golaw@<name> --scope local`. After upgrading a user installation, `claude plugin marketplace update golaw` makes the host read the new version.
 
 ## Choose local git rungs
 
