@@ -145,6 +145,17 @@ func TestM3TidyToolsFollowsTheToolsModule(t *testing.T) {
 	if err := s.m3TidyTools(t.Context(), repo); err == nil || strings.Join(got, " ") != "mod tidy "+filepath.Join(repo, dirTools) {
 		t.Fatalf("red a failed tidy = %v, ran %v", err, got)
 	}
+	var ran []string
+	s.execute = func(_ context.Context, c command) result {
+		ran = append(ran, strings.Join(c.args, " "))
+		if c.program == s.binary {
+			return result{err: ErrAcceptance}
+		}
+		return result{}
+	}
+	if err := s.m3TidyTools(t.Context(), repo); err == nil || strings.Join(ran, ",") != "mod tidy,gen" {
+		t.Fatalf("red a failed gen = %v, ran %v", err, ran)
+	}
 	blocked := filepath.Join(t.TempDir(), "file")
 	checkedWrite(t, blocked, "a file where the repository goes\n")
 	if err := s.m3TidyTools(t.Context(), blocked); err == nil {

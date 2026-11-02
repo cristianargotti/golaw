@@ -99,9 +99,11 @@ func (s *suite) m3AcceptModule(ctx context.Context, repo string) error {
 	return nil
 }
 
-// m3TidyTools takes the step docs/setup.md names after init: init never
+// m3TidyTools takes the steps docs/setup.md names after init: init never
 // reaches the network, so the go.sum lines of the pinned generators in the
-// tools module come from go mod tidy, run and committed by a person.
+// tools module come from go mod tidy, and golaw gen then rewrites the
+// generated code the fixture carries with those pinned generators, both
+// run and committed by a person.
 func (s *suite) m3TidyTools(ctx context.Context, repo string) error {
 	if _, err := os.Stat(filepath.Join(repo, dirTools, moduleFile)); err != nil {
 		if os.IsNotExist(err) {
@@ -109,7 +111,10 @@ func (s *suite) m3TidyTools(ctx context.Context, repo string) error {
 		}
 		return fmt.Errorf("inspect the tools module: %w", err)
 	}
-	return success(s.execute(ctx, command{program: s.goTool, args: []string{goSubMod, goSubTidy}, dir: filepath.Join(repo, dirTools), env: s.env}))
+	if err := success(s.execute(ctx, command{program: s.goTool, args: []string{goSubMod, goSubTidy}, dir: filepath.Join(repo, dirTools), env: s.env})); err != nil {
+		return err
+	}
+	return success(s.execute(ctx, command{program: s.binary, args: []string{"gen"}, dir: repo, env: s.env}))
 }
 
 // The go command that leaves a module's go.mod and go.sum as a person's

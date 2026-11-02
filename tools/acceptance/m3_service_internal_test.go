@@ -11,7 +11,8 @@ import (
 )
 
 // m3ServiceAnswer answers init with the M2 simulation, which renders the
-// core templates and enrolls, and go get and go mod tidy with success,
+// core templates and enrolls, and go get, go mod tidy and golaw gen with
+// success,
 // recording each.
 func m3ServiceAnswer(t *testing.T, s *suite, calls *[][]string) m2Answer {
 	t.Helper()
@@ -20,6 +21,9 @@ func m3ServiceAnswer(t *testing.T, s *suite, calls *[][]string) m2Answer {
 		case c.program == s.binary && len(c.args) > 0 && c.args[0] == commandInit:
 			*calls = append(*calls, c.args)
 			return m2Reply{got: m2Init(t, s, c), target: true}, true
+		case c.program == s.binary && len(c.args) > 0 && c.args[0] == "gen":
+			*calls = append(*calls, c.args)
+			return m2Reply{}, true
 		case c.program == s.goTool && len(c.args) > 0 && (c.args[0] == "get" || c.args[0] == "mod"):
 			*calls = append(*calls, c.args)
 			return m2Reply{}, true
