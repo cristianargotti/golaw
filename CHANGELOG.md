@@ -6,6 +6,7 @@ Every rule change is dated here with its reason. The format follows Keep a Chang
 
 ### Release
 
+- 2026-11-03: golaw.yml pins kit 0.4.0, and the README and docs/setup.md install v0.4.0, the release that carries M7, the generators from contracts with holes, their fit to existing repositories, golaw context, golaw check and golaw rules; a kit update applies with golaw init --update --apply.
 - 2026-10-30: golaw.yml pins kit 0.3.0, and the README, docs/setup.md and the agent skill name v0.3.0, the release that carries M6, the non-Go surface of a Go repository (golaw lint, golaw setup --surface, the native certain checks, the hook feedback and coverage on new code); a kit update applies with golaw init --update --apply.
 - 2026-10-24: golaw.yml pins kit 0.2.1, and the README, docs/setup.md and the agent skill name v0.2.1, the release after v0.2.0 whose binaries the dated live record of the plugin host lets the release lane publish; a kit update applies with golaw init --update --apply.
 
