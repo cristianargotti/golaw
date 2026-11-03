@@ -28,8 +28,8 @@ func (kind) Name() string { return genkind.KindSupport }
 
 func (kind) Template() int { return templateVersion }
 
-// New renders the support package; it takes no request because the package
-// is the same for every repository but its path and module.
+// New renders the parts of the support package the repository uses; it
+// takes no request because the snapshot says which parts are used.
 func (k kind) New(ctx context.Context, in genkind.Input, _ genkind.Request) (genkind.Output, error) {
 	return k.render(ctx, in)
 }
@@ -70,6 +70,7 @@ func (kind) render(ctx context.Context, in genkind.Input) (genkind.Output, error
 	// render.Go is held as a value because goast.goleak reads every call of
 	// a selector named Go as a goroutine start, and this one starts none.
 	renderGo := render.Go
+	all := make([]rendered, 0, len(names))
 	for _, name := range names {
 		target := path.Join(in.Policy.Support, strings.TrimSuffix(name, templateSuffix))
 		dir := path.Dir(target)
@@ -78,8 +79,11 @@ func (kind) render(ctx context.Context, in genkind.Input) (genkind.Output, error
 		if err != nil {
 			return genkind.Output{}, fmt.Errorf("support: %w", err)
 		}
-		out.Regenerable = append(out.Regenerable, genkind.File{Path: target, Content: content})
-		out.Entry.Regenerable = append(out.Entry.Regenerable, target)
+		all = append(all, rendered{file: genkind.File{Path: target, Content: content}, unit: unitOf(name)})
+	}
+	for _, r := range selectUnits(in, all) {
+		out.Regenerable = append(out.Regenerable, r.file)
+		out.Entry.Regenerable = append(out.Entry.Regenerable, r.file.Path)
 	}
 	return out, nil
 }

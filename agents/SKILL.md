@@ -19,7 +19,7 @@ Keep one use case per file, named verb_object.go with its matching test file. Gi
 
 Declare package failure modes as sentinels in errors.go. Begin an operation with wrap := failures.Prefix("package: action") and wrap each error returned across the package boundary. When at least three functions share a prefix, keep the shared wrapper in errors.go. Do not repeat a layer in an error chain. Classify failures with errors.Is against sentinels, never by comparing error text. At an HTTP boundary, map those sentinels to the contract's response.
 
-Keep a pull request within 400 changed lines and one topic. Combine topics only when the owner explicitly requests the bundle. Ask before pushing or opening a pull request.
+Keep a pull request within 400 changed lines and one topic; the files golaw generates (`zz_generated` files and the support package) do not count and need no review. Combine topics only when the owner explicitly requests the bundle. Ask before pushing or opening a pull request.
 
 Explain why in English comments. Explain why the current code needs the decision. Keep documentation and conventional commits in English, with no commit trailers. Use the configured language for strings addressed to people, pt-BR by default.
 

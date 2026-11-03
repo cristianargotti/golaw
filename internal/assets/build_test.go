@@ -24,7 +24,7 @@ func TestMakeAssetsKeepLongChecksExplicit(t *testing.T) {
 		"\n.PHONY: mod fmt lint vet test coverage-check build scan secrets deadcode bench fuzz test-integration ",
 		"\nmod:\n\tgo mod verify\n",
 		"\nfmt:\n\tgolaw lock pre-commit -- golangci-lint fmt ./...\n",
-		"\nlint:\n\tgolangci-lint run ./...\n",
+		"\nlint:\n\tgolangci-lint run $(LINT_NEW) ./...\n",
 		"\nvet:\n\tgo vet ./...\n",
 		"\ntest:\n\tgo test -race -shuffle=on -count=1 -timeout=10m -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...\n",
 		"\ncoverage-check:\n\tgolaw coverage --input coverage.out\n",

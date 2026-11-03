@@ -74,6 +74,8 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-11-03: golaw new writes only the parts of the support package the repository's code uses, and the agent skill says generated files do not count toward the 400 line size and need no review, because in an adopted repository the first golaw new wrote 21 files and about 1 800 lines the change never called and agents spent turns justifying or refusing them.
+- 2026-11-03: make lint judges the new code since the fork from origin/HEAD, origin/main or origin/master (LINT_BASE), and lints everything when git resolves none, because a kit upgrade with a stricter rule, such as argument-limit 7, turned code the change never touched red and agents refactored it outside the task.
 - 2026-11-02: golaw new port takes no --usecase in an area whose use cases are written by hand, adopting a port the area declares (its test package only) or stubbing a new one, so the adapter kinds reach the ports of an existing repository; the bench gate found that every area of an adopted repository is written by hand and the generators refused all of them.
 - 2026-11-02: agent install writes a plugin version that carries a digest of the skill and the hooks, and a project installation registers a marketplace named after the project and turns the person's golaw plugin off there, because the plugin host keeps a plugin under its manifest version and one path per marketplace name, so no upgrade and no project copy reached it.
 - 2026-11-02: a golaw.yml whose kit pin differs from the binary names the version to install before any key the binary does not know, because the strict decode used to answer with a YAML field.
