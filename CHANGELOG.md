@@ -13,6 +13,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Added
 
+- 2026-11-03: golaw rules prints the rule rows of docs/rules.md by id, family or rule reference, a one-line index with no argument, and one section of docs/checklists.md with --checklist, from the pages the binary embeds, and the skill names it in place of the pinned rules page, because agents in the bench fetched those pages from GitHub or dug them out of the module cache, a turn per lookup.
 - 2026-10-29: the gen family, rule rules/4.17@1, denies an agent's edit of a generated file or of the generation manifest and a bare golaw:handwritten marker, each with the contract or the command that fixes it, and notes a marked handwritten file in scan, because a generated file is rewritten from its contract and an edit of its output is lost or drifts.
 - 2026-10-29: M7 adds golaw new, which writes a port, an adapter over SQL or HTTP, a use case or a handler from its contract with the regenerable part, the owned part with one hole and one red test per method, the shared support package and the wiring, because the agent should decide domain logic only.
 - 2026-10-29: M7 adds golaw gen and golaw gen --check, which regenerate every regenerable file from its contracts and fail the pipeline on drift or an open hole, because a hand edit of generated code and a forgotten hole must never reach the gate.

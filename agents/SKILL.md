@@ -9,7 +9,7 @@ Run `golaw map` before you explore. Create a port, adapter, use case or handler 
 
 Queries go through the pinned sqlc and HTTP contracts through the pinned oapi-codegen, both run by `golaw gen`; write the migration and the query before `golaw new adapter sql`.
 
-Read golaw.yml and the rules of the kit, https://github.com/cristianargotti/golaw/blob/v0.3.0/docs/rules.md, before changing the repository.
+Read golaw.yml before changing the repository. Read a rule with `golaw rules <id>` (a family such as `goast` works; no argument lists every id) and a checklist with `golaw rules --checklist <name>`: your binary carries the kit's docs/rules.md and docs/checklists.md, so never fetch them from GitHub or the module cache.
 
 Reuse in this order: existing repository code, the standard library, an existing platform capability, an installed dependency, then the smallest implementation that meets the need. Preserve boundary validation, error handling, and security. Record every new direct dependency and its alternatives in the configured decisions directory.
 
@@ -47,4 +47,4 @@ Cursor is a compatibility preview. Write and Delete payloads are captured by key
 
 After a Codex hook definition changes, review it through /hooks. Never write hooks.state yourself.
 
-The rules page carries the prose mapping. Read docs/checklists.md of the kit at the same tag. Use its conditional checks and evidence record, and docs/context-template.md for hexagonal context shapes.
+The rules page carries the prose mapping. Use the conditional checks and evidence record of the checklists, and docs/context-template.md of the kit at the same tag for hexagonal context shapes.

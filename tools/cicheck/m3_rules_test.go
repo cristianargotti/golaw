@@ -80,7 +80,8 @@ func TestM3SkillPointsToDeliveredGuides(t *testing.T) {
 		t.Fatal(reason)
 	}
 	requireText(t, m3SkillPath,
-		"Read docs/checklists.md of the kit at the same tag.",
+		"`golaw rules --checklist <name>`",
+		"Use the conditional checks and evidence record of the checklists",
 		"Policy-file checks run in scan and staged scan, not in agent events.",
 		"Outside the declared subset is Unmeasured, never a finding.",
 		"An armed pre-commit rung names that limit and leaves it to the pipeline.",

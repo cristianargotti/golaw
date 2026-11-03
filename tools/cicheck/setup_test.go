@@ -46,19 +46,22 @@ func TestReadmePinsTheInstall(t *testing.T) {
 	)
 }
 
-// TestSkillPinsTheRulesOfTheKit holds the skill to a rules page every
-// adopting repository can open: init writes no docs/rules.md there, so the
-// skill names the page of the kit at the tag the setup page installs.
-func TestSkillPinsTheRulesOfTheKit(t *testing.T) {
+// TestSkillReadsTheRulesFromTheBinary holds the skill to the rules every
+// adopting repository can read: init writes no docs/rules.md there, and an
+// agent sent to a page fetched it from the network in the bench, so the
+// skill names the command that prints the pages the binary embeds.
+func TestSkillReadsTheRulesFromTheBinary(t *testing.T) {
 	t.Parallel()
-	pinned := regexp.MustCompile(`https://github\.com/cristianargotti/golaw/blob/(v\d+\.\d+\.\d+)/docs/rules\.md`)
-	skill := pinned.FindStringSubmatch(string(kitBytes(t, "agents/SKILL.md")))
-	setup := regexp.MustCompile(`golaw@(v\d+\.\d+\.\d+)\n`).FindStringSubmatch(string(kitBytes(t, "docs/setup.md")))
-	if skill == nil || setup == nil || skill[1] != setup[1] {
-		t.Fatalf("the skill pins %v, docs/setup.md installs %v", skill, setup)
+	skill := string(kitBytes(t, "agents/SKILL.md"))
+	for _, want := range []string{"`golaw rules <id>`", "`golaw rules --checklist <name>`", "never fetch them from GitHub"} {
+		if !strings.Contains(skill, want) {
+			t.Errorf("the skill does not name %s", want)
+		}
 	}
-	if strings.Contains(string(kitBytes(t, "agents/SKILL.md")), "Read docs/rules.md") {
-		t.Fatal("the skill points at a rules page adopting repositories do not hold")
+	for _, stale := range []string{"Read docs/rules.md", "blob/v", "Read docs/checklists.md"} {
+		if strings.Contains(skill, stale) {
+			t.Errorf("the skill points at a page adopting repositories do not hold: %s", stale)
+		}
 	}
 }
 
