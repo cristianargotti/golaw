@@ -18,7 +18,9 @@ jobs:
   gate:
     if: github.repository == 'cristianargotti/golaw'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The release rows of M1 to M7 run in one job; with M7 they passed 30
+    # minutes, so the gate takes the 60 the acceptance jobs of ci.yml take.
+    timeout-minutes: 60
     permissions:
       contents: read
       actions: read
