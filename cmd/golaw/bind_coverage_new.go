@@ -83,7 +83,11 @@ func (r *newCodeRun) measure(ctx context.Context) (newcode.Report, error) {
 	if err != nil {
 		return newcode.Report{}, err
 	}
-	added, err := newcode.NewLines(ctx, r.root, base)
+	newLines := newcode.NewLines
+	if r.options.Worktree {
+		newLines = newcode.WorktreeLines
+	}
+	added, err := newLines(ctx, r.root, base)
 	if err != nil {
 		return newcode.Report{}, fmt.Errorf("the new lines since %s: %w", base, err)
 	}
