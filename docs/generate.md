@@ -122,6 +122,7 @@ generate:
 | `golaw gen [path] [--json]` | regenerates every regenerable file, appends the stubs of new methods, runs the pinned sqlc, oapi-codegen and goverter through `go tool -modfile=tools/go.mod`, skipping with a `skipped <tool> <config>: not applicable` line each one whose inputs the checkout never wrote and whose output holds no file, as `--check` does, then the mechanical fixes and the safe linter autofixes | 0, 1 when a decision is pending, 2 when a generator failed with its output named |
 | `golaw gen --check [path] [--json]` | renders in memory and writes nothing; fails on drift (a regenerable file that differs, a missing one, an entry whose contract is gone, a stale third party output) and on any open hole | 0 clean, 1 drift or an open hole, 2 unmeasured |
 | `golaw map [--budget <tokens>] [--area <area>] [--json]` | prints the layers, the ports and their methods, the adapters, use cases, handlers and contracts, then every other file marked handwritten with its reason, open holes first, within 2 000 tokens by default | 0, 2 outside an enrolled repository |
+| `golaw context <area> [path] [--budget <tokens>] [--json]` | prints one area by layer, signatures only: the ports with their method signatures, the use cases with constructor, methods and input and output fields, the domain types they reference with their constants, the adapters and handlers around the area with constructors and the route table, the columns of the tables its queries touch, the sqlc queries with their kind, where the wiring builds each part, the test file to copy per layer and the `golaw new` commands that fit, within 4 000 tokens by default, the last sections dropped first with a count | 0, 2 outside an enrolled repository or for an unknown area, which names the areas there are |
 
 The lines they print:
 
@@ -136,6 +137,8 @@ golaw gen --check: clean, 0 drift, 0 open holes
 ```
 
 `golaw gen --check` runs first in the `generate-check` target of `make ci`, so a hand edit, logic hidden in a generated file and a forgotten hole all fail the remote gate; `init` never arms it locally.
+
+`golaw context <area>` is the one read before a feature in an area: agents adding an endpoint with a table, or a field across layers, to an enrolled hexagonal service spent about 35 exploration commands per task reading the neighboring adapters, handlers, migrations and wiring, each a turn that rereads the whole conversation. It reads the snapshot with go/parser alone. An adapter belongs to the area when it asserts one of its ports, has every method of one with the same parameter count (a port whose methods take no parameter, such as a clock, is too plain to judge by names), or, in an SQL adapter directory, calls one of the area's queries; a query file is the area's when a manifest entry of the area names it or its name is a word of the area's ports, use cases or types (`plans.sql` for `PlanLedger`). The tables replay the up part of every migration under `db/migrations`, `pk` marking the primary key and `null` a column without NOT NULL; `--json` prints every section whole.
 
 ## The agent path
 
