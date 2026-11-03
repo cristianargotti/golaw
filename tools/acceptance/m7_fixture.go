@@ -26,6 +26,12 @@ const (
 // m7Fixture reads one directory of the M7 fixture, keyed by slash path
 // without the escaped suffix, which every file carries so no tool the kit
 // runs over itself reads a fixture contract as the kit's own code.
+
+// m7LongPaths lifts the 260 character path limit of Git for Windows in a
+// fixture repository: a generated handler test below a test's temporary
+// directory passes it, and git add then fails with "Filename too long".
+func m7LongPaths() []string { return []string{"config", m2TimingLongPaths, "true"} }
+
 func m7Fixture(root, dir string) (map[string][]byte, error) {
 	base := filepath.Join(root, filepath.FromSlash(m7FixtureRoot), dir)
 	files := make(map[string][]byte)
@@ -104,7 +110,7 @@ func (s *m7Suite) m7Repository(ctx context.Context, name string, thirdParty bool
 			return m7Repo{}, err
 		}
 	}
-	if err := s.gitSteps(ctx, dir, []string{commandInit, m2Quiet}); err != nil {
+	if err := s.gitSteps(ctx, dir, []string{commandInit, m2Quiet}, m7LongPaths()); err != nil {
 		return m7Repo{}, err
 	}
 	if err := success(s.m5Golaw(ctx, dir, commandInit, m5CapabilitiesFlag, m7Capabilities, flagApply)); err != nil {

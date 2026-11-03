@@ -59,7 +59,7 @@ func (s *m7Suite) m7Adopted(ctx context.Context, name, capabilities string, file
 	if err := m6WriteFiles(dir, files); err != nil {
 		return "", result{}, err
 	}
-	if err := s.gitSteps(ctx, dir, []string{commandInit, m2Quiet}); err != nil {
+	if err := s.gitSteps(ctx, dir, []string{commandInit, m2Quiet}, m7LongPaths()); err != nil {
 		return "", result{}, err
 	}
 	return dir, s.m5Golaw(ctx, dir, commandInit, m5CapabilitiesFlag, capabilities, flagApply), nil
