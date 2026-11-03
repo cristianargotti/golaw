@@ -21,6 +21,7 @@ type coverageOptions struct {
 	Base       string
 	NewCode    bool
 	SinceTag   bool
+	Worktree   bool // golaw check: the new lines of the worktree, not only of HEAD
 	Floors     coverage.Floors
 	Set        map[string]bool
 }

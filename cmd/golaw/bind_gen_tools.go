@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 
@@ -26,19 +25,8 @@ const goExt = ".go"
 // goBinary answers the go command of the binding's PATH. The environment is
 // the binding's, never the process's, so a test's fake go is the one found.
 func (b binding) goBinary() (string, error) {
-	windows := runtime.GOOS == "windows"
-	name := "go"
-	if windows {
-		name += ".exe"
-	}
-	for _, dir := range filepath.SplitList(pathOf(b.environ())) {
-		if dir == "" {
-			continue
-		}
-		candidate := filepath.Join(dir, name)
-		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() && (windows || info.Mode().Perm()&0o111 != 0) {
-			return candidate, nil
-		}
+	if found := onPath(b.environ(), "go"); found != "" {
+		return found, nil
 	}
 	return "", fmt.Errorf("%w: go is not on PATH", thirdparty.ErrMissing)
 }
