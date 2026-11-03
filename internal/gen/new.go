@@ -16,9 +16,6 @@ func New(ctx context.Context, in Input, kind string, req genkind.Request) (Resul
 	if err != nil {
 		return Result{}, err
 	}
-	if err := p.ensureSupport(ctx); err != nil {
-		return Result{}, err
-	}
 	if kind != genkind.KindSupport {
 		if err := p.create(ctx, k, req, 0); err != nil {
 			return Result{}, err
@@ -27,15 +24,16 @@ func New(ctx context.Context, in Input, kind string, req genkind.Request) (Resul
 			return Result{}, err
 		}
 	}
+	if err := p.ensureSupport(ctx); err != nil {
+		return Result{}, err
+	}
 	return p.result(true)
 }
 
-// ensureSupport writes the support package the first time a kind is
-// generated, because every generated part calls it and none copies it.
+// ensureSupport writes the parts of the support package the run's code
+// uses, after every kind of the run is planned so the overlay holds that
+// code; a part already in the repository is kept, so a run never shrinks it.
 func (p *plan) ensureSupport(ctx context.Context) error {
-	if p.manifest.Support.Path != "" {
-		return nil
-	}
 	k, ok := p.lookupKind(genkind.KindSupport)
 	if !ok {
 		return nil

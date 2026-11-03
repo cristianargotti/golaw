@@ -26,9 +26,13 @@ func (kind) Template() int { return templateVersion }
 
 // New writes a port's test package and asks for its consuming use case. A
 // port the area does not declare yet gets its interface stub, so the agent
-// declares the methods and the hook regenerates the rest.
+// declares the methods and the hook regenerates the rest; a port the area
+// already declares by hand is adopted: only its test package is written.
 func (kind) New(_ context.Context, in genkind.Input, req genkind.Request) (genkind.Output, error) {
 	if err := validate(req); err != nil {
+		return genkind.Output{}, err
+	}
+	if err := consumer(in.Manifest, req); err != nil {
 		return genkind.Output{}, err
 	}
 	dir := strings.ReplaceAll(in.Policy.Layout.Port, "{area}", req.Name.Area)

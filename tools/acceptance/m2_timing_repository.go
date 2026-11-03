@@ -86,7 +86,7 @@ func (s *suite) m2TimingBootstrap(ctx context.Context, repo string) error {
 	// The kit's fixture paths below a test's temporary directory pass the
 	// 260 character limit of Windows, which Git for Windows lifts per repo,
 	// from the hooks git init copies on.
-	longPaths := []string{"config", m2TimingLongPaths, "true"}
+	longPaths := m7LongPaths()
 	initArgs := []string{"-c", m2TimingLongPaths + "=true", commandInit, m2Quiet}
 	if err := s.gitSteps(ctx, repo, initArgs, longPaths); err != nil {
 		return err

@@ -54,6 +54,7 @@ golaw scan --staged
 - Security model and recovery: `docs/security.md`.
 - Agent contracts and evidence: `docs/agent-contracts.md`.
 - Generators, golaw new, golaw gen and golaw map: `docs/generate.md`.
+- One command for every gate the pipeline fails on, over the change: `docs/check.md`.
 - The laws of this repository: `CONTRIBUTING.md`.
 - Security policy: `SECURITY.md`.
 - Decision records: `docs/adr/`.

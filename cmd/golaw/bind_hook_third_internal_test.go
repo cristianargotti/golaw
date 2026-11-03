@@ -75,6 +75,11 @@ func TestTheHookLeavesTheOutputToGolawGenWhenItCannotRunTheGenerator(t *testing.
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			h := regenBinding(t)
+			// Only the budget row judges the hook's own limit; the others
+			// prove a cause, which a slow machine must not turn into a timeout.
+			if tc.behavior == nil || tc.behavior.Delay == "" {
+				h.toolLimit = slowMachineToolLimit
+			}
 			if tc.behavior != nil {
 				warmGenerators(t, h, *tc.behavior)
 			}

@@ -47,3 +47,23 @@ func compareAsset(t *testing.T, source fs.FS, name string) error {
 	}
 	return nil
 }
+
+func TestEmbeddedDocsAreTheRepositoryPages(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"docs/rules.md", "docs/checklists.md"} {
+		want, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := golaw.Docs.ReadFile(name)
+		if err != nil {
+			t.Fatalf("embedded page missing: %s: %v", name, err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Errorf("embedded page differs from the repository page: %s", name)
+		}
+	}
+	if _, err := golaw.Docs.ReadFile("docs/setup.md"); err == nil {
+		t.Error("a page outside the rules and checklists is embedded")
+	}
+}

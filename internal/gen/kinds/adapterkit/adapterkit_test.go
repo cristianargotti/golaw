@@ -102,7 +102,7 @@ func TestFromRequestRefusesWithTheFix(t *testing.T) {
 		text    string
 	}{
 		{"no port flag", adapterRequest("postgres", "Plans", ""), []manifest.Entry{portEntry()}, genkind.ErrRequest, "--port"},
-		{"a port without its entry", adapterRequest("postgres", "Plans", "growth.Ledger"), nil, genkind.ErrRequest, "golaw new port growth.Ledger --usecase"},
+		{"a port without its entry", adapterRequest("postgres", "Plans", "growth.Ledger"), nil, genkind.ErrRequest, "run golaw new port growth.Ledger first"},
 		{"a package that is not a Go name", adapterRequest("post-gres", "Plans", "growth.Ledger"), []manifest.Entry{portEntry()}, genkind.ErrRequest, "post-gres"},
 		{"a type that is not exported", adapterRequest("postgres", "plans", "growth.Ledger"), []manifest.Entry{portEntry()}, genkind.ErrRequest, "exported"},
 		{"an instance that exists", adapterRequest("postgres", "Plans", "growth.Ledger"), []manifest.Entry{portEntry(), existing}, genkind.ErrExists, "internal/adapters/out/postgres/zz_generated_plans.go"},

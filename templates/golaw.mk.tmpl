@@ -6,6 +6,11 @@ FUZZTIME ?= 30s
 GOLAW_ENROLLED ?=
 MUTATION_BASE ?= origin/main
 COVERAGE_BASE ?=
+# The lint judges the new code, the way Sonar way does: the lines since the
+# fork from LINT_BASE, so a kit upgrade with a stricter rule never turns code
+# the change did not touch red. A base git cannot resolve lints everything.
+LINT_BASE ?= $(firstword $(foreach ref,origin/HEAD origin/main origin/master,$(shell git rev-parse -q --verify $(ref)^{commit} >/dev/null 2>&1 && echo $(ref))))
+LINT_NEW = $(if $(LINT_BASE),$(shell git rev-parse -q --verify '$(LINT_BASE)^{commit}' >/dev/null 2>&1 && echo --new-from-merge-base=$(LINT_BASE)))
 {{- if has .Capabilities "db"}}
 MIGRATIONS ?= db/migrations/*.sql
 {{- end}}
@@ -31,7 +36,7 @@ fmt:
 	golaw lock pre-commit -- golangci-lint fmt ./...
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run $(LINT_NEW) ./...
 
 vet:
 	go vet ./...

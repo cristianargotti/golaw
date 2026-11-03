@@ -40,14 +40,18 @@ type Output struct {
 // waits at most a second for its pipes, and answers the context's error;
 // any exit status is an Output without an error, so the caller reads Code.
 func Run(ctx context.Context, c Command) (Output, error) {
-	cmd := exec.CommandContext(ctx, c.Name, c.Args...) //nolint:gosec // the kit names the program and its arguments
-	cmd.Dir, cmd.Env, cmd.Stdin, cmd.WaitDelay = c.Dir, c.Env, c.Stdin, waitDelay
-	stdout, stderr := &bounded{limit: MaxOutputBytes}, &bounded{limit: MaxOutputBytes}
-	cmd.Stdout, cmd.Stderr = stdout, stderr
-	err := cmd.Run()
-	out := Output{Stdout: stdout.buf.Bytes(), Stderr: stderr.buf.Bytes()}
+	p, err := Start(ctx, c, nil)
+	if err != nil {
+		return Output{}, err
+	}
+	return p.Wait(ctx)
+}
+
+// outcome maps the end of a process: a context that ended first is its
+// error, any exit status is an Output, anything else is ErrStart.
+func outcome(ctx context.Context, name string, out Output, err error) (Output, error) {
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return out, fmt.Errorf("run %s: %w", c.Name, ctxErr)
+		return out, fmt.Errorf("run %s: %w", name, ctxErr)
 	}
 	// exec answers ErrWaitDelay for a program that exited 0 while a
 	// descendant still held its pipes: the program ran, and the bounded wait
@@ -59,7 +63,7 @@ func Run(ctx context.Context, c Command) (Output, error) {
 		out.Code = exit.ExitCode()
 		return out, nil
 	}
-	return out, fmt.Errorf("%w: %s: %w", ErrStart, c.Name, err)
+	return out, fmt.Errorf("%w: %s: %w", ErrStart, name, err)
 }
 
 // bounded keeps the first limit bytes written to it and drops the rest

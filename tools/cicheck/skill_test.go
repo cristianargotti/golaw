@@ -21,7 +21,7 @@ func TestCanonicalSkill(t *testing.T) {
 		"one use case per file",
 		"400 changed lines",
 		"Ask before pushing or opening a pull request.",
-		"Run golaw scan . before finishing.",
+		"Run `golaw check` once the change is written",
 		"Run golaw scan --staged before finishing staged work.",
 	)
 	copies, err := filepath.Glob("../../agents/*/skills/golaw/SKILL.md")
