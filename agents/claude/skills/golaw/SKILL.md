@@ -5,7 +5,7 @@ description: Use for Go implementation, tests, refactoring, review, dependencies
 
 # Go engineering with golaw
 
-Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new` (`golaw new --help` shows one line per kind); in an area written by hand, `golaw new port <area>.<Port>` adopts or stubs the port without `--usecase` and `golaw new adapter sql|http <pkg>.<Type> --port <area>.<Port>` writes the adapter, while the use cases stay yours. Do not read the zz_generated files: the command prints each hole with its file and line. Never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish.
+Start with `golaw context <area>` (`golaw map` lists the areas): it prints the area's ports, use cases, types, adapters, routes, tables, queries, wiring and the test to copy per layer, so open only the files you edit. Create a port, adapter, use case or handler with `golaw new` (`golaw new --help` shows one line per kind); in an area written by hand, `golaw new port <area>.<Port>` adopts or stubs the port without `--usecase` and `golaw new adapter sql|http <pkg>.<Type> --port <area>.<Port>` writes the adapter, while the use cases stay yours. Do not read the zz_generated files: the command prints each hole with its file and line. Never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish.
 
 Queries go through the pinned sqlc and HTTP contracts through the pinned oapi-codegen, both run by `golaw gen`; write the migration and the query before `golaw new adapter sql`.
 
@@ -33,7 +33,7 @@ Write a failing test first, observe its failure, implement the smallest complete
 
 Policy-file checks run in scan and staged scan, not in agent events. Checks apply only with their required capabilities; a missing capability makes a check inapplicable. Read configuration only through each reader's declared subset. Outside the declared subset is Unmeasured, never a finding. A stated limit names the file, line and construct the verdict depends on; unrelated unsupported syntax is skipped. Required Unmeasured results fail scan and remote CI. An armed pre-commit rung names that limit and leaves it to the pipeline. That limit alone does not refuse the commit and is not clean evidence; it does not excuse other failures.
 
-Run golaw scan . before finishing. Run golaw scan --staged before finishing staged work. Local checks are optional aids. Remote CI or the platform pipeline is the only hard gate.
+Run `golaw check` once the change is written: it runs every pipeline gate on what you changed and prints only what is red, so fix that and run it again instead of running go test, go vet, golangci-lint, golaw scan or coverage one by one. Run golaw scan --staged before finishing staged work. Local checks are optional aids. Remote CI or the platform pipeline is the only hard gate.
 
 Run golaw lint --surface before finishing when you changed a non-Go file. Move an inline script into a file, and export the code a test needs instead of evaluating it.
 

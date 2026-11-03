@@ -85,7 +85,7 @@ func TestM3SkillPointsToDeliveredGuides(t *testing.T) {
 		"Policy-file checks run in scan and staged scan, not in agent events.",
 		"Outside the declared subset is Unmeasured, never a finding.",
 		"An armed pre-commit rung names that limit and leaves it to the pipeline.",
-		"Run golaw scan . before finishing.",
+		"Run `golaw check` once the change is written",
 		"Run golaw scan --staged before finishing staged work.",
 	)
 	for _, forbidden := range []string{

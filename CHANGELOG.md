@@ -77,6 +77,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-11-03: the skill and the rule files of the other agents open with golaw context <area>, run golaw check once the change is written in place of each gate one by one, and read rules with golaw rules, because in the bench the turns of exploration and verification, not the code written, carried most of the cost.
 - 2026-11-03: golaw new writes only the parts of the support package the repository's code uses, and the agent skill says generated files do not count toward the 400 line size and need no review, because in an adopted repository the first golaw new wrote 21 files and about 1 800 lines the change never called and agents spent turns justifying or refusing them.
 - 2026-11-03: make lint judges the new code since the fork from origin/HEAD, origin/main or origin/master (LINT_BASE), and lints everything when git resolves none, because a kit upgrade with a stricter rule, such as argument-limit 7, turned code the change never touched red and agents refactored it outside the task.
 - 2026-11-02: golaw new port takes no --usecase in an area whose use cases are written by hand, adopting a port the area declares (its test package only) or stubbing a new one, so the adapter kinds reach the ports of an existing repository; the bench gate found that every area of an adopted repository is written by hand and the generators refused all of them.
