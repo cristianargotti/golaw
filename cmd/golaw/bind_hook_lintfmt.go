@@ -35,7 +35,7 @@ func (h hookBinding) lintFmt(root string) fmtStage {
 		// never writes a temporary file (M6.6.1).
 		run, err := toolchain.Exec(ctx, toolchain.Request{
 			Path: resolved.Path, Args: []string{"fmt", "--stdin"}, Stdin: content,
-			Dir: root, Env: env, Timeout: toolchain.HookToolBudget,
+			Dir: root, Env: env, Timeout: h.toolTimeout(),
 		})
 		// A linter that failed, was killed or printed nothing leaves the
 		// bytes of the in process fixes: the pipeline formats them anyway.

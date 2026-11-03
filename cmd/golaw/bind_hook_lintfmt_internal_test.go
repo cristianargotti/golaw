@@ -60,6 +60,7 @@ func lintFmtRun(t *testing.T, h hookBinding) (string, []fixedFile) {
 func TestTheLinterFormatterRunsOnTheBytesTheInProcessFixesLeft(t *testing.T) {
 	t.Parallel()
 	h := regenBinding(t)
+	h.toolLimit = slowMachineToolLimit
 	dir := installLinter(t, h, runnertest.Behavior{Stdout: linterDone, Stdin: true})
 	got, fixed := lintFmtRun(t, h)
 	if got != linterDone || len(fixed) != 1 || !slices.Equal(fixed[0].parts, []string{"go/format", "imports fixed", "golangci-lint fmt"}) {
