@@ -55,6 +55,17 @@ jobs:
         run: npm install --global @anthropic-ai/claude-code@2.1.299
       - name: Install the pinned Codex CLI
         run: npm install --global @openai/codex@0.163.0
+      # The M7 rows run make ci of a generated repository, so the gate
+      # carries the tools the generated pipeline installs.
+      - name: Install the pinned tools of the generated pipeline
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+          go install -ldflags=-X=github.com/zricethezav/gitleaks/v8/version.Version=v8.30.1 github.com/zricethezav/gitleaks/v8@v8.30.1
+          go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+      - name: Install the contract linter
+        run: npm install --global @redocly/cli@2.5.0
+      - name: Install the migration linter
+        run: npm install --global squawk-cli@2.35.0
       - id: acceptance
         name: Require the release rows and the dated live record
         run: go run ./tools/acceptance -release
