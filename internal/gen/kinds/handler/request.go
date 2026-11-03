@@ -114,7 +114,7 @@ func areaOf(in genkind.Input, name, field string, taken map[string]bool) (area, 
 	fakes := make([]fake, 0, len(ports))
 	for _, port := range ports {
 		if _, ok := in.Manifest.Lookup(genkind.KindPort, name+"."+port); !ok {
-			return area{}, fmt.Errorf("%w: port %s.%s has no generated fake: run golaw new port %s.%s --usecase <UseCase> first", genkind.ErrRequest, name, port, name, port)
+			return area{}, fmt.Errorf("%w: port %s.%s has no generated fake: run golaw new port %s.%s first", genkind.ErrRequest, name, port, name, port)
 		}
 		pkg := strings.ToLower(port) + "test"
 		f := fake{Port: port, Ident: pkg, Import: genkind.Import{

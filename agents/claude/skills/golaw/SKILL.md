@@ -5,7 +5,7 @@ description: Use for Go implementation, tests, refactoring, review, dependencies
 
 # Go engineering with golaw
 
-Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new`; never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish.
+Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new` (`golaw new --help` shows one line per kind); in an area written by hand, `golaw new port <area>.<Port>` adopts or stubs the port without `--usecase` and `golaw new adapter sql|http <pkg>.<Type> --port <area>.<Port>` writes the adapter, while the use cases stay yours. Do not read the zz_generated files: the command prints each hole with its file and line. Never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish.
 
 Queries go through the pinned sqlc and HTTP contracts through the pinned oapi-codegen, both run by `golaw gen`; write the migration and the query before `golaw new adapter sql`.
 

@@ -142,7 +142,8 @@ func TestNewPortRefusesWhatItCannotGenerate(t *testing.T) {
 		want    error
 		text    string
 	}{
-		"red: no use case":                                       {req: request("Ledger", ""), want: genkind.ErrRequest, text: "golaw new port needs --usecase"},
+		"red: no use case where golaw writes the use cases":      {entries: []manifest.Entry{{Kind: genkind.KindUsecase, Name: "growth.ReadPlan"}}, req: request("Wallet", ""), want: genkind.ErrRequest, text: "golaw new port growth.Wallet needs --usecase"},
+		"near: no use case where the use cases are hand written": {req: request("Wallet", "")},
 		"red: an area that is not a package name":                {req: genkind.Request{Name: genkind.Name{Area: "Growth", Type: "Ledger"}, Usecase: "ReadPlan"}, want: genkind.ErrRequest, text: "is not <area>.<Type>"},
 		"red: a type that is not exported":                       {req: request("ledger", "ReadPlan"), want: genkind.ErrRequest, text: "is not <area>.<Type>"},
 		"red: a use case that is not a Go name":                  {req: request("Ledger", "read-plan"), want: genkind.ErrRequest, text: "--usecase read-plan"},

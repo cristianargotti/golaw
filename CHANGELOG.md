@@ -74,6 +74,7 @@ Native CI evidence for the m2 job awaits its first run, as [the M2 acceptance re
 
 ### Changed
 
+- 2026-11-02: golaw new port takes no --usecase in an area whose use cases are written by hand, adopting a port the area declares (its test package only) or stubbing a new one, so the adapter kinds reach the ports of an existing repository; the bench gate found that every area of an adopted repository is written by hand and the generators refused all of them.
 - 2026-11-02: agent install writes a plugin version that carries a digest of the skill and the hooks, and a project installation registers a marketplace named after the project and turns the person's golaw plugin off there, because the plugin host keeps a plugin under its manifest version and one path per marketplace name, so no upgrade and no project copy reached it.
 - 2026-11-02: a golaw.yml whose kit pin differs from the binary names the version to install before any key the binary does not know, because the strict decode used to answer with a YAML field.
 - 2026-11-02: the wiring refuses, naming the file and the name, a main package whose other source file already declares Run, Wire, Infra or Serve, and docs/generate.md lists Run in the regenerable wiring, because the exported Run 967b0e6 added made an existing composition root that declares Run stop compiling after any golaw new.

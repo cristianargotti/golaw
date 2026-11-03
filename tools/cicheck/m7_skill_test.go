@@ -23,7 +23,7 @@ func m7InstructionPaths(t *testing.T) ([]string, []string) {
 // m7SkillRule and m7SkillPointer are the rule of M7.9.5 and its pointer
 // sentence, the first two paragraphs of the skill.
 const (
-	m7SkillRule    = "Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new`; never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish."
+	m7SkillRule    = "Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new` (`golaw new --help` shows one line per kind); in an area written by hand, `golaw new port <area>.<Port>` adopts or stubs the port without `--usecase` and `golaw new adapter sql|http <pkg>.<Type> --port <area>.<Port>` writes the adapter, while the use cases stay yours. Do not read the zz_generated files: the command prints each hole with its file and line. Never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish."
 	m7SkillPointer = "Queries go through the pinned sqlc and HTTP contracts through the pinned oapi-codegen, both run by `golaw gen`; write the migration and the query before `golaw new adapter sql`."
 	m7BlockLine    = "Run golaw map before you explore an enrolled repository; create kinds with golaw new, fill their golaw:hole markers, and pass golaw gen --check before you finish."
 )

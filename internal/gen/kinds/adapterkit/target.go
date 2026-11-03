@@ -43,7 +43,7 @@ func FromRequest(in genkind.Input, kind, layout string, req genkind.Request) (Ta
 	port := req.Port.String()
 	entry, ok := in.Manifest.Lookup(genkind.KindPort, port)
 	if !ok {
-		return Target{}, fmt.Errorf("%w: port %s has no manifest entry: run golaw new port %s --usecase <UseCase> first",
+		return Target{}, fmt.Errorf("%w: port %s has no manifest entry: run golaw new port %s first",
 			genkind.ErrRequest, port, port)
 	}
 	if len(entry.Contracts) == 0 {

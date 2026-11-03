@@ -35,7 +35,7 @@ Every kind writes a regenerable part, files whose first line is `// Code generat
 `golaw new adapter-sql` and `golaw new adapter sql` are the same command, as are the two spellings of the HTTP adapter. The decisions the templates fix:
 
 - One use case per `verb_object.go`, with `New<Verb><Object>` and `Execute(ctx, in)`; the consuming package declares its ports and the composition root chooses the implementation.
-- A port is never created alone: `golaw new port` requires `--usecase`, an existing use case or a new one, whose `Deps` consumes the port, because a port nothing consumes is an `iface` finding.
+- In an area whose use cases golaw generates, a port is never created alone: `golaw new port` requires `--usecase`, an existing use case or a new one, whose `Deps` consumes the port, because a port nothing consumes is an `iface` finding. In an area whose use cases are written by hand, `golaw new port <area>.<Port>` takes no `--usecase`: a port the area already declares is adopted (only its test package is written, the interface stays as it is) and a new one is stubbed in the area's `ports.go`, and the consumer is the person's code. An adopted or new port then takes `golaw new adapter sql` or `golaw new adapter http` like any other.
 - A constructor takes the port values or one `Deps` or `Config` struct, never more.
 - The SQL adapter's struct holds the sqlc `Queries` and nothing else; which sentinel to map and which refusal to answer live in the owned method, stated in its hole.
 - The handler is the one kind with two generators in sequence: oapi-codegen writes the server interface under `api/gen`, then golaw writes the handler that implements it.
@@ -169,7 +169,7 @@ The person reads the same lines in the configured language: `arquivo gerado`, `l
 
 The skill of every agent opens with this rule:
 
-Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new`; never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish.
+Run `golaw map` before you explore. Create a port, adapter, use case or handler with `golaw new` (`golaw new --help` shows one line per kind); in an area written by hand, `golaw new port <area>.<Port>` adopts or stubs the port without `--usecase` and `golaw new adapter sql|http <pkg>.<Type> --port <area>.<Port>` writes the adapter, while the use cases stay yours. Do not read the zz_generated files: the command prints each hole with its file and line. Never edit a generated file, edit its contract and the hook regenerates it. Fill the `golaw:hole` markers and their red tests; `golaw gen --check` must pass before you finish.
 
 and one pointer sentence: queries go through the pinned sqlc and HTTP contracts through the pinned oapi-codegen, both run by `golaw gen`. Claude also receives the map at session start; Codex and Cursor receive it through this rule.
 
