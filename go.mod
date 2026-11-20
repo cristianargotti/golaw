@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/quasilyte/go-ruleguard/dsl v0.3.23
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/mod v0.42.0
+	golang.org/x/mod v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
